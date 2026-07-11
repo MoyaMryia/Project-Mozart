@@ -1,0 +1,48 @@
+# Build
+build/
+build-*/
+*.o
+*.obj
+*.so
+*.a
+*.dylib
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+install_manifest.txt
+
+# Binaries
+mozart_post
+*_test
+
+# IDE
+.vscode/
+.idea/
+.cache/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models and assets (large binaries)
+assets/
+models/
+*.pth
+*.index
+*.pt
+*.onnx
+*.bin
+*.npy
+
+# Third-party submodules (clone separately)
+third_party/cpp-httplib/
+third_party/tomlplusplus/
+
+# Logs
+*.log
+logs/
