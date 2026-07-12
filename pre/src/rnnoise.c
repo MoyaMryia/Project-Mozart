@@ -4,8 +4,8 @@
 // as a mozart_stage_t that can be inserted into the preprocessing pipeline.
 //
 // RNNoise operates at 48 kHz / 10 ms frames (480 samples) internally.
-// The wrapper accepts the pipeline's 16 kHz / 20 ms contract frames; a
-// future revision will handle the 48→16 resampling internally.
+// This stage therefore only accepts native RNNoise frames. Resampling belongs
+// outside this stage.
 //
 // Two modes, selected at compile time:
 //   MOZART_USE_RNNOISE=1  → links native/rnnoise/; real denoising.
@@ -14,6 +14,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#define RNNOISE_FRAME_SAMPLES 480
+#define PCM16_SCALE 32768.0f
 
 #ifdef MOZART_USE_RNNOISE
 #include "rnnoise.h"          // xiph public header (DenoiseState, RNNModel, …)
@@ -31,9 +34,9 @@ static void rnnoise_model_free(RNNModel *m)
 static void rnnoise_destroy(DenoiseState *s)
     { (void)s; }
 static float rnnoise_process_frame(DenoiseState *s, float *o, const float *i)
-    { (void)s; memcpy(o, i, MOZART_FRAME_SAMPLES * sizeof(float)); return 0.0f; }
+    { (void)s; memcpy(o, i, RNNOISE_FRAME_SAMPLES * sizeof(float)); return 0.0f; }
 static int   rnnoise_get_frame_size(void)
-    { return MOZART_FRAME_SAMPLES; }
+    { return RNNOISE_FRAME_SAMPLES; }
 #endif
 
 // ---- Per-stage private data ------------------------------------------------
@@ -64,13 +67,24 @@ static int rnnoise_process(mozart_stage_t *self,
                            mozart_frame_meta_t *meta)
 {
     rnnoise_data_t *d = (rnnoise_data_t *)self->data;
-    (void)in_len;
-    (void)meta;
+    if (!in || !out || in_len != rnnoise_get_frame_size()) return -2;
 
     if (d && d->state) {
-        rnnoise_process_frame(d->state, out, in);
+        float scaled_in[RNNOISE_FRAME_SAMPLES];
+        float scaled_out[RNNOISE_FRAME_SAMPLES];
+        for (int i = 0; i < in_len; i++) scaled_in[i] = in[i] * PCM16_SCALE;
+
+        float vad_prob = rnnoise_process_frame(d->state, scaled_out, scaled_in);
+        for (int i = 0; i < in_len; i++) out[i] = scaled_out[i] / PCM16_SCALE;
+
+        if (meta) {
+            if (vad_prob < 0.0f) vad_prob = 0.0f;
+            if (vad_prob > 1.0f) vad_prob = 1.0f;
+            meta->conf = (uint8_t)(vad_prob * 255.0f + 0.5f);
+            meta->vad_flag = vad_prob >= 0.5f;
+        }
     } else {
-        memcpy(out, in, MOZART_FRAME_SAMPLES * sizeof(float));
+        memcpy(out, in, (size_t)in_len * sizeof(float));
     }
     return 0;
 }
@@ -117,8 +131,21 @@ mozart_stage_t *mozart_rnnoise_new(const char *model_path)
 
     if (model_path) {
         d->model = rnnoise_model_from_filename(model_path);
+#ifdef MOZART_USE_RNNOISE
+        if (!d->model) {
+            free(d);
+            return NULL;
+        }
+#endif
     }
     d->state = rnnoise_create(d->model);
+#ifdef MOZART_USE_RNNOISE
+    if (!d->state) {
+        if (d->model) rnnoise_model_free(d->model);
+        free(d);
+        return NULL;
+    }
+#endif
 #ifdef DEBUG
     fprintf(stderr, "[rnnoise] model=%p state=%p\n", (void*)d->model, (void*)d->state);
 #endif

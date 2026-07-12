@@ -74,6 +74,7 @@ int mozart_pipeline_process(mozart_pipeline_t *p,
                             mozart_frame_meta_t *meta)
 {
     if (!p || !in || !out || !meta) return -1;
+    if (in_len <= 0 || in_len > MOZART_FRAME_SAMPLES) return -2;
 
     const float *src = in;
     float *dst = out;

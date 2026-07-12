@@ -66,12 +66,8 @@ int main(void)
     int dso;
     write_wav_header(fout, SAMPLE_RATE, MOZART_CHANNELS, &dso);
 
-    mozart_pipeline_t *pl = mozart_pipeline_new();
-    if (!pl) { fprintf(stderr, "ERROR: pipeline new\n"); pclose(ffmpeg); fclose(fout); return 1; }
-
     mozart_stage_t *rn = mozart_rnnoise_new(NULL);
-    if (!rn) { fprintf(stderr, "ERROR: rnnoise new\n"); mozart_pipeline_destroy(pl); pclose(ffmpeg); fclose(fout); return 1; }
-    mozart_pipeline_add_stage(pl, rn);
+    if (!rn) { fprintf(stderr, "ERROR: rnnoise new\n"); pclose(ffmpeg); fclose(fout); return 1; }
 
     float in[FRAME_SAMPLES];
     float out[FRAME_SAMPLES];
@@ -84,7 +80,7 @@ int main(void)
         for (size_t i = n; i < FRAME_SAMPLES; i++) in[i] = 0.0f;
 
         meta.frame_idx = fc + 1;
-        int rc = mozart_pipeline_process(pl, in, FRAME_SAMPLES, out, &meta);
+        int rc = mozart_stage_process(rn, in, FRAME_SAMPLES, out, &meta);
         if (rc < 0) { fprintf(stderr, "frame %d error %d\n", fc, rc); break; }
 
         for (int i = 0; i < FRAME_SAMPLES; i++) {
@@ -99,7 +95,7 @@ int main(void)
     finalise_wav_header(fout, dso, ts);
     fclose(fout);
     pclose(ffmpeg);
-    mozart_pipeline_destroy(pl);
+    mozart_stage_destroy(rn);
 
     printf("Done: %d frames (%.2f s) -> %s\n", fc, (double)ts / SAMPLE_RATE, OUTPUT_FILE);
     return 0;
