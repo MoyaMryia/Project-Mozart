@@ -1,0 +1,61 @@
+[  4%] Building CXX object CMakeFiles/rvc_backend.dir/src/network/udp_server.cpp.o
+[  9%] Building CXX object CMakeFiles/test_packet.dir/src/network/packet.cpp.o
+[ 14%] Building CXX object CMakeFiles/test_packet.dir/tests/test_packet.cpp.o
+[ 19%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/network/packet.cpp.o
+[ 23%] Building CXX object CMakeFiles/rvc_backend.dir/src/network/packet.cpp.o
+[ 28%] Building CXX object CMakeFiles/rvc_backend.dir/src/main.cpp.o
+[ 38%] Building CXX object CMakeFiles/rvc_backend.dir/src/rvc/pipeline.cpp.o
+[ 38%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/network/udp_server.cpp.o
+[ 42%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/pipeline.cpp.o
+[ 47%] Building CXX object CMakeFiles/test_udp_loopback.dir/tests/test_udp_loopback.cpp.o
+[ 52%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/feature_extractor.cpp.o
+[ 57%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/inferencer.cpp.o
+[ 61%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/model_loader.cpp.o
+[ 66%] Building CXX object CMakeFiles/rvc_backend.dir/src/utils/config.cpp.o
+[ 71%] Building CXX object CMakeFiles/rvc_backend.dir/src/api/http_api.cpp.o
+[ 76%] Building CXX object CMakeFiles/rvc_backend.dir/src/rvc/inferencer.cpp.o
+[ 80%] Building CXX object CMakeFiles/rvc_backend.dir/src/rvc/feature_extractor.cpp.o
+[ 85%] Building CXX object CMakeFiles/rvc_backend.dir/src/rvc/model_loader.cpp.o
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/inferencer.cpp: In member function ‘std::vector<float> rvc::RVCInferencer::run_generator(const std::vector<float>&, const std::vector<float>&, const std::vector<float>&)’:
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/inferencer.cpp:86:31: warning: unused parameter ‘feats’ [-Wunused-parameter]
+   86 |     const std::vector<float>& feats,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/inferencer.cpp:87:31: warning: unused parameter ‘f0’ [-Wunused-parameter]
+   87 |     const std::vector<float>& f0,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/feature_extractor.cpp: In member function ‘std::vector<float> rvc::FeatureExtractor::extract_features(const std::vector<float>&, uint32_t)’:
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/feature_extractor.cpp:64:14: warning: unused parameter ‘sample_rate’ [-Wunused-parameter]
+   64 |     uint32_t sample_rate
+      |     ~~~~~~~~~^~~~~~~~~~~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/feature_extractor.cpp: In member function ‘std::vector<float> rvc::FeatureExtractor::f0_harvest(const std::vector<float>&, uint32_t)’:
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/feature_extractor.cpp:82:14: warning: unused parameter ‘sample_rate’ [-Wunused-parameter]
+   82 |     uint32_t sample_rate
+      |     ~~~~~~~~~^~~~~~~~~~~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/feature_extractor.cpp: In member function ‘std::vector<float> rvc::FeatureExtractor::f0_pm(const std::vector<float>&, uint32_t)’:
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/feature_extractor.cpp:93:14: warning: unused parameter ‘sample_rate’ [-Wunused-parameter]
+   93 |     uint32_t sample_rate
+      |     ~~~~~~~~~^~~~~~~~~~~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/utils/config.cpp: In member function ‘const YAML::Node& rvc::Config::section(const std::string&) const’:
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/utils/config.cpp:73:25: warning: returning reference to temporary [-Wreturn-local-addr]
+   73 |         return root_[key];
+      |                         ^
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/api/http_api.cpp: In member function ‘std::string rvc::HttpApiServer::handle_upload_model(int, const std::string&)’:
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/api/http_api.cpp:218:52: warning: unused parameter ‘client_fd’ [-Wunused-parameter]
+  218 | std::string HttpApiServer::handle_upload_model(int client_fd, const std::string& header) {
+      |                                                ~~~~^~~~~~~~~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/api/http_api.cpp:218:82: warning: unused parameter ‘header’ [-Wunused-parameter]
+  218 | std::string HttpApiServer::handle_upload_model(int client_fd, const std::string& header) {
+      |                                                               ~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/model_loader.cpp: In member function ‘bool rvc::RVCModel::load_generator(const std::string&, bool)’:
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/model_loader.cpp:87:50: warning: unused parameter ‘device’ [-Wunused-parameter]
+   87 | bool RVCModel::load_generator(const std::string& device, bool half) {
+      |                               ~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/moyamryia/Mozart/ai_voice_changer_kimi/src/rvc/model_loader.cpp:87:63: warning: unused parameter ‘half’ [-Wunused-parameter]
+   87 | bool RVCModel::load_generator(const std::string& device, bool half) {
+      |                                                          ~~~~~^~~~
+[ 90%] Linking CXX executable test_packet
+[ 90%] Built target test_packet
+[ 95%] Linking CXX executable rvc_backend
+[ 95%] Built target rvc_backend
+[100%] Linking CXX executable test_udp_loopback
+[100%] Built target test_udp_loopback

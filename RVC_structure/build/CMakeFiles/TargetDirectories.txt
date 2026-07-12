@@ -1,0 +1,5 @@
+/home/moyamryia/Mozart/ai_voice_changer_kimi/build/CMakeFiles/rvc_backend.dir
+/home/moyamryia/Mozart/ai_voice_changer_kimi/build/CMakeFiles/test_packet.dir
+/home/moyamryia/Mozart/ai_voice_changer_kimi/build/CMakeFiles/test_udp_loopback.dir
+/home/moyamryia/Mozart/ai_voice_changer_kimi/build/CMakeFiles/edit_cache.dir
+/home/moyamryia/Mozart/ai_voice_changer_kimi/build/CMakeFiles/rebuild_cache.dir
