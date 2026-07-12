@@ -64,6 +64,7 @@ add_library(mozart_pre_core STATIC
     src/pre.c
 )
 target_include_directories(mozart_pre_core PUBLIC include .)
+target_link_libraries(mozart_pre_core PUBLIC m)
 
 if(MOZART_USE_RNNOISE)
     target_link_libraries(mozart_pre_core PUBLIC rnnoise)

@@ -19,10 +19,12 @@ extern "C" {
 #endif
 
 // ---- Audio contract constants ------------------------------------------------
-#define MOZART_SAMPLE_RATE   16000   /**< Output sample rate (Hz).                  */
-#define MOZART_CHANNELS      1       /**< Output channel count (mono).              */
-#define MOZART_FRAME_MS      20      /**< Frame duration in milliseconds.           */
-#define MOZART_FRAME_SAMPLES 320     /**< Samples per frame (rate × ms / 1000).    */
+#define MOZART_INPUT_SAMPLE_RATE   48000 /**< Input sample rate (Hz).                */
+#define MOZART_INPUT_FRAME_SAMPLES 960   /**< Input samples per 20 ms frame.         */
+#define MOZART_SAMPLE_RATE         16000 /**< Contract output sample rate (Hz).      */
+#define MOZART_CHANNELS            1     /**< Input and output channel count.        */
+#define MOZART_FRAME_MS            20    /**< Frame duration in milliseconds.        */
+#define MOZART_FRAME_SAMPLES       320   /**< Contract output samples per frame.     */
 
 // ---- Per-frame metadata (12 bytes, packed) -----------------------------------
 #pragma pack(push, 1)
@@ -51,7 +53,7 @@ typedef struct {
 mozart_pre_ctx_t *mozart_pre_init   (const mozart_pre_config_t *cfg);
 int               mozart_pre_process(mozart_pre_ctx_t *ctx,
                                      const float *in, int in_samples,
-                                     float *out,
+                                     float out[MOZART_FRAME_SAMPLES],
                                      mozart_frame_meta_t *meta);
 void              mozart_pre_free   (mozart_pre_ctx_t *ctx);
 const char       *mozart_pre_version(void);
