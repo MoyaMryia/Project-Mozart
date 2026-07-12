@@ -28,7 +28,7 @@
 ## 项目结构
 
 ```
-ai_voice_changer/
+RVC_structure/
 ├── CMakeLists.txt       # 构建配置
 ├── README.md            # 本文档
 ├── config.yaml          # 运行时配置
