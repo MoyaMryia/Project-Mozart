@@ -99,4 +99,6 @@ std::vector<float> FeatureExtractor::f0_pm(
     return std::vector<float>(n_frames, 0.0f);
 }
 
+FeatureExtractor::~FeatureExtractor() = default;
+
 } // namespace rvc

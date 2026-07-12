@@ -122,6 +122,9 @@ if(BUILD_TESTS)
         src/network/packet.cpp
         src/network/udp_server.cpp
         src/rvc/pipeline.cpp
+        src/rvc/inferencer.cpp
+        src/rvc/feature_extractor.cpp
+        src/rvc/model_loader.cpp
     )
     target_include_directories(test_udp_loopback PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(test_udp_loopback PRIVATE spdlog::spdlog Threads::Threads)

@@ -14,6 +14,7 @@ namespace rvc {
 class Config {
 public:
     explicit Config(const YAML::Node& root);
+    Config() = default;
 
     static Config from_yaml(const std::string& path);
     static Config default_config(); // loads config.yaml from project root
