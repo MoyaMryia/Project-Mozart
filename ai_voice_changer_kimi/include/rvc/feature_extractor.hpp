@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <filesystem>
+#include <optional>
 
 namespace rvc {
 

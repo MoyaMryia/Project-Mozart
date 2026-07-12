@@ -119,6 +119,9 @@ mozart_stage_t *mozart_rnnoise_new(const char *model_path)
         d->model = rnnoise_model_from_filename(model_path);
     }
     d->state = rnnoise_create(d->model);
+#ifdef DEBUG
+    fprintf(stderr, "[rnnoise] model=%p state=%p\n", (void*)d->model, (void*)d->state);
+#endif
 
     mozart_stage_vtable_t vt = {
         .name    = "rnnoise",

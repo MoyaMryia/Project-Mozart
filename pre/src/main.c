@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define INPUT_FILE  "sample.m4a"
+#define INPUT_FILE  "noisy_sample.wav"
 #define OUTPUT_FILE "output.wav"
 
 #define FRAME_SAMPLES 480   // RNNoise native: 48 kHz × 10 ms
