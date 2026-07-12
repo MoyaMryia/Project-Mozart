@@ -1,7 +1,8 @@
 # AI 声卡 · 预处理阶段设计文档（Jetson-only）
 
 > Project Mozart · 预处理设计 v0.1（Jetson 纯软件版）
-> 后续 FPGA 版见 `docs/preprocessing-design-fpga.md`
+> 相关文档：`docs/preprocessing-design-fpga.md` — FPGA 后期工程形态
+> 预处理→后处理接口规格见本文 §4。
 
 ## 1. 设计目标
 
@@ -65,29 +66,62 @@ pub trait Stage {
 
 ## 4. 契约（预处理 → 后处理）
 
-这是两级架构的硬接口，先冻结。
+这是两级架构的硬接口。预处理把脏帧洗净、归一化、打标；后处理在干净帧上挂复杂 AI 能力。后处理不关心上游是 FPGA 还是纯软件——只要符合这段契约。
 
 ### 4.1 音频帧
-- 采样率：**16 kHz**（预处理内部 48 kHz 计算；输出降采样到 16 kHz，因 ASR/VAD/说话人等下游模型多为 16 kHz）
-- 声道：**mono**
-- 位深：**float32 PCM, [-1, 1]**
-- 帧时长：**20 ms（320 samples）**
 
-> 内部 48 kHz 而输出 16 kHz 是一个有意决策：去噪/AEC 在 48 kHz 全带上做才能保高频细节，再降采样给下游。若后处理将来需要 48 kHz，契约端加一个变体即可。
+| 项 | 值 | 备注 |
+|---|---|---|
+| 采样率 | **16 kHz** | ASR/说话人/VAD 主流 input，后处理不重采样 |
+| 声道 | **mono** | 多麦转单麦由预处理做，不传多通道 |
+| 位深 | **float32 PCM, [-1, 1]** | 已归一化，不传 int16 |
+| 帧时长 | **20 ms** = 320 samples | 与下游模型 chunk 对齐 |
+| 帧时序 | 因果，不 lookahead | 段级双向运算留后处理做 |
 
-### 4.2 元数据侧带
-每帧附 12 字节头：
+> 内部 48 kHz 去噪/AEC→结尾降采样到 16 kHz。若后处理需要 48 kHz，契约加变体即可。
 
-```
-[PTS_ns: u64][frame_idx: u32][vad_flag: u8][energy_db: u8][conf: u8][segment_id: u8]
-```
-- `vad_flag`：本帧是否含语音
-- `segment_id`：语音段编号，跨帧连续；静音帧 segment_id=0
-- `conf`：去噪置信度（0-255），后处理可据此降权
+### 4.2 元数据
+
+每帧附一份 `FrameMeta`，字段集已语义冻结（字节布局待后处理进来再定）：
+
+| 字段 | 类型 | 语义 | 产出模块 |
+|---|---|---|---|
+| `pts_ns` | u64 | 时间戳（纳秒，单调时钟）；0=无 PTS | ① I/O |
+| `frame_idx` | u32 | 预处理起累计帧号 | ① I/O |
+| `vad_flag` | u8 | 本帧是否含语音（0/1） | ⑧ VAD |
+| `segment_id` | u32 | 语音段编号，跨帧连续；静音帧=0 | ⑧ 打标 |
+| `energy_db` | i16 | 本帧 RMS 电平 dBFS | ⑧ 打标 |
+| `conf` | u8 | 去噪置信度（0–255）；255=最高，后处理可据此降权弃帧 | ⑤ 去噪 |
+| `reserved` | u8 × N | 保留，置零 | — |
 
 ### 4.3 传输形态
-- 进程内：`FrameBuf { samples: Box<[f32;320]>, meta: FrameMeta }` 走 mpmc 无锁队列
-- 跨进程/跨语言：每帧 = 4 字节魔数 + 12 字节 meta + 1280 字节 PCM = 1296 字节定长包，走 shared ring 或 PipeWire 虚流
+
+- **进程内**：`FrameBuf { samples: Box<[f32;320]>, meta: FrameMeta }` 走 lockfree mpmc 队列。不序列化。
+- **跨进程/跨语言**：定长包（魔数 + meta + PCM）走 shared ring 或 PipeWire 虚流。具体长度待字节布局冻结后定。
+- **背压**：bounded queue（默认 32 帧=640 ms），满则丢最旧帧 + counter+1。
+- **方向**：单向，pre→post；后处理不向前回压/发命令。
+- **顺序**：严格按 `frame_idx` 递增；乱序视为致命。
+
+### 4.4 流生命周期
+
+- 起始：pre 抓到首帧 → enqueue；post 空等首帧，`segment_id` 从 1 起，静音=0。
+- 段：`segment_id` 在 pre 模块 ⑧ 内累积；静音 ≥ N ms 开新段。后处理据 `segment_id` 做段级处理（ASR reset state / 说话人 embedding 等）。
+- 终止：pre 关闭时发 sentinel `FrameBuf { samples: [], vad_flag: SENTINEL }`；post 收到后做段尾 flush。
+
+### 4.5 错误与降级
+
+| 错误类型 | pre 行为 | post 看见什么 |
+|---|---|---|
+| I/O underrun | 推静音帧 + `pts_ns=0` | 视为静音帧（segment_id=0） |
+| 去噪失败 | 推未降噪帧 + `conf=0` | 可自降权重 |
+| buffer 溢出 | drop 最旧 + counter+1 | counter 上升，触告警 |
+| 致命初始化失败 | close channel | EOS |
+
+### 4.6 与 FPGA 的关系
+
+- FPGA 跑 RNNoise 时，Jetson pre 阶段 ⑤ 去噪变为 `IdentityStage`，其余 stage 不变，输出格式与上无一字之差。
+- FPGA 没跑时 pre ⑤ 用软件 RNNoise，输出格式与上无一字之差。
+- 后处理看到的帧永远是 16k mono f32 20ms + 同一份 FrameMeta。
 
 ## 5. 部署策略：用户态 + PipeWire 虚设备
 
