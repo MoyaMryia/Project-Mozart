@@ -10,7 +10,6 @@
 |------|------|
 | `preprocessor/` | 预处理管线：RNNoise 去噪 + 降采样 → 16kHz 契约流 |
 | `rvc-backend/` | RVC 变声后端：UDP 网络契约 + libtorch 推理 |
-| `backend-legacy/` | RVC 后端副本（待合并） |
 | `docs/` | 📚 **全部文档（已合并）** |
 | `reference/` | ZYNQ BTB 硬件参考原理图 |
 

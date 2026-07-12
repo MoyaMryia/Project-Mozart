@@ -99,19 +99,12 @@ Mozart/
 │   ├── tests/                       #   test_packet.cpp, test_udp_loopback.cpp
 │   ├── config.yaml
 │   └── README.md                    #   简要构建说明
-├── backend-legacy/                  # RVC 后端副本（待合并）
 └── reference/                       # ZYNQ 硬件参考原理图（原始文件）
 ```
 
 ---
 
-## 4. 后处理实现对比
 
-| 维度 | `rvc-backend/` | `backend-legacy/` |
-|------|-------------------|--------------------------|
-| 技术路线 | UDP-Contract（网络契约） | UDP-Contract（副本，待合并） |
-| 推理引擎 | libtorch（可选，Phase 1 为 stub） | 同上 |
-| 当前状态 | 两目录内容一致，后续合并方向待定 |
 
 ---
 
