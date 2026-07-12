@@ -1,0 +1,45 @@
+# Mozart Unified Configuration
+
+[audio]
+input_rate = 16000
+output_rate = 48000
+frame_ms = 20
+
+[source]
+type = "mock"  # "mock", "ring", "udp"
+ring_name = "mozart_pre_ring"
+
+[source.udp]
+port = 18000
+buffer_frames = 10
+
+[rvc]
+mock_mode = true
+models_dir = "models"
+hubert_model = "models/hubert_base.onnx"
+
+[rvc.params]
+pitch_shift = 0
+index_rate = 0.0
+filter_radius = 3
+rms_mix_rate = 0.25
+protect = 0.33
+frames_per_inference = 1
+
+[output]
+type = "dummy"  # "dummy", "pipewire", "udp"
+
+[output.pipewire]
+node_name = "mozart-virtual-source"
+node_description = "Mozart AI Voice Changer"
+
+[output.udp]
+dest_addr = "127.0.0.1"
+dest_port = 18001
+
+[server]
+enabled = true
+
+[server.config]
+bind_addr = "0.0.0.0"
+port = 18080
