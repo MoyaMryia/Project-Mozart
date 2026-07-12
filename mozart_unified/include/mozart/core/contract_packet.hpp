@@ -32,7 +32,7 @@ struct LegacyPacket {
 
     uint32_t seq = 0;
     uint64_t timestamp_us = 0;
-    uint16_t format_code = 0;
+    uint32_t format_code = 0;
     std::vector<int16_t> samples;
 
     std::vector<uint8_t> pack() const;
