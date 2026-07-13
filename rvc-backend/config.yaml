@@ -14,7 +14,7 @@ input:
     format: float32           # f32 PCM [-1.0, 1.0]
     frame_duration_ms: 20    # 20ms 帧 = 320 samples @ 16kHz
     bytes_per_sample: 4
-  # 元数据侧带（每帧固定 12 字节，见 interface_contract.md）
+  # 元数据侧带（每帧固定 16 字节，见 docs/RVC_BACKEND.md 或 docs/ARCHITECTURE.md）
   meta:
     enabled: true
     pts_enabled: true         # 纳秒级 PTS 时间戳

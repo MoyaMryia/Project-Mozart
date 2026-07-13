@@ -9,22 +9,6 @@
 namespace rvc {
 
 // ──────────────────────────────────────────────────────────
-// Legacy packet format (int16, 48kHz, backward compatible)
-// ──────────────────────────────────────────────────────────
-struct LegacyAudioPacket {
-    uint32_t seq = 0;
-    uint64_t timestamp_us = 0;
-    uint16_t format_code = 0;
-    std::vector<int16_t> samples;
-
-    static constexpr uint32_t MAGIC = 0x52415643; // 'RAVC'
-    static constexpr size_t HEADER_SIZE = 20;
-
-    std::vector<uint8_t> pack() const;
-    static std::optional<LegacyAudioPacket> unpack(const uint8_t* data, size_t len);
-};
-
-// ──────────────────────────────────────────────────────────
 // Contract stream packet (float32, from Project Mozart)
 // ──────────────────────────────────────────────────────────
 struct FrameMeta {
