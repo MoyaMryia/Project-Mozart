@@ -34,7 +34,7 @@ BIN_EXAMPLE    := $(BIN_DIR)/mozart_pre_example
 ARM_ARCH_FLAGS := -march=armv8.2-a+fp16+dotprod -mtune=cortex-a78ae
 OPT_FLAGS      := -O3 -ffast-math -funroll-loops -flto
 WARN_FLAGS     := -Wall -Wextra -Wpedantic
-INC_FLAGS      := -I$(INC_DIR) -I. -I$(RNNOISE_INC) -I$(RNNOISE_SRC)
+INC_FLAGS      := -I$(INC_DIR) -I. -I../IO/include -I$(RNNOISE_INC) -I$(RNNOISE_SRC)
 
 CFLAGS_BASE    := -std=c11 $(WARN_FLAGS) $(INC_FLAGS)
 CFLAGS_RELEASE := $(CFLAGS_BASE) -DNDEBUG $(ARM_ARCH_FLAGS) $(OPT_FLAGS)
@@ -61,7 +61,6 @@ RNNOISE_OBJS := $(patsubst $(RNNOISE_SRC)/%.c,$(OBJ_DIR)/rnnoise_%.o,$(RNNOISE_S
 MOZART_SRCS  := $(SRC_DIR)/stage.c    \
                 $(SRC_DIR)/pipeline.c \
                 $(SRC_DIR)/rnnoise.c  \
-                $(SRC_DIR)/pipewire.c \
                 $(SRC_DIR)/pre.c
 
 MOZART_OBJS  := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/mozart_%.o,$(MOZART_SRCS))

@@ -5,7 +5,7 @@
 //   vtable  — { name, process(), destroy() } function pointers.
 //   data    — Opaque pointer to stage-private state.
 //
-// Implementors (rnnoise, pipewire, AEC, AGC, VAD, …) fill the vtable
+// Implementors (RNNoise, AEC, AGC, VAD, etc.) fill the vtable
 // and store their private state in ->data.  The pipeline calls
 // process() on each stage in order, forwarding metadata.
 //

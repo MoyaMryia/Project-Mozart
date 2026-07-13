@@ -1,105 +1,114 @@
-#include <iostream>
-#include <thread>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
-#include "network/udp_server.hpp"
-#include "network/packet.hpp"
+#include <iostream>
+#include <thread>
+#include <vector>
+
+#include "mozart/frame_meta.h"
+#include "mozart/udp_stream.hpp"
+#include "rvc/audio_worker.hpp"
 #include "rvc/pipeline.hpp"
 
-using namespace rvc;
+namespace {
 
-// Simple echo-ish callback: attenuate slightly to verify activity
-std::vector<float> mock_inference(const std::vector<float>& audio) {
-    std::vector<float> out;
-    out.reserve(audio.size() * 3); // 16k -> 48k upsample
-    for (float s : audio) {
-        float attenuated = s * 0.95f;
-        out.push_back(attenuated);
-        out.push_back(attenuated);
-        out.push_back(attenuated);
-    }
-    return out;
+void write_u32_le(unsigned char* p, uint32_t value) {
+    p[0] = static_cast<unsigned char>(value);
+    p[1] = static_cast<unsigned char>(value >> 8);
+    p[2] = static_cast<unsigned char>(value >> 16);
+    p[3] = static_cast<unsigned char>(value >> 24);
 }
 
+void write_u64_le(unsigned char* p, uint64_t value) {
+    write_u32_le(p, static_cast<uint32_t>(value));
+    write_u32_le(p + 4, static_cast<uint32_t>(value >> 32));
+}
+
+std::vector<unsigned char> make_input_packet(uint32_t frame_idx) {
+    std::vector<unsigned char> packet(
+        MOZART_PACKET_HEADER_SIZE + MOZART_INPUT_SAMPLES * sizeof(float));
+    write_u32_le(packet.data(), MOZART_PACKET_MAGIC);
+    write_u64_le(packet.data() + 4, frame_idx * 20000000ULL);
+    write_u32_le(packet.data() + 12, frame_idx);
+    packet[16] = 1;
+    packet[17] = 128;
+    packet[18] = 255;
+    packet[19] = 1;
+
+    for (uint32_t i = 0; i < MOZART_INPUT_SAMPLES; ++i) {
+        const float sample = std::sin(2.0f * 3.14159265f * 440.0f
+                                      * static_cast<float>(i)
+                                      / MOZART_INPUT_SAMPLE_RATE) * 0.5f;
+        std::memcpy(packet.data() + MOZART_PACKET_HEADER_SIZE
+                    + i * sizeof(float), &sample, sizeof(sample));
+    }
+    return packet;
+}
+
+} // namespace
+
 int main() {
-    constexpr uint16_t SERVER_PORT = 19000;
-    constexpr uint16_t CLIENT_PORT = 19001;
-    constexpr uint32_t INPUT_SR = 16000;
-    constexpr uint32_t OUTPUT_SR = 48000;
-    constexpr uint32_t FRAME_MS = 20;
+    constexpr uint16_t server_port = 19000;
 
-    // Start server
-    UdpAudioServer server("127.0.0.1", SERVER_PORT,
-                          INPUT_SR, OUTPUT_SR, FRAME_MS,
-                          mock_inference, true, 1);
-    server.start();
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-    // Create client socket
-    int client_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (client_fd < 0) {
-        std::cerr << "Failed to create client socket\n";
+    rvc::MockRVCPipeline pipeline(MOZART_INPUT_SAMPLE_RATE,
+                                  MOZART_OUTPUT_SAMPLE_RATE);
+    mozart::UdpStream stream("127.0.0.1", server_port,
+                             mozart::StreamDirection::Capture);
+    mozart::StreamConfig stream_config;
+    stream_config.direction = mozart::StreamDirection::Capture;
+    stream_config.sample_rate = MOZART_INPUT_SAMPLE_RATE;
+    if (!stream.Open(stream_config)) {
+        std::cerr << "failed to open UDP stream\n";
         return 1;
     }
 
-    struct sockaddr_in client_addr;
-    std::memset(&client_addr, 0, sizeof(client_addr));
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(CLIENT_PORT);
-    inet_pton(AF_INET, "127.0.0.1", &client_addr.sin_addr);
-    bind(client_fd, reinterpret_cast<struct sockaddr*>(&client_addr), sizeof(client_addr));
+    rvc::AudioWorker::Config worker_config;
+    worker_config.host = "127.0.0.1";
+    worker_config.port = server_port;
+    rvc::AudioWorker worker(stream, pipeline, worker_config);
+    worker.start();
 
-    struct sockaddr_in server_addr;
-    std::memset(&server_addr, 0, sizeof(server_addr));
+    const int client_fd = ::socket(AF_INET, SOCK_DGRAM, 0);
+    if (client_fd < 0) return 1;
+
+    timeval timeout{2, 0};
+    ::setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+
+    sockaddr_in server_addr{};
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERVER_PORT);
-    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
+    server_addr.sin_port = htons(server_port);
+    ::inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
 
-    // Send 3 frames to the server
-    std::vector<ContractAudioPacket> received;
     for (uint32_t i = 0; i < 3; ++i) {
-        std::vector<float> samples(INPUT_SR * FRAME_MS / 1000);
-        for (size_t j = 0; j < samples.size(); ++j) {
-            samples[j] = std::sin(2.0f * 3.14159f * 440.0f * static_cast<float>(j) / INPUT_SR) * 0.5f;
-        }
-
-        auto pkt = ContractAudioPacket::from_samples(
-            i * 20000000ULL, i, samples, 1, 128, 255, 1
-        );
-
-        auto data = pkt.pack();
-        sendto(client_fd, data.data(), data.size(), 0,
-               reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(server_addr));
+        const auto packet = make_input_packet(i);
+        ::sendto(client_fd, packet.data(), packet.size(), 0,
+                 reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr));
     }
 
-    // Receive responses
-    auto start = std::chrono::steady_clock::now();
-    while (received.size() < 3) {
-        uint8_t buf[8192];
-        ssize_t n = recvfrom(client_fd, buf, sizeof(buf), 0, nullptr, nullptr);
-        if (n > 0) {
-            auto pkt = ContractAudioPacket::unpack(buf, static_cast<size_t>(n), OUTPUT_SR * FRAME_MS / 1000);
-            if (pkt) {
-                received.push_back(std::move(*pkt));
-            }
+    uint32_t responses = 0;
+    while (responses < 3) {
+        unsigned char buffer[4096];
+        const ssize_t received = ::recvfrom(client_fd, buffer, sizeof(buffer),
+                                             0, nullptr, nullptr);
+        if (received != static_cast<ssize_t>(
+                MOZART_PACKET_HEADER_SIZE + MOZART_OUTPUT_SAMPLES * sizeof(float))) {
+            break;
         }
-
-        auto elapsed = std::chrono::steady_clock::now() - start;
-        if (elapsed > std::chrono::seconds(3)) break;
+        ++responses;
     }
 
-    socket_close(client_fd);
-    server.stop();
+    ::close(client_fd);
+    worker.stop();
 
-    if (received.size() == 3) {
-        std::cout << "test_udp_loopback PASSED: received " << received.size()
-                  << " packets, each with " << received[0].samples.size()
-                  << " samples @ 48kHz\n";
-        return 0;
-    } else {
-        std::cerr << "test_udp_loopback FAILED: expected 3 packets, got "
-                  << received.size() << "\n";
+    if (responses != 3) {
+        std::cerr << "expected 3 output packets, got " << responses << '\n';
         return 1;
     }
+    std::cout << "test_udp_loopback PASSED\n";
+    return 0;
 }

@@ -128,7 +128,7 @@ static float update_wet(mozart_pre_ctx_t *ctx, float power, float vad_prob)
 static void decimate_3x(mozart_pre_ctx_t *ctx, const float *in, float *out)
 {
     int out_pos = 0;
-    for (int i = 0; i < MOZART_INPUT_FRAME_SAMPLES; i++) {
+    for (int i = 0; i < MOZART_RAW_SAMPLES; i++) {
         ctx->fir_history[ctx->fir_pos] = in[i];
         ctx->fir_pos = (ctx->fir_pos + 1) % DECIMATOR_TAPS;
 
@@ -159,19 +159,19 @@ static void decimate_3x(mozart_pre_ctx_t *ctx, const float *in, float *out)
  */
 int mozart_pre_process(mozart_pre_ctx_t *ctx,
                        const float *in, int in_samples,
-                       float out[MOZART_FRAME_SAMPLES],
+                       float out[MOZART_INPUT_SAMPLES],
                        mozart_frame_meta_t *meta)
 {
     if (!ctx || !ctx->rnnoise || !in || !out || !meta) return -1;
-    if (in_samples != MOZART_INPUT_FRAME_SAMPLES) return -2;
+    if (in_samples != MOZART_RAW_SAMPLES) return -2;
 
-    float filtered[MOZART_INPUT_FRAME_SAMPLES];
-    float denoised[MOZART_INPUT_FRAME_SAMPLES];
-    float mixed[MOZART_INPUT_FRAME_SAMPLES];
+    float filtered[MOZART_RAW_SAMPLES];
+    float denoised[MOZART_RAW_SAMPLES];
+    float mixed[MOZART_RAW_SAMPLES];
     unsigned int conf_sum = 0;
     uint8_t vad_any = 0;
-    highpass_80hz(ctx, in, filtered, MOZART_INPUT_FRAME_SAMPLES);
-    for (int offset = 0; offset < MOZART_INPUT_FRAME_SAMPLES;
+    highpass_80hz(ctx, in, filtered, MOZART_RAW_SAMPLES);
+    for (int offset = 0; offset < MOZART_RAW_SAMPLES;
          offset += RNNOISE_FRAME_SAMPLES) {
         int rc = mozart_stage_process(ctx->rnnoise, filtered + offset,
                                       RNNOISE_FRAME_SAMPLES, denoised + offset, meta);

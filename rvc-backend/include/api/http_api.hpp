@@ -7,13 +7,13 @@
 #include <atomic>
 
 #include "rvc/pipeline.hpp"
-#include "network/udp_server.hpp"
+#include "rvc/audio_worker.hpp"
 
 namespace rvc {
 
 // ──────────────────────────────────────────────────────────
 // HTTP REST API for model management and service status
-// Runs on a dedicated thread alongside the UDP server
+// Runs on a dedicated thread alongside the audio worker
 // ──────────────────────────────────────────────────────────
 class HttpApiServer {
 public:
@@ -21,7 +21,7 @@ public:
         const std::string& host,
         uint16_t port,
         RVCPipelineBase* pipeline,
-        UdpAudioServer* udp_server,
+        AudioWorker* audio_worker,
         const std::string& models_dir
     );
 
@@ -34,7 +34,7 @@ private:
     std::string host_;
     uint16_t port_;
     RVCPipelineBase* pipeline_;
-    UdpAudioServer* udp_server_;
+    AudioWorker* audio_worker_;
     std::string models_dir_;
 
     std::atomic<bool> running_{false};

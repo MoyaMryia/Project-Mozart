@@ -19,7 +19,6 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 
 # ---- Options -----------------------------------------------------------------
 option(MOZART_BUILD_TESTS "Build unit tests" OFF)
-option(MOZART_ENABLE_PIPEWIRE "Enable PipeWire capture + virtual source" OFF)
 option(MOZART_USE_RNNOISE "Build and link xiph RNNoise from native/rnnoise/" ON)
 
 # ---- RNNoise native library --------------------------------------------------
@@ -60,10 +59,13 @@ add_library(mozart_pre_core STATIC
     src/stage.c
     src/pipeline.c
     src/rnnoise.c
-    src/pipewire.c
     src/pre.c
 )
-target_include_directories(mozart_pre_core PUBLIC include .)
+target_include_directories(mozart_pre_core PUBLIC
+    include
+    .
+    ${CMAKE_CURRENT_SOURCE_DIR}/../IO/include
+)
 target_link_libraries(mozart_pre_core PUBLIC m)
 
 if(MOZART_USE_RNNOISE)
@@ -72,14 +74,6 @@ if(MOZART_USE_RNNOISE)
         ${CMAKE_SOURCE_DIR}/native/rnnoise/include
     )
     target_compile_definitions(mozart_pre_core PUBLIC MOZART_USE_RNNOISE=1)
-endif()
-
-if(MOZART_ENABLE_PIPEWIRE)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
-    target_link_libraries(mozart_pre_core PUBLIC ${PIPEWIRE_LIBRARIES})
-    target_include_directories(mozart_pre_core PUBLIC ${PIPEWIRE_INCLUDE_DIRS})
-    target_compile_definitions(mozart_pre_core PUBLIC MOZART_ENABLE_PIPEWIRE=1)
 endif()
 
 # ---- Example executable ------------------------------------------------------

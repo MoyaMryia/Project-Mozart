@@ -211,7 +211,6 @@ rvc:
 audio:
   input_rate: 16000
   output_rate: 48000
-  frames_per_inference: 1
 ```
 
 ### 4.5 启动后端

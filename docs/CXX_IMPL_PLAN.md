@@ -6,8 +6,8 @@
 
 | 组件 | 文件 | 状态 |
 |------|------|------|
-| UDP 三线程服务器 | `src/network/udp_server.cpp` | ✅ 生产就绪 |
-| 契约包序列化 | `src/network/packet.cpp` | ✅ 生产就绪 |
+| UDP 收发与契约序列化 | `IO/src/udp_stream.cpp` | ✅ 已迁入统一 IO 模块 |
+| IO→推理编排 | `src/rvc/audio_worker.cpp` | ✅ VAD bypass + 延迟统计 |
 | HTTP REST API | `src/api/http_api.cpp` | ✅ 基本完成，`/activate` 是 stub |
 | YAML 配置 | `src/utils/config.cpp` | ✅ 生产就绪 |
 | 模型目录扫描 + config.json 解析 | `src/rvc/model_loader.cpp` | ✅ 逻辑完整，加载是 stub |
@@ -147,7 +147,7 @@ endif()
 
 ### 3.4 性能测试
 - [ ] 单帧延迟 < 20ms（保证实时，配合 20ms 帧间隔）
-- [ ] 多帧批量推理（`frames_per_inference > 1`）延迟 < 40ms
+- [ ] 若后续引入显式批处理接口，验证批处理延迟 < 40ms
 - [ ] GPU 显存占用 < 4GB（给系统留余量）
 - [ ] 模型热切换 < 2s
 
@@ -201,4 +201,4 @@ Week 4: 优化 + 调优
 | TensorRT 不支持某些 ONNX op | 写 Plugin；或降级 CUDA Graph fallback |
 | `.index` 文件格式兼容 | 手写解析器或嵌入轻量 FAISS 源码 |
 | Jetson 8GB 显存不足 | FP16 量化；模型分时加载；减少 batch size |
-| 实时性不达标 | 降低 `frames_per_inference`；TensorRT FP16；CUDA Graph |
+| 实时性不达标 | 保持单帧推理；TensorRT FP16；CUDA Graph |

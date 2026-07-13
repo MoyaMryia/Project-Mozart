@@ -18,7 +18,8 @@
 - 纯 **C11**，无运行时、无动态分配
 - **ARM NEON** 向量路径（Cortex-A78AE）
 - **函数指针 vtable** 架构：每个处理单元是可插拔的 stage
-- 16 字节 packed 元数据与 C++ 后端保持 ABI 一致
+- 通过 `IO/include/mozart/frame_meta.h` 共享唯一的 16 字节 packed 元数据定义
+- 不持有声卡、socket 或文件句柄；所有输入输出由 `IO/` 提供
 
 ---
 
@@ -32,14 +33,12 @@ preprocessor/
 ├── include/mozart/
 │   ├── stage.h                  ← Stage vtable 接口
 │   ├── pipeline.h               ← 有序 Stage 链
-│   ├── rnnoise.h                ← RNNoise 构造器
-│   └── pipewire.h               ← PipeWire 采集/虚拟源
+│   └── rnnoise.h                ← RNNoise 构造器
 ├── src/
 │   ├── pre.c                    ← 顶层入口：HPF → RNNoise → mix → decimate
 │   ├── rnnoise.c                ← RNNoise 封装（float32↔int16、VAD）
 │   ├── pipeline.c               ← Stage 链顺序处理
 │   ├── stage.c                  ← 通用 Stage 生命周期
-│   ├── pipewire.c               ← PipeWire stub
 │   └── main.c                   ← 冒烟测试
 ├── native/rnnoise/              ← xiph.org RNNoise v0.2 源码子树
 │   ├── include/rnnoise.h
@@ -53,7 +52,7 @@ preprocessor/
 
 ## 3. 核心类型
 
-### 3.1 `mozart_frame_meta_t` — 16 字节帧元数据
+### 3.1 `mozart_frame_meta_t` — IO 统一的 16 字节帧元数据
 
 ```c
 typedef struct __attribute__((packed)) {
@@ -66,7 +65,7 @@ typedef struct __attribute__((packed)) {
 } mozart_frame_meta_t;
 ```
 
-此结构与 `rvc-backend/include/network/packet.hpp` 中的 `FrameMeta` 保持字节一致。
+此结构只在 `IO/include/mozart/frame_meta.h` 定义一次；`preprocessor/mozart.h` 直接包含该头文件。
 
 ### 3.2 `mozart_stage_t` — 可插拔处理单元
 
@@ -120,13 +119,14 @@ struct mozart_stage {
 ### 5.1 常量
 
 ```c
-#define MOZART_INPUT_SAMPLE_RATE       48000
-#define MOZART_INPUT_FRAME_SAMPLES     960
-#define MOZART_SAMPLE_RATE             16000
-#define MOZART_CHANNELS                1
-#define MOZART_FRAME_MS                20
-#define MOZART_FRAME_SAMPLES           320
+#define MOZART_RAW_SAMPLE_RATE       48000
+#define MOZART_RAW_SAMPLES           960
+#define MOZART_INPUT_SAMPLE_RATE     16000
+#define MOZART_INPUT_SAMPLES         320
+#define MOZART_CHANNELS              1
 ```
+
+这些常量由 `mozart/frame_meta.h` 提供。这里的 `INPUT` 指后处理输入，即预处理输出契约。
 
 ### 5.2 生命周期
 
@@ -142,8 +142,6 @@ struct mozart_stage {
 | 构造器 | 模块 | 状态 |
 |--------|------|------|
 | `mozart_rnnoise_new()` | RNNoise 去噪 | Ready |
-| `mozart_pw_capture_new()` | PipeWire 采集 | Stub |
-| `mozart_pw_source_new()` | 虚拟源 | Stub |
 
 ### 5.4 实现新 Stage
 
@@ -198,14 +196,13 @@ cmake --build build
 
 | # | 模块 | 状态 | 文件 |
 |---|------|------|------|
-| ① | PipeWire I/O | Stub | `src/pipewire.c` |
-| ② | 归一化 | 未开始 | — |
-| ③ | 瞬态抑制 | 未开始 | — |
-| ④ | AEC | 未开始 | — |
-| ⑤ | **RNNoise 去噪** | **Ready** | `src/rnnoise.c` |
-| ⑥ | 轻量去混响 | 未开始 | — |
-| ⑦ | AGC + 削波 | 未开始 | — |
-| ⑧ | VAD/打标 | 未开始 | — |
+| ① | 归一化 | 未开始 | — |
+| ② | 瞬态抑制 | 未开始 | — |
+| ③ | AEC | 未开始 | — |
+| ④ | **RNNoise 去噪** | **Ready** | `src/rnnoise.c` |
+| ⑤ | 轻量去混响 | 未开始 | — |
+| ⑥ | AGC + 削波 | 未开始 | — |
+| ⑦ | VAD/打标 | 未开始 | — |
 
 当前 `src/pre.c` 已将 ⑤ + 部分 ⑧（RNNoise 内置 VAD）+ HPF + 混合 + 降采样集成为一个优化路径。
 
