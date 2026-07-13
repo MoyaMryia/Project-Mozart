@@ -13,6 +13,7 @@
 #include <spdlog/spdlog.h>
 #include <array>
 #include <cstring>
+#include <exception>
 #include <utility>
 
 #ifndef _WIN32
@@ -52,6 +53,22 @@ inline void socket_close(socket_t fd) {
     closesocket(fd);
 #else
     ::close(fd);
+#endif
+}
+
+inline bool socket_valid(socket_t fd) {
+#ifdef _WIN32
+    return fd != INVALID_SOCKET;
+#else
+    return fd >= 0;
+#endif
+}
+
+inline socket_t invalid_socket() {
+#ifdef _WIN32
+    return INVALID_SOCKET;
+#else
+    return -1;
 #endif
 }
 
@@ -103,6 +120,7 @@ UdpStream::UdpStream(std::string host, uint16_t port, StreamDirection direction)
 UdpStream::~UdpStream() { Close(); }
 
 bool UdpStream::Open(const StreamConfig& config) {
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
     if (open_.load()) return true;
     if (config.direction != direction_
         || config.frame_duration_ms != MOZART_INPUT_FRAME_MS) {
@@ -118,48 +136,135 @@ bool UdpStream::Open(const StreamConfig& config) {
     }
 
 #ifdef _WIN32
-    WSADATA wsa; if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) return false;
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return false;
+    wsa_started_ = true;
 #endif
 
-    sock_fd_ = ::socket(AF_INET, SOCK_DGRAM, 0);
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port_);
+    if (::inet_pton(AF_INET, host_.c_str(), &addr.sin_addr) != 1) {
+        spdlog::error("Invalid UDP IPv4 address: {}", host_);
 #ifdef _WIN32
-    if (sock_fd_ == INVALID_SOCKET) { spdlog::error("UDP socket creation failed"); return false; }
-#else
-    if (sock_fd_ < 0) { spdlog::error("UDP socket creation failed"); return false; }
+        WSACleanup();
+        wsa_started_ = false;
 #endif
+        return false;
+    }
+
+    socket_t new_fd = ::socket(AF_INET, SOCK_DGRAM, 0);
+    if (!socket_valid(new_fd)) {
+        spdlog::error("UDP socket creation failed");
+#ifdef _WIN32
+        WSACleanup();
+        wsa_started_ = false;
+#endif
+        return false;
+    }
 
     // 接收超时 100ms，便于优雅关闭
+#ifdef _WIN32
+    DWORD timeout_ms = 100;
+    const int timeout_result = ::setsockopt(
+        new_fd, SOL_SOCKET, SO_RCVTIMEO,
+        reinterpret_cast<const char*>(&timeout_ms), sizeof(timeout_ms));
+#else
     timeval tv{0, 100000};
-    ::setsockopt(sock_fd_, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&tv), sizeof(tv));
+    const int timeout_result = ::setsockopt(
+        new_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
+    if (timeout_result != 0) {
+        spdlog::error("Failed to configure UDP receive timeout");
+        socket_close(new_fd);
+#ifdef _WIN32
+        WSACleanup();
+        wsa_started_ = false;
+#endif
+        return false;
+    }
 
     if (direction_ == StreamDirection::Capture) {
         // Capture: bind 到本地地址
-        sockaddr_in addr{};
-        addr.sin_family = AF_INET;
-        addr.sin_port   = htons(port_);
-        ::inet_pton(AF_INET, host_.c_str(), &addr.sin_addr);
-        if (::bind(sock_fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+        if (::bind(new_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
             spdlog::error("UDP bind failed: {}:{}", host_, port_);
-            socket_close(sock_fd_); sock_fd_ = -1;
+            socket_close(new_fd);
+#ifdef _WIN32
+            WSACleanup();
+            wsa_started_ = false;
+#endif
             return false;
         }
-        input_ring_ = std::make_unique<SpscRing>(
-            config.ring_capacity == 0 ? 16 : config.ring_capacity,
-            sizeof(mozart_input_frame_t));
-        client_known_ = false;
-        open_ = true;
-        recv_thread_ = std::thread(&UdpStream::receive_loop, this);
+
+        try {
+            auto new_ring = std::make_unique<SpscRing>(
+                config.ring_capacity == 0 ? 16 : config.ring_capacity,
+                sizeof(mozart_input_frame_t));
+            {
+                std::lock_guard<std::mutex> socket_lock(socket_mutex_);
+                sock_fd_ = new_fd;
+            }
+            {
+                std::lock_guard<std::mutex> input_lock(input_mutex_);
+                input_ring_ = std::move(new_ring);
+                open_.store(true);
+            }
+            {
+                std::lock_guard<std::mutex> client_lock(client_mutex_);
+                client_known_.store(false);
+                std::memset(&client_addr_, 0, sizeof(client_addr_));
+                client_addr_len_ = 0;
+            }
+            recv_thread_ = std::thread(&UdpStream::receive_loop, this);
+        } catch (const std::exception& error) {
+            spdlog::error("Failed to open UDP capture stream: {}", error.what());
+            {
+                std::lock_guard<std::mutex> input_lock(input_mutex_);
+                open_.store(false);
+                input_ring_.reset();
+            }
+            {
+                std::lock_guard<std::mutex> socket_lock(socket_mutex_);
+                sock_fd_ = invalid_socket();
+            }
+            socket_close(new_fd);
+#ifdef _WIN32
+            WSACleanup();
+            wsa_started_ = false;
+#endif
+            return false;
+        } catch (...) {
+            spdlog::error("Failed to open UDP capture stream");
+            {
+                std::lock_guard<std::mutex> input_lock(input_mutex_);
+                open_.store(false);
+                input_ring_.reset();
+            }
+            {
+                std::lock_guard<std::mutex> socket_lock(socket_mutex_);
+                sock_fd_ = invalid_socket();
+            }
+            socket_close(new_fd);
+#ifdef _WIN32
+            WSACleanup();
+            wsa_started_ = false;
+#endif
+            return false;
+        }
         spdlog::info("UdpStream capture listening on {}:{}", host_, port_);
     } else {
         // Playback: 记录对端地址（不 connect，sendto 时指定）
-        sockaddr_in addr{};
-        addr.sin_family = AF_INET;
-        addr.sin_port   = htons(port_);
-        ::inet_pton(AF_INET, host_.c_str(), &addr.sin_addr);
-        std::memcpy(&client_addr_, &addr, sizeof(addr));
-        client_addr_len_ = sizeof(addr);
-        client_known_ = true;
-        open_ = true;
+        {
+            std::lock_guard<std::mutex> socket_lock(socket_mutex_);
+            sock_fd_ = new_fd;
+        }
+        {
+            std::lock_guard<std::mutex> client_lock(client_mutex_);
+            std::memcpy(&client_addr_, &addr, sizeof(addr));
+            client_addr_len_ = sizeof(addr);
+            client_known_.store(true);
+        }
+        open_.store(true);
         spdlog::info("UdpStream playback target {}:{}", host_, port_);
     }
 
@@ -167,19 +272,39 @@ bool UdpStream::Open(const StreamConfig& config) {
 }
 
 void UdpStream::Close() {
-    if (!open_.exchange(false)) return;
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
+    if (!open_.load()) return;
 
-    if (sock_fd_ >= 0) {
-        socket_close(sock_fd_);
-        sock_fd_ = -1;
+    {
+        std::lock_guard<std::mutex> input_lock(input_mutex_);
+        open_.store(false);
     }
     input_cv_.notify_all();
     if (recv_thread_.joinable()) recv_thread_.join();
 
     {
-        std::lock_guard<std::mutex> lk(input_mutex_);
+        std::lock_guard<std::mutex> socket_lock(socket_mutex_);
+        if (socket_valid(sock_fd_)) {
+            socket_close(sock_fd_);
+            sock_fd_ = invalid_socket();
+        }
+    }
+    {
+        std::lock_guard<std::mutex> input_lock(input_mutex_);
         input_ring_.reset();
     }
+    {
+        std::lock_guard<std::mutex> client_lock(client_mutex_);
+        client_known_.store(false);
+        std::memset(&client_addr_, 0, sizeof(client_addr_));
+        client_addr_len_ = 0;
+    }
+#ifdef _WIN32
+    if (wsa_started_) {
+        WSACleanup();
+        wsa_started_ = false;
+    }
+#endif
     spdlog::info("UdpStream closed: recv={} sent={} dropped={}",
                  packets_received_.load(), packets_sent_.load(), packets_dropped_.load());
 }
@@ -188,9 +313,10 @@ void UdpStream::receive_loop() {
     std::array<unsigned char, 8192> buf{};
     while (open_.load()) {
         sockaddr_storage src{};
-        socklen_t src_len = sizeof(src);
-        ssize_t n = ::recvfrom(sock_fd_, buf.data(), buf.size(), 0,
-                               reinterpret_cast<sockaddr*>(&src), &src_len);
+        socket_len_t src_len = sizeof(src);
+        const auto n = ::recvfrom(sock_fd_, reinterpret_cast<char*>(buf.data()),
+                                  static_cast<int>(buf.size()), 0,
+                                  reinterpret_cast<sockaddr*>(&src), &src_len);
         if (n < 0) {
 #ifdef _WIN32
             int err = WSAGetLastError();
@@ -204,50 +330,67 @@ void UdpStream::receive_loop() {
             continue;
         }
 
-        // 客户端追踪：记录首个发送方
-        if (!client_known_.load()) {
-            std::lock_guard<std::mutex> lk(client_mutex_);
-            std::memcpy(&client_addr_, &src, src_len);
-            client_addr_len_ = src_len;
-            client_known_ = true;
-        }
-
         mozart_input_frame_t frame{};
         if (!unpack_input_packet(buf.data(), static_cast<size_t>(n), frame)) {
             packets_dropped_.fetch_add(1, std::memory_order_relaxed);
             continue;
         }
 
+        // 仅首个通过协议校验的发送方可成为回复目标。
+        if (!client_known_.load()) {
+            std::lock_guard<std::mutex> client_lock(client_mutex_);
+            if (!client_known_.load()) {
+                std::memcpy(&client_addr_, &src, static_cast<size_t>(src_len));
+                client_addr_len_ = src_len;
+                client_known_.store(true);
+            }
+        }
+
         packets_received_.fetch_add(1, std::memory_order_relaxed);
 
-        if (!input_ring_ || !input_ring_->push(&frame)) {
-            packets_dropped_.fetch_add(1, std::memory_order_relaxed);
-            continue;
+        {
+            std::lock_guard<std::mutex> input_lock(input_mutex_);
+            if (!open_.load() || !input_ring_) break;
+            if (!input_ring_->push(&frame)) {
+                mozart_input_frame_t discarded{};
+                if (!input_ring_->pop(&discarded) || !input_ring_->push(&frame)) {
+                    packets_dropped_.fetch_add(1, std::memory_order_relaxed);
+                    continue;
+                }
+                packets_dropped_.fetch_add(1, std::memory_order_relaxed);
+            }
         }
         input_cv_.notify_one();
     }
 }
 
 bool UdpStream::ReadFrame(void* out_frame_buf, uint32_t buf_size) {
-    if (!open_.load() || direction_ != StreamDirection::Capture) return false;
+    if (!out_frame_buf || direction_ != StreamDirection::Capture) return false;
     if (buf_size != sizeof(mozart_input_frame_t)) {
         spdlog::warn("UdpStream ReadFrame: buf_size {} != {}", buf_size, sizeof(mozart_input_frame_t));
         return false;
     }
 
-    {
-        std::unique_lock<std::mutex> lk(input_mutex_);
-        input_cv_.wait(lk, [this] {
-            return (input_ring_ && input_ring_->readable_count() > 0)
-                || !open_.load();
-        });
-        if (!input_ring_) return false;
-        return input_ring_->pop(out_frame_buf);
+    std::unique_lock<std::mutex> input_lock(input_mutex_);
+    input_cv_.wait(input_lock, [this] {
+        return (input_ring_ && input_ring_->readable_count() > 0)
+            || !open_.load();
+    });
+    if (!open_.load() || !input_ring_) return false;
+
+    const uint32_t pending = input_ring_->readable_count();
+    if (pending > 4) {
+        mozart_input_frame_t discarded{};
+        for (uint32_t i = 1; i < pending; ++i) {
+            if (!input_ring_->pop(&discarded)) break;
+            packets_dropped_.fetch_add(1, std::memory_order_relaxed);
+        }
     }
+    return input_ring_->pop(out_frame_buf);
 }
 
 bool UdpStream::WriteFrame(const void* in_frame_buf, uint32_t buf_size) {
-    if (!open_.load()) return false;
+    if (!in_frame_buf || !open_.load()) return false;
     // Capture 方向也允许 WriteFrame（服务器回声：收 input → 推理 → 发 output 回客户端）
     if (buf_size != sizeof(mozart_output_frame_t)) {
         spdlog::warn("UdpStream WriteFrame: buf_size {} != {}", buf_size, sizeof(mozart_output_frame_t));
@@ -264,10 +407,20 @@ bool UdpStream::WriteFrame(const void* in_frame_buf, uint32_t buf_size) {
 }
 
 bool UdpStream::send_to_client(const void* data, size_t len) {
-    std::lock_guard<std::mutex> lk(client_mutex_);
-    ssize_t sent = ::sendto(sock_fd_, data, len, 0,
-                            reinterpret_cast<sockaddr*>(&client_addr_),
-                            client_addr_len_);
+    sockaddr_storage client_addr{};
+    socket_len_t client_addr_len = 0;
+    {
+        std::lock_guard<std::mutex> client_lock(client_mutex_);
+        if (!client_known_.load()) return false;
+        client_addr = client_addr_;
+        client_addr_len = client_addr_len_;
+    }
+
+    std::lock_guard<std::mutex> socket_lock(socket_mutex_);
+    if (!open_.load() || !socket_valid(sock_fd_)) return false;
+    const auto sent = ::sendto(
+        sock_fd_, reinterpret_cast<const char*>(data), static_cast<int>(len), 0,
+        reinterpret_cast<sockaddr*>(&client_addr), client_addr_len);
     if (sent < 0) {
         spdlog::warn("UDP send error");
         return false;

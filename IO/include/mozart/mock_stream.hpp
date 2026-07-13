@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include <mutex>
 #include <cstdint>
 
 namespace mozart {
@@ -25,7 +26,7 @@ public:
     ~MockStream() override;
 
     StreamDirection GetDirection() const noexcept override { return direction_; }
-    bool IsOpen() const noexcept override { return open_; }
+    bool IsOpen() const noexcept override { return open_.load(); }
 
     bool Open(const StreamConfig& config) override;
     void Close() override;
@@ -46,15 +47,14 @@ private:
     uint32_t           frame_duration_ms_;
     uint32_t           samples_per_frame_;
 
-    bool               open_{false};
+    std::atomic<bool>  open_{false};
+    std::mutex         state_mutex_;
     std::vector<float> pcm_buffer_;     // Capture: 全量 PCM 数据
     size_t             read_cursor_{0}; // Capture: 当前读位置
     uint32_t           frame_idx_{0};
 
     std::atomic<uint64_t> frames_read_{0};
     std::atomic<uint64_t> frames_written_{0};
-
-    bool load_wav();
 };
 
 } // namespace mozart

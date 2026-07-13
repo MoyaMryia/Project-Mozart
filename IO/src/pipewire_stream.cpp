@@ -22,7 +22,7 @@ PipeWireStream::PipeWireStream(std::string device_name, StreamDirection directio
 PipeWireStream::~PipeWireStream() { Close(); }
 
 bool PipeWireStream::Open(const StreamConfig& config) {
-    if (open_) return true;
+    if (open_.load()) return true;
     if (config.direction != direction_
         || config.sample_rate != MOZART_RAW_SAMPLE_RATE
         || config.frame_duration_ms != MOZART_RAW_FRAME_MS) {
@@ -31,7 +31,7 @@ bool PipeWireStream::Open(const StreamConfig& config) {
     sample_rate_        = config.sample_rate ? config.sample_rate : 48000;
     samples_per_frame_  = sample_rate_ * config.frame_duration_ms / 1000;
     if (samples_per_frame_ == 0) samples_per_frame_ = MOZART_RAW_SAMPLES;
-    open_ = true;
+    open_.store(true);
     spdlog::info("PipeWireStream opened (stub): device='{}', dir={}, sr={}, spf={}",
                  device_name_.empty() ? "default" : device_name_,
                  direction_ == StreamDirection::Capture ? "capture" : "playback",
@@ -40,13 +40,12 @@ bool PipeWireStream::Open(const StreamConfig& config) {
 }
 
 void PipeWireStream::Close() {
-    if (!open_) return;
-    open_ = false;
+    if (!open_.exchange(false)) return;
     spdlog::info("PipeWireStream closed: frames={}", frames_processed_.load());
 }
 
 bool PipeWireStream::ReadFrame(void* out_frame_buf, uint32_t buf_size) {
-    if (!open_ || direction_ != StreamDirection::Capture) return false;
+    if (!out_frame_buf || !open_.load() || direction_ != StreamDirection::Capture) return false;
 
     // 校验 buf_size：采集流产出 mozart_raw_frame_t
     if (buf_size != sizeof(mozart_raw_frame_t)) {
@@ -71,7 +70,7 @@ bool PipeWireStream::ReadFrame(void* out_frame_buf, uint32_t buf_size) {
 }
 
 bool PipeWireStream::WriteFrame(const void* in_frame_buf, uint32_t buf_size) {
-    if (!open_ || direction_ != StreamDirection::Playback) return false;
+    if (!in_frame_buf || !open_.load() || direction_ != StreamDirection::Playback) return false;
     if (buf_size != sizeof(mozart_output_frame_t)) {
         spdlog::warn("PipeWireStream WriteFrame: buf_size {} != {}", buf_size, sizeof(mozart_output_frame_t));
         return false;

@@ -60,7 +60,7 @@ MOZART_API mozart_stream_handle_t mozart_io_create_pipewire_stream(const char* d
 //   host:      本地绑定地址 (Capture) 或对端地址 (Playback)
 //   port:      UDP 端口
 //   direction: CAPTURE = 接收 (ReadFrame 期望 mozart_input_frame_t / 1296B)
-//              PLAYBACK = 发送 (WriteFrame 期望 mozart_output_frame_t / 3860B)
+//              PLAYBACK = 发送 (WriteFrame 期望 mozart_output_frame_t / 3856B，线包 3860B)
 MOZART_API mozart_stream_handle_t mozart_io_create_udp_stream(const char* host,
                                                               uint16_t port,
                                                               int direction);

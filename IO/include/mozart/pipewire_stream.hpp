@@ -26,7 +26,7 @@ public:
     ~PipeWireStream() override;
 
     StreamDirection GetDirection() const noexcept override { return direction_; }
-    bool IsOpen() const noexcept override { return open_; }
+    bool IsOpen() const noexcept override { return open_.load(); }
 
     bool Open(const StreamConfig& config) override;
     void Close() override;
@@ -43,7 +43,7 @@ private:
     StreamDirection direction_;
     uint32_t        sample_rate_{48000};
     uint32_t        samples_per_frame_{960};
-    bool            open_{false};
+    std::atomic<bool> open_{false};
     uint32_t        frame_idx_{0};
 
     std::atomic<uint64_t> frames_processed_{0};

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Project Mozart 调用链与系统架构控制台</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: #131a26;
+      --border-color: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      
+      --brand-io: #3b82f6;      /* 蓝色 */
+      --brand-pre: #10b981;     /* 翠绿色 */
+      --brand-infer: #8b5cf6;   /* 紫色 */
+      --brand-state: #f59e0b;   /* 琥珀色 */
+      
+      --brand-io-glow: rgba(59, 130, 246, 0.15);
+      --brand-pre-glow: rgba(16, 185, 129, 0.15);
+      --brand-infer-glow: rgba(139, 92, 246, 0.15);
+      --brand-state-glow: rgba(245, 158, 11, 0.15);
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 24px;
+      line-height: 1.6;
+    }
+    
+    h1, h2, h3, h4 {
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      letter-spacing: -0.02em;
+    }
+    
+    h1 {
+      font-size: 2.25rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin: 0 0 24px 0;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    
+    @media (min-width: 1024px) {
+      .grid {
+        grid-template-columns: 2fr 1.2fr;
+      }
+    }
+    
+    .card {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--border-color);
+    }
+    
+    .card.io::before { background-color: var(--brand-io); }
+    .card.pre::before { background-color: var(--brand-pre); }
+    .card.infer::before { background-color: var(--brand-infer); }
+    .card.state::before { background-color: var(--brand-state); }
+    
+    .card.io { box-shadow: 0 4px 20px var(--brand-io-glow); }
+    .card.pre { box-shadow: 0 4px 20px var(--brand-pre-glow); }
+    .card.infer { box-shadow: 0 4px 20px var(--brand-infer-glow); }
+    .card.state { box-shadow: 0 4px 20px var(--brand-state-glow); }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    
+    .badge.io { background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .badge.pre { background-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge.infer { background-color: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+    .badge.state { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    
+    /* 交互式 SVG 拓扑图样式 */
+    .flow-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0d131f;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px 16px;
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+    
+    .flow-node {
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .flow-node:hover {
+      filter: drop-shadow(0 0 8px currentColor);
+      transform: translateY(-2px);
+    }
+    
+    .flow-node.active {
+      stroke-width: 3px;
+    }
+    
+    .flow-link {
+      stroke-dasharray: 6;
+      animation: dash 30s linear infinite;
+    }
+    
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -1000;
+      }
+    }
+    
+    /* 标签切换 */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #1e293b;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    
+    .tab:hover {
+      color: var(--text-main);
+    }
+    
+    .tab.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* 信息展示面板 */
+    .info-pane {
+      background: #0f1522;
+      border: 1px solid #273549;
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 220px;
+    }
+    
+    .code-block {
+      font-family: 'JetBrains Mono', monospace;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.82rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+    
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    
+    li {
+      margin-bottom: 8px;
+    }
+    
+    li strong {
+      color: #fff;
+    }
+    
+    .highlight {
+      color: #38bdf8;
+      font-weight: 500;
+    }
+    
+    .flex-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      gap: 12px;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+    
+    .btn.active {
+      background: var(--brand-io);
+      border-color: var(--brand-io);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flex-row">
+    <div>
+      <h1>Project Mozart 统一系统架构与数据调用链</h1>
+      <p class="subtitle">全链路音频流处理管线与无锁控制编排架构</p>
+    </div>
+    <div class="btn-group">
+      <button class="btn active" onclick="switchView('stream')">实时流模式 (Stream)</button>
+      <button class="btn" onclick="switchView('file')">音频文件模式 (File)</button>
+    </div>
+  </div>
+
+  <!-- 1. 交互式调用拓扑 -->
+  <div class="card" style="margin-bottom: 24px;">
+    <h3>交互式调用链拓扑</h3>
+    <p class="subtitle">点击下方任何节点（包含状态管理器、I/O、预处理和推理后端），即可实时 inspect 其数据传递方式及运行机制。</p>
+    
+    <div class="flow-container">
+      <svg id="pipeline-svg" width="900" height="220" viewBox="0 0 900 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+        
+        <!-- 拓扑连接路径 -->
+        <g stroke="#1e293b" stroke-width="1.5">
+          <path id="flow-line-1" class="flow-link" d="M120 110 H 220" stroke="#3b82f6" stroke-width="2"/>
+          <path id="flow-line-2" class="flow-link" d="M340 110 H 440" stroke="#10b981" stroke-width="2"/>
+          <path id="flow-line-3" class="flow-link" d="M560 110 H 660" stroke="#8b5cf6" stroke-width="2"/>
+          <path id="flow-line-4" class="flow-link" d="M780 110 H 880" stroke="#3b82f6" stroke-width="2"/>
+        </g>
+
+        <!-- 节点 1: 物理/网络采集 -->
+        <g class="flow-node" id="node-capture" onclick="selectNode('capture')" color="#3b82f6">
+          <rect x="20" y="70" width="100" height="80" rx="12" fill="#131a26" stroke="#3b82f6" stroke-width="2"/>
+          <text x="70" y="110" fill="#f8fafc" font-size="14" font-weight="600" text-anchor="middle">采集 IO</text>
+          <text x="70" y="130" fill="#94a3b8" font-size="10" text-anchor="middle">PipeWire / UDP</text>
+        </g>
+
+        <!-- 节点 2: C11 预处理 -->
+        <g class="flow-node" id="node-pre" onclick="selectNode('pre')" color="#10b981">
+          <rect x="220" y="70" width="120" height="80" rx="12" fill="#131a26" stroke="#10b981" stroke-width="2"/>
+          <text x="280" y="105" fill="#f8fafc" font-size="14" font-weight="600" text-anchor="middle">预处理模块</text>
+          <text x="280" y="125" fill="#94a3b8" font-size="10" text-anchor="middle">C11 去噪与高通</text>
+          <text x="280" y="140" fill="#34d399" font-size="9" text-anchor="middle">48k -> 16k</text>
+        </g>
+
+        <!-- 节点 3: 业务Worker与推理 -->
+        <g class="flow-node" id="node-infer" onclick="selectNode('infer')" color="#8b5cf6">
+          <rect x="440" y="70" width="120" height="80" rx="12" fill="#131a26" stroke="#8b5cf6" stroke-width="2"/>
+          <text x="500" y="105" fill="#f8fafc" font-size="14" font-weight="600" text-anchor="middle">AudioWorker</text>
+          <text x="500" y="125" fill="#94a3b8" font-size="10" text-anchor="middle">RVC 变声推理</text>
+          <text x="500" y="140" fill="#a78bfa" font-size="9" text-anchor="middle">16k -> 48k</text>
+        </g>
+
+        <!-- 节点 4: 播放输出 -->
+        <g class="flow-node" id="node-playback" onclick="selectNode('playback')" color="#3b82f6">
+          <rect x="660" y="70" width="120" height="80" rx="12" fill="#131a26" stroke="#3b82f6" stroke-width="2"/>
+          <text x="720" y="105" fill="#f8fafc" font-size="14" font-weight="600" text-anchor="middle">播放 IO</text>
+          <text x="720" y="125" fill="#94a3b8" font-size="10" text-anchor="middle">PipeWire / UDP</text>
+          <text x="720" y="140" fill="#60a5fa" font-size="9" text-anchor="middle">48k 扬声器</text>
+        </g>
+
+        <!-- 内存无锁队列 SPSC Ring -->
+        <g fill="#94a3b8" font-size="10" font-family="monospace">
+          <rect x="135" y="80" width="70" height="20" rx="4" fill="#090d16" stroke="#1e293b"/>
+          <text x="170" y="94" text-anchor="middle" fill="#3b82f6">raw_ring</text>
+          
+          <rect x="355" y="80" width="70" height="20" rx="4" fill="#090d16" stroke="#1e293b"/>
+          <text x="390" y="94" text-anchor="middle" fill="#10b981">input_ring</text>
+          
+          <rect x="575" y="80" width="70" height="20" rx="4" fill="#090d16" stroke="#1e293b"/>
+          <text x="610" y="94" text-anchor="middle" fill="#8b5cf6">output_ring</text>
+        </g>
+
+        <!-- 状态机控制器 -->
+        <g id="node-state" class="flow-node" onclick="selectNode('state')" color="#f59e0b">
+          <rect x="320" y="10" width="260" height="36" rx="8" fill="#1b1c24" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4"/>
+          <text x="450" y="32" fill="#fbbf24" font-size="12" font-weight="600" text-anchor="middle">状态编排管理器 (state_manager)</text>
+          <path d="M330 46 V 65" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2"/>
+          <path d="M450 46 V 65" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2"/>
+          <path d="M570 46 V 65" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2"/>
+        </g>
+
+      </svg>
+    </div>
+
+    <!-- 动态详细面板 -->
+    <div class="info-pane card state" id="detail-panel">
+      <h3 id="detail-title" class="highlight"><span class="badge state">系统控制器</span><br>状态编排管理器 (state_manager)</h3>
+      <div id="detail-content">
+        <!-- 默认填充状态机内容 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 下方双栏：传输通道 与 编排解耦 深度解析 -->
+  <div class="grid">
+    
+    <!-- 左栏：层间数据如何传输 -->
+    <div class="card io">
+      <span class="badge io">层间传输通道 (Data Plane)</span>
+      <h3>层间数据传递方式</h3>
+      
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('link', 0)">同进程无锁环 (SPSC Ring)</div>
+        <div class="tab" onclick="switchTab('link', 1)">跨网络 UDP 协议 (MZRT)</div>
+      </div>
+      
+      <!-- SPSC Tab -->
+      <div id="link-content-0" class="tab-content active">
+        <p>在<strong>同进程运行（如物理设备端到端处理）</strong>时，预处理和推理后端通过预分配的<strong>SPSC（单写单读）无锁环形队列</strong>实现极速传输：</p>
+        <ul>
+          <li><strong>无锁更新</strong>：内部使用 C++11 <code>std::atomic</code> 读写索引，仅通过原子操作增减位置，不需要传统 <code>mutex</code> 锁保护，完全杜绝由于线程竞争锁而引起的音频爆音 (XRun)。</li>
+          <li><strong>内存对齐</strong>：传输的 C-ABI 结构体强制 <code>#pragma pack(push, 1)</code> 对齐。
+            <ul>
+              <li><code>raw_ring</code> 运载 <code>mozart_raw_frame_t</code> (48k/20ms/3856B)</li>
+              <li><code>input_ring</code> 运载 <code>mozart_input_frame_t</code> (16k/20ms/1296B)</li>
+              <li><code>output_ring</code> 运载 <code>mozart_output_frame_t</code> (48k/20ms/3856B)</li>
+            </ul>
+          </li>
+        </ul>
+        <div class="code-block">
+// 侧带 16字节 Meta 元数据契约
+typedef struct {
+    uint64_t pts_ns;       // 纳秒级展示时间戳
+    uint32_t frame_idx;    // 帧单调序号
+    uint8_t  vad_flag;     // 语音激活标志
+    uint8_t  energy_db;    // 帧能量值 (dB)
+    uint8_t  conf;         // 降噪置信度
+    uint8_t  segment_id;   // 分段标记
+} mozart_frame_meta_t;
+        </div>
+      </div>
+      
+      <!-- UDP Tab -->
+      <div id="link-content-1" class="tab-content">
+        <p>在<strong>分布式网络部署</strong>时，输入采集端与推理服务器之间通过 <strong>UDP 契约协议 (MZRT)</strong> 发送网络包：</p>
+        <ul>
+          <li><strong>端口绑定</strong>：固定在 UDP 端口 <code>18000</code> 通信，定长格式以避免粘包。</li>
+          <li><strong>网络包大小设计</strong>：
+            <ul>
+              <li><strong>输入包 (16kHz)</strong>：20字节头部 + 320点浮点PCM = <code>1300字节</code> (安全适配网络 MTU 1500，防 IP 分片丢失)。</li>
+              <li><strong>输出包 (48kHz)</strong>：20字节头部 + 960点浮点PCM = <code>3860字节</code>。</li>
+            </ul>
+          </li>
+          <li><strong>安全校验</strong>：开头包含 4 字节魔数 <code>0x4D5A5254</code> (即 ASCII 'MZRT')，后面跟随 16 字节元数据和浮点 PCM 音频数据。</li>
+        </ul>
+        <div class="code-block">
+// 网络封包示例 (IO/src/udp_stream.cpp)
+void pack_output_packet(const mozart_output_frame_t& in, OutputPacket& out) {
+    write_u32_le(out.data(), MOZART_PACKET_MAGIC);
+    write_u64_le(out.data() + 4, in.meta.pts_ns);
+    write_u32_le(out.data() + 12, in.meta.frame_idx);
+    out[16] = in.meta.vad_flag;
+    out[17] = in.meta.energy_db;
+    std::memcpy(out.data() + 20, in.pcm, 960 * sizeof(float));
+}
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- 右栏：编排解耦原理 -->
+    <div class="card state">
+      <span class="badge state">控制与编排原理 (Control Plane)</span>
+      <h3>状态管理器如何进行编排？</h3>
+      <p>状态机遵循<strong>控制面与数据面解耦</strong>的设计。<code>state_manager</code> 本身<strong>不触碰音频数据指针，不执行核心的运算</strong>。它通过调用三大层级的**生命周期门面 (Lifecycle Facades)** 间接指挥全链路：</p>
+      
+      <div class="code-block" style="color: #fbbf24; line-height: 1.4; font-size: 0.8rem;">
+用户切换模式 (POST /api/mode/switch)
+  │
+  ▼ [state_manager 锁判定与排队]
+  ├─ 1. 模型大类切换 (Model Facade)
+  │     └── pipeline->switch_model("alice") (载入/置换 CUDA 权重)
+  │
+  ├─ 2. I/O 链路启停 (IO Facade)
+  │     ├── mozart_io_create_pipewire_stream(Capture/Playback)
+  │     └── mozart_io_open_stream() (分配无锁环，独占/释放物理设备)
+  │
+  └─ 3. 后台线程控制 (Worker Facade)
+        └── AudioWorker::start() / stop() (拉起/终止环形队列的消费)
+      </div>
+      
+      <h4>为什么采用这种编排设计？</h4>
+      <ul>
+        <li><strong>极高稳定性</strong>：如果推理后端因并发任务阻塞或超时，状态机仍能独立接管 I/O 并下发静音填充，避免声卡死锁爆音。</li>
+        <li><strong>模型与驱动解耦</strong>：以后新增如 <code>Seed-VC</code> 等零样本变声模型时，只需更新 Model 与 Worker 面板，I/O 层的物理设备与网络驱动完全不需要改动。</li>
+      </ul>
+    </div>
+    
+  </div>
+
+  <script>
+    const nodeSpecs = {
+      capture: {
+        title: "采集 I/O 模块 (Capture IO)",
+        badge: "音频输入",
+        badgeClass: "io",
+        content: `
+          <p>负责从物理音频设备（麦克风）或实时网络 UDP 通道中捕获输入音频，运行在最高调度级别的实时线程中。</p>
+          <ul>
+            <li><strong>物理采集 (PipeWire)</strong>：与系统默认麦克风 (<code>default_mic</code>) 链接。通过 PipeWire 原生的共享内存环形缓冲区进行高频读取，延迟压在 5ms 以内。</li>
+            <li><strong>网络接收 (UDP)</strong>：绑定本地端口 <code>18000</code>。在独立后台线程中阻塞接收 <code>MZRT</code> 格式的网络包，并将 PCM 数据解析还原。</li>
+            <li><strong>无锁压栈</strong>：读取的一帧数据会被立刻放入无锁环 <code>raw_ring</code> 中。若环满，采集端主动丢弃当前帧，防止高延迟导致采集回调超时中断。</li>
+          </ul>
+          <div class="code-block">
+// C-ABI 48kHz 原始输入帧结构 (frame_meta.h)
+typedef struct {
+    mozart_frame_meta_t meta;                     // 16B 侧带元数据
+    float               pcm[MOZART_RAW_SAMPLES];  // 960点 float32 单声道 PCM (3840 字节)
+} mozart_raw_frame_t; // 大小: 3856 字节
+          </div>
+        `
+      },
+      pre: {
+        title: "预处理数字信号清洗 (Preprocessor)",
+        badge: "音频去噪",
+        badgeClass: "pre",
+        content: `
+          <p>独立的 C11 预处理 Worker 线程从 <code>raw_ring</code> 消费 48kHz 原始音频，运行数字信号清洗管线：</p>
+          <ul>
+            <li><strong>高通滤波 (HPF)</strong>：80Hz 级联的双二阶 IIR 滤波器滤除麦克风超低频交流偏置及振动杂音。</li>
+            <li><strong>RNNoise 去噪阶段</strong>：以 10ms (480点) 为基本块大小进行 RNN 降噪。在每一段估计出噪声谱功率并进行有声判定（更新 <code>vad_flag</code> ）。</li>
+            <li><strong>自适应干湿混合</strong>：动态计算当前帧的信噪比 (SNR)，调整湿比。高噪时进行 aggressive去噪，安静时引入原声，确保语音听感清澈。</li>
+            <li><strong>3:1 FIR 降采样</strong>：使用带有 33 Tap 的 Kaiser 窗口低通滤波器降采样到 16kHz，并将封装好的标准契约输入帧推入 <code>input_ring</code>。</li>
+          </ul>
+          <div class="code-block">
+// 契约输入帧结构 (frame_meta.h)
+typedef struct {
+    mozart_frame_meta_t meta;                     // 加工完毕的 16B 元数据
+    float               pcm[MOZART_INPUT_SAMPLES]; // 320点 float32 16kHz PCM (1280 字节)
+} mozart_input_frame_t; // 大小: 1296 字节
+          </div>
+        `
+      },
+      infer: {
+        title: "AudioWorker 变声与 GPU 推理 (Backend Inference)",
+        badge: "神经网络推理",
+        badgeClass: "infer",
+        content: `
+          <p>推理 Worker 线程消费 <code>input_ring</code>，负责执行核心深度神经网络前向推理：</p>
+          <ul>
+            <li><strong>丢帧自适应机制 (Drop-Frame Recovery)</strong>：若 GPU 发生计算堆积使队列帧数 > 4，推理线程在读取时会自动丢弃前 $N-1$ 帧，仅提取最后一帧做推理，瞬间清除系统累积延迟。</li>
+            <li><strong>静音快通 (VAD Gating)</strong>：检测到 <code>vad_flag == 0</code> 时，推理后端不启用前向推理，直接向 output PCM 填零，杜绝 GPU 空转与静音段产生的伪杂音。</li>
+            <li><strong>120ms 历史滑动窗口</strong>：在 Worker 线程的闭环内存中维护 1920 采样点的滑动窗口上下文，满足 HuBERT 与 RMVPE 网络的特征提取。</li>
+            <li><strong>生成器前向推理</strong>：特征检索匹配后（FAISS），由 Generator 将音频前向重建为高保真 48kHz mono 变声流，塞入 <code>output_ring</code>。</li>
+          </ul>
+          <div class="code-block">
+// RVC 推理前向流控制 (rvc/pipeline.cpp)
+std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
+    // 1. 抽取 Hubert 语义特征 2. RMVPE 提取音高 3. Index 特征检索 4. Generator 生成 48k PCM
+    return inferencer_->infer(audio); 
+}
+          </div>
+        `
+      },
+      playback: {
+        title: "播放输出 I/O 模块 (Playback IO)",
+        badge: "音频输出",
+        badgeClass: "io",
+        content: `
+          <p>将转换完成的变声音频从 <code>output_ring</code> 中消费出来，写给物理播放通道或 UDP 套接字。</p>
+          <ul>
+            <li><strong>爆音平滑防护</strong>：如果由于系统算力瞬时抖动使得 <code>output_ring</code> 发生空环，输出线程立即在 PipeWire 中填补全零的静音帧，防止声卡产生啪啪声（爆音）并隔离驱动程序报错。</li>
+            <li><strong>网络转发</strong>：在 UDP 模式下，直接以 MZRT 契约包形式将 48kHz 的变声波形数据和纳秒级时间戳，发回捕获时的客户端源地址。</li>
+          </ul>
+          <div class="code-block">
+// 变声输出帧结构 (frame_meta.h)
+typedef struct {
+    mozart_frame_meta_t meta;                      // 元数据
+    float               pcm[MOZART_OUTPUT_SAMPLES]; // 960点 float32 48kHz PCM (3840 字节)
+} mozart_output_frame_t; // 大小: 3856 字节
+          </div>
+        `
+      },
+      state: {
+        title: "状态编排管理器 (state_manager)",
+        badge: "系统控制器",
+        badgeClass: "state",
+        content: `
+          <p>负责全局生命周期管理、I/O 设备热插拔配置以及多模式模型热切换，确保在 Jetson Orin Nano (8GB VRAM) 共享内存平台下的极致稳定性。</p>
+          <ul>
+            <li><strong>物理设备独占释放</strong>：切换至离线音频文件模式 (FILE_*) 时，将主动断开物理音频捕获 (<code>pw_stream_disconnect</code>)，确保硬件无冲突。</li>
+            <li><strong>显存智能置换</strong>：同类模型切换（如 RVC 角色 A ➔ B）仅重载 Generator，仅需约 200ms。跨大类模型切换（RVC ➔ Zero-Shot VC）则主动卸载旧显存模型并触发垃圾回收器（Python <code>gc.collect()</code>），防范 8GB 显存溢出。</li>
+            <li><strong>算力双通道调度</strong>：实时变声任务（RT_*）拥有高实时调度优先级 (<code>SCHED_FIFO</code>, Priority=90)，而后台音频文件转换任务仅以低优先级 (Nice 19) 运行。GPU 推理通过 CUDA Streams 区分高低优先级流，实时流强占执行。</li>
+          </ul>
+          <div class="code-block">
+// 切换系统模式 Web API: POST /api/mode/switch
+{
+  "mode": "rt_rvc",          // 目标工作模式: rt_rvc | file_rvc | rt_zero_shot | file_zero_shot
+  "speaker_id": "alice",     // 目标人声特征配置 / 角色 ID
+  "options": {
+    "device": "cuda",
+    "index_rate": 0.3
+  }
+}
+          </div>
+        `
+      }
+    };
+
+    function selectNode(nodeId) {
+      document.querySelectorAll('.flow-node').forEach(node => {
+        node.classList.remove('active');
+      });
+      const activeNode = document.getElementById('node-' + nodeId);
+      if (activeNode) activeNode.classList.add('active');
+      
+      const spec = nodeSpecs[nodeId];
+      if (spec) {
+        document.getElementById('detail-panel').className = 'info-pane card ' + spec.badgeClass;
+        document.getElementById('detail-title').innerHTML = `<span class="badge ${spec.badgeClass}">${spec.badge}</span><br>${spec.title}`;
+        document.getElementById('detail-content').innerHTML = spec.content;
+      }
+    }
+    
+    function switchView(mode) {
+      document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      if (mode === 'stream') {
+        document.getElementById('flow-line-1').style.stroke = '#3b82f6';
+        document.getElementById('flow-line-2').style.stroke = '#10b981';
+        document.getElementById('flow-line-3').style.stroke = '#8b5cf6';
+        document.getElementById('flow-line-4').style.stroke = '#3b82f6';
+        document.getElementById('node-capture').style.opacity = '1';
+        document.getElementById('node-playback').style.opacity = '1';
+        document.getElementById('node-pre').querySelector('text:last-of-type').textContent = '48k -> 16k';
+        document.getElementById('node-infer').querySelector('text:last-of-type').textContent = '16k -> 48k';
+      } else {
+        document.getElementById('flow-line-1').style.stroke = '#1e293b';
+        document.getElementById('flow-line-4').style.stroke = '#1e293b';
+        document.getElementById('node-capture').style.opacity = '0.3';
+        document.getElementById('node-playback').style.opacity = '0.3';
+        document.getElementById('node-pre').querySelector('text:last-of-type').textContent = '解析单声道文件块';
+        document.getElementById('node-infer').querySelector('text:last-of-type').textContent = '转换输出音频文件';
+      }
+    }
+    
+    function switchTab(group, index) {
+      const tabGroup = event.target.parentNode;
+      tabGroup.querySelectorAll('.tab').forEach((tab, idx) => {
+        if (idx === index) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+      const container = tabGroup.parentNode;
+      container.querySelectorAll('.tab-content').forEach((content, idx) => {
+        if (idx === index) {
+          content.classList.add('active');
+        } else {
+          content.classList.remove('active');
+        }
+      });
+    }
+    
+    // 初始化选择状态机节点
+    selectNode('state');
+  </script>
+</body>
+</html>

@@ -12,7 +12,7 @@
 //   PipeWire Capture  → ReadFrame  产出 mozart_raw_frame_t    (48kHz / 3856B)
 //   UDP Capture       → ReadFrame  产出 mozart_input_frame_t  (16kHz / 1296B)
 //   PipeWire Playback → WriteFrame 消费 mozart_output_frame_t (48kHz / 3856B)
-//   UDP Playback      → WriteFrame 消费 mozart_output_frame_t (48kHz / 3860B)
+//   UDP Playback      → WriteFrame 消费 mozart_output_frame_t (48kHz / 3856B)
 #ifndef MOZART_AUDIO_STREAM_HPP
 #define MOZART_AUDIO_STREAM_HPP
 
