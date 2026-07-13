@@ -6,9 +6,9 @@
 //
 // 数据格式（与 frame_meta.h 对齐）：
 //   Capture  → ReadFrame  产出 mozart_input_frame_t  (16kHz / 1296B / MZRT 包 1300B)
-//              WriteFrame 消费 mozart_output_frame_t (48kHz / 3860B / MZRT 包 3860B)
+//              WriteFrame 消费 mozart_output_frame_t (48kHz / 3856B / MZRT 包 3860B)
 //                          发回已知客户端地址（服务器回声场景：收 input → 推理 → 发 output）
-//   Playback → WriteFrame 消费 mozart_output_frame_t (48kHz / 3860B)
+//   Playback → WriteFrame 消费 mozart_output_frame_t (48kHz / 3856B)
 //              ReadFrame  不可用（纯发送端）
 //
 // 客户端追踪：Capture 流记录首个合法发送方地址，WriteFrame 自动回发该地址；
@@ -30,10 +30,12 @@
   #include <winsock2.h>
   #include <ws2tcpip.h>
   using socket_t = SOCKET;
+  using socket_len_t = int;
 #else
   #include <sys/socket.h>
   #include <netinet/in.h>
   using socket_t = int;
+  using socket_len_t = socklen_t;
 #endif
 
 namespace mozart {
@@ -71,8 +73,17 @@ private:
     uint16_t         port_;
     StreamDirection  direction_;
 
+#ifdef _WIN32
+    socket_t         sock_fd_{INVALID_SOCKET};
+#else
     socket_t         sock_fd_{-1};
+#endif
     std::atomic<bool> open_{false};
+    std::mutex        lifecycle_mutex_;
+    std::mutex        socket_mutex_;
+#ifdef _WIN32
+    bool              wsa_started_{false};
+#endif
 
     // Capture: 接收线程 + 输入缓冲
     std::thread      recv_thread_;
@@ -83,7 +94,7 @@ private:
     // 客户端地址追踪（Capture 记录，Playback 发送目标）
     mutable std::mutex client_mutex_;
     sockaddr_storage client_addr_{};
-    socklen_t        client_addr_len_{0};
+    socket_len_t     client_addr_len_{0};
     std::atomic<bool> client_known_{false};
 
     std::atomic<uint64_t> packets_received_{0};

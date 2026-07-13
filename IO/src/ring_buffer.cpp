@@ -7,10 +7,21 @@
 
 #include <cstring>
 #include <algorithm>
+#include <limits>
+#include <stdexcept>
 
 namespace mozart {
 
-inline uint32_t next_pow2(uint32_t v) {
+uint32_t checked_item_size(uint32_t item_size) {
+    if (item_size == 0) throw std::invalid_argument("ring item size must be non-zero");
+    return item_size;
+}
+
+uint32_t next_pow2(uint32_t v) {
+    constexpr uint32_t max_capacity = uint32_t{1} << 31;
+    if (v == 0 || v > max_capacity) {
+        throw std::length_error("ring capacity is not representable");
+    }
     if (v < 2) return 2;
     --v;
     v |= v >> 1; v |= v >> 2; v |= v >> 4;
@@ -19,10 +30,13 @@ inline uint32_t next_pow2(uint32_t v) {
 }
 
 SpscRing::SpscRing(uint32_t capacity, uint32_t item_size)
-    : item_size_(item_size ? item_size : 1)
+    : item_size_(checked_item_size(item_size))
     , mask_(next_pow2(capacity) - 1)
 {
     const uint32_t cap = mask_ + 1;
+    if (static_cast<size_t>(cap) > std::numeric_limits<size_t>::max() / item_size_) {
+        throw std::length_error("ring allocation size overflows size_t");
+    }
     storage_.resize(static_cast<size_t>(cap) * item_size_);
 }
 

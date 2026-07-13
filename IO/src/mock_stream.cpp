@@ -10,6 +10,7 @@
 #include <fstream>
 #include <cstring>
 #include <cmath>
+#include <exception>
 
 namespace mozart {
 
@@ -24,11 +25,17 @@ bool load_wav_f32_mono(const std::string& path, std::vector<float>& out,
         return false;
     }
 
-    char riff[4]; f.read(riff, 4);
-    if (std::memcmp(riff, "RIFF", 4) != 0) { spdlog::warn("MockStream: not RIFF"); return false; }
+    char riff[4]{};
+    if (!f.read(riff, 4) || std::memcmp(riff, "RIFF", 4) != 0) {
+        spdlog::warn("MockStream: not RIFF");
+        return false;
+    }
     f.seekg(4, std::ios::cur); // file size
-    char wave[4]; f.read(wave, 4);
-    if (std::memcmp(wave, "WAVE", 4) != 0) { spdlog::warn("MockStream: not WAVE"); return false; }
+    char wave[4]{};
+    if (!f.read(wave, 4) || std::memcmp(wave, "WAVE", 4) != 0) {
+        spdlog::warn("MockStream: not WAVE");
+        return false;
+    }
 
     uint16_t audio_format = 0, channels = 0, bits = 0;
     uint32_t sample_rate = 0;
@@ -37,29 +44,43 @@ bool load_wav_f32_mono(const std::string& path, std::vector<float>& out,
     while (f) {
         char id[4]; f.read(id, 4);
         if (f.gcount() != 4) break;
-        uint32_t sz = 0; f.read(reinterpret_cast<char*>(&sz), 4);
+        uint32_t sz = 0;
+        if (!f.read(reinterpret_cast<char*>(&sz), 4)) return false;
         if (std::memcmp(id, "fmt ", 4) == 0) {
-            f.read(reinterpret_cast<char*>(&audio_format), 2);
-            f.read(reinterpret_cast<char*>(&channels), 2);
-            f.read(reinterpret_cast<char*>(&sample_rate), 4);
+            if (sz < 16
+                || !f.read(reinterpret_cast<char*>(&audio_format), 2)
+                || !f.read(reinterpret_cast<char*>(&channels), 2)
+                || !f.read(reinterpret_cast<char*>(&sample_rate), 4)) {
+                return false;
+            }
             f.seekg(4, std::ios::cur); // byte rate
             f.seekg(2, std::ios::cur); // block align
-            f.read(reinterpret_cast<char*>(&bits), 2);
+            if (!f.read(reinterpret_cast<char*>(&bits), 2)) return false;
             if (sz > 16) f.seekg(sz - 16, std::ios::cur);
         } else if (std::memcmp(id, "data", 4) == 0) {
             data.resize(sz);
-            f.read(reinterpret_cast<char*>(data.data()), sz);
+            if (!f.read(reinterpret_cast<char*>(data.data()), sz)) return false;
         } else {
             f.seekg(sz, std::ios::cur);
         }
+        if (!f) return false;
         if (sz & 1) f.seekg(1, std::ios::cur); // padding byte
     }
 
     if (data.empty()) { spdlog::warn("MockStream: no data chunk"); return false; }
     if (channels == 0 || bits == 0 || sample_rate == 0) return false;
+    const bool supported_format =
+        (audio_format == 1 && (bits == 16 || bits == 24))
+        || (audio_format == 3 && bits == 32);
+    if (!supported_format) {
+        spdlog::warn("MockStream: unsupported WAV format={} bits={}", audio_format, bits);
+        return false;
+    }
 
     out_sample_rate = sample_rate;
-    const size_t total = data.size() / (channels * (bits / 8));
+    const size_t bytes_per_frame = static_cast<size_t>(channels) * (bits / 8);
+    if (data.size() % bytes_per_frame != 0) return false;
+    const size_t total = data.size() / bytes_per_frame;
     out.resize(total);
 
     auto read_sample = [&](size_t i) -> float {
@@ -101,29 +122,55 @@ MockStream::MockStream(std::string wav_path, StreamDirection direction,
 MockStream::~MockStream() { Close(); }
 
 bool MockStream::Open(const StreamConfig& config) {
-    if (open_) return true;
-    sample_rate_       = config.sample_rate;
+    std::lock_guard<std::mutex> state_lock(state_mutex_);
+    if (open_.load()) return true;
+    if (config.direction != direction_
+        || config.frame_duration_ms != MOZART_INPUT_FRAME_MS) {
+        return false;
+    }
+    if (direction_ == StreamDirection::Capture
+        && config.sample_rate != MOZART_RAW_SAMPLE_RATE
+        && config.sample_rate != MOZART_INPUT_SAMPLE_RATE) {
+        return false;
+    }
+    if (direction_ == StreamDirection::Playback
+        && config.sample_rate != MOZART_OUTPUT_SAMPLE_RATE) {
+        return false;
+    }
+
+    try {
+        if (direction_ == StreamDirection::Capture) {
+            std::vector<float> new_pcm_buffer;
+            uint32_t file_sr = config.sample_rate;
+            if (!load_wav_f32_mono(wav_path_, new_pcm_buffer, file_sr)) {
+                spdlog::error("MockStream: failed to load '{}'", wav_path_);
+                return false;
+            }
+            if (file_sr != config.sample_rate) {
+                spdlog::error("MockStream: WAV sample rate {} != requested {}",
+                              file_sr, config.sample_rate);
+                return false;
+            }
+            if (new_pcm_buffer.empty()) {
+                spdlog::error("MockStream: empty PCM buffer");
+                return false;
+            }
+            pcm_buffer_ = std::move(new_pcm_buffer);
+        }
+    } catch (const std::exception& error) {
+        spdlog::error("MockStream: failed to open '{}': {}", wav_path_, error.what());
+        return false;
+    } catch (...) {
+        spdlog::error("MockStream: failed to open '{}'", wav_path_);
+        return false;
+    }
+
+    sample_rate_ = config.sample_rate;
     frame_duration_ms_ = config.frame_duration_ms;
     samples_per_frame_ = sample_rate_ * frame_duration_ms_ / 1000;
-
-    if (direction_ == StreamDirection::Capture) {
-        uint32_t file_sr = sample_rate_;
-        if (!load_wav_f32_mono(wav_path_, pcm_buffer_, file_sr)) {
-            spdlog::error("MockStream: failed to load '{}'", wav_path_);
-            return false;
-        }
-        if (file_sr != sample_rate_) {
-            spdlog::warn("MockStream: WAV sample rate {} != requested {}, using file sr",
-                         file_sr, sample_rate_);
-            sample_rate_ = file_sr;
-            samples_per_frame_ = sample_rate_ * frame_duration_ms_ / 1000;
-        }
-        if (pcm_buffer_.empty()) {
-            spdlog::error("MockStream: empty PCM buffer");
-            return false;
-        }
-    }
-    open_ = true;
+    read_cursor_ = 0;
+    frame_idx_ = 0;
+    open_.store(true);
     spdlog::info("MockStream opened: dir={}, sr={}, spf={}",
                  direction_ == StreamDirection::Capture ? "capture" : "playback",
                  sample_rate_, samples_per_frame_);
@@ -131,14 +178,16 @@ bool MockStream::Open(const StreamConfig& config) {
 }
 
 void MockStream::Close() {
-    if (!open_) return;
-    open_ = false;
+    std::lock_guard<std::mutex> state_lock(state_mutex_);
+    if (!open_.exchange(false)) return;
     pcm_buffer_.clear();
     read_cursor_ = 0;
 }
 
 bool MockStream::ReadFrame(void* out_frame_buf, uint32_t buf_size) {
-    if (!open_ || direction_ != StreamDirection::Capture) return false;
+    if (!out_frame_buf || direction_ != StreamDirection::Capture) return false;
+    std::lock_guard<std::mutex> state_lock(state_mutex_);
+    if (!open_.load()) return false;
 
     // 校验 buf_size 与契约帧大小
     const uint32_t expected_input  = sizeof(mozart_input_frame_t);
@@ -146,6 +195,12 @@ bool MockStream::ReadFrame(void* out_frame_buf, uint32_t buf_size) {
     if (buf_size != expected_input && buf_size != expected_raw) {
         spdlog::warn("MockStream ReadFrame: buf_size {} mismatch (input={} raw={})",
                      buf_size, expected_input, expected_raw);
+        return false;
+    }
+    if ((buf_size == expected_raw && sample_rate_ != MOZART_RAW_SAMPLE_RATE)
+        || (buf_size == expected_input && sample_rate_ != MOZART_INPUT_SAMPLE_RATE)) {
+        spdlog::warn("MockStream ReadFrame: frame type does not match {}Hz stream",
+                     sample_rate_);
         return false;
     }
 
@@ -176,8 +231,9 @@ bool MockStream::ReadFrame(void* out_frame_buf, uint32_t buf_size) {
 }
 
 bool MockStream::WriteFrame(const void* in_frame_buf, uint32_t buf_size) {
-    if (!open_ || direction_ != StreamDirection::Playback) return false;
-    if (!in_frame_buf || buf_size != sizeof(mozart_output_frame_t)) return false;
+    if (!in_frame_buf || direction_ != StreamDirection::Playback) return false;
+    std::lock_guard<std::mutex> state_lock(state_mutex_);
+    if (!open_.load() || buf_size != sizeof(mozart_output_frame_t)) return false;
     (void)in_frame_buf;
     frames_written_.fetch_add(1, std::memory_order_relaxed);
     return true;

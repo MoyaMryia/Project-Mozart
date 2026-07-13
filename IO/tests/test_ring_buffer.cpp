@@ -16,6 +16,7 @@
 #include <atomic>
 #include <vector>
 #include <cstring>
+#include <limits>
 
 static int g_failures = 0;
 #define CHECK(cond) do { \
@@ -117,6 +118,9 @@ static void test_cabi() {
     CHECK(mozart_ring_capacity(ring) >= 4);
 
     mozart_ring_destroy(ring);
+
+    CHECK(mozart_ring_create(std::numeric_limits<uint32_t>::max(), 1) == nullptr);
+    CHECK(mozart_ring_create(4, 0) == nullptr);
     std::printf("[OK] test_capi\n");
 }
 
