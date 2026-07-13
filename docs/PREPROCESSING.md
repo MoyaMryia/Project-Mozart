@@ -11,14 +11,14 @@
 
 ```
   Raw Mic ──► [ 80Hz HPF ] ──► [ RNNoise ] ──► [ Adaptive Mix ] ──► [ 3:1 Decimate ] ──► Contract Output
-              (IIR biquad)      (GRU denoiser)   (SNR-based wet/dry)   (480→160×2)        16kHz/f32 + 12B meta
+              (IIR biquad)      (GRU denoiser)   (SNR-based wet/dry)   (480→160×2)        16kHz/f32 + 16B meta
 ```
 
 **设计决策：**
 - 纯 **C11**，无运行时、无动态分配
 - **ARM NEON** 向量路径（Cortex-A78AE）
 - **函数指针 vtable** 架构：每个处理单元是可插拔的 stage
-- 12 字节 packed 元数据与 C++ 后端保持 ABI 一致
+- 16 字节 packed 元数据与 C++ 后端保持 ABI 一致
 
 ---
 
@@ -53,7 +53,7 @@ preprocessor/
 
 ## 3. 核心类型
 
-### 3.1 `mozart_frame_meta_t` — 12 字节帧元数据
+### 3.1 `mozart_frame_meta_t` — 16 字节帧元数据
 
 ```c
 typedef struct __attribute__((packed)) {
@@ -110,7 +110,7 @@ struct mozart_stage {
 3:1 线性降采样（480 样本 → 160 样本/子帧）
     │
     ▼
-输出：16kHz 帧 (320 float32) + 12B FrameMeta
+输出：16kHz 帧 (320 float32) + 16B FrameMeta
 ```
 
 ---
@@ -120,13 +120,12 @@ struct mozart_stage {
 ### 5.1 常量
 
 ```c
-#define MOZART_CONTRACT_SAMPLE_RATE    16000
-#define MOZART_CONTRACT_FRAME_MS       20
-#define MOZART_CONTRACT_SAMPLES        320
-#define MOZART_CONTRACT_META_SIZE      12
-#define MOZART_INTERNAL_SAMPLE_RATE    48000
-#define MOZART_INTERNAL_FRAME_MS       10
-#define MOZART_INTERNAL_SAMPLES        480
+#define MOZART_INPUT_SAMPLE_RATE       48000
+#define MOZART_INPUT_FRAME_SAMPLES     960
+#define MOZART_SAMPLE_RATE             16000
+#define MOZART_CHANNELS                1
+#define MOZART_FRAME_MS                20
+#define MOZART_FRAME_SAMPLES           320
 ```
 
 ### 5.2 生命周期

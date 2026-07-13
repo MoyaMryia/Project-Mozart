@@ -10,14 +10,14 @@
 ```
 ┌─────────────────────┐    UDP MZRT Contract      ┌────────────────────┐
 │ 预处理 (preprocessor/) │ ──── 16kHz/f32/20ms ────► │  RVC Backend      │
-│  mozart_pre_process() │    + 12B FrameMeta      │  (C++17, rvc-backend)│
+│  mozart_pre_process() │    + 16B FrameMeta      │  (C++17, rvc-backend)│
 │                       │ ◄── 48kHz/f32/20ms ────── │  · RVC 推理        │
 └───────────────────────┘    + FrameMeta 透传      │  · 模型热切换      │
                                                     │  · HTTP 管理       │
                                                     └────────────────────┘
 ```
 
-- **输入**：16 kHz / mono / float32 / 20 ms（320 样本）+ 12B FrameMeta
+- **输入**：16 kHz / mono / float32 / 20 ms（320 样本）+ 16B FrameMeta
 - **输出**：48 kHz / mono / float32 / 20 ms（960 样本）+ FrameMeta 透传
 - **协议**：UDP 端口 18000，魔数 `0x4D5A5254`（`'MZRT'`）
 - **管理 API**：HTTP 端口 18080（原生 socket 实现，无外部 HTTP 库）
@@ -33,7 +33,7 @@ rvc-backend/
 ├── include/
 │   ├── common.hpp           # 小端读写、socket 工具函数
 │   ├── network/
-│   │   ├── packet.hpp       # ContractAudioPacket + 遗留 LegacyAudioPacket
+│   │   ├── packet.hpp       # ContractAudioPacket (MZRT 契约包)
 │   │   └── udp_server.hpp   # 三线程 UDP 服务器
 │   ├── rvc/
 │   │   ├── pipeline.hpp     # MockRVCPipeline / RealRVCPipeline + 工厂
@@ -100,13 +100,9 @@ struct FrameMeta {                  // wire offset
 
 静音判定：`vad_flag == 0` 时服务器跳过推理，直接返回零帧。
 
-### 3.2 RAVC 旧包（遗留代码，未使用）
+### 3.2 静音判定
 
-`LegacyAudioPacket` 定义在 `packet.hpp` 中，魔数 `0x52415643`（`'RAVC'`），int16 PCM，支持 48kHz。**当前代码中未使用**，仅保留兼容参考。
-
----
-
-## 4. UDP 服务器（三线程）
+`vad_flag == 0` 时服务器跳过推理，直接返回零帧。
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
@@ -391,6 +387,4 @@ mozart_pre_process(ctx, in_48k_960, 960, out_16k_320, &meta);
 - `handle_upload_model()` 代码存在但未注册到路由
 - `/status` 的 `mode` 和模型信息不查询管线，直接硬编码
 - `/models/{id}/activate` 返回成功但不实际调用 `switch_model()`
-- `LegacyAudioPacket` 完全实现但当前无任何消费者
-- `third_party/` 目录不存在，但 CMakeLists.txt 引用了其路径
 - 配置中部分字段（如 `f0_method`）定义了但未被 main.cpp 读取

@@ -9,7 +9,7 @@
 ```
 真实麦克风 ──► [ Mozart 预处理 ] ──── 契约流 ────► [ RVC 后处理 ] ──► 扬声器/虚拟麦克风
                   preprocessor/ (C11)        16k/f32/20ms      rvc-backend/ (C++17)
-                                     + 12B 元数据
+                                     + 16B 元数据
 ```
 
 | 子系统 | 目录 | 语言 | 职责 |
@@ -32,7 +32,7 @@
 | 格式 | float32 PCM [-1, 1] | float32 PCM [-1, 1] |
 | 帧长 | 20 ms（320 样本） | 20 ms（960 样本） |
 
-### 2.2 元数据（12 字节 FrameMeta）
+### 2.2 元数据（16 字节 FrameMeta）
 
 ```c
 struct __attribute__((packed)) mozart_frame_meta {
@@ -71,7 +71,7 @@ uint8_t encode_energy_db(float raw_db) {
 }
 ```
 
-详见 [`CONTRACT.md`](CONTRACT.md)。
+详见 [`docs/RVC_BACKEND.md`](RVC_BACKEND.md) 包格式章节。
 
 ---
 

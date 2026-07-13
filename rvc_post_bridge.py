@@ -8,7 +8,7 @@ Project-Mozart RVC Post-Processing Bridge v2
   麦克风 → [preprocessor/ 48kHz] ──降采样──► [本 Bridge 16kHz] ──► [Python RVC] ──► 输出
 
 Mozart 契约 (预处理→后处理):
-  输入: 16kHz / mono / float32 / 320 samples (20ms) + 12B meta
+  输入: 16kHz / mono / float32 / 320 samples (20ms) + 16B meta
   输出: RVC 模型原生采样率
 
 用法:
@@ -22,7 +22,7 @@ from pathlib import Path
 
 RVC_SERVER_URL = "http://localhost:7897"
 RVC_DIR = r"C:\Users\25608\Downloads\Retrieval-based-Voice-Conversion-WebUI"
-PROJECT_DIR = r"C:\Users\25608\Downloads\Project-Mozart-merged"
+PROJECT_DIR = str(Path(__file__).parent.resolve())
 DEFAULT_INPUT = os.path.join(PROJECT_DIR, "preprocessor", "clean_speech.wav")
 
 CONTRACT_SR = 16000

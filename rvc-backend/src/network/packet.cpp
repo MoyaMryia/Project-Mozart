@@ -4,52 +4,6 @@
 namespace rvc {
 
 // ──────────────────────────────────────────────────────────
-// LegacyAudioPacket
-// ──────────────────────────────────────────────────────────
-std::vector<uint8_t> LegacyAudioPacket::pack() const {
-    std::vector<uint8_t> data;
-    data.resize(HEADER_SIZE + samples.size() * 2);
-
-    write_u32_le(data.data(), MAGIC);
-    write_u32_le(data.data() + 4, seq);
-    write_u64_le(data.data() + 8, timestamp_us);
-    write_u32_le(data.data() + 16, format_code | (static_cast<uint32_t>(samples.size()) << 16));
-
-    for (size_t i = 0; i < samples.size(); ++i) {
-        int16_t s = samples[i];
-        data[HEADER_SIZE + i * 2] = static_cast<uint8_t>(s);
-        data[HEADER_SIZE + i * 2 + 1] = static_cast<uint8_t>(s >> 8);
-    }
-    return data;
-}
-
-std::optional<LegacyAudioPacket> LegacyAudioPacket::unpack(const uint8_t* data, size_t len) {
-    if (len < HEADER_SIZE) return std::nullopt;
-
-    uint32_t magic = read_u32_le(data);
-    if (magic != MAGIC) return std::nullopt;
-
-    uint32_t seq = read_u32_le(data + 4);
-    uint64_t timestamp = read_u64_le(data + 8);
-    uint32_t fmt_samples = read_u32_le(data + 16);
-    uint16_t format_code = static_cast<uint16_t>(fmt_samples);
-    uint16_t samples_count = static_cast<uint16_t>(fmt_samples >> 16);
-
-    size_t expected = HEADER_SIZE + samples_count * 2;
-    if (len < expected) return std::nullopt;
-
-    LegacyAudioPacket pkt;
-    pkt.seq = seq;
-    pkt.timestamp_us = timestamp;
-    pkt.format_code = format_code;
-    pkt.samples.resize(samples_count);
-    for (size_t i = 0; i < samples_count; ++i) {
-        pkt.samples[i] = static_cast<int16_t>(data[HEADER_SIZE + i * 2] | (data[HEADER_SIZE + i * 2 + 1] << 8));
-    }
-    return pkt;
-}
-
-// ──────────────────────────────────────────────────────────
 // ContractAudioPacket
 // ──────────────────────────────────────────────────────────
 std::vector<uint8_t> ContractAudioPacket::pack() const {

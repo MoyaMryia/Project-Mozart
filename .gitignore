@@ -21,3 +21,25 @@ htmlcov/
 .idea/
 .vscode/
 .DS_Store
+Thumbs.db
+
+# Logs and backups
+*.log
+*.bak
+*.tmp
+*~
+
+# Project-specific build artifacts
+preprocessor/build/
+rvc-backend/build/
+
+# Test outputs
+preprocessor/output.wav
+*.output.wav
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+cmake-build-*/

@@ -59,7 +59,7 @@ cfg.mode = MOZART_MODE_SW_RNNOISE;
 cfg.mode = MOZART_MODE_FPGA_PASSTHROUGH;
 ```
 
-Jetson 侧 `mozart_pre_process()` 输出格式不变：16kHz/f32/20ms + 12B meta。
+Jetson 侧 `mozart_pre_process()` 输出格式不变：16kHz/f32/20ms + 16B meta。
 
 ---
 

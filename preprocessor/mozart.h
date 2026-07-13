@@ -3,12 +3,12 @@
 // This is the ONLY header a downstream consumer needs to include.
 // It defines:
 //   - Audio contract constants (sample rate, frame size, channels).
-//   - mozart_frame_meta_t  — 12-byte per-frame metadata, ABI-stable.
+//   - mozart_frame_meta_t  — 16-byte per-frame metadata, ABI-stable.
 //   - mozart_pre_config_t  — Pipeline configuration.
 //   - mozart_pre_*()       — Lifecycle: init → process → free.
 //
 // The FrameMeta layout MUST stay in sync with the C++ FrameMeta in the
-// ai_voice_changer post-processing project (include/frame_meta.hpp).
+// rvc-backend post-processing project (include/network/packet.hpp).
 #ifndef MOZART_H
 #define MOZART_H
 
@@ -26,7 +26,7 @@ extern "C" {
 #define MOZART_FRAME_MS            20    /**< Frame duration in milliseconds.        */
 #define MOZART_FRAME_SAMPLES       320   /**< Contract output samples per frame.     */
 
-// ---- Per-frame metadata (12 bytes, packed) -----------------------------------
+// ---- Per-frame metadata (16 bytes, packed) -----------------------------------
 #pragma pack(push, 1)
 typedef struct {
     uint64_t pts_ns;       /**< Presentation timestamp, nanoseconds since epoch. */

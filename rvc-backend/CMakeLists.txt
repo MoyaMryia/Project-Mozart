@@ -40,8 +40,7 @@ if(NOT spdlog_FOUND)
     FetchContent_MakeAvailable(spdlog)
 endif()
 
-# httplib (HTTP server, single header — vendored in third_party)
-# pthread for httplib
+# pthread for native socket HTTP server
 find_package(Threads REQUIRED)
 
 # ──────────────────────────────────────────────────────────
@@ -87,7 +86,6 @@ add_executable(rvc_backend ${SOURCES} ${HEADERS})
 
 target_include_directories(rvc_backend PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party
 )
 
 target_link_libraries(rvc_backend PRIVATE
