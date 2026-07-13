@@ -67,12 +67,8 @@ YAML::Node Config::get(const std::string& key) const {
     return resolve_path(key);
 }
 
-const YAML::Node& Config::section(const std::string& key) const {
-    static YAML::Node empty;
-    if (root_[key]) {
-        return root_[key];
-    }
-    return empty;
+YAML::Node Config::section(const std::string& key) const {
+    return root_[key] ? root_[key] : YAML::Node();
 }
 
 int Config::get_int(const std::string& key, int default_val) const {

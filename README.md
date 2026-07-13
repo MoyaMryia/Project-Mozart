@@ -3,13 +3,15 @@
 面向 **NVIDIA Jetson Orin Nano 8GB** 的实时 AI 变声器。
 
 ```
-真实麦克风 ──► [预处理 preprocessor/ (C11)] ──契约流──► [RVC 后处理 rvc-backend/ (C++17)] ──► 扬声器
+[麦克风/UDP] ──► [IO] ──► [预处理 C11] ──契约流──► [RVC 后处理 C++17] ──► [IO] ──► [扬声器/UDP]
 ```
 
 | 目录 | 说明 |
 |------|------|
+| `IO/` | 统一契约帧、PipeWire/UDP 驱动、SPSC 环和 C-ABI 生命周期 |
 | `preprocessor/` | 预处理管线：RNNoise 去噪 + 降采样 → 16kHz 契约流 |
-| `rvc-backend/` | RVC 变声后端：UDP 网络契约 + libtorch 推理 |
+| `rvc-backend/` | RVC 变声后端：AudioWorker 编排 + 推理 + HTTP 管理 |
+| `state_manager/` | 运行模式与 IO/模型资源编排设计 |
 | `docs/` | 📚 **全部文档（已合并）** |
 | `reference/` | ZYNQ BTB 硬件参考原理图 |
 
@@ -46,6 +48,10 @@ python -c "import torch; x=torch.randn((1024,1024),device='cuda'); y=x@x; torch.
 ### 快速构建
 
 ```bash
+# IO
+cmake -S IO -B IO/build -DCMAKE_BUILD_TYPE=Release
+cmake --build IO/build
+
 # 预处理
 cd preprocessor && make && make run
 

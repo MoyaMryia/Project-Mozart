@@ -1,24 +1,23 @@
 # Mozart RVC 后端 · 开发指南
 
 > C++17 变声后端，接收预处理契约流，运行 RVC 变声推理
-> UDP 定长包 + 原生 socket HTTP REST 管理
+> 音频收发由 `IO/` 提供，后端只负责 AudioWorker 编排、推理与 HTTP REST 管理
 
 ---
 
 ## 1. 架构定位
 
 ```
-┌─────────────────────┐    UDP MZRT Contract      ┌────────────────────┐
-│ 预处理 (preprocessor/) │ ──── 16kHz/f32/20ms ────► │  RVC Backend      │
-│  mozart_pre_process() │    + 16B FrameMeta      │  (C++17, rvc-backend)│
-│                       │ ◄── 48kHz/f32/20ms ────── │  · RVC 推理        │
-└───────────────────────┘    + FrameMeta 透传      │  · 模型热切换      │
-                                                    │  · HTTP 管理       │
-                                                    └────────────────────┘
+┌──────────────────┐   mozart_input_frame_t   ┌────────────────────┐
+│ IO/UdpStream     │ ───────────────────────► │ AudioWorker        │
+│ 收包/校验/SPSC 环 │                          │ VAD bypass + 编排   │
+│                  │ ◄─────────────────────── │ RVC Pipeline       │
+└──────────────────┘   mozart_output_frame_t  └────────────────────┘
 ```
 
 - **输入**：16 kHz / mono / float32 / 20 ms（320 样本）+ 16B FrameMeta
 - **输出**：48 kHz / mono / float32 / 20 ms（960 样本）+ FrameMeta 透传
+- **IO 契约**：由 `IO/include/mozart/frame_meta.h` 与 `IO/src/udp_stream.cpp` 统一拥有
 - **协议**：UDP 端口 18000，魔数 `0x4D5A5254`（`'MZRT'`）
 - **管理 API**：HTTP 端口 18080（原生 socket 实现，无外部 HTTP 库）
 
@@ -32,10 +31,8 @@ rvc-backend/
 ├── config.yaml              # 运行时配置（含所有可调参数）
 ├── include/
 │   ├── common.hpp           # 小端读写、socket 工具函数
-│   ├── network/
-│   │   ├── packet.hpp       # ContractAudioPacket (MZRT 契约包)
-│   │   └── udp_server.hpp   # 三线程 UDP 服务器
 │   ├── rvc/
+│   │   ├── audio_worker.hpp # IO → VAD bypass/推理 → IO 编排门面
 │   │   ├── pipeline.hpp     # MockRVCPipeline / RealRVCPipeline + 工厂
 │   │   ├── inferencer.hpp   # RVCInferencer（完整推理链定义）
 │   │   ├── feature_extractor.hpp  # HuBERT / RMVPE 特征提取
@@ -45,11 +42,9 @@ rvc-backend/
 │   └── utils/
 │       └── config.hpp       # YAML 配置加载（dot-path 缓存）
 ├── src/
-│   ├── main.cpp             # 入口：加载配置 → 创建管线 → 启动 UDP + HTTP
-│   ├── network/
-│   │   ├── packet.cpp       # pack/unpack 序列化
-│   │   └── udp_server.cpp   # 三线程实现
+│   ├── main.cpp             # 入口：加载配置 → 打开 IO → 启动 AudioWorker + HTTP
 │   ├── rvc/
+│   │   ├── audio_worker.cpp # 固定帧编排、静音 bypass、延迟统计
 │   │   ├── pipeline.cpp     # Mock（线性上采样）+ Real（stub 推理）
 │   │   ├── inferencer.cpp   # 推理链：resample→F0→HuBERT→index→generator
 │   │   ├── feature_extractor.cpp  # HuBERT/RMVPE（Phase 1 全为 stub）
@@ -59,9 +54,10 @@ rvc-backend/
 │   └── utils/
 │       └── config.cpp       # YAML dot-path 解析 + 缓存
 └── tests/
-    ├── test_packet.cpp      # ContractAudioPacket 回环测试
-    └── test_udp_loopback.cpp # UDP 服务器回环集成测试（端口 19000）
+    └── test_udp_loopback.cpp # IO + AudioWorker + MockPipeline 端到端测试
 ```
+
+`rvc-backend/CMakeLists.txt` 通过 `add_subdirectory(../IO)` 链接 `mozart_io`；网络与设备实现不再属于后端源码树。
 
 ---
 
@@ -98,31 +94,25 @@ struct FrameMeta {                  // wire offset
 | 输入 | 16 kHz | 20 ms | 320 | 1280 B | **1300 B** |
 | 输出 | 48 kHz | 20 ms | 960 | 3840 B | **3860 B** |
 
-静音判定：`vad_flag == 0` 时服务器跳过推理，直接返回零帧。
+包结构的唯一定义源是 `IO/include/mozart/frame_meta.h`。`vad_flag == 0` 时 `AudioWorker` 跳过推理并返回零帧。
 
 ### 3.2 静音判定
 
 `vad_flag == 0` 时服务器跳过推理，直接返回零帧。
 
 ```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ receive_loop │    │ process_loop │    │  send_loop   │
-│ recvfrom()   │──► │ collect_frames│──► │ sendto()     │
-│ unpack 校验   │    │ → callback   │    │ pack 回发     │
-│ input_buffer │    │ latency 统计  │    │ client_addr  │
-└──────────────┘    └──────────────┘    └──────────────┘
+┌────────────────┐    ┌────────────────┐    ┌────────────────┐
+│ IO/UdpStream   │    │ AudioWorker    │    │ IO/UdpStream   │
+│ recv + unpack  │──► │ VAD + pipeline │──► │ pack + sendto  │
+│ SPSC input ring│    │ latency stats  │    │ tracked client │
+└────────────────┘    └────────────────┘    └────────────────┘
 ```
 
 核心行为：
-- **接收**：`recvfrom()` → 校验魔数 → `ContractAudioPacket::unpack()` → 推入 `input_buffer_`
-- **处理**：从 buffer 中取出最多 `frames_per_inference` 帧 → 调用推理回调 → 记录延迟
-- **发送**：输出帧 `pack()` → `sendto()` 回客户端源地址
+- **接收（IO）**：`recvfrom()` → 严格校验 1300B MZRT 包 → 推入预分配 SPSC 环
+- **处理（RVC）**：`AudioWorker::ReadFrame()` → VAD bypass / pipeline → 记录延迟
+- **发送（IO）**：`WriteFrame()` → 打包 3860B 输出 → `sendto()` 回客户端源地址
 - **客户端追踪**：仅第一条合法包的发送方被记录为 `client_addr_`，后续输出全部回发到此地址
-
-关键参数 `InferenceCallback`：
-```cpp
-using InferenceCallback = std::function<std::vector<float>(const std::vector<float>&)>;
-```
 
 ---
 
@@ -244,7 +234,6 @@ network:
     host: "0.0.0.0"
     port: 18000
     frame_duration_ms: 20
-    frames_per_inference: 1    # 1=最低延迟, >1=批量推理
   control:
     host: "0.0.0.0"
     port: 18080
@@ -312,8 +301,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_LIBTORCH=ON \
 ### 测试
 
 ```bash
-./test_packet           # 包序列化回环 + 非法魔数 + 截断 + 静音检测
-./test_udp_loopback     # UDP 回环集成测试（端口 19000，发送 3 帧验证）
+./test_udp_loopback     # IO + AudioWorker + MockPipeline UDP 闭环
 ```
 
 ---
@@ -363,8 +351,8 @@ mozart_pre_process(ctx, in_48k_960, 960, out_16k_320, &meta);
 | 组件 | 状态 | 说明 |
 |------|------|------|
 | 项目骨架 + CMake | ✅ | C++17, 三个 target 可编译 |
-| ContractAudioPacket | ✅ | pack/unpack + 完整测试 |
-| UDP 三线程服务器 | ✅ | 收/处理/发 + VAD bypass + 批量 |
+| IO/UdpStream | ✅ | 严格包校验、SPSC 输入环、客户端回发 |
+| AudioWorker | ✅ | VAD bypass、推理编排、延迟统计 |
 | Mock 直通管线 | ✅ | 线性上采样 16→48kHz |
 | Real 管线框架 | ✅ | 异常安全，fallback 到 mock |
 | HTTP /health | ✅ | |

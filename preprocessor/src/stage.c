@@ -2,7 +2,7 @@
 // ============================================================================
 // A "stage" is the fundamental processing unit of the pipeline. Each stage
 // wraps a vtable (name + process + destroy) and an opaque data pointer.
-// Implementors (rnnoise, pipewire, etc.) fill the vtable and store their
+// Implementors (RNNoise, AEC, AGC, etc.) fill the vtable and store their
 // private state in ->data.
 #include "mozart/stage.h"
 #include <stdlib.h>

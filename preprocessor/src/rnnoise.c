@@ -55,8 +55,8 @@ typedef struct {
  * passthrough (stub mode or uninitialised state).
  *
  * @param self   Unused (data is accessed via self->data).
- * @param in     Input PCM buffer (MOZART_FRAME_SAMPLES floats).
- * @param in_len Number of samples (unused, always MOZART_FRAME_SAMPLES).
+ * @param in     Input PCM buffer (one RNNoise-native frame).
+ * @param in_len Number of input samples.
  * @param out    Output PCM buffer.
  * @param meta   Metadata (unused — RNNoise does not update it).
  * @return       0 always.

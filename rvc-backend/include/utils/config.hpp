@@ -23,7 +23,7 @@ public:
     YAML::Node get(const std::string& key) const;
 
     // Get a section as a map (for iterating)
-    const YAML::Node& section(const std::string& key) const;
+    YAML::Node section(const std::string& key) const;
 
     // Typed getters with defaults
     template<typename T>

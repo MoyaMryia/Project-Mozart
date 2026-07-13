@@ -1,4 +1,5 @@
 #include "api/http_api.hpp"
+#include "common.hpp"
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 #include <sstream>
@@ -47,12 +48,12 @@ HttpApiServer::HttpApiServer(
     const std::string& host,
     uint16_t port,
     RVCPipelineBase* pipeline,
-    UdpAudioServer* udp_server,
+    AudioWorker* audio_worker,
     const std::string& models_dir
 )
     : host_(host), port_(port)
     , pipeline_(pipeline)
-    , udp_server_(udp_server)
+    , audio_worker_(audio_worker)
     , models_dir_(models_dir)
 {}
 
@@ -97,6 +98,11 @@ void HttpApiServer::start() {
 void HttpApiServer::stop() {
     running_ = false;
     if (server_fd_ >= 0) {
+#ifdef _WIN32
+        shutdown(server_fd_, SD_BOTH);
+#else
+        shutdown(server_fd_, SHUT_RDWR);
+#endif
         socket_close(server_fd_);
         server_fd_ = -1;
     }
@@ -163,8 +169,9 @@ std::string HttpApiServer::handle_health() {
 }
 
 std::string HttpApiServer::handle_status() {
-    auto latency = udp_server_->get_latency_stats();
-    auto bypass = udp_server_->get_bypass_stats();
+    auto latency = audio_worker_->get_latency_stats();
+    auto bypass = audio_worker_->get_bypass_stats();
+    const auto& config = audio_worker_->config();
 
     nlohmann::json j;
     j["mode"] = "real"; // Could introspect pipeline type
@@ -178,13 +185,13 @@ std::string HttpApiServer::handle_status() {
         {"bypass_count", bypass.bypass_count}
     };
     j["contract_config"] = {
-        {"host", udp_server_->host()},
-        {"port", udp_server_->port()},
-        {"input_sample_rate_hz", udp_server_->input_sample_rate()},
-        {"output_sample_rate_hz", udp_server_->output_sample_rate()},
-        {"frame_duration_ms", udp_server_->frame_duration_ms()},
-        {"input_samples_per_frame", udp_server_->input_samples_per_frame()},
-        {"output_samples_per_frame", udp_server_->output_samples_per_frame()}
+        {"host", config.host},
+        {"port", config.port},
+        {"input_sample_rate_hz", config.input_sample_rate},
+        {"output_sample_rate_hz", config.output_sample_rate},
+        {"frame_duration_ms", config.frame_duration_ms},
+        {"input_samples_per_frame", MOZART_INPUT_SAMPLES},
+        {"output_samples_per_frame", MOZART_OUTPUT_SAMPLES}
     };
 
     return http_response(200, j.dump(2));

@@ -14,7 +14,16 @@ option(BUILD_TESTS "Build unit tests" ON)
 # Dependencies
 # ──────────────────────────────────────────────────────────
 # yaml-cpp (for config parsing)
-find_package(yaml-cpp REQUIRED)
+find_package(yaml-cpp QUIET)
+if(NOT yaml-cpp_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG 0.8.0
+    )
+    FetchContent_MakeAvailable(yaml-cpp)
+endif()
 
 # nlohmann_json (header-only, usually available via find_package or FetchContent)
 find_package(nlohmann_json 3.2.0 QUIET)
@@ -43,6 +52,13 @@ endif()
 # pthread for native socket HTTP server
 find_package(Threads REQUIRED)
 
+# Shared IO subsystem (UDP/PipeWire/contracts/ring buffers)
+set(MOZART_IO_BUILD_TESTS OFF CACHE BOOL "Build IO tests" FORCE)
+add_subdirectory(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../IO
+    ${CMAKE_CURRENT_BINARY_DIR}/mozart_io
+)
+
 # ──────────────────────────────────────────────────────────
 # libtorch (optional, for real RVC inference)
 # ──────────────────────────────────────────────────────────
@@ -57,8 +73,7 @@ endif()
 # ──────────────────────────────────────────────────────────
 set(SOURCES
     src/main.cpp
-    src/network/packet.cpp
-    src/network/udp_server.cpp
+    src/rvc/audio_worker.cpp
     src/rvc/pipeline.cpp
     src/rvc/inferencer.cpp
     src/rvc/feature_extractor.cpp
@@ -69,8 +84,7 @@ set(SOURCES
 
 set(HEADERS
     include/common.hpp
-    include/network/packet.hpp
-    include/network/udp_server.hpp
+    include/rvc/audio_worker.hpp
     include/rvc/pipeline.hpp
     include/rvc/inferencer.hpp
     include/rvc/feature_extractor.hpp
@@ -93,6 +107,7 @@ target_link_libraries(rvc_backend PRIVATE
     nlohmann_json::nlohmann_json
     spdlog::spdlog
     Threads::Threads
+    mozart_io
 )
 
 if(USE_LIBTORCH)
@@ -112,18 +127,20 @@ endif()
 # Tests
 # ──────────────────────────────────────────────────────────
 if(BUILD_TESTS)
-    add_executable(test_packet tests/test_packet.cpp src/network/packet.cpp)
-    target_include_directories(test_packet PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(test_packet PRIVATE spdlog::spdlog)
-
+    enable_testing()
     add_executable(test_udp_loopback tests/test_udp_loopback.cpp
-        src/network/packet.cpp
-        src/network/udp_server.cpp
+        src/rvc/audio_worker.cpp
         src/rvc/pipeline.cpp
         src/rvc/inferencer.cpp
         src/rvc/feature_extractor.cpp
         src/rvc/model_loader.cpp
     )
     target_include_directories(test_udp_loopback PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(test_udp_loopback PRIVATE spdlog::spdlog Threads::Threads)
+    target_link_libraries(test_udp_loopback PRIVATE
+        mozart_io
+        spdlog::spdlog
+        Threads::Threads
+        nlohmann_json::nlohmann_json
+    )
+    add_test(NAME rvc_udp_loopback COMMAND test_udp_loopback)
 endif()

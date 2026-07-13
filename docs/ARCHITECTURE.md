@@ -4,20 +4,22 @@
 
 ---
 
-## 1. 两级解耦架构
+## 1. IO 与算法解耦架构
 
 ```
-真实麦克风 ──► [ Mozart 预处理 ] ──── 契约流 ────► [ RVC 后处理 ] ──► 扬声器/虚拟麦克风
-                  preprocessor/ (C11)        16k/f32/20ms      rvc-backend/ (C++17)
-                                     + 16B 元数据
+[麦克风 / UDP] ──► [ IO ] ──► [ Mozart 预处理 ] ──► [ RVC AudioWorker ] ──► [ IO ] ──► [扬声器 / UDP]
+                    IO/           preprocessor/ (C11)       rvc-backend/ (C++17)
+                 设备与协议       48k raw → 16k input       16k input → 48k output
 ```
 
 | 子系统 | 目录 | 语言 | 职责 |
 |--------|------|------|------|
+| IO | `IO/` | C++17 + C ABI | 统一契约帧、PipeWire/UDP 驱动、SPSC 环与显式 open/close 生命周期 |
 | 预处理 | `preprocessor/` | C11 | 音频清洗：HPF、RNNoise 去噪、自适应混合、3:1 降采样 → 标准契约流 |
-| 后处理 | `rvc-backend/` | C++17 | 接收契约流，RVC 变声推理，模型热切换，HTTP 管理 |
+| 后处理 | `rvc-backend/` | C++17 | AudioWorker 编排、RVC 变声推理、模型热切换、HTTP 管理 |
+| 状态管理 | `state_manager/` | 设计中 | 只通过 IO 生命周期与业务 Worker 接口编排模式，不直接操作 socket/PipeWire |
 
-**关键原则**：预处理产出"干净的标准流"，后处理只在其上做变声，不再做任何清洗。
+**关键原则**：IO 不解释算法；预处理和后处理不持有设备或网络资源；契约帧只在 `IO/include/mozart/frame_meta.h` 定义一次。
 
 ---
 
@@ -33,6 +35,8 @@
 | 帧长 | 20 ms（320 样本） | 20 ms（960 样本） |
 
 ### 2.2 元数据（16 字节 FrameMeta）
+
+唯一定义源：`IO/include/mozart/frame_meta.h`。
 
 ```c
 struct __attribute__((packed)) mozart_frame_meta {
@@ -93,12 +97,17 @@ Mozart/
 │   ├── native/rnnoise/              #   xiph.org RNNoise v0.2 源码
 │   ├── Makefile / CMakeLists.txt
 │   └── README.md                    #   简要构建说明
+├── IO/                              # 统一设备/网络 IO (C++17 + C ABI)
+│   ├── include/mozart/              #   frame_meta.h, audio_io.h, stream interfaces
+│   ├── src/                         #   udp_stream, pipewire_stream, ring_buffer
+│   └── tests/                       #   SPSC、Mock、UDP 回声测试
 ├── rvc-backend/                     # RVC 后端 (C++17)
-│   ├── src/                         #   main.cpp, udp_server.cpp, ...
-│   ├── include/                     #   network/, rvc/, api/, utils/
-│   ├── tests/                       #   test_packet.cpp, test_udp_loopback.cpp
+│   ├── src/                         #   main.cpp, audio_worker.cpp, pipeline.cpp, ...
+│   ├── include/                     #   rvc/, api/, utils/
+│   ├── tests/                       #   test_udp_loopback.cpp
 │   ├── config.yaml
 │   └── README.md                    #   简要构建说明
+├── state_manager/                   # 模式与资源编排设计
 └── reference/                       # ZYNQ 硬件参考原理图（原始文件）
 ```
 
@@ -111,7 +120,8 @@ Mozart/
 ## 5. 当前阶段：Phase 1
 
 - [x] 预处理（`preprocessor/`）：RNNoise 去噪、HPF、自适应混合、3:1 降采样
-- [x] 后端骨架：UDP 三线程服务器、MZRT 包协议、Mock 直通管线
+- [x] IO：统一契约、UDP 驱动、PipeWire stub、SPSC 环、C-ABI 生命周期
+- [x] 后端骨架：AudioWorker、Mock 直通管线、IO UDP 闭环
 - [x] C ABI：`mozart_pre_init/process/free` 接口就绪
 - [x] HTTP API：`/health`、`/status`、`/models`、`/models/{id}/activate`
 - [ ] 真实 RVC Generator 接入（libtorch/ONNX）

@@ -6,8 +6,9 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "utils/config.hpp"
-#include "network/udp_server.hpp"
+#include "mozart/udp_stream.hpp"
 #include "api/http_api.hpp"
+#include "rvc/audio_worker.hpp"
 #include "rvc/pipeline.hpp"
 
 using namespace rvc;
@@ -42,8 +43,6 @@ int main() {
     uint32_t input_sample_rate = config.get_int("input.contract.sample_rate", 16000);
     uint32_t frame_duration_ms = config.get_int("network.audio.frame_duration_ms", 20);
     bool skip_silence = config.get_bool("input.meta.vad_enabled", true);
-    uint32_t frames_per_inference = config.get_int("network.audio.frames_per_inference", 1);
-
     // Output settings (RVC generator output)
     uint32_t output_sample_rate = config.get_int("output.sample_rate", 48000);
 
@@ -79,27 +78,29 @@ int main() {
         half
     );
 
-    // Inference callback: pipeline receives float32, returns float32
-    auto inference_callback = [&pipeline](const std::vector<float>& audio) -> std::vector<float> {
-        return pipeline->process(audio);
-    };
+    // IO owns network transport; AudioWorker owns inference orchestration.
+    mozart::UdpStream audio_stream(
+        audio_host, audio_port, mozart::StreamDirection::Capture);
+    mozart::StreamConfig stream_config;
+    stream_config.direction = mozart::StreamDirection::Capture;
+    stream_config.sample_rate = input_sample_rate;
+    stream_config.frame_duration_ms = frame_duration_ms;
+    stream_config.ring_capacity = 16;
 
-    // Setup UDP contract-stream server
-    UdpAudioServer udp_server(
-        audio_host, audio_port,
-        input_sample_rate,
-        output_sample_rate,
-        frame_duration_ms,
-        inference_callback,
-        skip_silence,
-        frames_per_inference
-    );
+    AudioWorker::Config worker_config;
+    worker_config.host = audio_host;
+    worker_config.port = audio_port;
+    worker_config.input_sample_rate = input_sample_rate;
+    worker_config.output_sample_rate = output_sample_rate;
+    worker_config.frame_duration_ms = frame_duration_ms;
+    worker_config.skip_silence = skip_silence;
+    AudioWorker audio_worker(audio_stream, *pipeline, worker_config);
 
     // Setup HTTP API server
     HttpApiServer api_server(
         api_host, api_port,
         pipeline.get(),
-        &udp_server,
+        &audio_worker,
         models_dir
     );
 
@@ -109,7 +110,10 @@ int main() {
 
     // Start servers
     try {
-        udp_server.start();
+        if (!audio_stream.Open(stream_config)) {
+            throw std::runtime_error("failed to open UDP audio stream");
+        }
+        audio_worker.start();
         api_server.start();
     } catch (const std::exception& e) {
         spdlog::error("Server startup failed: {}", e.what());
@@ -128,8 +132,8 @@ int main() {
     // Main loop: print latency stats periodically
     while (!g_shutdown.load()) {
         if (print_latency) {
-            auto stats = udp_server.get_latency_stats();
-            auto bypass = udp_server.get_bypass_stats();
+            auto stats = audio_worker.get_latency_stats();
+            auto bypass = audio_worker.get_bypass_stats();
             if (stats.count > 0) {
                 spdlog::info(
                     "Latency: count={}, avg={:.2f}ms, max={:.2f}ms | "
@@ -146,7 +150,7 @@ int main() {
     }
 
     // Shutdown
-    udp_server.stop();
+    audio_worker.stop();
     api_server.stop();
     spdlog::info("Shutdown complete");
     return 0;
