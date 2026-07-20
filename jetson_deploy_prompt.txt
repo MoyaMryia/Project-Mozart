@@ -73,24 +73,38 @@
 阶段 4: 准备模型文件
 ============================================================================
 
-4.1 创建模型目录:
+4.1 模型导出状态:
+   | 模型 | 状态 | 说明 |
+   |------|------|------|
+   | rmvpe.onnx | DONE | 已在 Windows 上导出 (361MB)，验证通过 |
+   | hubert_base.onnx | BLOCKED | Windows 上 torch.compile 不可用，需在 Linux/Jetson 上运行 |
+   | {model}.onnx (Generator) | PENDING | 待音色模型 .pth 文件就位后运行 |
+
+4.2 RMVPE 模型已导出在 PC 上，传到 Jetson:
+   # 在 PC 上执行:
+   scp -P 6001 "/c/Users/25608/Downloads/Retrieval-based-Voice-Conversion-WebUI/rmvpe.onnx" moyamryia@<jetson-ip>:~/Mozart/rvc-backend/assets/rmvpe/
+
+4.3 HuBERT 需要在 Jetson 上直接导出 (因为 Linux 才有 torch.compile):
+   cd ~/Mozart
+   # 安装 RVC WebUI 依赖 (如果有)
+   # 或直接用 Jetson 自带的 PyTorch + fairseq:
+   pip install fairseq onnx onnxruntime
+   cd ~/Retrieval-based-Voice-Conversion-WebUI  # 或 RVC 目录
+   python tools/export_hubert_onnx.py --output hubert_base.onnx
+   cp hubert_base.onnx ~/Mozart/rvc-backend/assets/hubert/
+
+4.4 创建模型目录并放置文件:
    mkdir -p ~/Mozart/rvc-backend/models
    mkdir -p ~/Mozart/rvc-backend/assets/hubert
    mkdir -p ~/Mozart/rvc-backend/assets/rmvpe
 
-4.2 你需要从 PC 端 scp 以下文件到 Jetson (如果还没传):
-   # 在 PC 上执行:
-   # cd Retrieval-based-Voice-Conversion-WebUI
-   # python tools/export_hubert_onnx.py
-   # python tools/export_rmvpe_onnx.py
-   # python tools/export_generator_onnx.py de_narrator.pth
-   # scp -P 6001 hubert_base.onnx rmvpe.onnx de_narrator.onnx moyamryia@<jetson-ip>:~/Mozart/rvc-backend/assets/
+4.5 Generator 音色模型导出 (每个音色跑一次):
+   # 在 RVC WebUI 目录下:
+   python tools/export_generator_onnx.py de_narrator.pth
+   cp de_narrator.onnx ~/Mozart/rvc-backend/models/de_narrator/
+   # 同时需要 config.json 和 .index 文件
 
-4.3 检查模型文件:
-   ls -lh ~/Mozart/rvc-backend/assets/*.onnx 2>/dev/null
-   ls -lh ~/Mozart/rvc-backend/models/*/
-
-4.4 如果模型还没传过来，先用 mock 模式测试:
+4.6 如果模型还没传过来，先用 mock 模式测试:
    # config.yaml 中 mock_mode: true 即可
 
 ============================================================================
