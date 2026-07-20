@@ -1,0 +1,74 @@
+你是 Jetson Orin Nano 上的部署 agent。当前 Project-Mozart 状态：编译全过、测试全过、REAL 模式运行成功、de_narrator 模型已加载。
+
+剩余任务：补上 HuBERT 和 RMVPE 的 ONNX 模型，让特征提取从 stub 切换到真实推理。
+
+============================================================================
+任务 1: RMVPE ONNX — 从 PC 传过来（已导出）
+============================================================================
+
+PC 上已导出: rmvpe.onnx (361MB, 输入 [1,128,128] mel, 输出 [1,128,360] f0)
+
+在 PC 上执行:
+  scp -P 6001 "/c/Users/25608/Downloads/Retrieval-based-Voice-Conversion-WebUI/rmvpe.onnx" moyamryia@<jetson-ip>:~/Mozart/rvc-backend/assets/rmvpe/
+
+============================================================================
+任务 2: HuBERT ONNX — 在 Jetson 上导出
+============================================================================
+
+HuBERT 需要 dynamo_export（torch.compile），Windows 不支持，但 Jetson (Linux) 可以。
+
+2.1 确认 fairseq 可用:
+   python3 -c "from fairseq import checkpoint_utils; print('fairseq OK')"
+
+2.2 运行导出:
+   cd ~/Mozart
+   python3 tools/export_hubert_onnx.py --hubert-path assets/hubert/hubert_base.pt --output hubert_base.onnx
+
+   如果 hubert_base.pt 不在 ~/Mozart 下，从 RVC WebUI 目录找:
+   find ~ -name "hubert_base.pt" 2>/dev/null
+   然后用 --hubert-path 指定完整路径
+
+2.3 放置到正确位置:
+   cp hubert_base.onnx ~/Mozart/rvc-backend/assets/hubert/
+   # 确保 config.yaml 中 hubert_path 指向: ./assets/hubert/hubert_base.onnx
+
+============================================================================
+任务 3: 验证
+============================================================================
+
+3.1 确认文件就位:
+   ls -lh ~/Mozart/rvc-backend/assets/hubert/hubert_base.onnx
+   ls -lh ~/Mozart/rvc-backend/assets/rmvpe/rmvpe.onnx
+
+3.2 重启后端并检查日志:
+   cd ~/Mozart/rvc-backend/build
+   ./rvc_backend ../config.yaml
+
+   日志应出现:
+   - "HuBERT engine loaded: .../hubert_base.onnx"
+   - "RMVPE engine loaded: .../rmvpe.onnx"
+   - "HuBERT features: N elements extracted" (不再是 "returning dummy features")
+   - "RMVPE F0: N frames extracted" (不再是 "returning zero F0")
+
+3.3 HTTP 验证:
+   curl http://localhost:18080/status
+   # model.has_generator: true, model.has_index: (如有 .index 则为 true)
+
+3.4 测试真实推理延迟:
+   发送 20ms 音频帧，确认 latency_stats_ms.avg_ms < 20ms
+
+============================================================================
+故障排查
+============================================================================
+
+如果 export_hubert_onnx.py 报错 "No module named 'fairseq'":
+  pip install fairseq
+  # 或找到 RVC WebUI 的 venv 并 source 激活
+
+如果 CUDA 不可用:
+  python3 tools/export_hubert_onnx.py --output hubert_base.onnx
+  # 脚本会自动 fallback 到 cpu
+
+如果 ONNX 导出 OOM:
+  # 缩短 dummy 输入 (脚本里改 16000*10 为 16000*3)
+  # 或用 --opset 18 试试
