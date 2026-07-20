@@ -1,6 +1,7 @@
 #include "rvc/inferencer.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
+#include <algorithm>
 
 namespace rvc {
 
@@ -31,7 +32,6 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
         throw std::runtime_error("RVC model not loaded");
     }
 
-    // 1. If input is not 16 kHz, resample to 16 kHz for feature extraction
     std::vector<float> audio_16k;
     if (input_sample_rate_ != 16000) {
         audio_16k = resample(audio, input_sample_rate_, 16000);
@@ -39,14 +39,11 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
         audio_16k = audio;
     }
 
-    // 2. Extract F0 and content features
     auto f0 = feature_extractor_->extract_f0(audio_16k, 16000, "rmvpe");
     auto feats = feature_extractor_->extract_features(audio_16k, 16000);
 
-    // 3. Feature retrieval (index search)
     feats = apply_index(feats);
 
-    // 4. Run generator (placeholder)
     auto converted = run_generator(feats, f0, audio);
 
     return converted;
@@ -76,10 +73,15 @@ std::vector<float> RVCInferencer::resample(
 }
 
 std::vector<float> RVCInferencer::apply_index(const std::vector<float>& feats) {
-    // TODO: implement FAISS index search when model has index loaded
-    // For now, return features unchanged (index_rate affects mix ratio)
-    spdlog::debug("Index search not implemented in Phase 1; returning original features");
-    return feats;
+    if (!model_->index().loaded() || index_rate_ <= 0.0f) {
+        return feats;
+    }
+
+    return model_->index().search(
+        feats,
+        model_->config().emb_channels,
+        index_rate_
+    );
 }
 
 std::vector<float> RVCInferencer::run_generator(
@@ -87,39 +89,85 @@ std::vector<float> RVCInferencer::run_generator(
     const std::vector<float>& f0,
     const std::vector<float>& original_audio
 ) {
-    // TODO: Replace with real RVC generator forward pass.
-    // This requires libtorch integration with actual RVC model classes.
-    //
-    // Expected shapes:
-    //   feats:  [1, T, 768] flattened
-    //   pitch:  [1, T]
-    //   pitchf: [1, T]
-    //   lengths: scalar T
-    //   sid:    [1]
-    //
-    // For Phase 1 skeleton: upsample the original audio to output_sample_rate_
-
-    spdlog::warn("Real generator inference not implemented; upsampling input to {}Hz",
-                 output_sample_rate_);
-
-    if (input_sample_rate_ == output_sample_rate_) {
-        return original_audio;
-    }
-
-    // Simple upsample by integer ratio (e.g. 16k -> 48k = 3x)
-    if (output_sample_rate_ % input_sample_rate_ == 0) {
-        int ratio = output_sample_rate_ / input_sample_rate_;
-        std::vector<float> result;
-        result.reserve(original_audio.size() * static_cast<size_t>(ratio));
-        for (float s : original_audio) {
-            for (int i = 0; i < ratio; ++i) {
-                result.push_back(s);
-            }
+    if (!model_->generator_engine().loaded()) {
+        spdlog::warn("Generator engine not loaded; falling back to upsampling");
+        if (input_sample_rate_ == output_sample_rate_) {
+            return original_audio;
         }
-        return result;
+        if (output_sample_rate_ % input_sample_rate_ == 0) {
+            int ratio = output_sample_rate_ / input_sample_rate_;
+            std::vector<float> result;
+            result.reserve(original_audio.size() * static_cast<size_t>(ratio));
+            for (float s : original_audio) {
+                for (int i = 0; i < ratio; ++i) {
+                    result.push_back(s);
+                }
+            }
+            return result;
+        }
+        return resample(original_audio, input_sample_rate_, output_sample_rate_);
     }
 
-    return resample(original_audio, input_sample_rate_, output_sample_rate_);
+    uint32_t emb_dim = model_->config().emb_channels;
+    size_t total_elems = feats.size();
+    size_t T = total_elems / emb_dim;
+    if (T < 1) T = 1;
+
+    std::vector<float> feats_reshaped = feats;
+    feats_reshaped.resize(T * emb_dim, 0.0f);
+
+    size_t f0_frames = f0.size();
+    std::vector<float> pitch(T, 0.0f);
+    std::vector<float> pitchf(T, 0.0f);
+
+    for (size_t t = 0; t < T; ++t) {
+        if (t < f0_frames) {
+            float f0_val = f0[t];
+            pitch[t] = f0_val > 0.0f ? std::log2(f0_val / 440.0f) * 12.0f + 69.0f : 0.0f;
+            pitchf[t] = f0_val;
+        }
+    }
+
+    float sid_val = static_cast<float>(model_->config().spk_id);
+
+    std::vector<float> sid_vec = {sid_val};
+    std::vector<float> p_len_vec = {static_cast<float>(T)};
+
+    std::vector<int64_t> feats_shape = {1, static_cast<int64_t>(T),
+                                         static_cast<int64_t>(emb_dim)};
+    std::vector<int64_t> p_len_shape = {1};
+    std::vector<int64_t> pitch_shape = {1, static_cast<int64_t>(T)};
+    std::vector<int64_t> pitchf_shape = {1, static_cast<int64_t>(T)};
+    std::vector<int64_t> sid_shape = {1};
+
+    std::vector<const char*> input_names = {"feats", "p_len", "pitch", "pitchf", "sid"};
+    std::vector<std::vector<int64_t>> input_shapes = {
+        feats_shape, p_len_shape, pitch_shape, pitchf_shape, sid_shape
+    };
+    std::vector<std::vector<float>> input_data = {
+        feats_reshaped, p_len_vec, pitch, pitchf, sid_vec
+    };
+
+    auto audio_out = model_->generator_engine().run(
+        input_names, input_shapes, input_data, {"audio"}
+    );
+
+    if (model_->config().sample_rate != output_sample_rate_) {
+        audio_out = resample(audio_out, model_->config().sample_rate, output_sample_rate_);
+    }
+
+    // Mix with original for voice preservation
+    if (protect_ > 0.0f && audio_out.size() >= original_audio.size()) {
+        float alpha = 1.0f - protect_ * 0.5f;
+        size_t limit = std::min(audio_out.size(), original_audio.size());
+        for (size_t i = 0; i < limit; ++i) {
+            audio_out[i] = audio_out[i] * alpha + original_audio[i] * (1.0f - alpha);
+        }
+    }
+
+    spdlog::debug("Generator output: {} samples @ {}Hz", audio_out.size(),
+                  model_->config().sample_rate);
+    return audio_out;
 }
 
 } // namespace rvc
