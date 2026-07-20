@@ -3,9 +3,14 @@
 #include <vector>
 #include <memory>
 #include <cstdint>
+#include <string>
 
 #include "rvc/model_loader.hpp"
 #include "rvc/feature_extractor.hpp"
+
+#ifdef USE_LIBTORCH
+#include <torch/script.h>
+#endif
 
 namespace rvc {
 
@@ -25,7 +30,8 @@ public:
         float index_rate = 0.75f,
         int filter_radius = 3,
         float rms_mix_rate = 0.25f,
-        float protect = 0.33f
+        float protect = 0.33f,
+        const std::string& de_narrator_path = ""
     );
 
     // Run full RVC inference on a float32 mono audio chunk
@@ -41,6 +47,12 @@ private:
     int filter_radius_;
     float rms_mix_rate_;
     float protect_;
+    std::string de_narrator_path_;
+
+#ifdef USE_LIBTORCH
+    torch::jit::Module de_narrator_;
+    bool de_narrator_loaded_ = false;
+#endif
 
     std::vector<float> resample(
         const std::vector<float>& audio,
@@ -53,6 +65,12 @@ private:
         const std::vector<float>& feats,
         const std::vector<float>& f0,
         const std::vector<float>& original_audio
+    );
+
+    static void f0_to_pitch(
+        const std::vector<float>& f0,
+        std::vector<int64_t>& pitch,
+        std::vector<float>& pitchf
     );
 };
 
