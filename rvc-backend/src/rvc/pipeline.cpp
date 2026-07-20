@@ -4,9 +4,6 @@
 
 namespace rvc {
 
-// ──────────────────────────────────────────────────────────
-// MockRVCPipeline
-// ──────────────────────────────────────────────────────────
 MockRVCPipeline::MockRVCPipeline(
     uint32_t input_sample_rate,
     uint32_t output_sample_rate
@@ -19,7 +16,7 @@ std::vector<float> MockRVCPipeline::process(const std::vector<float>& audio) {
 
     float ratio = static_cast<float>(output_sample_rate_) / static_cast<float>(input_sample_rate_);
 
-    if (ratio == 3.0f) { // Common case: 16k -> 48k
+    if (ratio == 3.0f) {
         std::vector<float> result;
         result.reserve(audio.size() * 3);
         for (float s : audio) {
@@ -48,9 +45,6 @@ std::vector<float> MockRVCPipeline::upsample_linear(
     return result;
 }
 
-// ──────────────────────────────────────────────────────────
-// RealRVCPipeline
-// ──────────────────────────────────────────────────────────
 RealRVCPipeline::RealRVCPipeline(
     std::shared_ptr<ModelManager> model_manager,
     const std::filesystem::path& hubert_path,
@@ -93,6 +87,27 @@ bool RealRVCPipeline::switch_model(const std::string& model_id) {
     return success;
 }
 
+std::string RealRVCPipeline::current_model_id() const {
+    auto model = model_manager_->current_model();
+    return model ? model->id() : "";
+}
+
+std::map<std::string, std::string> RealRVCPipeline::model_info() const {
+    std::map<std::string, std::string> info;
+    auto model = model_manager_->current_model();
+    if (model) {
+        info["id"] = model->id();
+        info["loaded"] = model->loaded() ? "true" : "false";
+        info["has_index"] = model->index().loaded() ? "true" : "false";
+        info["has_generator"] = model->generator_engine().loaded() ? "true" : "false";
+        info["sample_rate"] = std::to_string(model->config().sample_rate);
+    } else {
+        info["id"] = "";
+        info["loaded"] = "false";
+    }
+    return info;
+}
+
 std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
     if (!inferencer_) {
         spdlog::warn("No RVC model loaded; returning mock upsampled input");
@@ -109,9 +124,6 @@ std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
     }
 }
 
-// ──────────────────────────────────────────────────────────
-// Factory
-// ──────────────────────────────────────────────────────────
 std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
     bool mock_mode,
     const std::filesystem::path& models_dir,
