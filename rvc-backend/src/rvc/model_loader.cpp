@@ -5,9 +5,6 @@
 
 namespace rvc {
 
-// ──────────────────────────────────────────────────────────
-// RVCModelConfig
-// ──────────────────────────────────────────────────────────
 std::optional<RVCModelConfig> RVCModelConfig::from_json(const std::filesystem::path& path) {
     std::ifstream f(path);
     if (!f) {
@@ -39,19 +36,18 @@ std::optional<RVCModelConfig> RVCModelConfig::from_json(const std::filesystem::p
     }
 }
 
-// ──────────────────────────────────────────────────────────
-// RVCModel
-// ──────────────────────────────────────────────────────────
 RVCModel::RVCModel(const std::string& model_id, const std::filesystem::path& model_dir)
     : model_id_(model_id)
     , model_dir_(model_dir)
     , pth_path_(model_dir / (model_id + ".pth"))
+    , onnx_path_(model_dir / (model_id + ".onnx"))
     , index_path_(model_dir / (model_id + ".index"))
     , config_path_(model_dir / "config.json")
 {}
 
 bool RVCModel::exists() const {
-    return std::filesystem::exists(pth_path_) && std::filesystem::exists(config_path_);
+    return std::filesystem::exists(config_path_) &&
+           (std::filesystem::exists(onnx_path_) || std::filesystem::exists(pth_path_));
 }
 
 bool RVCModel::load(const std::string& device, bool half) {
@@ -74,7 +70,8 @@ bool RVCModel::load(const std::string& device, bool half) {
         }
 
         loaded_ = true;
-        spdlog::info("RVC model '{}' loaded on {}", model_id_, device);
+        spdlog::info("RVC model '{}' loaded (sr={}, emb={}) on {}",
+            model_id_, config_.sample_rate, config_.emb_channels, device);
         return true;
 
     } catch (const std::exception& e) {
@@ -84,27 +81,32 @@ bool RVCModel::load(const std::string& device, bool half) {
     }
 }
 
+void RVCModel::unload() {
+    generator_engine_.unload();
+    loaded_ = false;
+}
+
 bool RVCModel::load_generator(const std::string& device, bool half) {
-    // TODO: Load actual RVC generator via libtorch
-    // Placeholder: verify file exists and log keys
-    spdlog::info("Loaded checkpoint: {} (Phase 1 stub)", pth_path_.string());
-    // Real implementation:
-    //   auto checkpoint = torch::load(pth_path_, device);
-    //   net_g = instantiate_rvc_generator(config_);
-    //   net_g->load_state_dict(checkpoint["weight"]);
-    //   net_g->eval().to(device);
-    return true;
+    if (std::filesystem::exists(onnx_path_)) {
+        spdlog::info("Loading ONNX generator: {}", onnx_path_.string());
+        return generator_engine_.load(onnx_path_);
+    }
+
+    spdlog::warn("ONNX model not found at {}; trying .pth fallback (needs libtorch)",
+                 onnx_path_.string());
+#ifdef USE_LIBTORCH
+    throw std::runtime_error("libtorch .pth loading not yet implemented");
+#else
+    spdlog::error("No ONNX model and USE_LIBTORCH=OFF; cannot load generator");
+    return false;
+#endif
 }
 
 bool RVCModel::load_index() {
-    // TODO: Load FAISS index via faiss::read_index
-    spdlog::info("Index loading stub for {}", index_path_.string());
-    return true;
+    spdlog::info("Loading index: {}", index_path_.string());
+    return index_.load(index_path_);
 }
 
-// ──────────────────────────────────────────────────────────
-// ModelManager
-// ──────────────────────────────────────────────────────────
 ModelManager::ModelManager(
     const std::filesystem::path& models_dir,
     const std::string& device,
@@ -121,7 +123,9 @@ std::vector<std::map<std::string, std::string>> ModelManager::list_models() cons
     for (const auto& entry : std::filesystem::directory_iterator(models_dir_)) {
         if (!entry.is_directory()) continue;
 
-        auto model = std::make_shared<RVCModel>(entry.path().filename().string(), entry.path());
+        auto model = std::make_shared<RVCModel>(
+            entry.path().filename().string(), entry.path()
+        );
         result.push_back({
             {"id", model->id()},
             {"exists", model->exists() ? "true" : "false"},
