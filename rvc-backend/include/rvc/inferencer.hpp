@@ -9,11 +9,6 @@
 
 namespace rvc {
 
-// ──────────────────────────────────────────────────────────
-// RVC Inferencer: wraps generator inference for a single frame
-// Input:  float32 mono @ input_sample_rate (e.g. 16 kHz from contract)
-// Output: float32 mono @ output_sample_rate (e.g. 48 kHz from generator)
-// ──────────────────────────────────────────────────────────
 class RVCInferencer {
 public:
     RVCInferencer(
@@ -28,7 +23,6 @@ public:
         float protect = 0.33f
     );
 
-    // Run full RVC inference on a float32 mono audio chunk
     std::vector<float> infer(const std::vector<float>& audio);
 
 private:
