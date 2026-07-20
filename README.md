@@ -32,7 +32,8 @@
 |------|------|
 | `IO/` | 统一契约帧、PipeWire/UDP 驱动、SPSC 环和 C-ABI 生命周期 |
 | `preprocessor/` | ✅ **预处理管线**：RNNoise 去噪 + 降采样 → 16kHz 契约流 (C11) |
-| `rvc-backend/` | 🚧 **RVC 变声后端**：AudioWorker 编排 + ONNX 推理 + HTTP 管理 |
+| `rvc-backend/` | ✅ **RVC 变声后端**：AudioWorker 编排 + ONNX 推理 + HTTP 管理 |
+| `tools/` | 🔧 **ONNX 导出脚本**：HuBERT / RMVPE / Generator 一键导出 |
 | `state_manager/` | 运行模式与 IO/模型资源编排设计 |
 | `docs/` | 📚 **全部文档** |
 | `reference/` | 🔧 ZYNQ BTB 硬件参考原理图 |
@@ -52,23 +53,6 @@
 | [PREPROCESSING.md](docs/PREPROCESSING.md) | 预处理管线开发 | 预处理开发者 |
 | [FPGA_ROADMAP.md](docs/FPGA_ROADMAP.md) | FPGA 远期规划 | 硬件 |
 | [HARDWARE_REFERENCE.md](docs/HARDWARE_REFERENCE.md) | ZYNQ 硬件参考 | 硬件 |
-
----
-
-## PyTorch 环境
-
-当前开发设备为 NVIDIA Jetson Orin Nano 8GB（ARM64、L4T 39.2.0、系统 CUDA 13.2），项目使用 Python 3.12 虚拟环境 `.venv`。
-
-重新创建环境并安装经过验证的 PyTorch 组合：
-
-```bash
-rm -rf .venv
-python3.12 -m venv .venv
-source .venv/bin/activate
-
-# JetPack 39.2.0 自带系统级 PyTorch 2.5.0a0
-python3 -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
-```
 
 ---
 
@@ -102,7 +86,7 @@ cd ~/Mozart/preprocessor && make -j6
 
 ```bash
 cd ~/Mozart/rvc-backend && mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release && make -j6
+cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON && make -j6
 vim ../config.yaml  # mock_mode: false
 ./rvc_backend ../config.yaml
 ```
@@ -114,11 +98,14 @@ vim ../config.yaml  # mock_mode: false
 | 组件 | 状态 |
 |------|------|
 | preprocessor/ (RNNoise) | ✅ 编译完成，可用 |
-| IO/ | 🆕 契约帧 + PipeWire/UDP 驱动 |
+| IO/ | ✅ 契约帧 + PipeWire/UDP 驱动 |
 | state_manager/ | 🆕 运行模式编排 |
-| rvc-backend/ (C++ 骨架) | 🚧 接口完整，`run_generator()` 待接入 ONNX 推理 |
-| ONNX 导出脚本 | 📝 方案已定，待实现 |
-| Jetson 实机 | 🟢 环境就绪 (JetPack R39)，待 ONNX 部署 |
+| rvc-backend/ (C++ 骨架) | ✅ CMake + ONNX Runtime 集成完毕 |
+| rvc-backend/ (推理组件) | ✅ `onnx_engine` + `feature_extractor` + `inferencer` + `model_loader` 已实现 |
+| rvc-backend/ (HTTP API) | ✅ `/health` `/status` `/models` `/activate` 全部可用 |
+| ONNX 导出脚本 | ✅ `tools/export_{hubert,rmvpe,generator}_onnx.py` 已就绪 |
+| Index 检索 | ✅ FAISS IVF .index 解析 + KNN 检索 |
+| Jetson 实机 | 🟢 环境就绪 (JetPack R39)，待 ONNX 模型部署 |
 | 音色模型 | 🟡 PC 端已验证 4 个，待导出 ONNX |
 
 ---
