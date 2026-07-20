@@ -7,9 +7,6 @@
 
 namespace rvc {
 
-// ──────────────────────────────────────────────────────────
-// Simple HTTP helpers
-// ──────────────────────────────────────────────────────────
 static std::string http_response(int code, const std::string& body, const std::string& content_type = "application/json") {
     std::string status;
     switch (code) {
@@ -41,9 +38,6 @@ static std::string parse_request_method(const std::string& req) {
     return req.substr(0, space);
 }
 
-// ──────────────────────────────────────────────────────────
-// HttpApiServer
-// ──────────────────────────────────────────────────────────
 HttpApiServer::HttpApiServer(
     const std::string& host,
     uint16_t port,
@@ -151,8 +145,7 @@ void HttpApiServer::handle_request(int client_fd) {
         response = handle_list_models();
     }
     else if (path.find("/models/") == 0 && path.find("/activate") != std::string::npos && method == "POST") {
-        // Extract model_id from /models/{id}/activate
-        size_t start = 8; // after "/models/"
+        size_t start = 8;
         size_t end = path.find("/activate", start);
         std::string model_id = path.substr(start, end - start);
         response = handle_activate_model(model_id);
@@ -174,9 +167,20 @@ std::string HttpApiServer::handle_status() {
     const auto& config = audio_worker_->config();
 
     nlohmann::json j;
-    j["mode"] = "real"; // Could introspect pipeline type
-    j["model"]["current_model_id"] = nullptr;
-    j["model"]["loaded"] = false;
+    j["mode"] = pipeline_ ? (pipeline_->is_mock() ? "mock" : "real") : "unknown";
+
+    if (pipeline_ && !pipeline_->is_mock()) {
+        auto info = pipeline_->model_info();
+        j["model"]["current_model_id"] = info["id"];
+        j["model"]["loaded"] = info["loaded"];
+        j["model"]["has_generator"] = info["has_generator"];
+        j["model"]["has_index"] = info["has_index"];
+        j["model"]["sample_rate"] = info["sample_rate"];
+    } else {
+        j["model"]["current_model_id"] = nullptr;
+        j["model"]["loaded"] = false;
+    }
+
     j["latency_stats_ms"]["count"] = latency.count;
     j["latency_stats_ms"]["avg_ms"] = latency.avg_ms;
     j["latency_stats_ms"]["max_ms"] = latency.max_ms;
@@ -198,7 +202,6 @@ std::string HttpApiServer::handle_status() {
 }
 
 std::string HttpApiServer::handle_list_models() {
-    // Simple directory scan for now
     nlohmann::json j;
     j["models"] = nlohmann::json::array();
 
@@ -207,14 +210,16 @@ std::string HttpApiServer::handle_list_models() {
         for (const auto& entry : std::filesystem::directory_iterator(dir)) {
             if (!entry.is_directory()) continue;
             std::string name = entry.path().filename().string();
+            bool has_onnx = std::filesystem::exists(entry.path() / (name + ".onnx"));
             bool has_pth = std::filesystem::exists(entry.path() / (name + ".pth"));
             bool has_cfg = std::filesystem::exists(entry.path() / "config.json");
+            bool is_current = pipeline_ && (pipeline_->current_model_id() == name);
 
             j["models"].push_back({
                 {"id", name},
-                {"exists", has_pth && has_cfg},
-                {"loaded", false},
-                {"current", false}
+                {"exists", has_cfg && (has_onnx || has_pth)},
+                {"loaded", is_current},
+                {"current", is_current}
             });
         }
     }
@@ -223,17 +228,29 @@ std::string HttpApiServer::handle_list_models() {
 }
 
 std::string HttpApiServer::handle_upload_model(int client_fd, const std::string& header) {
-    // TODO: Implement multipart form parsing
     return http_response(501, R"({"error":"upload not implemented yet"})");
 }
 
 std::string HttpApiServer::handle_activate_model(const std::string& model_id) {
-    // TODO: Implement model activation when RealRVCPipeline is connected
     spdlog::info("Activate model request: {}", model_id);
+
+    if (!pipeline_) {
+        return http_response(500, R"({"error":"pipeline not initialized"})");
+    }
+
+    bool success = pipeline_->switch_model(model_id);
+
     nlohmann::json j;
-    j["status"] = "activated";
-    j["model_id"] = model_id;
-    return http_response(200, j.dump());
+    if (success) {
+        j["status"] = "activated";
+        j["model_id"] = model_id;
+        return http_response(200, j.dump());
+    } else {
+        j["status"] = "failed";
+        j["model_id"] = model_id;
+        j["error"] = "model not found or failed to load";
+        return http_response(404, j.dump());
+    }
 }
 
 } // namespace rvc
