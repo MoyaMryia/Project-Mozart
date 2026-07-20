@@ -1,0 +1,200 @@
+你是 Jetson Orin Nano 上的部署 agent。以下是 Project-Mozart 在 Jetson 端需要完成的所有任务，请按顺序执行。
+
+仓库: https://github.com/MoyaMryia/Project-Mozart (main 分支)
+
+============================================================================
+阶段 1: 环境检查与依赖安装
+============================================================================
+
+1.1 检查 JetPack 版本和 CUDA:
+   cat /etc/nv_tegra_release
+   nvcc --version
+   echo $PATH | grep cuda
+
+1.2 安装编译依赖:
+   sudo apt update
+   sudo apt install -y cmake build-essential libyaml-cpp-dev libonnxruntime-dev
+
+1.3 确认 ONNX Runtime 安装:
+   dpkg -l | grep onnxruntime
+   ls /usr/lib/aarch64-linux-gnu/libonnxruntime*
+   ls /usr/include/onnxruntime/
+
+1.4 如果 apt 没有 libonnxruntime-dev，手动安装:
+   # 下载 ONNX Runtime for Jetson (ARM64)
+   wget https://github.com/microsoft/onnxruntime/releases/download/v1.19.2/onnxruntime-linux-aarch64-1.19.2.tgz
+   tar xzf onnxruntime-linux-aarch64-1.19.2.tgz
+   sudo cp -r onnxruntime-linux-aarch64-1.19.2/include/* /usr/local/include/
+   sudo cp -r onnxruntime-linux-aarch64-1.19.2/lib/* /usr/local/lib/
+   sudo ldconfig
+
+============================================================================
+阶段 2: 拉取最新代码
+============================================================================
+
+2.1 Clone 仓库 (如果还没有):
+   cd ~
+   git clone https://github.com/MoyaMryia/Project-Mozart.git Mozart
+   cd Mozart
+
+2.2 如果已存在，拉取最新:
+   cd ~/Mozart
+   git pull origin main
+
+2.3 确认最新提交包含 tools/ 目录和更新后的 rvc-backend/:
+   git log --oneline -20
+   ls tools/
+   ls rvc-backend/src/rvc/
+
+============================================================================
+阶段 3: 构建
+============================================================================
+
+3.1 构建 rvc-backend:
+   cd ~/Mozart/rvc-backend
+   mkdir -p build && cd build
+   cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON
+   make -j6
+
+3.2 如果 ONNX Runtime 不在系统路径，指定路径:
+   cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON \
+     -DONNX_RUNTIME_PATH=/usr/local/lib \
+     -DONNX_RUNTIME_INCLUDE_DIR=/usr/local/include
+
+3.3 构建 preprocessor (如果还没构建):
+   cd ~/Mozart/preprocessor
+   make -j6
+
+3.4 确认产物:
+   ls ~/Mozart/rvc-backend/build/rvc_backend
+   ls ~/Mozart/preprocessor/build/bin/mozart_pre_example
+
+============================================================================
+阶段 4: 准备模型文件
+============================================================================
+
+4.1 创建模型目录:
+   mkdir -p ~/Mozart/rvc-backend/models
+   mkdir -p ~/Mozart/rvc-backend/assets/hubert
+   mkdir -p ~/Mozart/rvc-backend/assets/rmvpe
+
+4.2 你需要从 PC 端 scp 以下文件到 Jetson (如果还没传):
+   # 在 PC 上执行:
+   # cd Retrieval-based-Voice-Conversion-WebUI
+   # python tools/export_hubert_onnx.py
+   # python tools/export_rmvpe_onnx.py
+   # python tools/export_generator_onnx.py de_narrator.pth
+   # scp -P 6001 hubert_base.onnx rmvpe.onnx de_narrator.onnx moyamryia@<jetson-ip>:~/Mozart/rvc-backend/assets/
+
+4.3 检查模型文件:
+   ls -lh ~/Mozart/rvc-backend/assets/*.onnx 2>/dev/null
+   ls -lh ~/Mozart/rvc-backend/models/*/
+
+4.4 如果模型还没传过来，先用 mock 模式测试:
+   # config.yaml 中 mock_mode: true 即可
+
+============================================================================
+阶段 5: 运行测试
+============================================================================
+
+5.1 运行 UDP 回环测试 (mock 模式):
+   cd ~/Mozart/rvc-backend/build
+   ./test_udp_loopback
+   # 期望输出: [PASS]
+
+5.2 运行特征提取器测试:
+   cd ~/Mozart/rvc-backend/build
+   ./test_feature_extractor
+   # 期望输出: [PASS] All feature_extractor tests passed
+
+5.3 运行推理器测试:
+   cd ~/Mozart/rvc-backend/build
+   ./test_inferencer
+   # 期望输出: [PASS] All inferencer/model tests passed
+
+5.4 运行 preprocessor 测试:
+   cd ~/Mozart/preprocessor
+   ./build/bin/mozart_pre_example --input clean_speech.wav
+
+============================================================================
+阶段 6: 启动服务
+============================================================================
+
+6.1 先用 mock 模式启动 (验证链路):
+   cd ~/Mozart/rvc-backend/build
+   # 确保 config.yaml 中 mock_mode: true
+   ./rvc_backend ../config.yaml
+   # 应该看到: HTTP API server listening on 0.0.0.0:18080
+   #          RVC pipeline initialized in MOCK mode
+
+6.2 验证 HTTP API (另开终端):
+   curl http://localhost:18080/health
+   # 期望: {"status":"ok"}
+
+   curl http://localhost:18080/status
+   # 期望: 返回 mock mode 状态和延迟统计
+
+   curl http://localhost:18080/models
+   # 期望: 列出 models/ 下的音色模型
+
+6.3 如果 ONNX 模型已就位，切换到真实模式:
+   # 修改 config.yaml: mock_mode: false
+   # 确保 hubert_path 和 rmvpe_path 指向正确的 .onnx 文件
+   # 重新启动:
+   ./rvc_backend ../config.yaml
+
+6.4 热切换模型:
+   curl -X POST http://localhost:18080/models/de_narrator/activate
+   # 期望: {"status":"activated","model_id":"de_narrator"}
+
+============================================================================
+阶段 7: 端到端验证
+============================================================================
+
+7.1 发送测试音频 (从另一台机器或本地):
+   # 使用 preprocessor 输出作为输入
+   # 或者用 test_udp_loopback 发送真实 16kHz 音频
+
+7.2 检查日志:
+   # 关注以下日志:
+   # - ONNX engine loaded  (确认模型加载成功)
+   # - HuBERT features: N elements extracted
+   # - RMVPE F0: N frames extracted
+   # - Generator output: N samples
+   # - latency_stats 延迟应在 20ms 以内
+
+============================================================================
+阶段 8: 故障排查
+============================================================================
+
+8.1 如果 cmake 找不到 ONNX Runtime:
+   - 检查 libonnxruntime.so 是否在 /usr/lib 或 /usr/local/lib
+   - 确认 LD_LIBRARY_PATH 包含该路径
+   - 手动指定: -DONNX_RUNTIME_PATH=/path/to/onnxruntime
+
+8.2 如果编译报错找不到 onnx_engine.hpp 或 index_search.hpp:
+   - 确认已拉取最新代码 (git pull)
+   - 检查 rvc-backend/include/rvc/ 下是否有这些文件
+
+8.3 如果运行时 crash:
+   - 先用 mock_mode: true 验证 UDP 链路
+   - 检查模型文件路径是否正确
+   - 查看 dmesg 看是否有 OOM
+
+8.4 如果显存不足:
+   - config.yaml 中 half: true 开启 FP16
+   - 只加载一个音色模型
+   - 确认没有其他进程占用 GPU (nvidia-smi 或 tegrastats)
+
+============================================================================
+报告格式
+============================================================================
+
+完成后请报告:
+
+1. 编译是否成功 (每个 target: rvc_backend / test_udp_loopback / test_feature_extractor / test_inferencer)
+2. 测试结果 (每个测试的 PASS/FAIL)
+3. HTTP API 端点是否正常响应
+4. mock 模式下的延迟数据
+5. (如有 ONNX 模型) 真实推理模式的延迟数据
+6. 遇到的任何错误及完整日志
