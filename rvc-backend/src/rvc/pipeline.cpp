@@ -58,13 +58,15 @@ RealRVCPipeline::RealRVCPipeline(
     uint32_t input_sample_rate,
     uint32_t output_sample_rate,
     const std::string& device,
-    bool half
+    bool half,
+    const std::string& de_narrator_path
 )
     : model_manager_(model_manager)
     , input_sample_rate_(input_sample_rate)
     , output_sample_rate_(output_sample_rate)
     , device_(device)
     , half_(half)
+    , de_narrator_path_(de_narrator_path)
 {
     feature_extractor_ = std::make_shared<FeatureExtractor>(
         hubert_path, rmvpe_path, device, half
@@ -80,7 +82,9 @@ void RealRVCPipeline::rebuild_inferencer() {
     }
     inferencer_ = std::make_shared<RVCInferencer>(
         model, feature_extractor_,
-        input_sample_rate_, output_sample_rate_
+        input_sample_rate_, output_sample_rate_,
+        0, 0.75f, 3, 0.25f, 0.33f,
+        de_narrator_path_
     );
     spdlog::info("RVC inferencer rebuilt for model '{}'", model->id());
 }
@@ -120,7 +124,8 @@ std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
     uint32_t input_sample_rate,
     uint32_t output_sample_rate,
     const std::string& device,
-    bool half
+    bool half,
+    const std::string& de_narrator_path
 ) {
     if (mock_mode) {
         spdlog::info(
@@ -147,7 +152,7 @@ std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
     auto pipeline = std::make_unique<RealRVCPipeline>(
         model_manager, hubert_path, rmvpe_path,
         input_sample_rate, output_sample_rate,
-        device, half
+        device, half, de_narrator_path
     );
     spdlog::info(
         "RVC pipeline initialized in REAL mode ({}Hz -> {}Hz)",

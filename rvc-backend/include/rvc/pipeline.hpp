@@ -55,7 +55,8 @@ public:
         uint32_t input_sample_rate = 16000,
         uint32_t output_sample_rate = 48000,
         const std::string& device = "cuda",
-        bool half = false
+        bool half = false,
+        const std::string& de_narrator_path = ""
     );
 
     std::vector<float> process(const std::vector<float>& audio) override;
@@ -72,6 +73,7 @@ private:
     uint32_t output_sample_rate_;
     std::string device_;
     bool half_;
+    std::string de_narrator_path_;
 
     void rebuild_inferencer();
 };
@@ -89,7 +91,8 @@ public:
         uint32_t input_sample_rate = 16000,
         uint32_t output_sample_rate = 48000,
         const std::string& device = "cuda",
-        bool half = false
+        bool half = false,
+        const std::string& de_narrator_path = ""
     );
 };
 
