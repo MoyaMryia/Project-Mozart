@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <string>
+#include <map>
 
 #include "rvc/model_loader.hpp"
 #include "rvc/feature_extractor.hpp"
@@ -12,21 +14,18 @@
 
 namespace rvc {
 
-// ──────────────────────────────────────────────────────────
-// Abstract RVC pipeline
-// ──────────────────────────────────────────────────────────
 class RVCPipelineBase {
 public:
     virtual ~RVCPipelineBase() = default;
 
-    // Input: float32 mono audio at input_sample_rate
-    // Output: float32 mono audio at output_sample_rate
     virtual std::vector<float> process(const std::vector<float>& audio) = 0;
+
+    virtual bool switch_model(const std::string&) { return false; }
+    virtual std::string current_model_id() const { return ""; }
+    virtual bool is_mock() const { return true; }
+    virtual std::map<std::string, std::string> model_info() const { return {}; }
 };
 
-// ──────────────────────────────────────────────────────────
-// Mock pipeline: pass-through with simple upsampling
-// ──────────────────────────────────────────────────────────
 class MockRVCPipeline : public RVCPipelineBase {
 public:
     MockRVCPipeline(
@@ -43,9 +42,6 @@ private:
     std::vector<float> upsample_linear(const std::vector<float>& audio, float ratio);
 };
 
-// ──────────────────────────────────────────────────────────
-// Real RVC pipeline: full inference
-// ──────────────────────────────────────────────────────────
 class RealRVCPipeline : public RVCPipelineBase {
 public:
     RealRVCPipeline(
@@ -59,7 +55,10 @@ public:
     );
 
     std::vector<float> process(const std::vector<float>& audio) override;
-    bool switch_model(const std::string& model_id);
+    bool switch_model(const std::string& model_id) override;
+    std::string current_model_id() const override;
+    bool is_mock() const override { return false; }
+    std::map<std::string, std::string> model_info() const override;
 
     std::shared_ptr<ModelManager> model_manager() const { return model_manager_; }
 
@@ -76,9 +75,6 @@ private:
     void rebuild_inferencer();
 };
 
-// ──────────────────────────────────────────────────────────
-// Factory
-// ──────────────────────────────────────────────────────────
 class RVCPipelineFactory {
 public:
     static std::unique_ptr<RVCPipelineBase> create(
