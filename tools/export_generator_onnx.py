@@ -63,16 +63,16 @@ def export_model(model_name, output_path, device, opset):
         },
         opset_version=opset,
     )
-    print(f"[✓] Exported to {output_path}")
+    print(f"[OK] Exported to {output_path}")
 
     import onnx
     onnx.checker.check_model(str(output_path))
-    print(f"[✓] ONNX model validated")
+    print(f"[OK] ONNX model validated")
 
     import onnxruntime
     sess = onnxruntime.InferenceSession(str(output_path))
     out = sess.get_outputs()[0]
-    print(f"[✓] Output shape: {out.shape}")
+    print(f"[OK] Output shape: {out.shape}")
 
 
 def main():
@@ -127,7 +127,7 @@ def main():
         output_path = output_dir / onnx_name
         export_model(str(model_path), output_path, device, args.opset)
 
-    print(f"\n[✓] Done! Exported {len(models_to_export)} model(s)")
+    print(f"\n[OK] Done! Exported {len(models_to_export)} model(s)")
     print(f"[*] Output files in: {output_dir.resolve()}")
     for m in models_to_export:
         onnx_name = Path(m).stem + ".onnx"
