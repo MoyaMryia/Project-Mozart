@@ -100,8 +100,8 @@
     .left-sidebar { display: flex; flex-direction: column; }
     .sidebar-controls { flex: 1; min-height: 0; }
     .console-log {
-      flex: 0 0 46%;
-      min-height: 240px;
+      flex: 0 0 50%;
+      min-height: 0;
       border-top: 1px solid #173b23;
       font-family: "Space Mono", monospace;
     }
@@ -175,37 +175,45 @@
     .parameter-range {
       appearance: none;
       width: 100%;
-      height: 20px;
+      height: 16px;
       background: transparent;
       cursor: pointer;
     }
     .parameter-range::-webkit-slider-runnable-track {
-      height: 4px;
+      height: 3px;
       border-radius: 999px;
       background: #d1d5db;
     }
     .parameter-range::-webkit-slider-thumb {
       appearance: none;
-      width: 16px;
-      height: 16px;
-      margin-top: -6px;
-      border: 3px solid #ffffff;
+      width: 14px;
+      height: 14px;
+      margin-top: -5.5px;
+      border: 2px solid #ffffff;
       border-radius: 999px;
       background: #111827;
       box-shadow: 0 0 0 1px #111827;
     }
     .parameter-range::-moz-range-track {
-      height: 4px;
+      height: 3px;
       border-radius: 999px;
       background: #d1d5db;
     }
     .parameter-range::-moz-range-thumb {
       width: 10px;
       height: 10px;
-      border: 3px solid #ffffff;
+      border: 2px solid #ffffff;
       border-radius: 999px;
       background: #111827;
       box-shadow: 0 0 0 1px #111827;
+    }
+    .parameter-profile-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236B7280' stroke-width='1.8'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+      background-position: right 0.5rem center;
+      background-repeat: no-repeat;
+      background-size: 0.9rem;
+      padding-right: 1.8rem;
     }
     .parameter-range:focus-visible {
       outline: none;
@@ -395,7 +403,9 @@
     </section>
 
     <!-- 中栏：主操作面板 -->
-    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:h-full no-scrollbar">
+    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:grid md:grid-rows-2 md:gap-3 md:overflow-hidden md:h-full no-scrollbar">
+
+      <div id="workspace-panel" class="min-h-0 flex flex-col overflow-y-auto no-scrollbar">
 
       <!-- RT 模式：实时音频控制面板 -->
       <div class="flex-1 flex flex-col min-h-0 gap-3" id="block-live">
@@ -493,28 +503,10 @@
           </div>
         </div>
       </div>
-
-      <!-- FILE 模式：共享队列 -->
-      <div class="mb-6 hidden" id="block-file-queue">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title" data-i18n="fileQueueTitle">文件处理队列</h2>
-          <span class="text-[10px] font-mono text-gray-500" id="file-queue-count">0</span>
-        </div>
-        <div id="file-queue" class="bg-white rounded-lg border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] overflow-hidden">
-          <div class="grid grid-cols-12 gap-2 px-4 py-2 bg-gray-50 text-[10px] font-extrabold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-            <div class="col-span-5" data-i18n="qColFile">文件</div>
-            <div class="col-span-3" data-i18n="qColMode">目标模式</div>
-            <div class="col-span-2" data-i18n="qColStatus">状态</div>
-            <div class="col-span-2 text-right" data-i18n="qColAction">操作</div>
-          </div>
-          <div id="file-queue-list" class="max-h-[180px] overflow-y-auto">
-            <div class="px-4 py-6 text-center text-xs text-gray-400" data-i18n="emptyQueue">队列为空</div>
-          </div>
-        </div>
       </div>
 
       <!-- 主界面下方：终端式系统日志 -->
-      <div id="log-panel" class="console-log overflow-hidden flex flex-col bg-[#050806]">
+      <div id="log-panel" class="console-log md:flex-none md:min-h-0 overflow-hidden flex flex-col bg-[#050806]">
         <div class="flex items-center justify-between gap-2 px-3 py-2 bg-[#42D879] text-[#052E16] font-mono">
           <h2 class="text-[11px] font-extrabold tracking-[0.16em] uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
           <div class="flex items-center gap-1 min-w-0">
@@ -536,31 +528,42 @@
     </section>
 
     <!-- 右栏：参数设置与硬件状态 -->
-    <section class="p-4 md:p-6 border-l border-gray-100 bg-white flex flex-col gap-8 overflow-y-auto md:h-full" aria-label="Mode parameters and speaker selection">
+    <section class="p-3 md:p-4 border-l border-gray-100 bg-white flex flex-col gap-5 overflow-y-auto md:h-full" aria-label="Mode parameters and speaker selection">
 
       <!-- 参数设置（按模式切换） -->
-      <div class="bg-[#FAFAFA] border border-gray-200 rounded-lg p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-        <div class="flex items-center justify-between mb-3">
+      <div class="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+        <div class="flex items-center justify-between mb-2">
           <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title" data-i18n="paramsTitle">Parameters</h2>
           <span class="text-[10px] font-mono font-bold text-gray-700 bg-white border border-gray-200 rounded-sm px-2 py-1" id="params-mode-label" translate="no">RT_RVC</span>
         </div>
-        <div class="flex items-center justify-between gap-3 border-b border-gray-200 pb-3 mb-4">
-          <span class="text-[9px] font-bold tracking-wider text-gray-400">MODEL PROFILE</span>
-          <span class="text-[10px] font-mono font-bold text-gray-700 text-right" id="params-profile-label" translate="no">RVC · RMVPE</span>
+        <div class="border-y border-gray-200 py-2.5 mb-3">
+          <div class="flex items-center gap-2">
+            <label for="parameter-preset-select" class="sr-only">选择参数配置方案</label>
+            <select id="parameter-preset-select" class="parameter-profile-select min-w-0 flex-1 h-8 text-[11px] font-bold text-gray-800 bg-white border border-gray-200 rounded-sm px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" autocomplete="off" aria-label="选择参数配置方案"></select>
+            <button type="button" id="btn-reset-parameters" class="w-8 h-8 shrink-0 inline-flex items-center justify-center text-gray-500 bg-white hover:bg-gray-100 hover:text-gray-900 border border-gray-200 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="恢复当前模式的默认参数" title="恢复默认参数">
+              <svg class="w-3.5 h-3.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            </button>
+            <button type="button" id="btn-save-parameter-preset" class="h-8 shrink-0 text-[10px] font-extrabold text-white bg-gray-900 hover:bg-gray-800 px-2.5 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900">新增预设</button>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mt-2.5 font-mono text-[9px] text-gray-500">
+            <span id="params-profile-label" class="truncate" translate="no">RVC · RMVPE</span>
+            <span id="params-control-count" class="text-center">3 CONTROLS</span>
+            <span id="params-preset-status" class="text-right truncate">DEFAULT</span>
+          </div>
         </div>
-        <div id="params-container" class="space-y-5">
+        <div id="params-container" class="space-y-3">
           <!-- params rendered here -->
         </div>
       </div>
 
       <!-- 当前模式的单一音色选择，不保留队列 -->
-      <div id="speaker-selection-card" class="bg-[#FAFAFA] border border-gray-200 rounded-lg p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-        <div class="flex items-center justify-between gap-3 mb-3">
+      <div id="speaker-selection-card" class="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+        <div class="flex items-center justify-between gap-3 mb-2">
           <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title" data-i18n="speakerTitle">声音角色选择</h2>
           <span id="speaker-mode-label" class="text-[10px] font-mono font-bold text-gray-700 bg-white border border-gray-200 rounded-sm px-2 py-1" translate="no">RT_RVC</span>
         </div>
         <label for="speaker-select" class="block text-[10px] font-bold tracking-wide text-gray-500 mb-2">当前音色</label>
-        <select id="speaker-select" name="speaker-selection" class="w-full min-w-0 text-xs text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" autocomplete="off" aria-label="选择当前音色">
+        <select id="speaker-select" name="speaker-selection" class="w-full min-w-0 text-xs text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" autocomplete="off" aria-label="选择当前音色">
           <option value="default">默认音色</option>
           <option value="alice">爱丽丝 (Alice)</option>
           <option value="bob">鲍勃 (Bob)</option>
@@ -573,6 +576,25 @@
         </button>
         <input type="file" id="quick-add-voice-input" name="voice-source" accept="audio/*" class="hidden" aria-label="Upload voice source audio">
       </div>
+
+      <!-- FILE 模式：共享队列位于右侧状态区 -->
+      <section class="hidden border-t border-gray-200 pt-4" id="block-file-queue" aria-label="文件处理队列">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title" data-i18n="fileQueueTitle">文件处理队列</h2>
+          <span class="text-[10px] font-mono text-gray-500" id="file-queue-count">0</span>
+        </div>
+        <div id="file-queue" class="bg-white rounded-lg border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div class="grid grid-cols-12 gap-1 px-3 py-2 bg-gray-50 text-[9px] font-extrabold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+            <div class="col-span-5" data-i18n="qColFile">文件</div>
+            <div class="col-span-3" data-i18n="qColMode">目标模式</div>
+            <div class="col-span-2" data-i18n="qColStatus">状态</div>
+            <div class="col-span-2 text-right" data-i18n="qColAction">操作</div>
+          </div>
+          <div id="file-queue-list" class="max-h-[168px] overflow-y-auto">
+            <div class="px-3 py-6 text-center text-xs text-gray-400" data-i18n="emptyQueue">队列为空</div>
+          </div>
+        </div>
+      </section>
 
       <!-- 实时音频快捷控制固定在整个右栏底部 -->
       <div id="realtime-audio-controls" class="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-200">
@@ -664,8 +686,11 @@
           profile: 'RVC · RMVPE REALTIME',
           outputLabel: 'OUTPUT / RVC',
           parameters: [
+            { key: 'f0Method', label: 'F0 提取', type: 'select', value: 'rmvpe', options: [{ value: 'rmvpe', label: 'RMVPE' }, { value: 'harvest', label: 'Harvest' }, { value: 'pm', label: 'PM' }] },
             { key: 'pitch', label: '音高偏移', min: -12, max: 12, step: 1, unit: 'st', value: 0 },
             { key: 'indexRate', label: '检索索引比例', min: 0, max: 1, step: 0.05, unit: '', value: 0.7 },
+            { key: 'filterRadius', label: '滤波半径', min: 0, max: 7, step: 1, unit: '', value: 3 },
+            { key: 'rmsMixRate', label: 'RMS 混合', min: 0, max: 1, step: 0.05, unit: '', value: 0.25 },
             { key: 'protect', label: '辅音保护', min: 0, max: 0.5, step: 0.05, unit: '', value: 0.25 }
           ]
         },
@@ -674,8 +699,13 @@
           profile: 'RVC · RMVPE BATCH',
           outputLabel: 'OUTPUT / FILE RVC',
           parameters: [
+            { key: 'f0Method', label: 'F0 提取', type: 'select', value: 'rmvpe', options: [{ value: 'rmvpe', label: 'RMVPE' }, { value: 'harvest', label: 'Harvest' }, { value: 'pm', label: 'PM' }] },
             { key: 'pitch', label: '音高偏移', min: -12, max: 12, step: 1, unit: 'st', value: 0 },
             { key: 'indexRate', label: '检索索引比例', min: 0, max: 1, step: 0.05, unit: '', value: 0.75 },
+            { key: 'filterRadius', label: '滤波半径', min: 0, max: 7, step: 1, unit: '', value: 3 },
+            { key: 'rmsMixRate', label: 'RMS 混合', min: 0, max: 1, step: 0.05, unit: '', value: 0.25 },
+            { key: 'protect', label: '辅音保护', min: 0, max: 0.5, step: 0.05, unit: '', value: 0.33 },
+            { key: 'resampleRate', label: '输出重采样', type: 'select', value: '0', options: [{ value: '0', label: '模型原生' }, { value: '16000', label: '16 kHz' }, { value: '32000', label: '32 kHz' }, { value: '40000', label: '40 kHz' }, { value: '48000', label: '48 kHz' }] },
             { key: 'chunkSize', label: '分块时长', min: 1, max: 12, step: 1, unit: 's', value: 6 }
           ]
         },
@@ -703,6 +733,30 @@
 
       const REALTIME_MODES = new Set(['rt_rvc', 'rt_zero_shot']);
       const FILE_MODES = new Set(['file_rvc', 'file_zero_shot']);
+      const DEFAULT_MODE_PARAMETERS = Object.fromEntries(
+        Object.entries(MODE_DEFINITIONS).map(([mode, definition]) => [
+          mode,
+          Object.fromEntries(definition.parameters.map((parameter) => [parameter.key, parameter.value]))
+        ])
+      );
+      const BUILT_IN_PARAMETER_PRESETS = {
+        rt_rvc: [
+          { id: 'live-natural', name: '自然实时', values: { f0Method: 'rmvpe', pitch: 0, indexRate: 0.6, filterRadius: 3, rmsMixRate: 0.35, protect: 0.35 } },
+          { id: 'live-crisp', name: '清晰优先', values: { f0Method: 'rmvpe', pitch: 0, indexRate: 0.9, filterRadius: 1, rmsMixRate: 0.15, protect: 0.1 } }
+        ],
+        file_rvc: [
+          { id: 'file-balanced', name: '均衡转换', values: { f0Method: 'rmvpe', pitch: 0, indexRate: 0.75, filterRadius: 3, rmsMixRate: 0.25, protect: 0.33, resampleRate: '0', chunkSize: 6 } },
+          { id: 'file-detailed', name: '细节优先', values: { f0Method: 'rmvpe', pitch: 0, indexRate: 0.9, filterRadius: 1, rmsMixRate: 0.15, protect: 0.15, resampleRate: '48000', chunkSize: 3 } }
+        ],
+        rt_zero_shot: [
+          { id: 'zero-live-natural', name: '自然实时', values: { similarity: 0.75, guidance: 1, crossfade: 100 } },
+          { id: 'zero-live-match', name: '声线优先', values: { similarity: 0.95, guidance: 1.6, crossfade: 60 } }
+        ],
+        file_zero_shot: [
+          { id: 'zero-file-balanced', name: '均衡转换', values: { similarity: 0.85, guidance: 1.2, chunkSize: 10 } },
+          { id: 'zero-file-match', name: '声线优先', values: { similarity: 1, guidance: 1.8, chunkSize: 6 } }
+        ]
+      };
       const SPEAKERS = [
         { id: 'default', name: '默认音色', type: 'Reference Profile' },
         { id: 'alice', name: '爱丽丝 (Alice)', type: 'Reference Profile' },
@@ -730,12 +784,9 @@
         voiceLibrarySelection: new Set(),
         logFilter: 'all',
         logs: [],
-        parameters: Object.fromEntries(
-          Object.entries(MODE_DEFINITIONS).map(([mode, definition]) => [
-            mode,
-            Object.fromEntries(definition.parameters.map((parameter) => [parameter.key, parameter.value]))
-          ])
-        ),
+        parameters: Object.fromEntries(Object.entries(DEFAULT_MODE_PARAMETERS).map(([mode, values]) => [mode, { ...values }])),
+        parameterPresetSelection: Object.fromEntries(Object.keys(MODE_DEFINITIONS).map((mode) => [mode, 'default'])),
+        customParameterPresets: Object.fromEntries(Object.keys(MODE_DEFINITIONS).map((mode) => [mode, []])),
         fileQueue: [
           { id: 'demo-file-1', name: 'demo_interview.wav', mode: 'file_rvc', status: 'queued', progress: 0 }
         ]
@@ -750,6 +801,7 @@
 
       let taskSequence = 1;
       let voiceSequence = 1;
+      let parameterPresetSequence = 1;
       let toastTimer;
       let confirmation = null;
       let previousFocusedElement = null;
@@ -769,9 +821,66 @@
       }
 
       function formatParameter(value, definition) {
+        if (definition.type === 'select') {
+          return definition.options.find((option) => option.value === String(value))?.label || String(value);
+        }
         const number = Number(value);
         const precision = definition.step < 1 ? 2 : 0;
         return `${number.toFixed(precision).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}${definition.unit ? ` ${definition.unit}` : ''}`;
+      }
+
+      function parameterPresetOptions(mode) {
+        return [
+          { id: 'default', name: '默认配置', values: DEFAULT_MODE_PARAMETERS[mode], status: 'DEFAULT' },
+          ...BUILT_IN_PARAMETER_PRESETS[mode].map((preset) => ({ ...preset, status: 'BUILT-IN' })),
+          ...state.customParameterPresets[mode].map((preset) => ({ ...preset, status: 'SAVED' }))
+        ];
+      }
+
+      function applyParameterPreset(mode, presetId) {
+        const preset = parameterPresetOptions(mode).find((item) => item.id === presetId);
+        if (!preset) return;
+        state.parameters[mode] = { ...DEFAULT_MODE_PARAMETERS[mode], ...preset.values };
+        state.parameterPresetSelection[mode] = presetId;
+        addLog(mode, `已应用参数方案：${preset.name}`);
+        renderParameters();
+      }
+
+      function saveCurrentParameterPreset() {
+        const mode = state.selectedMode;
+        const name = window.prompt('输入预设名称', `我的 ${modeLabel(mode)} 方案`);
+        if (name === null) return;
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+          showWarning('预设名称不能为空');
+          return;
+        }
+        const preset = {
+          id: `custom-${Date.now()}-${parameterPresetSequence++}`,
+          name: trimmedName,
+          values: { ...state.parameters[mode] }
+        };
+        state.customParameterPresets[mode].push(preset);
+        state.parameterPresetSelection[mode] = preset.id;
+        addLog(mode, `已保存参数预设：${preset.name}`);
+        renderParameters();
+      }
+
+      function updateParameterValue(input) {
+        const mode = input.dataset.parameterMode;
+        const key = input.dataset.parameterKey;
+        const definition = MODE_DEFINITIONS[mode].parameters.find((parameter) => parameter.key === key);
+        state.parameters[mode][key] = definition.type === 'select' ? input.value : Number(input.value);
+        input.previousElementSibling.querySelector('output').textContent = formatParameter(input.value, definition);
+        state.parameterPresetSelection[mode] = 'custom';
+        const presetSelect = get('parameter-preset-select');
+        if (!presetSelect.querySelector('option[value="custom"]')) {
+          const customOption = createElement('option', '', '自定义（未保存）');
+          customOption.value = 'custom';
+          presetSelect.append(customOption);
+        }
+        presetSelect.value = 'custom';
+        get('params-preset-status').textContent = 'UNSAVED';
       }
 
       function showWarning(message) {
@@ -960,32 +1069,64 @@
       function renderParameters() {
         const mode = state.selectedMode;
         const container = get('params-container');
+        const selectedPresetId = state.parameterPresetSelection[mode];
+        const presets = parameterPresetOptions(mode);
+        const selectedPreset = presets.find((preset) => preset.id === selectedPresetId);
         get('params-mode-label').textContent = modeLabel(mode);
         get('params-profile-label').textContent = MODE_DEFINITIONS[mode].profile;
+        get('params-control-count').textContent = `${MODE_DEFINITIONS[mode].parameters.length} CONTROLS`;
+        get('params-preset-status').textContent = selectedPreset?.status || 'UNSAVED';
+        const presetSelect = get('parameter-preset-select');
+        const options = presets.map((preset) => {
+          const option = createElement('option', '', preset.name);
+          option.value = preset.id;
+          return option;
+        });
+        if (!selectedPreset) {
+          const customOption = createElement('option', '', '自定义（未保存）');
+          customOption.value = 'custom';
+          options.push(customOption);
+        }
+        presetSelect.replaceChildren(...options);
+        presetSelect.value = selectedPreset ? selectedPreset.id : 'custom';
         const controls = MODE_DEFINITIONS[mode].parameters.map((parameter) => {
-          const wrapper = createElement('div', 'parameter-control space-y-2 pb-4 border-b border-gray-200 last:border-b-0 last:pb-0');
+          const wrapper = createElement('div', 'parameter-control space-y-1.5 pb-2.5 border-b border-gray-200 last:border-b-0 last:pb-0');
           const header = createElement('div', 'flex items-center justify-between gap-3');
           const inputId = `param-${mode}-${parameter.key}`;
           const label = createElement('label', 'text-[10px] font-bold tracking-wide text-gray-500', parameter.label);
           label.htmlFor = inputId;
-          const output = createElement('output', 'font-mono text-lg font-extrabold leading-none text-gray-950 tabular-nums');
+          const output = createElement('output', 'font-mono text-base font-extrabold leading-none text-gray-950 tabular-nums');
           output.htmlFor = inputId;
           output.textContent = formatParameter(state.parameters[mode][parameter.key], parameter);
-          const input = createElement('input', 'parameter-range');
-          input.type = 'range';
+          const input = document.createElement(parameter.type === 'select' ? 'select' : 'input');
+          input.className = parameter.type === 'select'
+            ? 'w-full h-7 text-[10px] font-bold text-gray-700 bg-white border border-gray-200 rounded-sm px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900'
+            : 'parameter-range';
+          if (parameter.type === 'select') {
+            input.append(...parameter.options.map((option) => {
+              const optionElement = createElement('option', '', option.label);
+              optionElement.value = option.value;
+              return optionElement;
+            }));
+          } else {
+            input.type = 'range';
+            input.min = String(parameter.min);
+            input.max = String(parameter.max);
+            input.step = String(parameter.step);
+          }
           input.id = inputId;
           input.name = parameter.key;
-          input.min = String(parameter.min);
-          input.max = String(parameter.max);
-          input.step = String(parameter.step);
           input.value = String(state.parameters[mode][parameter.key]);
           input.dataset.parameterMode = mode;
           input.dataset.parameterKey = parameter.key;
           input.setAttribute('aria-label', parameter.label);
-          const scale = createElement('div', 'flex justify-between font-mono text-[9px] text-gray-400 tabular-nums');
-          scale.append(createElement('span', '', formatParameter(parameter.min, parameter)), createElement('span', '', formatParameter(parameter.max, parameter)));
           header.append(label, output);
-          wrapper.append(header, input, scale);
+          wrapper.append(header, input);
+          if (parameter.type !== 'select') {
+            const scale = createElement('div', 'flex justify-between font-mono text-[8px] text-gray-400 tabular-nums');
+            scale.append(createElement('span', '', formatParameter(parameter.min, parameter)), createElement('span', '', formatParameter(parameter.max, parameter)));
+            wrapper.append(scale);
+          }
           return wrapper;
         });
         container.replaceChildren(...controls);
@@ -1395,6 +1536,13 @@
           renderSpeakerSelection();
         });
 
+        get('parameter-preset-select').addEventListener('change', (event) => {
+          if (event.target.value === 'custom') return;
+          applyParameterPreset(state.selectedMode, event.target.value);
+        });
+        get('btn-reset-parameters').addEventListener('click', () => applyParameterPreset(state.selectedMode, 'default'));
+        get('btn-save-parameter-preset').addEventListener('click', saveCurrentParameterPreset);
+
         get('btn-quick-add-voice').addEventListener('click', () => get('quick-add-voice-input').click());
         get('quick-add-voice-input').addEventListener('change', (event) => createVoiceFromSource(event.target.files[0]));
 
@@ -1426,12 +1574,13 @@
 
         get('params-container').addEventListener('input', (event) => {
           const input = event.target.closest('[data-parameter-mode]');
+          if (!input || input.tagName === 'SELECT') return;
+          updateParameterValue(input);
+        });
+        get('params-container').addEventListener('change', (event) => {
+          const input = event.target.closest('select[data-parameter-mode]');
           if (!input) return;
-          const mode = input.dataset.parameterMode;
-          const key = input.dataset.parameterKey;
-          state.parameters[mode][key] = Number(input.value);
-          const definition = MODE_DEFINITIONS[mode].parameters.find((parameter) => parameter.key === key);
-          input.previousElementSibling.querySelector('output').textContent = formatParameter(input.value, definition);
+          updateParameterValue(input);
         });
 
         get('log-mode-filter').addEventListener('change', (event) => {
