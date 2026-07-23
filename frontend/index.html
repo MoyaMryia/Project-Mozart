@@ -44,21 +44,15 @@
     }
 
     /* 美化横向滚动条 */
-    #speaker-list-rt::-webkit-scrollbar,
-    #speaker-list::-webkit-scrollbar,
     #log-panel::-webkit-scrollbar,
     #file-queue::-webkit-scrollbar {
       height: 4px;
       width: 4px;
     }
-    #speaker-list-rt::-webkit-scrollbar-track,
-    #speaker-list::-webkit-scrollbar-track,
     #log-panel::-webkit-scrollbar-track,
     #file-queue::-webkit-scrollbar-track {
       background: transparent;
     }
-    #speaker-list-rt::-webkit-scrollbar-thumb,
-    #speaker-list::-webkit-scrollbar-thumb,
     #log-panel::-webkit-scrollbar-thumb,
     #file-queue::-webkit-scrollbar-thumb {
       background: #e2e8f0;
@@ -86,29 +80,97 @@
     .log-tag {
       display: inline-flex;
       align-items: center;
-      min-width: 82px;
-      justify-content: center;
-      border-radius: 2px;
-      padding: 2px 5px;
-      font-size: 9px;
+      min-width: 112px;
+      padding: 0;
+      font-size: 11px;
       font-weight: 700;
       line-height: 1.2;
     }
-    .log-tag--system { background: #f3f4f6; color: #4b5563; }
-    .log-tag--rt_rvc { background: #ecfdf5; color: #047857; }
-    .log-tag--file_rvc { background: #eff6ff; color: #1d4ed8; }
-    .log-tag--rt_zero_shot { background: #fff7ed; color: #c2410c; }
-    .log-tag--file_zero_shot { background: #fdf4ff; color: #a21caf; }
+    .log-tag--system { color: #86efac; }
+    .log-tag--rt_rvc { color: #4ade80; }
+    .log-tag--file_rvc { color: #60a5fa; }
+    .log-tag--rt_zero_shot { color: #fbbf24; }
+    .log-tag--file_zero_shot { color: #e879f9; }
     .hardware-stat + .hardware-stat {
       border-left: 1px solid #e5e7eb;
     }
     .hardware-stat:first-child {
       padding-left: 0;
     }
-    .sidebar-log {
-      flex: 0 0 50%;
-      height: 50%;
+    .left-sidebar { display: flex; flex-direction: column; }
+    .sidebar-controls { flex: 1; min-height: 0; }
+    .console-log {
+      flex: 0 0 46%;
       min-height: 240px;
+      border-top: 1px solid #173b23;
+      font-family: "Space Mono", monospace;
+    }
+    .axis-step-input {
+      appearance: textfield;
+    }
+    .axis-step-input::-webkit-inner-spin-button,
+    .axis-step-input::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+    @media (max-width: 767px) {
+      .console-log {
+        flex-basis: 320px;
+        min-height: 320px;
+      }
+    }
+    .hardware-icon {
+      width: 17px;
+      height: 17px;
+      color: #6b7280;
+      flex: none;
+    }
+    .transport-control {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      overflow: hidden;
+      border: 3px solid #111827;
+      border-radius: 999px;
+      background: #ffffff;
+    }
+    .transport-button {
+      position: relative;
+      display: flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      color: #111827;
+      background: transparent;
+      transition: color 150ms ease, box-shadow 150ms ease;
+    }
+    .transport-button + .transport-button {
+      border-left: 2px solid #111827;
+    }
+    .transport-button:hover { color: #059669; }
+    .transport-button:focus-visible {
+      z-index: 1;
+      outline: 3px solid #111827;
+      outline-offset: -5px;
+    }
+    .transport-button.is-active { box-shadow: inset 0 -5px 0 currentColor; }
+    .transport-button[data-state="paused"].is-active { color: #6b7280; }
+    .transport-button[data-state="running"].is-active { color: #059669; }
+    .transport-button[data-state="stopped"]:hover,
+    .transport-button[data-state="stopped"].is-active { color: #dc2626; }
+    .system-state-icon {
+      width: 20px;
+      height: 20px;
+      flex: none;
+    }
+    .terminal-select {
+      color: #052e16;
+      background: transparent;
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+    }
+    .terminal-select option {
+      color: #111827;
+      background: #ffffff;
     }
     .parameter-range {
       appearance: none;
@@ -155,6 +217,14 @@
       box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #111827;
     }
     button, a, input, select { touch-action: manipulation; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-[#FCFDFE] text-gray-900 font-sans min-h-screen md:h-screen flex flex-col overflow-x-hidden md:overflow-hidden">
@@ -164,64 +234,50 @@
     Skip to main content
   </a>
 
-  <!-- Toast 通知组件 -->
-  <div id="toast-notification" role="status" aria-live="polite" class="fixed top-5 right-5 z-50 transform translate-y-[-150%] opacity-0 transition-transform transition-opacity duration-300 max-w-md bg-gray-900 text-white text-xs p-4 rounded-md shadow-xl border border-gray-800 flex items-start gap-3 pointer-events-none">
-    <span class="text-base shrink-0" aria-hidden="true">💡</span>
-    <div id="toast-message" class="leading-relaxed">Notification</div>
-  </div>
-
   <!-- 顶部状态导航条 -->
-  <header class="flex flex-wrap md:flex-nowrap justify-between items-center gap-3 px-4 md:px-8 py-3.5 border-b border-gray-100 bg-white shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+  <header class="flex flex-wrap md:flex-nowrap items-center gap-3 px-4 md:px-8 py-3.5 border-b border-gray-100 bg-white shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
     <div class="flex items-center gap-3">
       <h1 class="text-lg font-extrabold tracking-tight text-gray-900" translate="no">MOZART</h1>
       <span class="hidden sm:inline-flex font-mono text-[11px] bg-gray-100 text-gray-600 px-2.5 py-0.5 font-bold rounded-sm border border-gray-200/50" translate="no">Jetson Orin Nano</span>
     </div>
 
-    <!-- 全局硬件状态：桌面端位于品牌与模式之间，移动端独占一行并可横向查看 -->
-    <div id="hardware-summary" class="order-3 md:order-none w-full md:w-auto md:flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Global hardware status">
+    <!-- 全局硬件状态：桌面端右对齐，移动端独占一行并可横向查看 -->
+    <div id="hardware-summary" class="order-3 md:order-none w-full md:w-auto md:ml-auto min-w-0 flex items-center justify-start md:justify-end gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Global hardware status">
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 16 0h-2a6 6 0 1 0-12 0H4Zm7-1.2 4.6-4.6 1.2 1.2-4.6 4.6a1.6 1.6 0 1 1-1.2-1.2Z"/></svg>
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
         <span class="text-[10px] font-bold text-gray-400 tracking-wider">LATENCY</span>
         <strong id="stat-latency" class="font-mono text-xs text-gray-900 tabular-nums">8.4 <span class="text-[10px] font-semibold text-gray-500">ms</span></strong>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 5.5C4 3.6 7.6 2 12 2s8 1.6 8 3.5S16.4 9 12 9 4 7.4 4 5.5Zm0 5C4 12.4 7.6 14 12 14s8-1.6 8-3.5v4C20 16.4 16.4 18 12 18s-8-1.6-8-3.5v-4Zm0 5C4 17.4 7.6 19 12 19s8-1.6 8-3.5v3C20 20.4 16.4 22 12 22s-8-1.6-8-3.5v-3Z"/></svg>
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
         <span class="text-[10px] font-bold text-gray-400 tracking-wider">CACHE</span>
         <strong id="stat-cache" class="font-mono text-xs text-gray-900 tabular-nums">0.24 <span class="text-[10px] font-semibold text-gray-500">GB</span></strong>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M7 6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2h2v2h-2v8h2v2h-2a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2H5v-2h2V8H5V6h2Zm3 4h4v4h-4v-4ZM9 1h2v3H9V1Zm4 0h2v3h-2V1ZM9 20h2v3H9v-3Zm4 0h2v3h-2v-3Z"/></svg>
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M9 1v3m6-3v3M9 20v3m6-3v3M20 9h3m-3 6h3M1 9h3m-3 6h3"/></svg>
         <span class="text-[10px] font-bold text-gray-400 tracking-wider">VRAM</span>
         <strong id="stat-vram" class="font-mono text-xs text-gray-900 tabular-nums">3.2 <span class="text-[10px] font-semibold text-gray-500">GB / 8.0 GB</span></strong>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M3 11h3.2l1.8-5.4a1 1 0 0 1 1.9.1l2.4 8 1.5-5a1 1 0 0 1 1.9-.1l1.5 3.4H21v2h-4.4a1 1 0 0 1-.9-.6l-.7-1.6-1.7 5.7a1 1 0 0 1-1 .7 1 1 0 0 1-1-.7L9 9.2l-1.1 3a1 1 0 0 1-.9.7H3v-2Z"/></svg>
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 10v3m4-7v11m4-14v18m4-13v7m4-10v13m4-8v3"/></svg>
         <span class="text-[10px] font-bold text-gray-500 tracking-wider">PIPEWIRE</span>
         <span id="state-pipewire" class="font-mono text-[11px] font-bold text-emerald-600">CONNECTED</span>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 11h2v4H4v-4Zm4-5h2v14H8V6Zm4-3h2v18h-2V3Zm4 5h2v11h-2V8Zm4 3h2v5h-2v-5Z"/></svg>
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 12h2l2-6 4 12 3-8 2 4h5"/></svg>
         <span class="text-[10px] font-bold text-gray-400 tracking-wider">VAD</span>
         <span id="state-vad" class="font-mono text-[11px] font-bold text-gray-800 tabular-nums">42.8%</span>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="m13.6 2-8.2 10.5a1 1 0 0 0 .8 1.6h4.5l-.7 7.9a1 1 0 0 0 1.8.6L19 11.5a1 1 0 0 0-.8-1.6h-4.5L14.6 3a1 1 0 0 0-1-1Z"/></svg>
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7z"/></svg>
         <span class="text-[10px] font-bold text-gray-400 tracking-wider">CUDA</span>
         <span id="state-cuda-priority" class="font-mono text-[11px] font-bold text-gray-800">HIGH (-1)</span>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm0 10a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6Zm4-7h.01M8 17h.01m4-10h4m-4 10h4Z"/></svg>
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><path d="M6 6h.01M6 18h.01M10 6h8m-8 12h8"/></svg>
         <span class="text-[10px] font-bold text-gray-500 tracking-wider">API</span>
         <span class="font-mono text-[11px] font-bold text-emerald-600" data-i18n="apiOnline">ONLINE</span>
       </div>
-    </div>
-
-    <div class="flex items-center gap-3 md:gap-5 shrink-0">
-      <div class="flex items-center gap-2.5 text-xs font-bold text-gray-600">
-        <span class="hidden sm:inline" data-i18n="activeModeLabel">配置模式:</span>
-        <span id="active-mode-badge" class="font-mono bg-emerald-50 text-emerald-700 px-3 py-1 rounded-sm font-bold text-xs transition-colors duration-200 border border-emerald-200/50" translate="no">RT_RVC</span>
-      </div>
-
     </div>
   </header>
 
@@ -229,24 +285,34 @@
   <main id="main-content" class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr_340px] bg-[#FCFDFE] overflow-y-auto md:overflow-hidden">
 
     <!-- 左栏：全局控制、系统运行模式与导航 -->
-    <section class="bg-[#FAFAFA] border-r border-gray-100 p-4 md:p-6 flex flex-col overflow-y-auto md:h-full" aria-label="System Navigation">
-      <div class="space-y-6">
+    <section class="left-sidebar bg-[#FAFAFA] border-r border-gray-100 overflow-visible md:overflow-hidden md:h-full" aria-label="System Navigation">
+      <div class="sidebar-controls space-y-4 p-4 md:px-5 md:py-3 md:overflow-y-auto">
         <!-- 全局运行控制 -->
-        <div class="bg-white border border-gray-200 rounded-lg p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase mb-3 section-title" data-i18n="globalControlsTitle">全局控制</h2>
-          <div class="grid grid-cols-3 gap-2">
-            <button type="button" id="btn-global-run" class="flex flex-col items-center justify-center gap-1 bg-gray-900 hover:bg-gray-800 text-white text-[10px] font-extrabold tracking-wide px-2 py-2.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-pressed="false">
-              <svg class="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              <span data-i18n="btnRun">运行</span>
+        <div class="relative">
+          <div class="flex items-center gap-2 min-h-[24px] mb-2" aria-live="polite">
+            <div class="relative w-5 h-5 flex items-center justify-center" aria-hidden="true">
+              <svg id="status-icon-running" class="system-state-icon hidden text-emerald-600" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="m20 15 14 9-14 9V15Z"/></svg>
+              <svg id="status-icon-paused" class="system-state-icon hidden text-gray-500" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="M17 15h5v18h-5V15Zm9 0h5v18h-5V15Z"/></svg>
+              <svg id="status-icon-stopped" class="system-state-icon text-red-600" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="M16 16h16v16H16V16Z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <div id="system-status-text" class="text-sm font-extrabold leading-5 tracking-tight text-red-600">已停止</div>
+            </div>
+          </div>
+          <div class="transport-control" role="group" aria-label="全局运行控制">
+            <button type="button" id="btn-global-pause" data-state="paused" class="transport-button" aria-label="暂停全局处理" title="暂停" aria-pressed="false">
+              <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h4v14H6V5Zm8 0h4v14h-4V5Z"/></svg>
             </button>
-            <button type="button" id="btn-global-pause" class="flex flex-col items-center justify-center gap-1 bg-white hover:bg-gray-100 text-gray-900 border border-gray-200 text-[10px] font-extrabold tracking-wide px-2 py-2.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-pressed="false">
-              <svg class="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-              <span data-i18n="btnPause">暂停</span>
+            <button type="button" id="btn-global-run" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" aria-pressed="false">
+              <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
             </button>
-            <button type="button" id="btn-global-stop" class="flex flex-col items-center justify-center gap-1 bg-white hover:bg-red-50 text-gray-900 hover:text-red-700 border border-gray-200 hover:border-red-200 text-[10px] font-extrabold tracking-wide px-2 py-2.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-haspopup="dialog">
-              <svg class="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-              <span data-i18n="btnStop">关闭</span>
+            <button type="button" id="btn-global-stop" data-state="stopped" class="transport-button" aria-label="完全停止系统" title="完全停止" aria-pressed="true" aria-haspopup="dialog">
+              <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6V6Z"/></svg>
             </button>
+          </div>
+          <div id="toast-notification" role="alert" aria-atomic="true" class="absolute top-full left-0 right-0 z-20 mt-2 -translate-y-1 opacity-0 transition-transform transition-opacity duration-200 bg-amber-50 text-amber-950 text-xs p-3 rounded-md shadow-lg border border-amber-200 flex items-start gap-2.5 pointer-events-none">
+            <svg class="w-4 h-4 mt-0.5 shrink-0 text-amber-700" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4m0 4h.01"/></svg>
+            <div class="min-w-0 leading-relaxed"><span class="mr-1 font-mono font-bold text-[10px] text-amber-700">WARN</span><span id="toast-message"></span></div>
           </div>
         </div>
 
@@ -257,7 +323,7 @@
             <div class="mode-row is-selected w-full rounded-md transition-colors duration-150 hover:bg-gray-100 border border-transparent group flex items-stretch overflow-hidden" data-mode="rt_rvc">
               <button type="button" class="mode-select flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900" data-mode="rt_rvc" aria-pressed="true">
                 <span class="mode-name block font-mono text-sm text-gray-700" translate="no">RT_RVC</span>
-                <span class="mode-desc block text-[11px] font-bold text-gray-500 mt-1 truncate" data-i18n="rtRvcDesc" aria-live="polite">实时 RVC 变声（独占物理音频流）</span>
+                <span class="mode-desc hidden block text-[11px] font-bold text-gray-500 mt-1 truncate" aria-live="polite"></span>
               </button>
               <div class="w-px bg-gray-300/50"></div>
               <div class="w-14 flex items-center justify-center p-2 shrink-0 bg-white/40">
@@ -270,7 +336,7 @@
             <div class="mode-row w-full rounded-md transition-colors duration-150 hover:bg-gray-100 border border-transparent group flex items-stretch overflow-hidden" data-mode="file_rvc">
               <button type="button" class="mode-select flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900" data-mode="file_rvc" aria-pressed="false">
                 <span class="mode-name block font-mono text-sm text-gray-700" translate="no">FILE_RVC</span>
-                <span class="mode-desc block text-[11px] font-bold text-gray-500 mt-1 truncate" data-i18n="fileRvcDesc" aria-live="polite">离线文件变声（排队文件转换）</span>
+                <span class="mode-desc hidden block text-[11px] font-bold text-gray-500 mt-1 truncate" aria-live="polite"></span>
               </button>
               <div class="w-px bg-gray-300/50"></div>
               <div class="w-14 flex items-center justify-center p-2 shrink-0 bg-white/40">
@@ -283,7 +349,7 @@
             <div class="mode-row w-full rounded-md transition-colors duration-150 hover:bg-gray-100 border border-transparent group flex items-stretch overflow-hidden" data-mode="rt_zero_shot">
               <button type="button" class="mode-select flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900" data-mode="rt_zero_shot" aria-pressed="false">
                 <span class="mode-name block font-mono text-sm text-gray-700" translate="no">RT_ZERO_SHOT</span>
-                <span class="mode-desc block text-[11px] font-bold text-gray-500 mt-1 truncate" data-i18n="rtZeroShotDesc" aria-live="polite">实时零样本变声（提示词合成）</span>
+                <span class="mode-desc hidden block text-[11px] font-bold text-gray-500 mt-1 truncate" aria-live="polite"></span>
               </button>
               <div class="w-px bg-gray-300/50"></div>
               <div class="w-14 flex items-center justify-center p-2 shrink-0 bg-white/40">
@@ -296,7 +362,7 @@
             <div class="mode-row w-full rounded-md transition-colors duration-150 hover:bg-gray-100 border border-transparent group flex items-stretch overflow-hidden" data-mode="file_zero_shot">
               <button type="button" class="mode-select flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900" data-mode="file_zero_shot" aria-pressed="false">
                 <span class="mode-name block font-mono text-sm text-gray-700" translate="no">FILE_ZERO_SHOT</span>
-                <span class="mode-desc block text-[11px] font-bold text-gray-500 mt-1 truncate" data-i18n="fileZeroShotDesc" aria-live="polite">离线零样本变声（文件转换）</span>
+                <span class="mode-desc hidden block text-[11px] font-bold text-gray-500 mt-1 truncate" aria-live="polite"></span>
               </button>
               <div class="w-px bg-gray-300/50"></div>
               <div class="w-14 flex items-center justify-center p-2 shrink-0 bg-white/40">
@@ -307,6 +373,11 @@
               </div>
             </div>
           </div>
+          <button type="button" id="btn-voice-library" class="w-full mt-3 bg-white hover:bg-gray-100 text-gray-900 border border-gray-200 hover:border-gray-900 px-3 py-2.5 rounded-2xl transition-colors duration-150 flex items-center gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-haspopup="dialog" aria-controls="voice-library-modal">
+            <svg class="w-4 h-4 shrink-0 text-emerald-700" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8m-8 4h8"/></svg>
+            <span class="flex-1 text-left text-[11px] font-extrabold">音色管理库</span>
+            <span id="voice-library-total" class="font-mono text-[10px] font-bold text-gray-500 tabular-nums">4</span>
+          </button>
         </div>
 
         <!-- 挂起切换状态槽 -->
@@ -321,137 +392,57 @@
         </div>
       </div>
 
-      <!-- 日志面板 -->
-      <div id="log-panel" class="sidebar-log mt-6 overflow-hidden flex flex-col shrink-0">
-        <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-gray-200">
-          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
-          <div class="flex items-center gap-1 min-w-0">
-            <select id="log-mode-filter" class="min-w-0 text-[10px] text-gray-800 bg-transparent border-0 px-1.5 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="Filter logs by mode">
-              <option value="all" data-i18n="logFilterAll">全部模式</option>
-              <option value="rt_rvc" translate="no">RT_RVC</option>
-              <option value="file_rvc" translate="no">FILE_RVC</option>
-              <option value="rt_zero_shot" translate="no">RT_ZERO_SHOT</option>
-              <option value="file_zero_shot" translate="no">FILE_ZERO_SHOT</option>
-            </select>
-            <button type="button" id="btn-clear-logs" class="text-[10px] font-bold text-gray-500 hover:text-gray-900 px-1.5 py-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shrink-0" data-i18n="btnClearLogs">清空</button>
-          </div>
-        </div>
-        <div id="log-entries" class="flex-1 overflow-y-auto pt-3 space-y-1.5 text-[10px] font-mono" role="log" aria-live="polite" aria-label="System logs">
-          <!-- log entries rendered here -->
-        </div>
-      </div>
-
     </section>
 
     <!-- 中栏：主操作面板 -->
-    <section class="px-4 py-5 md:px-8 w-full flex flex-col flex-1 min-h-0 overflow-y-auto md:h-full no-scrollbar">
+    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:h-full no-scrollbar">
 
       <!-- RT 模式：实时音频控制面板 -->
-      <div class="flex-1 flex flex-col min-h-0 gap-5" id="block-live">
-        <div class="flex-1 flex flex-col min-h-0 gap-3">
-          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase shrink-0 section-title" data-i18n="liveConsoleTitle">实时通话控制台</h2>
-
-          <div class="flex-1 flex flex-col min-h-0 gap-3">
+      <div class="flex-1 flex flex-col min-h-0 gap-3" id="block-live">
+        <div class="flex-1 flex flex-col min-h-0 gap-2">
+          <div class="flex-1 flex flex-col min-h-0 gap-2">
             <!-- 输入音轨 -->
-            <div class="flex-1 flex flex-col min-h-[140px] bg-white rounded-lg p-5 border-0 gap-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+            <div class="flex-1 flex flex-col min-h-[140px] pb-3 border-b border-gray-200 gap-2">
               <div class="flex justify-between items-center shrink-0 border-b border-gray-100 pb-2">
                 <span id="input-track-label" class="text-xs font-extrabold tracking-wider text-gray-700 font-mono">INPUT / MIC</span>
-                <div class="flex items-center gap-2 bg-gray-50 border border-gray-200/70 px-3 py-1 rounded-md">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse motion-reduce:animate-none"></span>
-                  <span class="text-[11px] text-gray-500 font-mono font-bold">PEAK:</span>
-                  <span id="input-db-text" class="text-xs text-gray-900 font-mono tabular-nums font-extrabold">-inf dB</span>
+                <div class="flex items-center gap-2 font-mono text-[10px] text-gray-500" role="group" aria-label="波形坐标轴步进">
+                  <span class="hidden sm:inline font-bold tracking-wider text-gray-400">网格步进</span>
+                  <div class="inline-flex items-center gap-1 border-b border-gray-300 focus-within:border-gray-900">
+                    <span class="font-bold text-gray-700">X</span>
+                    <input type="number" id="waveform-x-step" class="axis-step-input w-9 bg-transparent text-right font-bold text-gray-900 focus:outline-none" min="0.25" max="2" step="0.25" value="0.5" aria-label="X 轴步进，单位秒">
+                    <span>s</span>
+                    <button type="button" id="btn-waveform-x-decrease" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="减小 X 轴步进" title="减小 X 轴步进">
+                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+                    </button>
+                    <button type="button" id="btn-waveform-x-increase" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="增大 X 轴步进" title="增大 X 轴步进">
+                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+                    </button>
+                  </div>
+                  <div class="inline-flex items-center gap-1 border-b border-gray-300 focus-within:border-gray-900">
+                    <span class="font-bold text-gray-700">Y</span>
+                    <input type="number" id="waveform-y-step" class="axis-step-input w-9 bg-transparent text-right font-bold text-gray-900 focus:outline-none" min="0.25" max="1" step="0.25" value="0.5" aria-label="Y 轴步进">
+                    <button type="button" id="btn-waveform-y-decrease" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="减小 Y 轴步进" title="减小 Y 轴步进">
+                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+                    </button>
+                    <button type="button" id="btn-waveform-y-increase" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="增大 Y 轴步进" title="增大 Y 轴步进">
+                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-              <canvas id="canvas-input" class="w-full flex-1 min-h-[90px] bg-white rounded-xs" role="img" aria-label="Microphone Real-time Waveform Monitor"></canvas>
+              <canvas id="canvas-input" class="w-full flex-1 min-h-[110px]" role="img" aria-label="麦克风实时波形，横轴为最近 2 秒时间，纵轴为标准化振幅负 1 到正 1"></canvas>
             </div>
 
             <!-- 输出音轨 -->
-            <div class="flex-1 flex flex-col min-h-[140px] bg-white rounded-lg p-5 border-0 gap-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+            <div class="flex-1 flex flex-col min-h-[140px] gap-2">
               <div class="flex justify-between items-center shrink-0 border-b border-gray-100 pb-2">
                 <span id="output-track-label" class="text-xs font-extrabold tracking-wider text-emerald-700 font-mono">OUTPUT / RVC</span>
-                <div class="flex items-center gap-2 bg-emerald-50/80 border border-emerald-200/70 px-3 py-1 rounded-md">
-                  <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse motion-reduce:animate-none"></span>
-                  <span class="text-[11px] text-emerald-700 font-mono font-bold">PEAK:</span>
-                  <span id="output-db-text" class="text-xs text-emerald-800 font-mono tabular-nums font-extrabold">-inf dB</span>
-                </div>
               </div>
-              <canvas id="canvas-output" class="w-full flex-1 min-h-[90px] bg-white rounded-xs" role="img" aria-label="RVC Output Real-time Waveform Monitor"></canvas>
+              <canvas id="canvas-output" class="w-full flex-1 min-h-[110px]" role="img" aria-label="模型输出实时波形，横轴为最近 2 秒时间，纵轴为标准化振幅负 1 到正 1"></canvas>
             </div>
           </div>
         </div>
 
-        <!-- RT 模式：音色选择 / 队列 -->
-        <div class="shrink-0 space-y-2.5" id="rt-speaker-section">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title" data-i18n="speakerTitle">声音角色选择</h2>
-            <button type="button" id="btn-quick-add-voice" class="hidden text-[11px] font-bold bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 flex items-center gap-1.5" title="上传参考音频并创建声线">
-              <svg class="w-3.5 h-3.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-              <span data-i18n="btnQuickAddVoice">上传声线素材</span>
-            </button>
-            <input type="file" id="quick-add-voice-input" name="voice-source" accept="audio/*" class="hidden" aria-label="Upload voice source audio">
-          </div>
-
-          <!-- RVC 队列预选框 -->
-          <div id="rvc-queue-box" class="hidden bg-white rounded-lg border border-gray-200 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-[11px] font-extrabold text-gray-900 uppercase tracking-wider" data-i18n="rvcQueueTitle">音色队列</span>
-              <span class="text-[10px] text-gray-500 font-mono" id="rvc-queue-count">0</span>
-            </div>
-            <div class="flex gap-2 mb-3">
-              <select id="rvc-queue-add-select" class="flex-1 min-w-0 text-xs text-gray-800 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="Add speaker to queue">
-                <option value="default">默认音色</option>
-                <option value="alice">爱丽丝 (Alice)</option>
-                <option value="bob">鲍勃 (Bob)</option>
-                <option value="charlie">Charlie</option>
-                <option value="diana">Diana</option>
-              </select>
-              <button type="button" id="btn-rvc-queue-add" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" data-i18n="btnAddToQueue">加入队列</button>
-            </div>
-            <ol id="rvc-queue-list" class="space-y-1.5 max-h-[140px] overflow-y-auto pr-1" aria-label="Speaker queue">
-              <!-- queue items rendered here -->
-            </ol>
-          </div>
-
-          <!-- 通用音色卡片（ZERO_SHOT / 默认） -->
-          <div class="flex gap-3 overflow-x-auto py-1 w-full pb-2" id="speaker-list-rt">
-            <button type="button" class="speaker-card bg-gray-900 text-white border border-gray-900 px-5 py-3.5 rounded-lg text-left min-w-[170px] h-[68px] flex flex-col justify-center cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs" data-speaker-id="default">
-              <span class="text-xs font-extrabold whitespace-nowrap truncate" data-i18n="spkDefault">默认音色</span>
-              <span class="text-[10px] opacity-75 mt-1 font-mono whitespace-nowrap truncate">RVC Model</span>
-            </button>
-            <button type="button" class="speaker-card bg-white text-gray-900 border border-gray-200/80 hover:border-gray-900 px-5 py-3.5 rounded-lg text-left min-w-[170px] h-[68px] flex flex-col justify-center cursor-pointer transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs" data-speaker-id="alice">
-              <span class="text-xs font-extrabold whitespace-nowrap truncate" data-i18n="spkAlice">爱丽丝 (Alice)</span>
-              <span class="text-[10px] text-gray-400 mt-1 font-mono whitespace-nowrap truncate">RVC Model</span>
-            </button>
-            <button type="button" class="speaker-card bg-white text-gray-900 border border-gray-200/80 hover:border-gray-900 px-5 py-3.5 rounded-lg text-left min-w-[170px] h-[68px] flex flex-col justify-center cursor-pointer transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs" data-speaker-id="bob">
-              <span class="text-xs font-extrabold whitespace-nowrap truncate" data-i18n="spkBob">鲍勃 (Bob)</span>
-              <span class="text-[10px] text-gray-400 mt-1 font-mono whitespace-nowrap truncate">Zero-Shot Profile</span>
-            </button>
-            <button type="button" class="speaker-card bg-white text-gray-900 border border-gray-200/80 hover:border-gray-900 px-5 py-3.5 rounded-lg text-left min-w-[170px] h-[68px] flex flex-col justify-center cursor-pointer transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs" data-speaker-id="charlie">
-              <span class="text-xs font-extrabold whitespace-nowrap truncate">Charlie</span>
-              <span class="text-[10px] text-gray-400 mt-1 font-mono whitespace-nowrap truncate">RVC Model</span>
-            </button>
-            <button type="button" class="speaker-card bg-white text-gray-900 border border-gray-200/80 hover:border-gray-900 px-5 py-3.5 rounded-lg text-left min-w-[170px] h-[68px] flex flex-col justify-center cursor-pointer transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs" data-speaker-id="diana">
-              <span class="text-xs font-extrabold whitespace-nowrap truncate">Diana</span>
-              <span class="text-[10px] text-gray-400 mt-1 font-mono whitespace-nowrap truncate">Zero-Shot Profile</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 最底端：操作按钮 -->
-        <div class="flex flex-wrap gap-3 md:gap-4 justify-start w-full pt-3 shrink-0 border-t border-gray-100">
-          <button type="button" id="btn-rt-mute" class="bg-gray-100/90 hover:bg-gray-200/80 text-gray-900 text-sm font-extrabold tracking-wide px-7 py-3.5 rounded-xl transition-colors duration-150 flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs whitespace-nowrap">
-            <svg class="w-6 h-6 text-emerald-500 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"></path>
-            </svg>
-            <span data-i18n="btnMute">静音麦克风</span>
-          </button>
-          <button type="button" id="btn-rt-bypass" class="bg-gray-100/90 hover:bg-gray-200/80 text-gray-900 text-sm font-extrabold tracking-wide px-7 py-3.5 rounded-xl transition-colors duration-150 flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs whitespace-nowrap">
-            <svg class="w-6 h-6 text-emerald-500 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 21l8.982-8.997M18 10l-1.813 1.904M14.5 3L13 8.5H18L14.5 13"></path>
-            </svg>
-            <span data-i18n="btnBypass">旁路直通</span>
-          </button>
-        </div>
       </div>
 
       <!-- FILE 模式：音频文件上传 -->
@@ -459,8 +450,8 @@
         <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase mb-3 section-title" data-i18n="uploadTitle">上传音频文件</h2>
         <label class="relative border border-dashed border-gray-300 bg-gray-50/50 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:border-gray-900 hover:bg-gray-100/40 transition-colors duration-150 focus-within:ring-2 focus-within:ring-gray-900" id="upload-zone">
           <input type="file" id="audio-file-input" name="audio-file" accept="audio/*" aria-label="Upload Audio File" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-gray-900">
-          <svg class="w-8 h-8 text-gray-400 mb-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"></path>
+          <svg class="w-8 h-8 text-gray-400 mb-3" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 16h2v2h10v-2h2v2.25A2.75 2.75 0 0 1 16.25 21h-8.5A2.75 2.75 0 0 1 5 18.25V16Zm7-13a1 1 0 0 1 1 1v8.59l2.29-2.3 1.42 1.42-4.42 4.42-4.42-4.42 1.42-1.42 2.29 2.3V4a1 1 0 0 1 1-1Z"/>
           </svg>
           <span class="block text-xs font-bold text-gray-900 mb-1" data-i18n="clickToUpload">点击或拖拽音频文件至此</span>
           <span class="block text-[11px] text-gray-400" data-i18n="uploadFormats">Format WAV, MP3, M4A, FLAC, max 100MB</span>
@@ -470,12 +461,6 @@
             <span id="file-name-text" class="font-mono text-gray-800 truncate min-w-0 flex-1">none.mp3</span>
           </span>
         </label>
-      </div>
-
-      <!-- FILE 模式：离线声音角色选择 -->
-      <div class="mb-6 hidden" id="block-speaker">
-        <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase mb-2 section-title" data-i18n="speakerTitle">Speaker Selection</h2>
-        <div id="file-speaker-content"></div>
       </div>
 
       <!-- FILE 模式：处理任务与进度 -->
@@ -498,9 +483,9 @@
 
           <div class="flex gap-3 pt-2">
             <button type="button" id="btn-process" class="bg-black hover:bg-gray-800 text-white text-xs font-bold tracking-wide px-6 py-3 rounded-sm disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 flex items-center gap-2" disabled data-i18n="btnProcess">
-              <svg id="btn-process-spinner" class="hidden motion-reduce:hidden animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg id="btn-process-spinner" class="hidden motion-reduce:hidden animate-spin h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path class="opacity-25" d="M12 2a10 10 0 1 0 10 10h-3a7 7 0 1 1-7-7V2Z"/>
+                <path class="opacity-75" d="M12 2v3a7 7 0 0 1 7 7h3A10 10 0 0 0 12 2Z"/>
               </svg>
               <span id="btn-process-text">开始转换</span>
             </button>
@@ -528,10 +513,30 @@
         </div>
       </div>
 
+      <!-- 主界面下方：终端式系统日志 -->
+      <div id="log-panel" class="console-log overflow-hidden flex flex-col bg-[#050806]">
+        <div class="flex items-center justify-between gap-2 px-3 py-2 bg-[#42D879] text-[#052E16] font-mono">
+          <h2 class="text-[11px] font-extrabold tracking-[0.16em] uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
+          <div class="flex items-center gap-1 min-w-0">
+            <select id="log-mode-filter" class="terminal-select min-w-0 text-[11px] border-0 px-1.5 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#052E16]" autocomplete="off" aria-label="Filter logs by mode">
+              <option value="all" data-i18n="logFilterAll">全部模式</option>
+              <option value="rt_rvc" translate="no">RT_RVC</option>
+              <option value="file_rvc" translate="no">FILE_RVC</option>
+              <option value="rt_zero_shot" translate="no">RT_ZERO_SHOT</option>
+              <option value="file_zero_shot" translate="no">FILE_ZERO_SHOT</option>
+            </select>
+            <button type="button" id="btn-clear-logs" class="text-[11px] font-extrabold text-[#052E16] hover:text-black px-1.5 py-1 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#052E16] shrink-0" data-i18n="btnClearLogs">清空</button>
+          </div>
+        </div>
+        <div id="log-entries" class="flex-1 overflow-y-auto p-3 space-y-2 text-[12px] leading-5 font-mono" role="log" aria-live="polite" aria-label="System logs">
+          <!-- log entries rendered here -->
+        </div>
+      </div>
+
     </section>
 
     <!-- 右栏：参数设置与硬件状态 -->
-    <section class="p-4 md:p-6 border-l border-gray-100 bg-white flex flex-col gap-8 overflow-y-auto md:h-full" aria-label="Mode Parameters">
+    <section class="p-4 md:p-6 border-l border-gray-100 bg-white flex flex-col gap-8 overflow-y-auto md:h-full" aria-label="Mode parameters and speaker selection">
 
       <!-- 参数设置（按模式切换） -->
       <div class="bg-[#FAFAFA] border border-gray-200 rounded-lg p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
@@ -548,9 +553,93 @@
         </div>
       </div>
 
+      <!-- 当前模式的单一音色选择，不保留队列 -->
+      <div id="speaker-selection-card" class="bg-[#FAFAFA] border border-gray-200 rounded-lg p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title" data-i18n="speakerTitle">声音角色选择</h2>
+          <span id="speaker-mode-label" class="text-[10px] font-mono font-bold text-gray-700 bg-white border border-gray-200 rounded-sm px-2 py-1" translate="no">RT_RVC</span>
+        </div>
+        <label for="speaker-select" class="block text-[10px] font-bold tracking-wide text-gray-500 mb-2">当前音色</label>
+        <select id="speaker-select" name="speaker-selection" class="w-full min-w-0 text-xs text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" autocomplete="off" aria-label="选择当前音色">
+          <option value="default">默认音色</option>
+          <option value="alice">爱丽丝 (Alice)</option>
+          <option value="bob">鲍勃 (Bob)</option>
+          <option value="charlie">Charlie</option>
+          <option value="diana">Diana</option>
+        </select>
+        <button type="button" id="btn-quick-add-voice" class="hidden w-full mt-3 text-[11px] font-bold bg-gray-900 hover:bg-gray-800 text-white px-3 py-2.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 flex items-center justify-center gap-2" title="上传参考音频并创建声线">
+          <svg class="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M5 17h14v2H5v-2Zm7-14a1 1 0 0 1 1 1v8.59l2.29-2.3 1.42 1.42-4.42 4.42-4.42-4.42 1.42-1.42 2.29 2.3V4a1 1 0 0 1 1-1Z"/></svg>
+          <span data-i18n="btnQuickAddVoice">上传参考音频</span>
+        </button>
+        <input type="file" id="quick-add-voice-input" name="voice-source" accept="audio/*" class="hidden" aria-label="Upload voice source audio">
+      </div>
+
+      <!-- 实时音频快捷控制固定在整个右栏底部 -->
+      <div id="realtime-audio-controls" class="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-200">
+        <button type="button" id="btn-rt-mute" class="relative bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap" aria-pressed="false">
+          <svg id="icon-rt-mute" class="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-emerald-600 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4Zm-6 9H4v1a8 8 0 0 0 7 7.94V22H8v2h8v-2h-3v-2.06A8 8 0 0 0 20 12v-1h-2v1a6 6 0 0 1-12 0v-1Z"/>
+          </svg>
+          <span class="w-full pl-8 text-left" data-i18n="btnMute">静音麦克风</span>
+        </button>
+        <button type="button" id="btn-rt-bypass" class="relative bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap" aria-pressed="false">
+          <svg id="icon-rt-bypass" class="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+            <path d="m13.6 2-8.2 10.5a1 1 0 0 0 .8 1.6h4.5l-.7 7.9a1 1 0 0 0 1.8.6L19 11.5a1 1 0 0 0-.8-1.6h-4.5L14.6 3a1 1 0 0 0-1-1Z"/>
+          </svg>
+          <span class="w-full pl-8 text-left" data-i18n="btnBypass">旁路直通</span>
+        </button>
+      </div>
+
     </section>
 
   </main>
+
+  <div id="voice-library-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="voice-library-title">
+    <div id="voice-library-backdrop" class="absolute inset-0 bg-gray-950/30"></div>
+    <section class="relative w-full max-w-3xl max-h-[calc(100vh-2rem)] bg-white border border-gray-200 rounded-lg shadow-xl flex flex-col overflow-hidden" tabindex="-1">
+      <header class="flex items-center justify-between gap-4 px-5 py-4 border-b border-gray-100">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h2 id="voice-library-title" class="text-sm font-extrabold text-gray-900">角色音色库</h2>
+            <span id="voice-library-scope" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-700">ROLE</span>
+          </div>
+          <span id="voice-library-selection-count" class="block mt-0.5 text-[11px] font-mono text-gray-500">角色音色 · 已选择 0 项</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-add-zero-shot-voice" class="hidden text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 flex items-center gap-1.5" title="导入参考音频">
+            <svg class="w-3.5 h-3.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+            <span>导入参考音频</span>
+          </button>
+          <button type="button" id="btn-close-voice-library" class="w-8 h-8 shrink-0 inline-flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-900 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="关闭音色管理库" title="关闭">
+            <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="grid grid-cols-2 gap-2 px-5 py-3 border-b border-gray-100 bg-gray-50/70" role="tablist" aria-label="音色库类别">
+        <button type="button" id="tab-voice-library-role" data-voice-library-tab="role" class="min-h-14 flex items-center gap-2.5 px-3 py-2 text-left border rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" role="tab" aria-selected="true">
+          <svg class="w-5 h-5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87m-3-12a4 4 0 0 1 0 7.75"/></svg>
+          <span class="min-w-0"><span class="block text-[11px] font-extrabold">角色音色</span><span class="block mt-0.5 text-[9px] font-mono opacity-70">PROFILE LIBRARY</span></span>
+        </button>
+        <button type="button" id="tab-voice-library-zero-shot" data-voice-library-tab="zero-shot" class="min-h-14 flex items-center gap-2.5 px-3 py-2 text-left border rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" role="tab" aria-selected="false">
+          <svg class="w-5 h-5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m12 3-1.9 5.1L5 10l5.1 1.9L12 17l1.9-5.1L19 10l-5.1-1.9Z"/><path d="m5 3 .8 2.2L8 6l-2.2.8L5 9l-.8-2.2L2 6l2.2-.8ZM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z"/></svg>
+          <span class="min-w-0"><span class="block text-[11px] font-extrabold">零样本声线</span><span class="block mt-0.5 text-[9px] font-mono opacity-70">REFERENCE VOICES</span></span>
+        </button>
+      </div>
+      <div class="flex items-center justify-between gap-4 px-5 py-2.5 border-b border-gray-100">
+        <label class="inline-flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+          <input type="checkbox" id="voice-library-select-all" class="w-4 h-4 accent-gray-900" aria-label="全选当前类别的可删除音色">
+          <span id="voice-library-select-all-label">全选</span>
+        </label>
+        <span class="text-[10px] font-mono font-bold text-gray-400" id="voice-library-count">角色 0 项</span>
+      </div>
+      <div id="voice-library-list" class="grid grid-cols-1 sm:grid-cols-2 p-4 gap-3 overflow-y-auto" role="group" aria-label="音色列表"></div>
+      <footer class="flex justify-end gap-2 px-5 py-4 border-t border-gray-100">
+        <button type="button" id="btn-cancel-voice-library" class="text-xs font-bold text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900">关闭</button>
+        <button type="button" id="btn-delete-voices" class="text-xs font-bold text-white bg-red-700 hover:bg-red-800 px-3 py-2 rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-700" disabled>删除选中</button>
+      </footer>
+      <input type="file" id="zero-shot-voice-input" name="zero-shot-voice-source" accept="audio/*" class="hidden" aria-label="导入零样本参考音频">
+    </section>
+  </div>
 
   <div id="confirm-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-copy">
     <div id="confirm-modal-backdrop" class="absolute inset-0 bg-gray-950/30"></div>
@@ -573,8 +662,6 @@
         rt_rvc: {
           label: 'RT_RVC',
           profile: 'RVC · RMVPE REALTIME',
-          defaultDescription: '实时 RVC 变声（独占物理音频流）',
-          runningDescription: '正在处理麦克风输入',
           outputLabel: 'OUTPUT / RVC',
           parameters: [
             { key: 'pitch', label: '音高偏移', min: -12, max: 12, step: 1, unit: 'st', value: 0 },
@@ -585,7 +672,6 @@
         file_rvc: {
           label: 'FILE_RVC',
           profile: 'RVC · RMVPE BATCH',
-          defaultDescription: '离线文件变声（排队文件转换）',
           outputLabel: 'OUTPUT / FILE RVC',
           parameters: [
             { key: 'pitch', label: '音高偏移', min: -12, max: 12, step: 1, unit: 'st', value: 0 },
@@ -596,8 +682,6 @@
         rt_zero_shot: {
           label: 'RT_ZERO_SHOT',
           profile: 'ZERO-SHOT · STREAM',
-          defaultDescription: '实时零样本变声（提示词合成）',
-          runningDescription: '正在根据参考声线合成',
           outputLabel: 'OUTPUT / ZERO-SHOT',
           parameters: [
             { key: 'similarity', label: '声线相似度', min: 0, max: 1, step: 0.05, unit: '', value: 0.8 },
@@ -608,7 +692,6 @@
         file_zero_shot: {
           label: 'FILE_ZERO_SHOT',
           profile: 'ZERO-SHOT · BATCH',
-          defaultDescription: '离线零样本变声（文件转换）',
           outputLabel: 'OUTPUT / FILE ZERO-SHOT',
           parameters: [
             { key: 'similarity', label: '声线相似度', min: 0, max: 1, step: 0.05, unit: '', value: 0.85 },
@@ -632,12 +715,19 @@
         systemStatus: 'stopped',
         selectedMode: 'rt_rvc',
         enabledModes: new Set(['rt_rvc']),
-        selectedSpeakers: { rt_zero_shot: 'default', file_zero_shot: 'default' },
-        rvcQueues: { rt_rvc: ['default', 'alice'], file_rvc: ['alice'] },
+        selectedSpeakers: {
+          rt_rvc: 'default',
+          file_rvc: 'alice',
+          rt_zero_shot: 'default',
+          file_zero_shot: 'default'
+        },
         selectedFile: null,
         activeTaskId: null,
         muted: false,
         bypassed: false,
+        waveformAxes: { xStep: 0.5, yStep: 0.5 },
+        voiceLibraryTab: 'role',
+        voiceLibrarySelection: new Set(),
         logFilter: 'all',
         logs: [],
         parameters: Object.fromEntries(
@@ -663,6 +753,7 @@
       let toastTimer;
       let confirmation = null;
       let previousFocusedElement = null;
+      let voiceLibraryPreviousFocusedElement = null;
 
       function createElement(tag, className, text) {
         const element = document.createElement(tag);
@@ -683,33 +774,33 @@
         return `${number.toFixed(precision).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}${definition.unit ? ` ${definition.unit}` : ''}`;
       }
 
-      function showToast(message) {
+      function showWarning(message) {
         const toast = get('toast-notification');
         get('toast-message').textContent = message;
-        toast.classList.remove('translate-y-[-150%]', 'opacity-0');
+        toast.classList.remove('-translate-y-1', 'opacity-0');
         toast.classList.add('translate-y-0', 'opacity-100');
         window.clearTimeout(toastTimer);
         toastTimer = window.setTimeout(() => {
           toast.classList.remove('translate-y-0', 'opacity-100');
-          toast.classList.add('translate-y-[-150%]', 'opacity-0');
+          toast.classList.add('-translate-y-1', 'opacity-0');
         }, 2600);
       }
 
-      function addLog(mode, message) {
-        state.logs.unshift({ id: `${Date.now()}-${state.logs.length}`, time: new Date(), mode, message });
+      function addLog(mode, message, level = 'info') {
+        state.logs.unshift({ id: `${Date.now()}-${state.logs.length}`, time: new Date(), mode, message, level });
         renderLogs();
+        if (level === 'warn') showWarning(message);
       }
 
-      function modeDescription(mode) {
-        const definition = MODE_DEFINITIONS[mode];
-        if (!state.enabledModes.has(mode) || state.systemStatus === 'stopped') return definition.defaultDescription;
-        if (state.systemStatus === 'paused') return '全局暂停中';
-        if (isRealtimeMode(mode)) return definition.runningDescription;
+      function modeStatus(mode) {
+        if (state.systemStatus !== 'running' || !state.enabledModes.has(mode)) return '';
+        if (isRealtimeMode(mode)) return '正在实时处理人声';
 
         const activeTask = state.fileQueue.find((task) => task.status === 'processing' && task.mode === mode);
         if (activeTask) return `正在处理 ${activeTask.name}`;
-        const queuedTasks = state.fileQueue.filter((task) => task.status === 'queued' && task.mode === mode).length;
-        return queuedTasks ? `等待队列任务（${queuedTasks} 项）` : '等待文件任务';
+
+        const queuedTask = state.fileQueue.find((task) => task.status === 'queued' && task.mode === mode);
+        return queuedTask ? `等待处理 ${queuedTask.name}` : '等待音频任务';
       }
 
       function setVisible(element, visible) {
@@ -724,117 +815,91 @@
           row.classList.toggle('is-selected', state.selectedMode === mode);
           selectButton.setAttribute('aria-pressed', String(state.selectedMode === mode));
           toggle.checked = state.enabledModes.has(mode);
-          row.querySelector('.mode-desc').textContent = modeDescription(mode);
+          const description = modeStatus(mode);
+          const descriptionElement = row.querySelector('.mode-desc');
+          descriptionElement.textContent = description;
+          setVisible(descriptionElement, Boolean(description));
         });
       }
 
-      function createSpeakerCard(speaker, mode) {
-        const selected = state.selectedSpeakers[mode] === speaker.id;
-        const button = createElement(
-          'button',
-          selected
-            ? 'speaker-card bg-gray-900 text-white border border-gray-900 px-5 py-3.5 rounded-lg text-left min-w-[170px] h-[68px] flex flex-col justify-center cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs'
-            : 'speaker-card bg-white text-gray-900 border border-gray-200/80 hover:border-gray-900 px-5 py-3.5 rounded-lg text-left min-w-[170px] h-[68px] flex flex-col justify-center cursor-pointer transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shadow-xs'
-        );
-        button.type = 'button';
-        button.dataset.speakerId = speaker.id;
-        button.dataset.speakerMode = mode;
-        button.setAttribute('aria-pressed', String(selected));
-        button.append(
-          createElement('span', 'text-xs font-extrabold whitespace-nowrap truncate', speaker.name),
-          createElement('span', selected ? 'text-[10px] opacity-75 mt-1 font-mono whitespace-nowrap truncate' : 'text-[10px] text-gray-400 mt-1 font-mono whitespace-nowrap truncate', speaker.type)
-        );
-        return button;
-      }
-
-      function renderZeroShotSpeakers(container, mode) {
-        container.replaceChildren(...SPEAKERS.map((speaker) => createSpeakerCard(speaker, mode)));
-      }
-
-      function createRvcQueueItem(speakerId, index, mode) {
-        const speaker = speakerById(speakerId);
-        const item = createElement('li', 'flex items-center gap-2 border border-gray-100 bg-gray-50/70 px-2.5 py-2 rounded-md');
-        const indexText = createElement('span', 'font-mono text-[10px] font-bold text-gray-400 tabular-nums w-4 shrink-0', String(index + 1).padStart(2, '0'));
-        const details = createElement('div', 'min-w-0 flex-1');
-        details.append(
-          createElement('div', 'text-xs font-bold text-gray-800 truncate', speaker ? speaker.name : speakerId),
-          createElement('div', 'text-[9px] font-mono text-gray-400 mt-0.5', index === 0 ? 'ACTIVE PRESET' : 'NEXT PRESET')
-        );
-        const remove = createElement('button', 'text-[10px] font-bold text-gray-500 hover:text-red-700 px-1.5 py-1 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900', '移除');
-        remove.type = 'button';
-        remove.dataset.rvcRemove = speakerId;
-        remove.dataset.rvcMode = mode;
-        remove.setAttribute('aria-label', `从 ${modeLabel(mode)} 音色队列移除 ${speaker ? speaker.name : speakerId}`);
-        item.append(indexText, details, remove);
-        return item;
-      }
-
-      function renderRvcQueueList(container, mode) {
-        const items = state.rvcQueues[mode];
-        if (!items.length) {
-          container.replaceChildren(createElement('div', 'py-3 text-center text-xs text-gray-400', '尚未预选音色'));
-          return;
-        }
-        container.replaceChildren(...items.map((speakerId, index) => createRvcQueueItem(speakerId, index, mode)));
-      }
-
-      function renderLiveSpeakerArea() {
-        const rvcMode = state.selectedMode === 'rt_rvc';
-        const zeroShotMode = state.selectedMode === 'rt_zero_shot';
-        setVisible(get('rvc-queue-box'), rvcMode);
-        setVisible(get('speaker-list-rt'), zeroShotMode);
-        setVisible(get('btn-quick-add-voice'), zeroShotMode);
-        if (rvcMode) {
-          get('rvc-queue-count').textContent = `${state.rvcQueues.rt_rvc.length} 项`;
-          renderRvcQueueList(get('rvc-queue-list'), 'rt_rvc');
-        }
-        if (zeroShotMode) renderZeroShotSpeakers(get('speaker-list-rt'), 'rt_zero_shot');
-      }
-
-      function createRvcQueueControls(mode) {
-        const controls = createElement('div', 'flex gap-2 mb-3');
-        const select = createElement('select', 'flex-1 min-w-0 text-xs text-gray-800 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900');
-        select.name = `${mode}-queue-speaker`;
-        select.setAttribute('aria-label', '选择要加入预选队列的音色');
-        SPEAKERS.forEach((speaker) => {
+      function renderSpeakerSelection() {
+        const mode = state.selectedMode;
+        const select = get('speaker-select');
+        const selectedSpeaker = state.selectedSpeakers[mode] || 'default';
+        select.replaceChildren(...SPEAKERS.map((speaker) => {
           const option = createElement('option', '', speaker.name);
           option.value = speaker.id;
-          select.append(option);
-        });
-        const add = createElement('button', 'bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900', '加入队列');
-        add.type = 'button';
-        add.dataset.rvcAdd = mode;
-        controls.append(select, add);
-        return controls;
+          return option;
+        }));
+        select.value = selectedSpeaker;
+        get('speaker-mode-label').textContent = modeLabel(mode);
+        setVisible(get('btn-quick-add-voice'), mode === 'rt_zero_shot' || mode === 'file_zero_shot');
       }
 
-      function renderFileSpeakerArea() {
-        const container = get('file-speaker-content');
-        const mode = state.selectedMode;
-        if (mode === 'file_rvc') {
-          const panel = createElement('div', 'bg-white rounded-lg border border-gray-200 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]');
-          const heading = createElement('div', 'flex items-center justify-between mb-3');
-          heading.append(
-            createElement('span', 'text-[11px] font-extrabold text-gray-900 uppercase tracking-wider', '音色预选队列'),
-            createElement('span', 'text-[10px] text-gray-500 font-mono', `${state.rvcQueues.file_rvc.length} 项`)
-          );
-          const list = createElement('ol', 'space-y-1.5 max-h-[140px] overflow-y-auto pr-1');
-          list.setAttribute('aria-label', 'FILE_RVC speaker queue');
-          renderRvcQueueList(list, 'file_rvc');
-          panel.append(heading, createRvcQueueControls('file_rvc'), list);
-          container.replaceChildren(panel);
+      function renderVoiceLibrary() {
+        const deletableSpeakers = SPEAKERS.filter((speaker) => speaker.id !== 'default');
+        const validSpeakerIds = new Set(deletableSpeakers.map((speaker) => speaker.id));
+        state.voiceLibrarySelection.forEach((speakerId) => {
+          if (!validSpeakerIds.has(speakerId)) state.voiceLibrarySelection.delete(speakerId);
+        });
+
+        const selectedCount = state.voiceLibrarySelection.size;
+        const tabSpeakers = SPEAKERS.filter((speaker) => state.voiceLibraryTab === 'zero-shot'
+          ? speaker.category === 'zero-shot'
+          : speaker.category !== 'zero-shot');
+        const tabDeletableSpeakers = tabSpeakers.filter((speaker) => speaker.id !== 'default');
+        const isZeroShotTab = state.voiceLibraryTab === 'zero-shot';
+        const tabLabel = isZeroShotTab ? '零样本声线' : '角色音色';
+        const selectAll = get('voice-library-select-all');
+        get('voice-library-total').textContent = String(deletableSpeakers.length);
+        get('voice-library-title').textContent = `${tabLabel}库`;
+        get('voice-library-scope').textContent = isZeroShotTab ? 'ZERO-SHOT' : 'ROLE';
+        get('voice-library-scope').className = `text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm ${isZeroShotTab ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`;
+        get('voice-library-count').textContent = `${tabLabel} ${tabSpeakers.length} 项`;
+        get('voice-library-selection-count').textContent = `${tabLabel} · 已选择 ${selectedCount} 项`;
+        get('voice-library-select-all-label').textContent = '全选';
+        selectAll.setAttribute('aria-label', '全选当前类别中的可删除项');
+        get('btn-delete-voices').disabled = selectedCount === 0;
+        get('btn-delete-voices').textContent = selectedCount ? `删除选中 (${selectedCount})` : '删除选中';
+        selectAll.checked = tabDeletableSpeakers.length > 0 && tabDeletableSpeakers.every((speaker) => state.voiceLibrarySelection.has(speaker.id));
+        selectAll.indeterminate = tabDeletableSpeakers.some((speaker) => state.voiceLibrarySelection.has(speaker.id)) && !selectAll.checked;
+        setVisible(get('btn-add-zero-shot-voice'), state.voiceLibraryTab === 'zero-shot');
+        document.querySelectorAll('[data-voice-library-tab]').forEach((tab) => {
+          const isActive = tab.dataset.voiceLibraryTab === state.voiceLibraryTab;
+          tab.setAttribute('aria-selected', String(isActive));
+          const activeClass = tab.dataset.voiceLibraryTab === 'zero-shot'
+            ? 'border-amber-500 bg-amber-500 text-white'
+            : 'border-emerald-600 bg-emerald-600 text-white';
+          const inactiveClass = 'border-gray-200 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50';
+          tab.className = `min-h-14 flex items-center gap-2.5 px-3 py-2 text-left border rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${isActive ? activeClass : inactiveClass}`;
+        });
+
+        if (!tabSpeakers.length) {
+          get('voice-library-list').replaceChildren(createElement('div', 'col-span-full py-10 text-center text-xs text-amber-700', '尚未导入零样本声线'));
           return;
         }
 
-        const header = createElement('div', 'flex items-center justify-between mb-2');
-        const button = createElement('button', 'text-[11px] font-bold bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 flex items-center gap-1.5', '上传声线素材');
-        button.type = 'button';
-        button.dataset.quickVoice = 'true';
-        button.title = '上传参考音频并创建声线';
-        header.append(createElement('span', 'text-[11px] font-bold text-gray-500', '参考声线'), button);
-        const speakerList = createElement('div', 'flex flex-wrap gap-3');
-        renderZeroShotSpeakers(speakerList, 'file_zero_shot');
-        container.replaceChildren(header, speakerList);
+        const rows = tabSpeakers.map((speaker) => {
+          const isDefault = speaker.id === 'default';
+          const row = createElement('label', `flex items-center gap-3 p-3 border rounded-md ${isDefault ? 'border-gray-100 bg-gray-50/70 cursor-default' : 'border-gray-200 bg-white hover:border-gray-400 cursor-pointer'}`);
+          const checkbox = createElement('input', 'w-4 h-4 shrink-0 accent-gray-900');
+          checkbox.type = 'checkbox';
+          checkbox.value = speaker.id;
+          checkbox.dataset.voiceLibrarySpeaker = speaker.id;
+          checkbox.checked = state.voiceLibrarySelection.has(speaker.id);
+          checkbox.disabled = isDefault;
+          checkbox.setAttribute('aria-label', `选择音色 ${speaker.name}`);
+
+          const details = createElement('div', 'min-w-0 flex-1');
+          details.append(
+            createElement('div', 'text-xs font-bold text-gray-900 truncate', speaker.name),
+            createElement('div', 'mt-0.5 text-[10px] font-mono text-gray-500 truncate', speaker.type)
+          );
+          row.append(checkbox, details);
+          if (isDefault) row.append(createElement('span', 'shrink-0 text-[9px] font-mono font-bold text-gray-400', 'DEFAULT'));
+          return row;
+        });
+        get('voice-library-list').replaceChildren(...rows);
       }
 
       function renderFileQueue() {
@@ -932,32 +997,38 @@
           ? state.logs
           : state.logs.filter((log) => log.mode === state.logFilter);
         if (!filteredLogs.length) {
-          entries.replaceChildren(createElement('div', 'py-5 text-center text-xs text-gray-400', '当前筛选没有日志'));
+          entries.replaceChildren(createElement('div', 'py-5 text-center text-[12px] text-gray-500', '> 当前筛选没有日志'));
           return;
         }
         entries.replaceChildren(...filteredLogs.map((log) => {
-          const entry = createElement('div', 'flex items-start gap-2 min-w-0');
-          const time = createElement('span', 'text-gray-400 shrink-0 tabular-nums', formatTime(log.time));
+          const entry = createElement('div', 'flex items-start gap-2 min-w-0 leading-4');
+          const prompt = createElement('span', 'text-emerald-400 shrink-0 font-bold', '>');
+          const time = createElement('span', 'text-gray-500 shrink-0 tabular-nums', formatTime(log.time));
           const tag = createElement('span', `log-tag log-tag--${log.mode}`, log.mode === 'system' ? 'SYSTEM' : modeLabel(log.mode));
-          const message = createElement('span', 'text-gray-700 leading-4 break-words min-w-0', log.message);
-          entry.append(time, tag, message);
+          const message = createElement('span', 'text-gray-300 break-words min-w-0', log.message);
+          entry.append(prompt, time, tag, message);
           return entry;
         }));
       }
 
       function renderGlobalControls() {
-        const running = state.systemStatus === 'running';
-        const paused = state.systemStatus === 'paused';
-        const run = get('btn-global-run');
-        const pause = get('btn-global-pause');
-        run.setAttribute('aria-pressed', String(running));
-        pause.setAttribute('aria-pressed', String(paused));
-        run.classList.toggle('bg-emerald-700', running);
-        run.classList.toggle('hover:bg-emerald-800', running);
-        run.classList.toggle('bg-gray-900', !running);
-        run.classList.toggle('hover:bg-gray-800', !running);
-        pause.classList.toggle('bg-amber-50', paused);
-        pause.classList.toggle('border-amber-200', paused);
+        const statusDefinitions = {
+          running: { label: '运行中', color: 'text-emerald-600' },
+          paused: { label: '已暂停', color: 'text-gray-500' },
+          stopped: { label: '已停止', color: 'text-red-600' }
+        };
+        const currentStatus = statusDefinitions[state.systemStatus];
+        const statusText = get('system-status-text');
+        statusText.textContent = currentStatus.label;
+        statusText.classList.remove('text-emerald-600', 'text-gray-500', 'text-red-600');
+        statusText.classList.add(currentStatus.color);
+        Object.keys(statusDefinitions).forEach((status) => {
+          get(`status-icon-${status}`).classList.toggle('hidden', state.systemStatus !== status);
+          const button = document.querySelector(`.transport-button[data-state="${status}"]`);
+          const active = state.systemStatus === status;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
       }
 
       function renderPanels() {
@@ -966,29 +1037,36 @@
         const realtimeMode = isRealtimeMode(mode);
         setVisible(get('block-live'), realtimeMode);
         setVisible(get('block-upload'), fileMode);
-        setVisible(get('block-speaker'), fileMode);
         setVisible(get('block-processing'), fileMode);
         setVisible(get('block-file-queue'), fileMode);
-        get('active-mode-badge').textContent = modeLabel(mode);
+        setVisible(get('realtime-audio-controls'), realtimeMode);
         get('output-track-label').textContent = MODE_DEFINITIONS[mode].outputLabel;
-        if (realtimeMode) renderLiveSpeakerArea();
-        if (fileMode) renderFileSpeakerArea();
+        renderSpeakerSelection();
       }
 
       function renderMuteButtons() {
         const mute = get('btn-rt-mute');
         const bypass = get('btn-rt-bypass');
+        const muteIcon = get('icon-rt-mute');
+        const bypassIcon = get('icon-rt-bypass');
         mute.setAttribute('aria-pressed', String(state.muted));
         bypass.setAttribute('aria-pressed', String(state.bypassed));
         mute.querySelector('span').textContent = state.muted ? '麦克风已静音' : '静音麦克风';
         bypass.querySelector('span').textContent = state.bypassed ? '已启用旁路' : '旁路直通';
         mute.classList.toggle('bg-red-50', state.muted);
+        mute.classList.toggle('text-red-700', state.muted);
         bypass.classList.toggle('bg-amber-50', state.bypassed);
+        bypass.classList.toggle('text-amber-800', state.bypassed);
+        muteIcon.classList.toggle('text-red-600', state.muted);
+        muteIcon.classList.toggle('text-emerald-600', !state.muted);
+        bypassIcon.classList.toggle('text-amber-600', state.bypassed);
+        bypassIcon.classList.toggle('text-gray-400', !state.bypassed);
       }
 
       function renderAll() {
         renderModeRows();
         renderPanels();
+        renderVoiceLibrary();
         renderSelectedFile();
         renderProcessingPanel();
         renderFileQueue();
@@ -1009,8 +1087,7 @@
           const previousRealtime = [...state.enabledModes].find((activeMode) => activeMode !== mode && isRealtimeMode(activeMode));
           if (previousRealtime) {
             state.enabledModes.delete(previousRealtime);
-            addLog(previousRealtime, `${modeLabel(previousRealtime)} 已因实时通道互斥而停止`);
-            showToast(`已关闭 ${modeLabel(previousRealtime)}，实时模式只能启用一个`);
+            addLog(previousRealtime, `已关闭 ${modeLabel(previousRealtime)}，实时模式只能启用一个`, 'warn');
           }
         }
         if (enabled) {
@@ -1035,11 +1112,11 @@
       function queueSelectedFile() {
         if (!state.selectedFile || !isFileMode(state.selectedMode)) return;
         if (state.systemStatus !== 'running') {
-          showToast('请先启动全局运行状态');
+          addLog('system', '请先启动全局运行状态', 'warn');
           return;
         }
         if (!state.enabledModes.has(state.selectedMode)) {
-          showToast(`请先启用 ${modeLabel(state.selectedMode)}`);
+          addLog('system', `请先启用 ${modeLabel(state.selectedMode)}`, 'warn');
           return;
         }
         const task = {
@@ -1053,7 +1130,6 @@
         state.selectedFile = null;
         get('audio-file-input').value = '';
         addLog(task.mode, `已加入共享文件队列：${task.name}`);
-        showToast('文件已加入共享处理队列');
         startNextTask();
         renderAll();
       }
@@ -1076,37 +1152,88 @@
         renderAll();
       }
 
-      function addRvcSpeaker(mode, speakerId) {
-        const queue = state.rvcQueues[mode];
-        const speaker = speakerById(speakerId);
-        if (queue.includes(speakerId)) {
-          showToast(`${speaker ? speaker.name : speakerId} 已在预选队列中`);
-          return;
-        }
-        queue.push(speakerId);
-        addLog(mode, `已预选音色：${speaker ? speaker.name : speakerId}`);
-        renderAll();
-      }
-
-      function removeRvcSpeaker(mode, speakerId) {
-        state.rvcQueues[mode] = state.rvcQueues[mode].filter((id) => id !== speakerId);
-        const speaker = speakerById(speakerId);
-        addLog(mode, `已移除预选音色：${speaker ? speaker.name : speakerId}`);
-        renderAll();
-      }
-
       function createVoiceFromSource(file) {
         if (!file) return;
         const name = file.name.replace(/\.[^/.]+$/, '') || '新建声线';
-        const speaker = { id: `voice-${Date.now()}-${voiceSequence++}`, name, type: 'Draft Voice Profile' };
+        const isZeroShotVoice = state.selectedMode === 'rt_zero_shot' || state.selectedMode === 'file_zero_shot';
+        const speaker = {
+          id: `voice-${Date.now()}-${voiceSequence++}`,
+          name,
+          type: isZeroShotVoice ? 'Zero-Shot Profile' : 'Draft Voice Profile',
+          category: isZeroShotVoice ? 'zero-shot' : 'role'
+        };
         SPEAKERS.push(speaker);
-        if (state.selectedMode === 'rt_zero_shot' || state.selectedMode === 'file_zero_shot') {
+        if (isZeroShotVoice) {
           state.selectedSpeakers[state.selectedMode] = speaker.id;
         }
         addLog(state.selectedMode, `已导入声线素材：${speaker.name}`);
-        showToast('声线素材已加入当前 Demo');
         renderAll();
         get('quick-add-voice-input').value = '';
+      }
+
+      function addZeroShotVoice(file) {
+        if (!file) return;
+        const name = file.name.replace(/\.[^/.]+$/, '') || '新建零样本声线';
+        const speaker = {
+          id: `voice-${Date.now()}-${voiceSequence++}`,
+          name,
+          type: 'Zero-Shot Profile',
+          category: 'zero-shot'
+        };
+        SPEAKERS.push(speaker);
+        addLog('system', `已导入零样本声线素材：${speaker.name}`);
+        renderAll();
+        get('zero-shot-voice-input').value = '';
+      }
+
+      function openVoiceLibrary() {
+        voiceLibraryPreviousFocusedElement = document.activeElement;
+        renderVoiceLibrary();
+        const modal = get('voice-library-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.querySelector('header').inert = true;
+        get('main-content').inert = true;
+        window.setTimeout(() => get('btn-close-voice-library').focus(), 0);
+      }
+
+      function closeVoiceLibrary() {
+        const modal = get('voice-library-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        state.voiceLibrarySelection.clear();
+        document.querySelector('header').inert = false;
+        get('main-content').inert = false;
+        voiceLibraryPreviousFocusedElement?.focus();
+      }
+
+      function deleteSelectedVoices() {
+        const selectedSpeakerIds = state.voiceLibrarySelection;
+        if (!selectedSpeakerIds.size) return;
+        const deletedSpeakers = SPEAKERS.filter((speaker) => selectedSpeakerIds.has(speaker.id));
+        for (let index = SPEAKERS.length - 1; index >= 0; index -= 1) {
+          if (selectedSpeakerIds.has(SPEAKERS[index].id)) SPEAKERS.splice(index, 1);
+        }
+        Object.keys(state.selectedSpeakers).forEach((mode) => {
+          if (selectedSpeakerIds.has(state.selectedSpeakers[mode])) state.selectedSpeakers[mode] = 'default';
+        });
+        state.voiceLibrarySelection.clear();
+        addLog('system', `已从音色库删除 ${deletedSpeakers.length} 个音色`);
+        renderAll();
+      }
+
+      function trapFocus(modal, event) {
+        if (event.key !== 'Tab') return;
+        const focusable = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled])')];
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
 
       function openConfirmation({ title, copy, actionLabel, onConfirm }) {
@@ -1140,7 +1267,6 @@
         state.systemStatus = 'stopped';
         state.enabledModes.clear();
         addLog('system', '系统已关闭，所有模式已停用');
-        showToast('系统已关闭');
         renderAll();
       }
 
@@ -1152,24 +1278,75 @@
         Object.keys(MODE_DEFINITIONS).forEach((mode) => {
           get(`toggle-${mode}`).addEventListener('change', (event) => toggleMode(mode, event.target.checked));
         });
+        [
+          { id: 'waveform-x-step', axis: 'xStep', decreaseId: 'btn-waveform-x-decrease', increaseId: 'btn-waveform-x-increase' },
+          { id: 'waveform-y-step', axis: 'yStep', decreaseId: 'btn-waveform-y-decrease', increaseId: 'btn-waveform-y-increase' }
+        ].forEach(({ id, axis, decreaseId, increaseId }) => {
+          get(id).addEventListener('input', (event) => {
+            const input = event.target;
+            const value = Number(input.value);
+            if (!input.validity.valid || !Number.isFinite(value)) return;
+            state.waveformAxes[axis] = value;
+            window.dispatchEvent(new Event('waveform-axes-change'));
+          });
+          get(decreaseId).addEventListener('click', () => {
+            const input = get(id);
+            input.stepDown();
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          get(increaseId).addEventListener('click', () => {
+            const input = get(id);
+            input.stepUp();
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+        });
+
+        get('btn-voice-library').addEventListener('click', openVoiceLibrary);
+        get('btn-close-voice-library').addEventListener('click', closeVoiceLibrary);
+        get('btn-cancel-voice-library').addEventListener('click', closeVoiceLibrary);
+        get('voice-library-backdrop').addEventListener('click', closeVoiceLibrary);
+        document.querySelectorAll('[data-voice-library-tab]').forEach((tab) => {
+          tab.addEventListener('click', () => {
+            state.voiceLibraryTab = tab.dataset.voiceLibraryTab;
+            renderVoiceLibrary();
+          });
+        });
+        get('btn-add-zero-shot-voice').addEventListener('click', () => get('zero-shot-voice-input').click());
+        get('zero-shot-voice-input').addEventListener('change', (event) => addZeroShotVoice(event.target.files[0]));
+        get('voice-library-select-all').addEventListener('change', (event) => {
+          const tabSpeakers = SPEAKERS.filter((speaker) => state.voiceLibraryTab === 'zero-shot'
+            ? speaker.category === 'zero-shot'
+            : speaker.category !== 'zero-shot');
+          tabSpeakers.filter((speaker) => speaker.id !== 'default').forEach((speaker) => {
+            if (event.target.checked) state.voiceLibrarySelection.add(speaker.id);
+            else state.voiceLibrarySelection.delete(speaker.id);
+          });
+          renderVoiceLibrary();
+        });
+        get('voice-library-list').addEventListener('change', (event) => {
+          const checkbox = event.target.closest('[data-voice-library-speaker]');
+          if (!checkbox) return;
+          if (checkbox.checked) state.voiceLibrarySelection.add(checkbox.dataset.voiceLibrarySpeaker);
+          else state.voiceLibrarySelection.delete(checkbox.dataset.voiceLibrarySpeaker);
+          renderVoiceLibrary();
+        });
+        get('btn-delete-voices').addEventListener('click', deleteSelectedVoices);
 
         get('btn-global-run').addEventListener('click', () => {
           if (state.systemStatus === 'running') return;
           state.systemStatus = 'running';
           addLog('system', '全局运行已启动');
-          showToast('全局运行已启动');
           startNextTask();
           renderAll();
         });
 
         get('btn-global-pause').addEventListener('click', () => {
           if (state.systemStatus !== 'running') {
-            showToast('全局运行状态启动后才能暂停');
+            addLog('system', '全局运行状态启动后才能暂停', 'warn');
             return;
           }
           state.systemStatus = 'paused';
           addLog('system', '全局处理已暂停');
-          showToast('全局处理已暂停');
           renderAll();
         });
 
@@ -1191,59 +1368,31 @@
         });
 
         document.addEventListener('keydown', (event) => {
-          if (get('confirm-modal').classList.contains('hidden')) return;
+          const confirmationModal = get('confirm-modal');
+          if (!confirmationModal.classList.contains('hidden')) {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              closeConfirmation();
+            }
+            trapFocus(confirmationModal, event);
+            return;
+          }
+          const voiceLibraryModal = get('voice-library-modal');
+          if (voiceLibraryModal.classList.contains('hidden')) return;
           if (event.key === 'Escape') {
             event.preventDefault();
-            closeConfirmation();
-          }
-          if (event.key === 'Tab') {
-            const focusable = [...get('confirm-modal').querySelectorAll('button:not([disabled])')];
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-              event.preventDefault();
-              last.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-              event.preventDefault();
-              first.focus();
-            }
-          }
-        });
-
-        get('btn-rvc-queue-add').addEventListener('click', () => addRvcSpeaker('rt_rvc', get('rvc-queue-add-select').value));
-        get('rvc-queue-list').addEventListener('click', (event) => {
-          const button = event.target.closest('[data-rvc-remove]');
-          if (button) removeRvcSpeaker(button.dataset.rvcMode, button.dataset.rvcRemove);
-        });
-
-        get('speaker-list-rt').addEventListener('click', (event) => {
-          const button = event.target.closest('[data-speaker-id]');
-          if (!button) return;
-          state.selectedSpeakers[button.dataset.speakerMode] = button.dataset.speakerId;
-          addLog(button.dataset.speakerMode, `已选择声线：${speakerById(button.dataset.speakerId).name}`);
-          renderAll();
-        });
-
-        get('file-speaker-content').addEventListener('click', (event) => {
-          const rvcAdd = event.target.closest('[data-rvc-add]');
-          if (rvcAdd) {
-            const select = rvcAdd.previousElementSibling;
-            addRvcSpeaker(rvcAdd.dataset.rvcAdd, select.value);
+            closeVoiceLibrary();
             return;
           }
-          const rvcRemove = event.target.closest('[data-rvc-remove]');
-          if (rvcRemove) {
-            removeRvcSpeaker(rvcRemove.dataset.rvcMode, rvcRemove.dataset.rvcRemove);
-            return;
-          }
-          const speaker = event.target.closest('[data-speaker-id]');
-          if (speaker) {
-            state.selectedSpeakers[speaker.dataset.speakerMode] = speaker.dataset.speakerId;
-            addLog(speaker.dataset.speakerMode, `已选择声线：${speakerById(speaker.dataset.speakerId).name}`);
-            renderAll();
-            return;
-          }
-          if (event.target.closest('[data-quick-voice]')) get('quick-add-voice-input').click();
+          trapFocus(voiceLibraryModal, event);
+        });
+
+        get('speaker-select').addEventListener('change', (event) => {
+          const speakerId = event.target.value;
+          const speaker = speakerById(speakerId);
+          state.selectedSpeakers[state.selectedMode] = speakerId;
+          addLog(state.selectedMode, `已选择音色：${speaker ? speaker.name : speakerId}`);
+          renderSpeakerSelection();
         });
 
         get('btn-quick-add-voice').addEventListener('click', () => get('quick-add-voice-input').click());
@@ -1292,7 +1441,6 @@
         get('btn-clear-logs').addEventListener('click', () => {
           state.logs = [];
           renderLogs();
-          showToast('日志已清空');
         });
 
         get('btn-rt-mute').addEventListener('click', () => {
@@ -1318,7 +1466,6 @@
             task.status = 'completed';
             state.activeTaskId = null;
             addLog(task.mode, `处理完成：${task.name}`);
-            showToast(`${task.name} 已完成转换`);
           }
           renderModeRows();
           renderProcessingPanel();
@@ -1343,40 +1490,97 @@
         tracks.forEach((track) => observer.observe(track.canvas));
         tracks.forEach(resize);
 
+        const axisTicks = (minimum, maximum, step) => {
+          const count = Math.round((maximum - minimum) / step);
+          return Array.from({ length: count + 1 }, (_, index) => Number((minimum + step * index).toFixed(2)));
+        };
+
+        const formatAxisValue = (value) => Number(value.toFixed(2)).toString();
+
+        const drawAxes = (context, width, height) => {
+          const plot = { left: 38, top: 8, right: width - 8, bottom: height - 22 };
+          const plotWidth = Math.max(1, plot.right - plot.left);
+          const plotHeight = Math.max(1, plot.bottom - plot.top);
+          const yTicks = axisTicks(-1, 1, state.waveformAxes.yStep);
+          const xTicks = axisTicks(-2, 0, state.waveformAxes.xStep);
+
+          context.save();
+          context.font = '8px "Space Mono", monospace';
+          context.fillStyle = '#9ca3af';
+          context.strokeStyle = '#e5e7eb';
+          context.lineWidth = 1;
+
+          yTicks.forEach((value) => {
+            const y = plot.top + ((1 - value) / 2) * plotHeight;
+            context.beginPath();
+            context.moveTo(plot.left, y);
+            context.lineTo(plot.right, y);
+            context.stroke();
+            context.textAlign = 'right';
+            context.textBaseline = 'middle';
+            context.fillText(value > 0 ? `+${formatAxisValue(value)}` : formatAxisValue(value), plot.left - 5, y);
+          });
+
+          xTicks.forEach((value, index) => {
+            const x = plot.left + ((value + 2) / 2) * plotWidth;
+            context.beginPath();
+            context.moveTo(x, plot.top);
+            context.lineTo(x, plot.bottom);
+            context.stroke();
+            context.textAlign = index === 0 ? 'left' : index === xTicks.length - 1 ? 'right' : 'center';
+            context.textBaseline = 'top';
+            context.fillText(`${formatAxisValue(value)}s`, x, plot.bottom + 5);
+          });
+
+          context.strokeStyle = '#9ca3af';
+          context.beginPath();
+          context.moveTo(plot.left, plot.top);
+          context.lineTo(plot.left, plot.bottom);
+          context.lineTo(plot.right, plot.bottom);
+          context.stroke();
+          context.restore();
+          return plot;
+        };
+
         const drawTrack = (track, offset, color) => {
           const { context, width, height } = track;
           context.clearRect(0, 0, width, height);
+          const plot = drawAxes(context, width, height);
+          const plotWidth = Math.max(1, plot.right - plot.left);
+          const plotHeight = Math.max(1, plot.bottom - plot.top);
           context.strokeStyle = color;
-          context.lineWidth = 1.25;
+          context.lineWidth = 1.5;
           context.beginPath();
           const active = state.systemStatus === 'running' && isRealtimeMode(state.selectedMode) && state.enabledModes.has(state.selectedMode) && !state.muted;
-          for (let x = 0; x <= width; x += 3) {
-            const amplitude = active ? Math.max(5, height * 0.2) : 0;
-            const y = height / 2 + Math.sin((x + offset) / 18) * amplitude * Math.sin((x + offset) / 57);
-            if (x === 0) context.moveTo(x, y);
+          context.save();
+          context.beginPath();
+          context.rect(plot.left, plot.top, plotWidth, plotHeight);
+          context.clip();
+          context.beginPath();
+          for (let x = plot.left; x <= plot.right; x += 3) {
+            const localX = x - plot.left;
+            const amplitude = active ? plotHeight * 0.38 : 0;
+            const y = plot.top + plotHeight / 2 + Math.sin((localX + offset) / 18) * amplitude * Math.sin((localX + offset) / 57);
+            if (x === plot.left) context.moveTo(x, y);
             else context.lineTo(x, y);
           }
           context.stroke();
-        };
-
-        const updateMeters = () => {
-          const active = state.systemStatus === 'running' && isRealtimeMode(state.selectedMode) && state.enabledModes.has(state.selectedMode) && !state.muted;
-          get('input-db-text').textContent = active ? `-${(10 + Math.random() * 16).toFixed(1)} dB` : '-inf dB';
-          get('output-db-text').textContent = active && !state.bypassed ? `-${(12 + Math.random() * 14).toFixed(1)} dB` : '-inf dB';
+          context.restore();
         };
 
         let offset = 0;
-        const draw = () => {
+        const redraw = () => {
           drawTrack(tracks[0], offset, '#6b7280');
           drawTrack(tracks[1], offset * 1.2, '#059669');
+        };
+        window.addEventListener('waveform-axes-change', redraw);
+        const draw = () => {
+          redraw();
           offset += 4;
           window.requestAnimationFrame(draw);
         };
-        updateMeters();
-        window.setInterval(updateMeters, 650);
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          drawTrack(tracks[0], 0, '#6b7280');
-          drawTrack(tracks[1], 0, '#059669');
+          redraw();
           return;
         }
         window.requestAnimationFrame(draw);
