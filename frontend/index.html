@@ -99,6 +99,61 @@
     .log-tag--file_rvc { background: #eff6ff; color: #1d4ed8; }
     .log-tag--rt_zero_shot { background: #fff7ed; color: #c2410c; }
     .log-tag--file_zero_shot { background: #fdf4ff; color: #a21caf; }
+    .hardware-stat + .hardware-stat {
+      border-left: 1px solid #e5e7eb;
+    }
+    .hardware-stat:first-child {
+      padding-left: 0;
+    }
+    .sidebar-log {
+      flex: 0 0 50%;
+      height: 50%;
+      min-height: 240px;
+    }
+    .parameter-range {
+      appearance: none;
+      width: 100%;
+      height: 20px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .parameter-range::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 999px;
+      background: #d1d5db;
+    }
+    .parameter-range::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      margin-top: -6px;
+      border: 3px solid #ffffff;
+      border-radius: 999px;
+      background: #111827;
+      box-shadow: 0 0 0 1px #111827;
+    }
+    .parameter-range::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: #d1d5db;
+    }
+    .parameter-range::-moz-range-thumb {
+      width: 10px;
+      height: 10px;
+      border: 3px solid #ffffff;
+      border-radius: 999px;
+      background: #111827;
+      box-shadow: 0 0 0 1px #111827;
+    }
+    .parameter-range:focus-visible {
+      outline: none;
+    }
+    .parameter-range:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #111827;
+    }
+    .parameter-range:focus-visible::-moz-range-thumb {
+      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #111827;
+    }
     button, a, input, select { touch-action: manipulation; }
   </style>
 </head>
@@ -124,35 +179,40 @@
 
     <!-- 全局硬件状态：桌面端位于品牌与模式之间，移动端独占一行并可横向查看 -->
     <div id="hardware-summary" class="order-3 md:order-none w-full md:w-auto md:flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Global hardware status">
-      <div class="flex items-center gap-2 shrink-0 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5">
-        <span class="text-[9px] font-bold text-gray-400 tracking-wider">LATENCY</span>
-        <strong id="stat-latency" class="font-mono text-[11px] text-gray-900 tabular-nums">8.4 <span class="text-[9px] font-semibold text-gray-500">ms</span></strong>
+      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 16 0h-2a6 6 0 1 0-12 0H4Zm7-1.2 4.6-4.6 1.2 1.2-4.6 4.6a1.6 1.6 0 1 1-1.2-1.2Z"/></svg>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">LATENCY</span>
+        <strong id="stat-latency" class="font-mono text-xs text-gray-900 tabular-nums">8.4 <span class="text-[10px] font-semibold text-gray-500">ms</span></strong>
       </div>
-      <div class="flex items-center gap-2 shrink-0 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5">
-        <span class="text-[9px] font-bold text-gray-400 tracking-wider">CACHE</span>
-        <strong id="stat-cache" class="font-mono text-[11px] text-gray-900 tabular-nums">0.24 <span class="text-[9px] font-semibold text-gray-500">GB</span></strong>
+      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 5.5C4 3.6 7.6 2 12 2s8 1.6 8 3.5S16.4 9 12 9 4 7.4 4 5.5Zm0 5C4 12.4 7.6 14 12 14s8-1.6 8-3.5v4C20 16.4 16.4 18 12 18s-8-1.6-8-3.5v-4Zm0 5C4 17.4 7.6 19 12 19s8-1.6 8-3.5v3C20 20.4 16.4 22 12 22s-8-1.6-8-3.5v-3Z"/></svg>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">CACHE</span>
+        <strong id="stat-cache" class="font-mono text-xs text-gray-900 tabular-nums">0.24 <span class="text-[10px] font-semibold text-gray-500">GB</span></strong>
       </div>
-      <div class="flex items-center gap-2 shrink-0 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5">
-        <span class="text-[9px] font-bold text-gray-400 tracking-wider">VRAM</span>
-        <strong id="stat-vram" class="font-mono text-[11px] text-gray-900 tabular-nums">3.2 <span class="text-[9px] font-semibold text-gray-500">GB / 8.0 GB</span></strong>
+      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M7 6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2h2v2h-2v8h2v2h-2a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2H5v-2h2V8H5V6h2Zm3 4h4v4h-4v-4ZM9 1h2v3H9V1Zm4 0h2v3h-2V1ZM9 20h2v3H9v-3Zm4 0h2v3h-2v-3Z"/></svg>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">VRAM</span>
+        <strong id="stat-vram" class="font-mono text-xs text-gray-900 tabular-nums">3.2 <span class="text-[10px] font-semibold text-gray-500">GB / 8.0 GB</span></strong>
       </div>
-      <div class="flex items-center gap-2 shrink-0 bg-emerald-50/70 border border-emerald-200/70 rounded-md px-2.5 py-1.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
-        <span class="text-[9px] font-bold text-gray-500 tracking-wider">PIPEWIRE</span>
-        <span id="state-pipewire" class="font-mono text-[10px] font-bold text-emerald-600">CONNECTED</span>
+      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M3 11h3.2l1.8-5.4a1 1 0 0 1 1.9.1l2.4 8 1.5-5a1 1 0 0 1 1.9-.1l1.5 3.4H21v2h-4.4a1 1 0 0 1-.9-.6l-.7-1.6-1.7 5.7a1 1 0 0 1-1 .7 1 1 0 0 1-1-.7L9 9.2l-1.1 3a1 1 0 0 1-.9.7H3v-2Z"/></svg>
+        <span class="text-[10px] font-bold text-gray-500 tracking-wider">PIPEWIRE</span>
+        <span id="state-pipewire" class="font-mono text-[11px] font-bold text-emerald-600">CONNECTED</span>
       </div>
-      <div class="flex items-center gap-2 shrink-0 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5">
-        <span class="text-[9px] font-bold text-gray-400 tracking-wider">VAD</span>
-        <span id="state-vad" class="font-mono text-[10px] font-bold text-gray-800 tabular-nums">42.8%</span>
+      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 11h2v4H4v-4Zm4-5h2v14H8V6Zm4-3h2v18h-2V3Zm4 5h2v11h-2V8Zm4 3h2v5h-2v-5Z"/></svg>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">VAD</span>
+        <span id="state-vad" class="font-mono text-[11px] font-bold text-gray-800 tabular-nums">42.8%</span>
       </div>
-      <div class="flex items-center gap-2 shrink-0 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5">
-        <span class="text-[9px] font-bold text-gray-400 tracking-wider">CUDA</span>
-        <span id="state-cuda-priority" class="font-mono text-[10px] font-bold text-gray-800">HIGH (-1)</span>
+      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="m13.6 2-8.2 10.5a1 1 0 0 0 .8 1.6h4.5l-.7 7.9a1 1 0 0 0 1.8.6L19 11.5a1 1 0 0 0-.8-1.6h-4.5L14.6 3a1 1 0 0 0-1-1Z"/></svg>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">CUDA</span>
+        <span id="state-cuda-priority" class="font-mono text-[11px] font-bold text-gray-800">HIGH (-1)</span>
       </div>
-      <div class="flex items-center gap-2 shrink-0 bg-emerald-50/70 border border-emerald-200/70 rounded-md px-2.5 py-1.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
-        <span class="text-[9px] font-bold text-gray-500 tracking-wider">API</span>
-        <span class="font-mono text-[10px] font-bold text-emerald-600" data-i18n="apiOnline">ONLINE</span>
+      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm0 10a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6Zm4-7h.01M8 17h.01m4-10h4m-4 10h4Z"/></svg>
+        <span class="text-[10px] font-bold text-gray-500 tracking-wider">API</span>
+        <span class="font-mono text-[11px] font-bold text-emerald-600" data-i18n="apiOnline">ONLINE</span>
       </div>
     </div>
 
@@ -262,11 +322,11 @@
       </div>
 
       <!-- 日志面板 -->
-      <div id="log-panel" class="mt-6 md:mt-auto bg-white rounded-lg border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col min-h-[180px] max-h-[240px] shrink-0">
-        <div class="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-100 bg-gray-50">
+      <div id="log-panel" class="sidebar-log mt-6 overflow-hidden flex flex-col shrink-0">
+        <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-gray-200">
           <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
           <div class="flex items-center gap-1 min-w-0">
-            <select id="log-mode-filter" class="min-w-0 text-[10px] text-gray-800 bg-white border border-gray-200 rounded-md px-1.5 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="Filter logs by mode">
+            <select id="log-mode-filter" class="min-w-0 text-[10px] text-gray-800 bg-transparent border-0 px-1.5 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="Filter logs by mode">
               <option value="all" data-i18n="logFilterAll">全部模式</option>
               <option value="rt_rvc" translate="no">RT_RVC</option>
               <option value="file_rvc" translate="no">FILE_RVC</option>
@@ -276,7 +336,7 @@
             <button type="button" id="btn-clear-logs" class="text-[10px] font-bold text-gray-500 hover:text-gray-900 px-1.5 py-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 shrink-0" data-i18n="btnClearLogs">清空</button>
           </div>
         </div>
-        <div id="log-entries" class="flex-1 overflow-y-auto p-3 space-y-1.5 text-[10px] font-mono" role="log" aria-live="polite" aria-label="System logs">
+        <div id="log-entries" class="flex-1 overflow-y-auto pt-3 space-y-1.5 text-[10px] font-mono" role="log" aria-live="polite" aria-label="System logs">
           <!-- log entries rendered here -->
         </div>
       </div>
@@ -838,15 +898,15 @@
         get('params-mode-label').textContent = modeLabel(mode);
         get('params-profile-label').textContent = MODE_DEFINITIONS[mode].profile;
         const controls = MODE_DEFINITIONS[mode].parameters.map((parameter) => {
-          const wrapper = createElement('div', 'space-y-2');
+          const wrapper = createElement('div', 'parameter-control space-y-2 pb-4 border-b border-gray-200 last:border-b-0 last:pb-0');
           const header = createElement('div', 'flex items-center justify-between gap-3');
           const inputId = `param-${mode}-${parameter.key}`;
-          const label = createElement('label', 'text-[11px] font-bold text-gray-700', parameter.label);
+          const label = createElement('label', 'text-[10px] font-bold tracking-wide text-gray-500', parameter.label);
           label.htmlFor = inputId;
-          const output = createElement('output', 'font-mono text-[11px] font-bold text-gray-900 tabular-nums');
+          const output = createElement('output', 'font-mono text-lg font-extrabold leading-none text-gray-950 tabular-nums');
           output.htmlFor = inputId;
           output.textContent = formatParameter(state.parameters[mode][parameter.key], parameter);
-          const input = createElement('input', 'w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900');
+          const input = createElement('input', 'parameter-range');
           input.type = 'range';
           input.id = inputId;
           input.name = parameter.key;
@@ -857,8 +917,10 @@
           input.dataset.parameterMode = mode;
           input.dataset.parameterKey = parameter.key;
           input.setAttribute('aria-label', parameter.label);
+          const scale = createElement('div', 'flex justify-between font-mono text-[9px] text-gray-400 tabular-nums');
+          scale.append(createElement('span', '', formatParameter(parameter.min, parameter)), createElement('span', '', formatParameter(parameter.max, parameter)));
           header.append(label, output);
-          wrapper.append(header, input);
+          wrapper.append(header, input, scale);
           return wrapper;
         });
         container.replaceChildren(...controls);
