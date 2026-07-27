@@ -5,25 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FCFDFE">
   <title>Project Mozart · AI Voice Control Center</title>
-  <!-- 引入 Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
   <!-- 引入字体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"SimHei"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-            mono: ['"Space Mono"', 'monospace'],
-          }
-        }
-      }
-    }
-  </script>
   <style>
     /* 强行统一所有按钮与标题中文字体为黑体 (Sans-Serif / Heiti) */
     button, h2, h3, .btn-text, .section-title {
@@ -253,38 +239,38 @@
     <div id="hardware-summary" class="order-3 md:order-none w-full md:w-auto md:ml-auto min-w-0 flex items-center justify-start md:justify-end gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Global hardware status">
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
-        <span class="text-[10px] font-bold text-gray-400 tracking-wider">LATENCY</span>
-        <strong id="stat-latency" class="font-mono text-xs text-gray-900 tabular-nums">8.4 <span class="text-[10px] font-semibold text-gray-500">ms</span></strong>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">CPU</span>
+        <strong id="stat-latency" class="font-mono text-xs text-gray-900 tabular-nums">-- <span class="text-[10px] font-semibold text-gray-500">%</span></strong>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
-        <span class="text-[10px] font-bold text-gray-400 tracking-wider">CACHE</span>
-        <strong id="stat-cache" class="font-mono text-xs text-gray-900 tabular-nums">0.24 <span class="text-[10px] font-semibold text-gray-500">GB</span></strong>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">RAM</span>
+        <strong id="stat-cache" class="font-mono text-xs text-gray-900 tabular-nums">-- <span class="text-[10px] font-semibold text-gray-500">/ -- GB</span></strong>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M9 1v3m6-3v3M9 20v3m6-3v3M20 9h3m-3 6h3M1 9h3m-3 6h3"/></svg>
-        <span class="text-[10px] font-bold text-gray-400 tracking-wider">VRAM</span>
-        <strong id="stat-vram" class="font-mono text-xs text-gray-900 tabular-nums">3.2 <span class="text-[10px] font-semibold text-gray-500">GB / 8.0 GB</span></strong>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider">GPU</span>
+        <strong id="stat-vram" class="font-mono text-xs text-gray-900 tabular-nums">N/A</strong>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 10v3m4-7v11m4-14v18m4-13v7m4-10v13m4-8v3"/></svg>
         <span class="text-[10px] font-bold text-gray-500 tracking-wider">PIPEWIRE</span>
-        <span id="state-pipewire" class="font-mono text-[11px] font-bold text-emerald-600">CONNECTED</span>
+        <span id="state-pipewire" class="font-mono text-[11px] font-bold text-gray-500">UNKNOWN</span>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 12h2l2-6 4 12 3-8 2 4h5"/></svg>
         <span class="text-[10px] font-bold text-gray-400 tracking-wider">VAD</span>
-        <span id="state-vad" class="font-mono text-[11px] font-bold text-gray-800 tabular-nums">42.8%</span>
+        <span id="state-vad" class="font-mono text-[11px] font-bold text-gray-500">N/A</span>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7z"/></svg>
         <span class="text-[10px] font-bold text-gray-400 tracking-wider">CUDA</span>
-        <span id="state-cuda-priority" class="font-mono text-[11px] font-bold text-gray-800">HIGH (-1)</span>
+        <span id="state-cuda-priority" class="font-mono text-[11px] font-bold text-gray-500">UNKNOWN</span>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><path d="M6 6h.01M6 18h.01M10 6h8m-8 12h8"/></svg>
         <span class="text-[10px] font-bold text-gray-500 tracking-wider">API</span>
-        <span class="font-mono text-[11px] font-bold text-emerald-600" data-i18n="apiOnline">ONLINE</span>
+        <span id="state-api" class="font-mono text-[11px] font-bold text-gray-500" data-i18n="apiOnline">UNKNOWN</span>
       </div>
     </div>
   </header>
@@ -308,13 +294,13 @@
             </div>
           </div>
           <div class="transport-control" role="group" aria-label="全局运行控制">
-            <button type="button" id="btn-global-pause" data-state="paused" class="transport-button" aria-label="暂停全局处理" title="暂停" aria-pressed="false">
+            <button type="button" id="btn-global-pause" data-state="paused" class="transport-button" aria-label="暂停文件队列" title="暂停队列（当前任务会完成）" aria-pressed="false">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h4v14H6V5Zm8 0h4v14h-4V5Z"/></svg>
             </button>
             <button type="button" id="btn-global-run" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" aria-pressed="false">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
             </button>
-            <button type="button" id="btn-global-stop" data-state="stopped" class="transport-button" aria-label="完全停止系统" title="完全停止" aria-pressed="true" aria-haspopup="dialog">
+            <button type="button" id="btn-global-stop" data-state="stopped" class="transport-button" aria-label="停止当前模式" title="停止当前模式（当前文件任务会完成）" aria-pressed="true">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6V6Z"/></svg>
             </button>
           </div>
@@ -408,7 +394,7 @@
       <div id="workspace-panel" class="min-h-0 flex flex-col overflow-y-auto no-scrollbar">
 
       <!-- RT 模式：实时音频控制面板 -->
-      <div class="flex-1 flex flex-col min-h-0 gap-3" id="block-live">
+      <div class="hidden flex-1 flex flex-col min-h-0 gap-3" id="block-live">
         <div class="flex-1 flex flex-col min-h-0 gap-2">
           <div class="flex-1 flex flex-col min-h-0 gap-2">
             <!-- 输入音轨 -->
@@ -464,10 +450,10 @@
             <path d="M5 16h2v2h10v-2h2v2.25A2.75 2.75 0 0 1 16.25 21h-8.5A2.75 2.75 0 0 1 5 18.25V16Zm7-13a1 1 0 0 1 1 1v8.59l2.29-2.3 1.42 1.42-4.42 4.42-4.42-4.42 1.42-1.42 2.29 2.3V4a1 1 0 0 1 1-1Z"/>
           </svg>
           <span class="block text-xs font-bold text-gray-900 mb-1" data-i18n="clickToUpload">点击或拖拽音频文件至此</span>
-          <span class="block text-[11px] text-gray-400" data-i18n="uploadFormats">Format WAV, MP3, M4A, FLAC, max 100MB</span>
+          <span class="block text-[11px] text-gray-400" data-i18n="uploadFormats">Format WAV, MP3, M4A, AAC, FLAC, OGG, max 100MB</span>
 
           <span id="selected-file-info" class="hidden mt-3 text-xs font-bold text-gray-900 bg-white border border-gray-200 px-3.5 py-1.5 rounded-md shadow-xs flex items-center gap-2 max-w-full min-w-0">
-            <span data-i18n="selectedLabel" class="shrink-0 text-gray-500">已选择:</span>
+            <span data-i18n="selectedLabel" class="shrink-0 text-gray-500">待提交:</span>
             <span id="file-name-text" class="font-mono text-gray-800 truncate min-w-0 flex-1">none.mp3</span>
           </span>
         </label>
@@ -497,9 +483,9 @@
                 <path class="opacity-25" d="M12 2a10 10 0 1 0 10 10h-3a7 7 0 1 1-7-7V2Z"/>
                 <path class="opacity-75" d="M12 2v3a7 7 0 0 1 7 7h3A10 10 0 0 0 12 2Z"/>
               </svg>
-              <span id="btn-process-text">开始转换</span>
+              <span id="btn-process-text">上传并转换</span>
             </button>
-            <button type="button" id="btn-cancel" class="bg-white text-gray-900 border border-gray-200 hover:border-gray-900 text-xs font-bold tracking-wide px-6 py-3 rounded-sm disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" disabled data-i18n="btnCancel">取消</button>
+            <button type="button" id="btn-cancel" class="bg-white text-gray-900 border border-gray-200 hover:border-gray-900 text-xs font-bold tracking-wide px-6 py-3 rounded-sm disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" disabled>取消当前任务</button>
           </div>
         </div>
       </div>
@@ -517,7 +503,7 @@
               <option value="rt_zero_shot" translate="no">RT_ZERO_SHOT</option>
               <option value="file_zero_shot" translate="no">FILE_ZERO_SHOT</option>
             </select>
-            <button type="button" id="btn-clear-logs" class="text-[11px] font-extrabold text-[#052E16] hover:text-black px-1.5 py-1 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#052E16] shrink-0" data-i18n="btnClearLogs">清空</button>
+            <button type="button" id="btn-clear-logs" class="text-[11px] font-extrabold text-[#052E16] hover:text-black px-1.5 py-1 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#052E16] shrink-0">清空日志</button>
           </div>
         </div>
         <div id="log-entries" class="flex-1 overflow-y-auto p-3 space-y-2 text-[12px] leading-5 font-mono" role="log" aria-live="polite" aria-label="System logs">
@@ -540,10 +526,11 @@
           <div class="flex items-center gap-2">
             <label for="parameter-preset-select" class="sr-only">选择参数配置方案</label>
             <select id="parameter-preset-select" class="parameter-profile-select min-w-0 flex-1 h-8 text-[11px] font-bold text-gray-800 bg-white border border-gray-200 rounded-sm px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" autocomplete="off" aria-label="选择参数配置方案"></select>
-            <button type="button" id="btn-reset-parameters" class="w-8 h-8 shrink-0 inline-flex items-center justify-center text-gray-500 bg-white hover:bg-gray-100 hover:text-gray-900 border border-gray-200 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="恢复当前模式的默认参数" title="恢复默认参数">
+            <button type="button" id="btn-reset-parameters" class="w-8 h-8 shrink-0 inline-flex items-center justify-center text-gray-500 bg-white hover:bg-gray-100 hover:text-gray-900 border border-gray-200 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" aria-label="恢复后端默认参数" title="恢复默认参数">
               <svg class="w-3.5 h-3.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
             </button>
-            <button type="button" id="btn-save-parameter-preset" class="h-8 shrink-0 text-[10px] font-extrabold text-white bg-gray-900 hover:bg-gray-800 px-2.5 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900">新增预设</button>
+            <button type="button" id="btn-save-parameter-preset" class="h-8 shrink-0 text-[10px] font-extrabold text-white bg-gray-900 hover:bg-gray-800 px-2.5 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900">保存预设</button>
+            <button type="button" id="btn-delete-parameter-preset" class="h-8 shrink-0 text-[10px] font-extrabold text-red-700 bg-white hover:bg-red-50 border border-red-200 px-2.5 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-700" disabled>删除预设</button>
           </div>
           <div class="grid grid-cols-3 gap-2 mt-2.5 font-mono text-[9px] text-gray-500">
             <span id="params-profile-label" class="truncate" translate="no">RVC · RMVPE</span>
@@ -563,12 +550,8 @@
           <span id="speaker-mode-label" class="text-[10px] font-mono font-bold text-gray-700 bg-white border border-gray-200 rounded-sm px-2 py-1" translate="no">RT_RVC</span>
         </div>
         <label for="speaker-select" class="block text-[10px] font-bold tracking-wide text-gray-500 mb-2">当前音色</label>
-        <select id="speaker-select" name="speaker-selection" class="w-full min-w-0 text-xs text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" autocomplete="off" aria-label="选择当前音色">
-          <option value="default">默认音色</option>
-          <option value="alice">爱丽丝 (Alice)</option>
-          <option value="bob">鲍勃 (Bob)</option>
-          <option value="charlie">Charlie</option>
-          <option value="diana">Diana</option>
+        <select id="speaker-select" name="speaker-selection" class="w-full min-w-0 text-xs text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" autocomplete="off" aria-label="选择当前音色" disabled>
+          <option value="" selected disabled>正在加载模型...</option>
         </select>
         <button type="button" id="btn-quick-add-voice" class="hidden w-full mt-3 text-[11px] font-bold bg-gray-900 hover:bg-gray-800 text-white px-3 py-2.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 flex items-center justify-center gap-2" title="上传参考音频并创建声线">
           <svg class="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M5 17h14v2H5v-2Zm7-14a1 1 0 0 1 1 1v8.59l2.29-2.3 1.42 1.42-4.42 4.42-4.42-4.42 1.42-1.42 2.29 2.3V4a1 1 0 0 1 1-1Z"/></svg>
@@ -581,7 +564,7 @@
       <section class="hidden border-t border-gray-200 pt-4" id="block-file-queue" aria-label="文件处理队列">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase section-title" data-i18n="fileQueueTitle">文件处理队列</h2>
-          <span class="text-[10px] font-mono text-gray-500" id="file-queue-count">0</span>
+          <div class="flex items-center gap-2"><span class="text-[10px] font-mono text-gray-500" id="file-queue-count">0</span><button type="button" id="btn-clear-finished" class="text-[10px] font-bold text-gray-500 hover:text-gray-900">清理完成项</button></div>
         </div>
         <div id="file-queue" class="bg-white rounded-lg border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] overflow-hidden">
           <div class="grid grid-cols-12 gap-1 px-3 py-2 bg-gray-50 text-[9px] font-extrabold text-gray-500 uppercase tracking-wider border-b border-gray-100">
@@ -597,7 +580,7 @@
       </section>
 
       <!-- 实时音频快捷控制固定在整个右栏底部 -->
-      <div id="realtime-audio-controls" class="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-200">
+      <div id="realtime-audio-controls" class="hidden grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-200">
         <button type="button" id="btn-rt-mute" class="relative bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap" aria-pressed="false">
           <svg id="icon-rt-mute" class="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-emerald-600 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4Zm-6 9H4v1a8 8 0 0 0 7 7.94V22H8v2h8v-2h-3v-2.06A8 8 0 0 0 20 12v-1h-2v1a6 6 0 0 1-12 0v-1Z"/>
@@ -675,10 +658,14 @@
     </div>
   </div>
 
+  <!-- The Vite TypeScript controller owns FILE_RVC transport and queue state. -->
+  <script>window.__mozartApiControlled = true;</script>
   <!-- 脚本逻辑 -->
   <script>
     (() => {
       'use strict';
+
+      if (window.__mozartApiControlled) return;
 
       const MODE_DEFINITIONS = {
         rt_rvc: {
@@ -787,9 +774,7 @@
         parameters: Object.fromEntries(Object.entries(DEFAULT_MODE_PARAMETERS).map(([mode, values]) => [mode, { ...values }])),
         parameterPresetSelection: Object.fromEntries(Object.keys(MODE_DEFINITIONS).map((mode) => [mode, 'default'])),
         customParameterPresets: Object.fromEntries(Object.keys(MODE_DEFINITIONS).map((mode) => [mode, []])),
-        fileQueue: [
-          { id: 'demo-file-1', name: 'demo_interview.wav', mode: 'file_rvc', status: 'queued', progress: 0 }
-        ]
+        fileQueue: []
       };
 
       const get = (id) => document.getElementById(id);
@@ -896,6 +881,7 @@
       }
 
       function addLog(mode, message, level = 'info') {
+        if (window.__mozartApiControlled) return;
         state.logs.unshift({ id: `${Date.now()}-${state.logs.length}`, time: new Date(), mode, message, level });
         renderLogs();
         if (level === 'warn') showWarning(message);
@@ -932,6 +918,8 @@
       }
 
       function renderSpeakerSelection() {
+        // Live model options are owned by the API controller in src/main.ts.
+        if (window.__mozartApiControlled) return;
         const mode = state.selectedMode;
         const select = get('speaker-select');
         const selectedSpeaker = state.selectedSpeakers[mode] || 'default';
@@ -1416,9 +1404,11 @@
           button.addEventListener('click', () => setSelectedMode(button.dataset.mode));
         });
 
-        Object.keys(MODE_DEFINITIONS).forEach((mode) => {
-          get(`toggle-${mode}`).addEventListener('change', (event) => toggleMode(mode, event.target.checked));
-        });
+        if (!window.__mozartApiControlled) {
+          Object.keys(MODE_DEFINITIONS).forEach((mode) => {
+            get(`toggle-${mode}`).addEventListener('change', (event) => toggleMode(mode, event.target.checked));
+          });
+        }
         [
           { id: 'waveform-x-step', axis: 'xStep', decreaseId: 'btn-waveform-x-decrease', increaseId: 'btn-waveform-x-increase' },
           { id: 'waveform-y-step', axis: 'yStep', decreaseId: 'btn-waveform-y-decrease', increaseId: 'btn-waveform-y-increase' }
@@ -1473,32 +1463,34 @@
         });
         get('btn-delete-voices').addEventListener('click', deleteSelectedVoices);
 
-        get('btn-global-run').addEventListener('click', () => {
-          if (state.systemStatus === 'running') return;
-          state.systemStatus = 'running';
-          addLog('system', '全局运行已启动');
-          startNextTask();
-          renderAll();
-        });
-
-        get('btn-global-pause').addEventListener('click', () => {
-          if (state.systemStatus !== 'running') {
-            addLog('system', '全局运行状态启动后才能暂停', 'warn');
-            return;
-          }
-          state.systemStatus = 'paused';
-          addLog('system', '全局处理已暂停');
-          renderAll();
-        });
-
-        get('btn-global-stop').addEventListener('click', () => {
-          openConfirmation({
-            title: '确认关闭系统',
-            copy: '这会停止当前处理，并关闭所有已启用的模式。',
-            actionLabel: '确认关闭',
-            onConfirm: shutdownSystem
+        if (!window.__mozartApiControlled) {
+          get('btn-global-run').addEventListener('click', () => {
+            if (state.systemStatus === 'running') return;
+            state.systemStatus = 'running';
+            addLog('system', '全局运行已启动');
+            startNextTask();
+            renderAll();
           });
-        });
+
+          get('btn-global-pause').addEventListener('click', () => {
+            if (state.systemStatus !== 'running') {
+              addLog('system', '全局运行状态启动后才能暂停', 'warn');
+              return;
+            }
+            state.systemStatus = 'paused';
+            addLog('system', '全局处理已暂停');
+            renderAll();
+          });
+
+          get('btn-global-stop').addEventListener('click', () => {
+            openConfirmation({
+              title: '确认关闭系统',
+              copy: '这会停止当前处理，并关闭所有已启用的模式。',
+              actionLabel: '确认关闭',
+              onConfirm: shutdownSystem
+            });
+          });
+        }
 
         get('btn-confirm-cancel').addEventListener('click', closeConfirmation);
         get('confirm-modal-backdrop').addEventListener('click', closeConfirmation);
@@ -1546,31 +1538,33 @@
         get('btn-quick-add-voice').addEventListener('click', () => get('quick-add-voice-input').click());
         get('quick-add-voice-input').addEventListener('change', (event) => createVoiceFromSource(event.target.files[0]));
 
-        get('audio-file-input').addEventListener('change', (event) => {
-          const [file] = event.target.files;
-          if (!file) return;
-          state.selectedFile = { name: file.name, size: file.size };
-          renderSelectedFile();
-          renderProcessingPanel();
-        });
-        get('btn-process').addEventListener('click', queueSelectedFile);
-        get('btn-cancel').addEventListener('click', () => state.activeTaskId && cancelTask(state.activeTaskId));
-        get('file-queue-list').addEventListener('click', (event) => {
-          const action = event.target.closest('[data-task-action]');
-          if (!action) return;
-          const task = queueTaskById(action.dataset.taskId);
-          if (!task) return;
-          if (action.dataset.taskAction === 'cancel') {
-            cancelTask(task.id);
-            return;
-          }
-          openConfirmation({
-            title: '确认移除任务',
-            copy: `将从共享队列移除 ${task.name}。`,
-            actionLabel: '确认移除',
-            onConfirm: () => removeTask(task.id)
+        if (!window.__mozartApiControlled) {
+          get('audio-file-input').addEventListener('change', (event) => {
+            const [file] = event.target.files;
+            if (!file) return;
+            state.selectedFile = { name: file.name, size: file.size };
+            renderSelectedFile();
+            renderProcessingPanel();
           });
-        });
+          get('btn-process').addEventListener('click', queueSelectedFile);
+          get('btn-cancel').addEventListener('click', () => state.activeTaskId && cancelTask(state.activeTaskId));
+          get('file-queue-list').addEventListener('click', (event) => {
+            const action = event.target.closest('[data-task-action]');
+            if (!action) return;
+            const task = queueTaskById(action.dataset.taskId);
+            if (!task) return;
+            if (action.dataset.taskAction === 'cancel') {
+              cancelTask(task.id);
+              return;
+            }
+            openConfirmation({
+              title: '确认移除任务',
+              copy: `将从共享队列移除 ${task.name}。`,
+              actionLabel: '确认移除',
+              onConfirm: () => removeTask(task.id)
+            });
+          });
+        }
 
         get('params-container').addEventListener('input', (event) => {
           const input = event.target.closest('[data-parameter-mode]');
@@ -1736,18 +1730,15 @@
       }
 
       function initialize() {
-        addLog('system', '前端 Demo 已就绪');
-        addLog('rt_rvc', '实时 RVC 音频链路已准备');
-        addLog('file_rvc', '共享文件队列已载入 1 项任务');
-        addLog('rt_zero_shot', '零样本声线库已载入');
+        if (!window.__mozartApiControlled) addLog('system', '前端控制台已就绪');
         bindEvents();
         renderAll();
-        startTaskProgressDemo();
         startWaveformDemo();
       }
 
       initialize();
     })();
   </script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

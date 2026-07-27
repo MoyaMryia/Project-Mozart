@@ -34,7 +34,7 @@
 | `preprocessor/` | ✅ **预处理管线**：RNNoise 去噪 + 降采样 → 16kHz 契约流 (C11) |
 | `rvc-backend/` | ✅ **RVC 变声后端**：AudioWorker 编排 + ONNX 推理 + HTTP 管理 |
 | `tools/` | 🔧 **ONNX 导出脚本**：HuBERT / RMVPE / Generator 一键导出 |
-| `state_manager/` | 运行模式与 IO/模型资源编排设计 |
+| `state/` | ✅ 顶层 daemon：运行模式、IO/模型资源和 worker 生命周期编排 |
 | `docs/` | 📚 **全部文档** |
 | `reference/` | 🔧 ZYNQ BTB 硬件参考原理图 |
 | `rvc_post_bridge.py` | 🔌 **PC 端适配器**：本地 Python RVC 验证用 |
@@ -99,7 +99,7 @@ vim ../config.yaml  # mock_mode: false
 |------|------|
 | preprocessor/ (RNNoise) | ✅ 编译完成，可用 |
 | IO/ | ✅ 契约帧 + PipeWire/UDP 驱动 |
-| state_manager/ | 🆕 运行模式编排 |
+| state/ | ✅ `mozart_stated`：`IDLE` / `RT_RVC` / `FILE_RVC` 强互斥编排 |
 | rvc-backend/ (C++ 骨架) | ✅ CMake + ONNX Runtime 集成完毕 |
 | rvc-backend/ (推理组件) | ✅ `onnx_engine` + `feature_extractor` + `inferencer` + `model_loader` 已实现 |
 | rvc-backend/ (HTTP API) | ✅ `/health` `/status` `/models` `/activate` 全部可用 |

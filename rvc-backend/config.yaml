@@ -60,8 +60,8 @@ rvc:
   assets_dir: "./assets"
 
   # 特征提取器（16kHz 输入）
-  hubert_path: "./assets/hubert/hubert_base.pt"
-  rmvpe_path: "./assets/rmvpe/rmvpe.pt"
+  hubert_path: "./assets/hubert/hubert_base.onnx"
+  rmvpe_path: "./assets/rmvpe/rmvpe.onnx"
 
   # 推理参数
   sample_rate: 48000          # RVC v2 生成器输出 48kHz
@@ -75,7 +75,12 @@ rvc:
   # 性能
   device: "cuda"              # cuda / cpu
   half: false                 # fp16（Orin Nano 共享内存有限）
-  mock_mode: true             # 直通模式（无模型时）
+  # Components are independently mockable for diagnostics. Production FILE_RVC
+  # requires all values to remain false.
+  mock:
+    generator: false
+    hubert: false
+    rmvpe: false
 
   # 延迟优化：是否将 HuBERT/RMVPE 保持在 GPU 常驻
   keep_feature_extractor_warm: true
@@ -87,3 +92,11 @@ logging:
   level: INFO
   print_latency_stats: true
   latency_stats_interval_sec: 5
+
+# File conversion uses a bounded, serial queue managed by state_manager.
+storage:
+  temp_dir: "./storage/temp"
+  presets_path: "./storage/presets.json"
+  ffmpeg_path: "ffmpeg"
+  max_queue_depth: 50
+  max_cache_size_mb: 1000

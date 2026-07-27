@@ -16,6 +16,7 @@ dist/
 .ruff_cache/
 .coverage
 htmlcov/
+temp/
 
 # Editors and operating systems
 .idea/
@@ -33,6 +34,11 @@ Thumbs.db
 preprocessor/build/
 rvc-backend/build/
 
+# Runtime model assets are downloaded/provisioned outside Git.
+rvc-backend/assets/**/*.onnx
+rvc-backend/models/**/*.onnx
+rvc-backend/storage/
+
 # Test outputs
 preprocessor/output.wav
 *.output.wav
@@ -43,3 +49,6 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 cmake-build-*/
+
+# node_dependencies
+node_modules/

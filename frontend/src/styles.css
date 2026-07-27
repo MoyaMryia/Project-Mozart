@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Visual rules retained from the original control-center document. */
+button, h2, h3, .btn-text, .section-title {
+  font-family: "Plus Jakarta Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "SimHei", sans-serif !important;
+}
+
+.toggle-checkbox:checked { right: 0; border-color: #111827; }
+.toggle-checkbox:checked + .toggle-label { background-color: #111827; }
+.toggle-checkbox:focus-visible + .toggle-label { outline: 2px solid #111827; outline-offset: 2px; }
+#log-panel::-webkit-scrollbar, #file-queue::-webkit-scrollbar { height: 4px; width: 4px; }
+#log-panel::-webkit-scrollbar-track, #file-queue::-webkit-scrollbar-track { background: transparent; }
+#log-panel::-webkit-scrollbar-thumb, #file-queue::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.mode-row.is-selected { background: rgba(229, 231, 235, 0.8); border-color: rgba(209, 213, 219, 0.8); }
+.mode-row.is-selected .mode-name { color: #111827; font-weight: 700; }
+.mode-row.is-selected .mode-desc { color: #4b5563; }
+.log-tag { display: inline-flex; align-items: center; min-width: 112px; padding: 0; font-size: 11px; font-weight: 700; line-height: 1.2; }
+.log-tag--system { color: #86efac; }.log-tag--rt_rvc { color: #4ade80; }.log-tag--file_rvc { color: #60a5fa; }.log-tag--rt_zero_shot { color: #fbbf24; }.log-tag--file_zero_shot { color: #e879f9; }
+.hardware-stat + .hardware-stat { border-left: 1px solid #e5e7eb; }.hardware-stat:first-child { padding-left: 0; }
+.left-sidebar { display: flex; flex-direction: column; }.sidebar-controls { flex: 1; min-height: 0; }
+.console-log { flex: 0 0 50%; min-height: 0; border-top: 1px solid #173b23; font-family: "Space Mono", monospace; }
+.axis-step-input { appearance: textfield; }.axis-step-input::-webkit-inner-spin-button, .axis-step-input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.hardware-icon { width: 17px; height: 17px; color: #6b7280; flex: none; }
+.transport-control { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; border: 3px solid #111827; border-radius: 999px; background: #fff; }
+.transport-button { position: relative; display: flex; min-height: 40px; align-items: center; justify-content: center; color: #111827; background: transparent; transition: color 150ms ease, box-shadow 150ms ease; }
+.transport-button + .transport-button { border-left: 2px solid #111827; }.transport-button:hover { color: #059669; }
+.transport-button:focus-visible { z-index: 1; outline: 3px solid #111827; outline-offset: -5px; }.transport-button.is-active { box-shadow: inset 0 -5px 0 currentColor; }
+.transport-button[data-state="paused"].is-active { color: #6b7280; }.transport-button[data-state="running"].is-active { color: #059669; }.transport-button[data-state="stopped"]:hover, .transport-button[data-state="stopped"].is-active { color: #dc2626; }
+.system-state-icon { width: 20px; height: 20px; flex: none; }.terminal-select { color: #052e16; background: transparent; font-family: "Space Mono", monospace; font-weight: 700; }.terminal-select option { color: #111827; background: #fff; }
+.parameter-range { appearance: none; width: 100%; height: 16px; background: transparent; cursor: pointer; }.parameter-range::-webkit-slider-runnable-track { height: 3px; border-radius: 999px; background: #d1d5db; }.parameter-range::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border: 2px solid #fff; border-radius: 999px; background: #111827; box-shadow: 0 0 0 1px #111827; }.parameter-range::-moz-range-track { height: 3px; border-radius: 999px; background: #d1d5db; }.parameter-range::-moz-range-thumb { width: 10px; height: 10px; border: 2px solid #fff; border-radius: 999px; background: #111827; box-shadow: 0 0 0 1px #111827; }
+.parameter-profile-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236B7280' stroke-width='1.8'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E"); background-position: right .5rem center; background-repeat: no-repeat; background-size: .9rem; padding-right: 1.8rem; }
+.parameter-range:focus-visible { outline: none; }.parameter-range:focus-visible::-webkit-slider-thumb, .parameter-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #111827; }
+button, a, input, select { touch-action: manipulation; }
+@media (max-width: 767px) { .console-log { flex-basis: 320px; min-height: 320px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }

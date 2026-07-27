@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <filesystem>
 #include <yaml-cpp/yaml.h>
 #include <spdlog/spdlog.h>
 
@@ -33,12 +34,15 @@ public:
     double get_double(const std::string& key, double default_val) const;
     bool get_bool(const std::string& key, bool default_val) const;
     std::string get_string(const std::string& key, const std::string& default_val) const;
+    std::filesystem::path resolve_file_path(const std::string& key,
+                                            const std::string& default_val) const;
 
     const YAML::Node& root() const { return root_; }
 
 private:
     YAML::Node root_;
     mutable std::map<std::string, YAML::Node> cache_;
+    std::filesystem::path base_dir_ = std::filesystem::current_path();
 
     YAML::Node resolve_path(const std::string& key) const;
 };

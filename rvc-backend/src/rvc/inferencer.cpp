@@ -10,6 +10,7 @@ RVCInferencer::RVCInferencer(
     std::shared_ptr<FeatureExtractor> feature_extractor,
     uint32_t input_sample_rate,
     uint32_t output_sample_rate,
+    std::string f0_method,
     int pitch_shift,
     float index_rate,
     int filter_radius,
@@ -20,6 +21,7 @@ RVCInferencer::RVCInferencer(
     , feature_extractor_(feature_extractor)
     , input_sample_rate_(input_sample_rate)
     , output_sample_rate_(output_sample_rate)
+    , f0_method_(std::move(f0_method))
     , pitch_shift_(pitch_shift)
     , index_rate_(index_rate)
     , filter_radius_(filter_radius)
@@ -39,7 +41,7 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
         audio_16k = audio;
     }
 
-    auto f0 = feature_extractor_->extract_f0(audio_16k, 16000, "rmvpe");
+    auto f0 = feature_extractor_->extract_f0(audio_16k, 16000, f0_method_);
     auto feats = feature_extractor_->extract_features(audio_16k, 16000);
 
     feats = apply_index(feats);
@@ -109,29 +111,42 @@ std::vector<float> RVCInferencer::run_generator(
     }
 
     uint32_t emb_dim = model_->config().emb_channels;
-    size_t total_elems = feats.size();
-    size_t T = total_elems / emb_dim;
-    if (T < 1) T = 1;
+    const size_t source_feature_frames = std::max(size_t{1}, feats.size() / emb_dim);
+    // Current deployed generator export only supports its tracing length T=200.
+    constexpr size_t generator_frames = 200;
+    const size_t T = generator_frames;
 
-    std::vector<float> feats_reshaped = feats;
-    feats_reshaped.resize(T * emb_dim, 0.0f);
+    std::vector<float> feats_reshaped(T * emb_dim, 0.0f);
+    for (size_t target = 0; target < T; ++target) {
+        const size_t source = source_feature_frames == 1 ? 0
+            : target * (source_feature_frames - 1) / (T - 1);
+        const size_t source_offset = source * emb_dim;
+        if (source_offset >= feats.size()) continue;
+        const size_t available = std::min(static_cast<size_t>(emb_dim), feats.size() - source_offset);
+        std::copy_n(feats.begin() + static_cast<std::ptrdiff_t>(source_offset), available,
+                    feats_reshaped.begin() + static_cast<std::ptrdiff_t>(target * emb_dim));
+    }
 
-    size_t f0_frames = f0.size();
-    std::vector<float> pitch(T, 0.0f);
+    const size_t f0_frames = std::max(size_t{1}, f0.size());
+    std::vector<int64_t> pitch(T, 0);
     std::vector<float> pitchf(T, 0.0f);
 
     for (size_t t = 0; t < T; ++t) {
-        if (t < f0_frames) {
-            float f0_val = f0[t];
-            pitch[t] = f0_val > 0.0f ? std::log2(f0_val / 440.0f) * 12.0f + 69.0f : 0.0f;
+        if (!f0.empty()) {
+            const size_t source = f0_frames == 1 ? 0 : t * (f0_frames - 1) / (T - 1);
+            float f0_val = f0[source];
+            pitch[t] = f0_val > 0.0f
+                ? static_cast<int64_t>(std::clamp(std::lround(std::log2(f0_val / 440.0f) * 12.0f + 69.0f + pitch_shift_), 1L, 255L))
+                : 0;
             pitchf[t] = f0_val;
         }
     }
 
-    float sid_val = static_cast<float>(model_->config().spk_id);
-
-    std::vector<float> sid_vec = {sid_val};
-    std::vector<float> p_len_vec = {static_cast<float>(T)};
+    std::vector<int64_t> sid_int64 = {model_->config().spk_id};
+    std::vector<int64_t> p_len_int64 = {static_cast<int64_t>(T)};
+    std::vector<float> sid_float = {static_cast<float>(model_->config().spk_id)};
+    std::vector<float> p_len_float = {static_cast<float>(T)};
+    std::vector<float> pitch_float(pitch.begin(), pitch.end());
 
     std::vector<int64_t> feats_shape = {1, static_cast<int64_t>(T),
                                          static_cast<int64_t>(emb_dim)};
@@ -140,28 +155,35 @@ std::vector<float> RVCInferencer::run_generator(
     std::vector<int64_t> pitchf_shape = {1, static_cast<int64_t>(T)};
     std::vector<int64_t> sid_shape = {1};
 
-    std::vector<const char*> input_names = {"feats", "p_len", "pitch", "pitchf", "sid"};
-    std::vector<std::vector<int64_t>> input_shapes = {
-        feats_shape, p_len_shape, pitch_shape, pitchf_shape, sid_shape
+    const auto typed_input = [&](const char* name, const std::vector<int64_t>& shape,
+                                 std::vector<float> floats, std::vector<int64_t> int64s) {
+        const auto type = model_->generator_engine().input_type(name).value_or(OnnxInput::Type::Float);
+        return OnnxInput{name, shape, type, std::move(floats), std::move(int64s)};
     };
-    std::vector<std::vector<float>> input_data = {
-        feats_reshaped, p_len_vec, pitch, pitchf, sid_vec
+    const std::vector<OnnxInput> inputs = {
+        typed_input("feats", feats_shape, feats_reshaped, {}),
+        typed_input("p_len", p_len_shape, p_len_float, p_len_int64),
+        typed_input("pitch", pitch_shape, pitch_float, pitch),
+        typed_input("pitchf", pitchf_shape, pitchf, {}),
+        typed_input("sid", sid_shape, sid_float, sid_int64)
     };
-
-    auto audio_out = model_->generator_engine().run(
-        input_names, input_shapes, input_data, {"audio"}
-    );
+    auto audio_out = model_->generator_engine().run(inputs, {"audio"});
 
     if (model_->config().sample_rate != output_sample_rate_) {
         audio_out = resample(audio_out, model_->config().sample_rate, output_sample_rate_);
     }
 
-    // Mix with original for voice preservation
-    if (protect_ > 0.0f && audio_out.size() >= original_audio.size()) {
+    // The generator output is at output_sample_rate_, while original_audio is
+    // at input_sample_rate_. Mixing them without resampling compresses the
+    // preserved consonants into the start of the output timeline.
+    if (protect_ > 0.0f) {
+        const auto original_at_output_rate = input_sample_rate_ == output_sample_rate_
+            ? original_audio
+            : resample(original_audio, input_sample_rate_, output_sample_rate_);
         float alpha = 1.0f - protect_ * 0.5f;
-        size_t limit = std::min(audio_out.size(), original_audio.size());
+        size_t limit = std::min(audio_out.size(), original_at_output_rate.size());
         for (size_t i = 0; i < limit; ++i) {
-            audio_out[i] = audio_out[i] * alpha + original_audio[i] * (1.0f - alpha);
+            audio_out[i] = audio_out[i] * alpha + original_at_output_rate[i] * (1.0f - alpha);
         }
     }
 

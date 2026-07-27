@@ -11,12 +11,16 @@ FeatureExtractor::FeatureExtractor(
     const std::filesystem::path& hubert_path,
     const std::optional<std::filesystem::path>& rmvpe_path,
     const std::string& device,
-    bool half
+    bool half,
+    bool mock_hubert,
+    bool mock_rmvpe
 )
     : hubert_path_(hubert_path)
     , rmvpe_path_(rmvpe_path)
     , device_(device)
     , half_(half)
+    , mock_hubert_(mock_hubert)
+    , mock_rmvpe_(mock_rmvpe)
 {
     if (std::filesystem::exists(hubert_path_)) {
         bool ok = hubert_engine_.load(hubert_path_);
@@ -44,9 +48,9 @@ std::vector<float> FeatureExtractor::compute_mel(
     uint32_t sample_rate,
     int n_mels, int n_fft, int hop_length
 ) {
-    size_t n_samples = audio.size();
-    size_t n_frames = (n_samples - n_fft) / hop_length + 1;
-    if (n_frames < 1) n_frames = 1;
+    const size_t n_samples = audio.size();
+    const size_t n_frames = n_samples <= static_cast<size_t>(n_fft)
+        ? 1 : (n_samples - static_cast<size_t>(n_fft)) / static_cast<size_t>(hop_length) + 1;
 
     std::vector<float> mel(n_frames * n_mels, 0.0f);
 
@@ -83,16 +87,31 @@ std::vector<float> FeatureExtractor::extract_f0(
 ) {
     if (method == "rmvpe" && rmvpe_engine_.loaded()) {
         auto mel = compute_mel(audio, sample_rate);
-        size_t n_frames = mel.size() / 128;
-        if (n_frames < 1) n_frames = 1;
-
-        std::vector<int64_t> mel_shape = {1, static_cast<int64_t>(n_frames), 128};
+        // export_rmvpe_onnx.py exports the model with a fixed [1, 128, 128]
+        // mel tensor. Preserve short-frame support by zero-padding the tail.
+        constexpr size_t rmvpe_frames = 128;
+        constexpr size_t mel_bins = 128;
+        std::vector<float> fixed_mel(rmvpe_frames * mel_bins, 0.0f);
+        std::copy_n(mel.begin(), std::min(mel.size(), fixed_mel.size()), fixed_mel.begin());
+        const std::vector<int64_t> mel_shape = {1, static_cast<int64_t>(rmvpe_frames), static_cast<int64_t>(mel_bins)};
         auto f0 = rmvpe_engine_.run(
-            {"mel"}, {mel_shape}, {mel}, {"f0"}
+            {"mel"}, {mel_shape}, {fixed_mel}, {"f0"}
         );
-
-        spdlog::debug("RMVPE F0: {} frames extracted", f0.size());
-        return f0;
+        // RMVPE emits [1, 128, 360] logits. Convert the dominant pitch bin to
+        // Hertz; bin 0 represents unvoiced audio.
+        constexpr size_t output_frames = 128;
+        constexpr size_t pitch_bins = 360;
+        std::vector<float> hz(output_frames, 0.0f);
+        if (f0.size() >= output_frames * pitch_bins) {
+            for (size_t frame = 0; frame < output_frames; ++frame) {
+                const auto begin = f0.begin() + static_cast<std::ptrdiff_t>(frame * pitch_bins);
+                const auto maximum = std::max_element(begin, begin + static_cast<std::ptrdiff_t>(pitch_bins));
+                const size_t bin = static_cast<size_t>(maximum - begin);
+                if (bin > 0) hz[frame] = 10.0f * std::pow(2.0f, static_cast<float>(bin) / 60.0f);
+            }
+        }
+        spdlog::debug("RMVPE F0: {} frames extracted", hz.size());
+        return hz;
     }
 
     if (method == "harvest") {
@@ -103,7 +122,10 @@ std::vector<float> FeatureExtractor::extract_f0(
         return f0_pm(audio, sample_rate);
     }
 
-    spdlog::warn("F0 extractor unavailable; returning zero F0");
+    if (!mock_rmvpe_) {
+        throw std::runtime_error("RMVPE engine is unavailable and rvc.mock.rmvpe is false");
+    }
+    spdlog::warn("RMVPE mock enabled; returning zero F0");
     size_t n_frames = audio.size() / 512;
     if (n_frames == 0) n_frames = 1;
     return std::vector<float>(n_frames, 0.0f);
@@ -123,7 +145,10 @@ std::vector<float> FeatureExtractor::extract_features(
         return feats;
     }
 
-    spdlog::warn("HuBERT model unavailable; returning dummy features");
+    if (!mock_hubert_) {
+        throw std::runtime_error("HuBERT engine is unavailable and rvc.mock.hubert is false");
+    }
+    spdlog::warn("HuBERT mock enabled; returning dummy features");
     size_t n_frames = audio.size() / 512;
     if (n_frames == 0) n_frames = 1;
     return std::vector<float>(n_frames * 768, 0.0f);

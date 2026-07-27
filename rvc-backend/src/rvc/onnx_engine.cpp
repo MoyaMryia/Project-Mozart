@@ -22,6 +22,18 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
         session_ = std::make_unique<Ort::Session>(
             *env_, model_path.c_str(), *session_opts_
         );
+        input_types_.clear();
+        for (size_t index = 0; index < session_->GetInputCount(); ++index) {
+            const auto name = session_->GetInputNameAllocated(index, Ort::AllocatorWithDefaultOptions{});
+            const auto type = session_->GetInputTypeInfo(index).GetTensorTypeAndShapeInfo().GetElementType();
+            if (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
+                input_types_[name.get()] = OnnxInput::Type::Float;
+            } else if (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64) {
+                input_types_[name.get()] = OnnxInput::Type::Int64;
+            } else {
+                throw std::runtime_error("unsupported ONNX input type for " + std::string(name.get()));
+            }
+        }
 
         mem_info_ = Ort::MemoryInfo::CreateCpu(
             OrtArenaAllocator, OrtMemTypeDefault
@@ -41,28 +53,50 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
     }
 }
 
+std::optional<OnnxInput::Type> OnnxEngine::input_type(const std::string& name) const {
+    const auto input = input_types_.find(name);
+    return input == input_types_.end() ? std::nullopt : std::optional<OnnxInput::Type>(input->second);
+}
+
 std::vector<float> OnnxEngine::run(
     const std::vector<const char*>& input_names,
     const std::vector<std::vector<int64_t>>& input_shapes,
     const std::vector<std::vector<float>>& input_data,
     const std::vector<const char*>& output_names
 ) {
+    std::vector<OnnxInput> inputs;
+    inputs.reserve(input_names.size());
+    for (size_t i = 0; i < input_names.size(); ++i) {
+        inputs.push_back({input_names[i], input_shapes[i], OnnxInput::Type::Float, input_data[i], {}});
+    }
+    return run(inputs, output_names);
+}
+
+std::vector<float> OnnxEngine::run(const std::vector<OnnxInput>& inputs,
+                                   const std::vector<const char*>& output_names) {
     if (!session_) {
         throw std::runtime_error("ONNX engine not loaded");
     }
 
     std::vector<Ort::Value> input_tensors;
-    for (size_t i = 0; i < input_names.size(); ++i) {
+    std::vector<const char*> input_names;
+    input_tensors.reserve(inputs.size());
+    input_names.reserve(inputs.size());
+    for (const auto& input : inputs) {
         size_t elem_count = 1;
-        for (auto d : input_shapes[i]) elem_count *= static_cast<size_t>(d);
-
-        input_tensors.push_back(Ort::Value::CreateTensor<float>(
-            mem_info_,
-            const_cast<float*>(input_data[i].data()),
-            elem_count,
-            input_shapes[i].data(),
-            input_shapes[i].size()
-        ));
+        for (const auto dimension : input.shape) elem_count *= static_cast<size_t>(dimension);
+        input_names.push_back(input.name);
+        if (input.type == OnnxInput::Type::Float) {
+            if (input.floats.size() != elem_count) throw std::invalid_argument("ONNX float input shape mismatch");
+            input_tensors.push_back(Ort::Value::CreateTensor<float>(
+                mem_info_, const_cast<float*>(input.floats.data()), elem_count,
+                input.shape.data(), input.shape.size()));
+        } else {
+            if (input.int64s.size() != elem_count) throw std::invalid_argument("ONNX int64 input shape mismatch");
+            input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
+                mem_info_, const_cast<int64_t*>(input.int64s.data()), elem_count,
+                input.shape.data(), input.shape.size()));
+        }
     }
 
     auto output_tensors = session_->Run(
@@ -84,6 +118,7 @@ void OnnxEngine::unload() {
     session_.reset();
     session_opts_.reset();
     env_.reset();
+    input_types_.clear();
 }
 
 #else // USE_ONNX not defined — stub implementation
@@ -94,12 +129,21 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
     return std::filesystem::exists(model_path);
 }
 
+std::optional<OnnxInput::Type> OnnxEngine::input_type(const std::string&) const {
+    return std::nullopt;
+}
+
 std::vector<float> OnnxEngine::run(
     const std::vector<const char*>&,
     const std::vector<std::vector<int64_t>>&,
     const std::vector<std::vector<float>>&,
     const std::vector<const char*>&
 ) {
+    throw std::runtime_error("ONNX Runtime not available (USE_ONNX=OFF)");
+}
+
+std::vector<float> OnnxEngine::run(const std::vector<OnnxInput>&,
+                                   const std::vector<const char*>&) {
     throw std::runtime_error("ONNX Runtime not available (USE_ONNX=OFF)");
 }
 

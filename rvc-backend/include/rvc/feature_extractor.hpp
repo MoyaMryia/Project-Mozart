@@ -17,7 +17,9 @@ public:
         const std::filesystem::path& hubert_path,
         const std::optional<std::filesystem::path>& rmvpe_path,
         const std::string& device = "cuda",
-        bool half = false
+        bool half = false,
+        bool mock_hubert = true,
+        bool mock_rmvpe = true
     );
 
     ~FeatureExtractor();
@@ -41,6 +43,8 @@ private:
     std::optional<std::filesystem::path> rmvpe_path_;
     std::string device_;
     bool half_;
+    bool mock_hubert_;
+    bool mock_rmvpe_;
 
     OnnxEngine hubert_engine_;
     OnnxEngine rmvpe_engine_;
