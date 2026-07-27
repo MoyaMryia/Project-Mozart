@@ -17,7 +17,7 @@
 | IO | `IO/` | C++17 + C ABI | 统一契约帧、PipeWire/UDP 驱动、SPSC 环与显式 open/close 生命周期 |
 | 预处理 | `preprocessor/` | C11 | 音频清洗：HPF、RNNoise 去噪、自适应混合、3:1 降采样 → 标准契约流 |
 | 后处理 | `rvc-backend/` | C++17 | AudioWorker 编排、RVC 变声推理、模型热切换、HTTP 管理 |
-| 状态管理 | `state_manager/` | 设计中 | 只通过 IO 生命周期与业务 Worker 接口编排模式，不直接操作 socket/PipeWire |
+| 状态管理 | `state/` | ✅ daemon 已实现 | 只通过 IO 生命周期与业务 Worker 接口编排模式，不直接操作 socket/PipeWire |
 
 **关键原则**：IO 不解释算法；预处理和后处理不持有设备或网络资源；契约帧只在 `IO/include/mozart/frame_meta.h` 定义一次。
 
@@ -107,7 +107,7 @@ Mozart/
 │   ├── tests/                       #   test_udp_loopback.cpp
 │   ├── config.yaml
 │   └── README.md                    #   简要构建说明
-├── state_manager/                   # 模式与资源编排设计
+├── state/                           # 模式与资源编排 daemon
 └── reference/                       # ZYNQ 硬件参考原理图（原始文件）
 ```
 

@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "mozart/frame_meta.h"
-#include "mozart/udp_stream.hpp"
+#include "mozart/audio_io.h"
 #include "rvc/audio_worker.hpp"
 #include "rvc/pipeline.hpp"
 
@@ -57,12 +57,10 @@ int main() {
 
     rvc::MockRVCPipeline pipeline(MOZART_INPUT_SAMPLE_RATE,
                                   MOZART_OUTPUT_SAMPLE_RATE);
-    mozart::UdpStream stream("127.0.0.1", server_port,
-                             mozart::StreamDirection::Capture);
-    mozart::StreamConfig stream_config;
-    stream_config.direction = mozart::StreamDirection::Capture;
-    stream_config.sample_rate = MOZART_INPUT_SAMPLE_RATE;
-    if (!stream.Open(stream_config)) {
+    const mozart_stream_handle_t stream = mozart_io_create_udp_stream(
+        "127.0.0.1", server_port, MOZART_IO_DIR_CAPTURE);
+    if (!stream || !mozart_io_open_stream(stream, MOZART_INPUT_SAMPLE_RATE,
+                                           MOZART_INPUT_FRAME_MS, 16)) {
         std::cerr << "failed to open UDP stream\n";
         return 1;
     }
@@ -104,6 +102,7 @@ int main() {
 
     ::close(client_fd);
     worker.stop();
+    mozart_io_destroy_stream(stream);
 
     if (responses != 3) {
         std::cerr << "expected 3 output packets, got " << responses << '\n';

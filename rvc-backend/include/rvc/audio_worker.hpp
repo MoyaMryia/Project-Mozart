@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-#include "mozart/audio_stream.hpp"
+#include "mozart/audio_io.h"
 #include "rvc/pipeline.hpp"
 
 namespace rvc {
@@ -37,7 +37,13 @@ public:
         uint64_t bypass_count = 0;
     };
 
-    AudioWorker(mozart::RealTimeAudioStream& stream,
+    struct VadStats {
+        uint64_t frame_count = 0;
+        uint64_t voiced_frame_count = 0;
+        double confidence_percent = 0.0;
+    };
+
+    AudioWorker(mozart_stream_handle_t stream,
                 RVCPipelineBase& pipeline,
                 Config config);
     ~AudioWorker();
@@ -51,10 +57,11 @@ public:
 
     LatencyStats get_latency_stats() const;
     BypassStats get_bypass_stats() const;
+    VadStats get_vad_stats() const;
     const Config& config() const noexcept { return config_; }
 
 private:
-    mozart::RealTimeAudioStream& stream_;
+    mozart_stream_handle_t stream_ = nullptr;
     RVCPipelineBase& pipeline_;
     Config config_;
 
@@ -67,6 +74,9 @@ private:
     double latency_max_ms_{0.0};
     uint64_t inference_count_{0};
     uint64_t bypass_count_{0};
+    uint64_t vad_frame_count_{0};
+    uint64_t voiced_frame_count_{0};
+    uint64_t vad_confidence_total_{0};
 
     void process_loop();
     void process_frame(const mozart_input_frame_t& input,

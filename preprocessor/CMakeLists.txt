@@ -23,7 +23,7 @@ option(MOZART_USE_RNNOISE "Build and link xiph RNNoise from native/rnnoise/" ON)
 
 # ---- RNNoise native library --------------------------------------------------
 if(MOZART_USE_RNNOISE)
-    set(RNNOISE_SRC_DIR ${CMAKE_SOURCE_DIR}/native/rnnoise/src)
+    set(RNNOISE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/native/rnnoise/src)
 
     add_library(rnnoise STATIC
         ${RNNOISE_SRC_DIR}/denoise.c
@@ -39,7 +39,7 @@ if(MOZART_USE_RNNOISE)
     )
     target_include_directories(rnnoise PRIVATE
         ${RNNOISE_SRC_DIR}
-        ${CMAKE_SOURCE_DIR}/native/rnnoise/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/native/rnnoise/include
     )
     target_compile_definitions(rnnoise PRIVATE
         HAVE_CONFIG_H=1
@@ -71,7 +71,7 @@ target_link_libraries(mozart_pre_core PUBLIC m)
 if(MOZART_USE_RNNOISE)
     target_link_libraries(mozart_pre_core PUBLIC rnnoise)
     target_include_directories(mozart_pre_core PUBLIC
-        ${CMAKE_SOURCE_DIR}/native/rnnoise/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/native/rnnoise/include
     )
     target_compile_definitions(mozart_pre_core PUBLIC MOZART_USE_RNNOISE=1)
 endif()

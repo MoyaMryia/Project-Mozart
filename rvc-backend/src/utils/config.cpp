@@ -10,7 +10,9 @@ Config::Config(const YAML::Node& root) : root_(root) {}
 Config Config::from_yaml(const std::string& path) {
     try {
         YAML::Node root = YAML::LoadFile(path);
-        return Config(root);
+        Config config(root);
+        config.base_dir_ = std::filesystem::absolute(path).parent_path();
+        return config;
     } catch (const YAML::Exception& e) {
         spdlog::error("Failed to load config {}: {}", path, e.what());
         throw;
@@ -41,7 +43,7 @@ YAML::Node Config::resolve_path(const std::string& key) const {
         return it->second;
     }
 
-    YAML::Node node = root_;
+    YAML::Node node = YAML::Clone(root_);
     size_t start = 0;
     while (start < key.size()) {
         size_t dot = key.find('.', start);
@@ -109,6 +111,12 @@ std::string Config::get_string(const std::string& key, const std::string& defaul
         } catch (...) {}
     }
     return default_val;
+}
+
+std::filesystem::path Config::resolve_file_path(const std::string& key,
+                                                 const std::string& default_val) const {
+    const std::filesystem::path path(get_string(key, default_val));
+    return path.is_absolute() ? path : base_dir_ / path;
 }
 
 } // namespace rvc

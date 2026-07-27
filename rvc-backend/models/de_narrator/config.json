@@ -1,0 +1,6 @@
+{
+  "data": {"sampling_rate": 48000},
+  "model": {"emb_channels": 768},
+  "spk": {"id": 0},
+  "f0": true
+}

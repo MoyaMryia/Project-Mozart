@@ -6,10 +6,10 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "utils/config.hpp"
-#include "mozart/udp_stream.hpp"
-#include "api/http_api.hpp"
-#include "rvc/audio_worker.hpp"
+#include "mozart/http_api.hpp"
 #include "rvc/pipeline.hpp"
+#include "state/mode_controller.hpp"
+#include "state/log_store.hpp"
 
 using namespace rvc;
 
@@ -20,12 +20,13 @@ void signal_handler(int signum) {
     g_shutdown.store(true);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     // Setup logging
     auto console = spdlog::stdout_color_mt("console");
     console->set_level(spdlog::level::info);
     console->set_pattern("%Y-%m-%d %H:%M:%S.%e [%^%l%$] %v");
     spdlog::set_default_logger(console);
+    install_backend_log_sink();
 
     spdlog::info("=== RVC Voice Changer Backend (C++) ===");
     spdlog::info("Role: Receives preprocessed contract-stream audio, runs RVC inference");
@@ -33,7 +34,7 @@ int main() {
     // Load configuration
     Config config;
     try {
-        config = Config::default_config();
+        config = argc > 1 ? Config::from_yaml(argv[1]) : Config::default_config();
     } catch (const std::exception& e) {
         spdlog::error("Failed to load config: {}", e.what());
         return 1;
@@ -54,7 +55,11 @@ int main() {
     if (!rmvpe_path_str.empty()) {
         rmvpe_path = rmvpe_path_str;
     }
-    bool mock_mode = config.get_bool("rvc.mock_mode", true);
+    RvcMockConfig mock{
+        config.get_bool("rvc.mock.generator", false),
+        config.get_bool("rvc.mock.hubert", false),
+        config.get_bool("rvc.mock.rmvpe", false)
+    };
     std::string device = config.get_string("rvc.device", "cuda");
     bool half = config.get_bool("rvc.half", false);
 
@@ -68,7 +73,7 @@ int main() {
 
     // Create RVC pipeline
     auto pipeline = RVCPipelineFactory::create(
-        mock_mode,
+        mock,
         models_dir,
         hubert_path,
         rmvpe_path,
@@ -78,30 +83,23 @@ int main() {
         half
     );
 
-    // IO owns network transport; AudioWorker owns inference orchestration.
-    mozart::UdpStream audio_stream(
-        audio_host, audio_port, mozart::StreamDirection::Capture);
-    mozart::StreamConfig stream_config;
-    stream_config.direction = mozart::StreamDirection::Capture;
-    stream_config.sample_rate = input_sample_rate;
-    stream_config.frame_duration_ms = frame_duration_ms;
-    stream_config.ring_capacity = 16;
-
-    AudioWorker::Config worker_config;
-    worker_config.host = audio_host;
-    worker_config.port = audio_port;
-    worker_config.input_sample_rate = input_sample_rate;
-    worker_config.output_sample_rate = output_sample_rate;
-    worker_config.frame_duration_ms = frame_duration_ms;
-    worker_config.skip_silence = skip_silence;
-    AudioWorker audio_worker(audio_stream, *pipeline, worker_config);
+    ModeController::Config controller_config;
+    controller_config.audio_host = audio_host;
+    controller_config.audio_port = audio_port;
+    controller_config.input_sample_rate = input_sample_rate;
+    controller_config.output_sample_rate = output_sample_rate;
+    controller_config.frame_duration_ms = frame_duration_ms;
+    controller_config.skip_silence = skip_silence;
+    controller_config.storage_dir = config.get_string("storage.temp_dir", "./storage/temp");
+    controller_config.ffmpeg_path = config.get_string("storage.ffmpeg_path", "ffmpeg");
+    controller_config.max_queue_depth = static_cast<size_t>(config.get_int("storage.max_queue_depth", 50));
+    controller_config.max_cache_bytes = static_cast<uint64_t>(config.get_int("storage.max_cache_size_mb", 1000)) * 1024ULL * 1024ULL;
+    ModeController controller(*pipeline, controller_config);
 
     // Setup HTTP API server
     HttpApiServer api_server(
         api_host, api_port,
-        pipeline.get(),
-        &audio_worker,
-        models_dir
+        &controller
     );
 
     // Signal handling
@@ -110,11 +108,9 @@ int main() {
 
     // Start servers
     try {
-        if (!audio_stream.Open(stream_config)) {
-            throw std::runtime_error("failed to open UDP audio stream");
+        if (!api_server.start()) {
+            throw std::runtime_error("failed to start HTTP API server");
         }
-        audio_worker.start();
-        api_server.start();
     } catch (const std::exception& e) {
         spdlog::error("Server startup failed: {}", e.what());
         return 1;
@@ -124,7 +120,7 @@ int main() {
         "RVC Voice Changer Backend started. "
         "Contract input: {}Hz, RVC output: {}Hz, frame={}ms, mode={}",
         input_sample_rate, output_sample_rate, frame_duration_ms,
-        mock_mode ? "mock" : "real"
+        mock.generator || mock.hubert || mock.rmvpe ? "partial-mock" : "real"
     );
     spdlog::info("UDP audio: {}:{}", audio_host, audio_port);
     spdlog::info("HTTP API: {}:{}", api_host, api_port);
@@ -132,16 +128,8 @@ int main() {
     // Main loop: print latency stats periodically
     while (!g_shutdown.load()) {
         if (print_latency) {
-            auto stats = audio_worker.get_latency_stats();
-            auto bypass = audio_worker.get_bypass_stats();
-            if (stats.count > 0) {
-                spdlog::info(
-                    "Latency: count={}, avg={:.2f}ms, max={:.2f}ms | "
-                    "Bypass: {} silent frames",
-                    stats.count, stats.avg_ms, stats.max_ms,
-                    bypass.bypass_count
-                );
-            }
+            const auto status = controller.status();
+            spdlog::info("Mode: {}, queued jobs: {}", status.value("mode", "idle"), status["queue"].size());
         }
 
         for (int i = 0; i < latency_interval_sec * 10 && !g_shutdown.load(); ++i) {
@@ -150,7 +138,6 @@ int main() {
     }
 
     // Shutdown
-    audio_worker.stop();
     api_server.stop();
     spdlog::info("Shutdown complete");
     return 0;

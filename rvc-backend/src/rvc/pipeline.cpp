@@ -52,16 +52,20 @@ RealRVCPipeline::RealRVCPipeline(
     uint32_t input_sample_rate,
     uint32_t output_sample_rate,
     const std::string& device,
-    bool half
+    bool half,
+    RvcMockConfig mock,
+    RvcParameters parameters
 )
     : model_manager_(model_manager)
     , input_sample_rate_(input_sample_rate)
     , output_sample_rate_(output_sample_rate)
     , device_(device)
     , half_(half)
+    , mock_(mock)
+    , parameters_(std::move(parameters))
 {
     feature_extractor_ = std::make_shared<FeatureExtractor>(
-        hubert_path, rmvpe_path, device, half
+        hubert_path, rmvpe_path, device, half, mock_.hubert, mock_.rmvpe
     );
     rebuild_inferencer();
 }
@@ -74,9 +78,23 @@ void RealRVCPipeline::rebuild_inferencer() {
     }
     inferencer_ = std::make_shared<RVCInferencer>(
         model, feature_extractor_,
-        input_sample_rate_, output_sample_rate_
+        input_sample_rate_, output_sample_rate_,
+        parameters_.f0_method, parameters_.pitch_shift, parameters_.index_rate,
+        parameters_.filter_radius, parameters_.rms_mix_rate, parameters_.protect
     );
     spdlog::info("RVC inferencer rebuilt for model '{}'", model->id());
+}
+
+bool RealRVCPipeline::set_parameters(const RvcParameters& parameters) {
+    if (parameters.f0_method != "rmvpe" && parameters.f0_method != "harvest" && parameters.f0_method != "pm") return false;
+    if (parameters.pitch_shift < -12 || parameters.pitch_shift > 12) return false;
+    if (parameters.index_rate < 0.0f || parameters.index_rate > 1.0f) return false;
+    if (parameters.filter_radius < 0 || parameters.filter_radius > 7) return false;
+    if (parameters.rms_mix_rate < 0.0f || parameters.rms_mix_rate > 1.0f) return false;
+    if (parameters.protect < 0.0f || parameters.protect > 0.5f) return false;
+    parameters_ = parameters;
+    rebuild_inferencer();
+    return true;
 }
 
 bool RealRVCPipeline::switch_model(const std::string& model_id) {
@@ -109,61 +127,51 @@ std::map<std::string, std::string> RealRVCPipeline::model_info() const {
 }
 
 std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
-    if (!inferencer_) {
-        spdlog::warn("No RVC model loaded; returning mock upsampled input");
+    if (mock_.generator) {
         MockRVCPipeline mock(input_sample_rate_, output_sample_rate_);
         return mock.process(audio);
+    }
+    if (!inferencer_) {
+        throw std::runtime_error("RVC generator is unavailable and rvc.mock.generator is false");
     }
 
-    try {
-        return inferencer_->infer(audio);
-    } catch (const std::exception& e) {
-        spdlog::error("RVC inference failed: {}", e.what());
-        MockRVCPipeline mock(input_sample_rate_, output_sample_rate_);
-        return mock.process(audio);
-    }
+    return inferencer_->infer(audio);
 }
 
 std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
-    bool mock_mode,
+    RvcMockConfig mock,
     const std::filesystem::path& models_dir,
     const std::filesystem::path& hubert_path,
     const std::optional<std::filesystem::path>& rmvpe_path,
     uint32_t input_sample_rate,
     uint32_t output_sample_rate,
     const std::string& device,
-    bool half
+    bool half,
+    RvcParameters parameters
 ) {
-    if (mock_mode) {
-        spdlog::info(
-            "RVC pipeline initialized in MOCK mode ({}Hz -> {}Hz)",
-            input_sample_rate, output_sample_rate
-        );
-        return std::make_unique<MockRVCPipeline>(
-            input_sample_rate, output_sample_rate
-        );
-    }
-
     auto model_manager = std::make_shared<ModelManager>(models_dir, device, half);
-    auto models = model_manager->list_models();
-    for (const auto& m : models) {
-        auto it = m.find("exists");
-        if (it != m.end() && it->second == "true") {
-            try {
-                model_manager->load_model(m.at("id"));
-                break;
-            } catch (...) {}
+    if (!mock.generator) {
+        auto models = model_manager->list_models();
+        for (const auto& m : models) {
+            auto it = m.find("exists");
+            if (it != m.end() && it->second == "true") {
+                try {
+                    model_manager->load_model(m.at("id"));
+                    break;
+                } catch (...) {}
+            }
         }
     }
 
     auto pipeline = std::make_unique<RealRVCPipeline>(
         model_manager, hubert_path, rmvpe_path,
         input_sample_rate, output_sample_rate,
-        device, half
+        device, half, mock, std::move(parameters)
     );
     spdlog::info(
-        "RVC pipeline initialized in REAL mode ({}Hz -> {}Hz)",
-        input_sample_rate, output_sample_rate
+        "RVC pipeline initialized: generator={}, hubert={}, rmvpe={} ({}Hz -> {}Hz)",
+        mock.generator ? "mock" : "real", mock.hubert ? "mock" : "real",
+        mock.rmvpe ? "mock" : "real", input_sample_rate, output_sample_rate
     );
     return pipeline;
 }

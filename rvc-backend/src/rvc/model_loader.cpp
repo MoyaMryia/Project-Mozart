@@ -149,6 +149,10 @@ std::shared_ptr<RVCModel> ModelManager::get_model(const std::string& model_id) {
 }
 
 bool ModelManager::load_model(const std::string& model_id) {
+    if (model_id == current_model_id_) {
+        const auto current = current_model();
+        if (current && current->loaded()) return true;
+    }
     auto model = get_model(model_id);
     if (!model) {
         spdlog::error("Model {} not found", model_id);

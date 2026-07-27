@@ -10,7 +10,7 @@
 
 namespace rvc {
 
-AudioWorker::AudioWorker(mozart::RealTimeAudioStream& stream,
+AudioWorker::AudioWorker(mozart_stream_handle_t stream,
                          RVCPipelineBase& pipeline,
                          Config config)
     : stream_(stream), pipeline_(pipeline), config_(std::move(config))
@@ -23,7 +23,7 @@ AudioWorker::~AudioWorker() {
 void AudioWorker::start() {
     if (running_.exchange(true)) return;
     if (worker_thread_.joinable()) worker_thread_.join();
-    if (!stream_.IsOpen()) {
+    if (!mozart_io_is_stream_open(stream_)) {
         running_ = false;
         throw std::runtime_error("audio stream must be open before AudioWorker::start");
     }
@@ -39,7 +39,7 @@ void AudioWorker::start() {
 void AudioWorker::stop() {
     const bool was_running = running_.exchange(false);
     // Closing the stream releases a blocking ReadFrame during mode changes.
-    if (was_running && stream_.IsOpen()) stream_.Close();
+    if (was_running && mozart_io_is_stream_open(stream_)) mozart_io_close_stream(stream_);
     if (worker_thread_.joinable()) worker_thread_.join();
 }
 
@@ -51,15 +51,15 @@ void AudioWorker::process_loop() {
 
     while (running_.load()) {
         mozart_input_frame_t input{};
-        if (!stream_.ReadFrame(&input, sizeof(input))) {
-            if (!running_.load() || !stream_.IsOpen()) break;
+        if (!mozart_io_read_frame(stream_, &input, sizeof(input))) {
+            if (!running_.load() || !mozart_io_is_stream_open(stream_)) break;
             continue;
         }
 
         const auto started = std::chrono::steady_clock::now();
         mozart_output_frame_t output{};
         process_frame(input, output);
-        if (!stream_.WriteFrame(&output, sizeof(output)) && running_.load()) {
+        if (!mozart_io_write_frame(stream_, &output, sizeof(output)) && running_.load()) {
             spdlog::warn("AudioWorker failed to write output frame {}",
                          output.meta.frame_idx);
         }
@@ -79,6 +79,12 @@ void AudioWorker::process_loop() {
 void AudioWorker::process_frame(const mozart_input_frame_t& input,
                                 mozart_output_frame_t& output) {
     output.meta = input.meta;
+    {
+        std::lock_guard<std::mutex> lock(stats_mutex_);
+        ++vad_frame_count_;
+        voiced_frame_count_ += input.meta.vad_flag != 0;
+        vad_confidence_total_ += input.meta.conf;
+    }
 
     if (config_.skip_silence && input.meta.vad_flag == 0) {
         std::memset(output.pcm, 0, sizeof(output.pcm));
@@ -114,6 +120,12 @@ AudioWorker::LatencyStats AudioWorker::get_latency_stats() const {
 AudioWorker::BypassStats AudioWorker::get_bypass_stats() const {
     std::lock_guard<std::mutex> lock(stats_mutex_);
     return {inference_count_, bypass_count_};
+}
+
+AudioWorker::VadStats AudioWorker::get_vad_stats() const {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    return {vad_frame_count_, voiced_frame_count_,
+            vad_frame_count_ == 0 ? 0.0 : 100.0 * vad_confidence_total_ / (255.0 * vad_frame_count_)};
 }
 
 } // namespace rvc

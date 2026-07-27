@@ -16,6 +16,7 @@ public:
         std::shared_ptr<FeatureExtractor> feature_extractor,
         uint32_t input_sample_rate = 16000,
         uint32_t output_sample_rate = 48000,
+        std::string f0_method = "rmvpe",
         int pitch_shift = 0,
         float index_rate = 0.75f,
         int filter_radius = 3,
@@ -30,6 +31,7 @@ private:
     std::shared_ptr<FeatureExtractor> feature_extractor_;
     uint32_t input_sample_rate_;
     uint32_t output_sample_rate_;
+    std::string f0_method_;
     int pitch_shift_;
     float index_rate_;
     int filter_radius_;

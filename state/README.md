@@ -1,6 +1,8 @@
-# Project Mozart · 状态管理与资源编排器 (state_manager)
+# Project Mozart · 状态管理与资源编排器 (state)
 
-`state_manager` 模块负责 Project Mozart 后端的全局生命周期管理、I/O 设备重定向、显存/模型智能置换以及多线程算力调度编排。
+`state` 模块负责 Project Mozart 后端的全局生命周期管理、I/O 设备重定向、显存/模型智能置换以及多线程算力调度编排。
+
+当前可执行入口为根目录构建产物 `build/state/mozart_stated`。它是唯一的进程组合根：创建 API 控制面、RVC runtime、实时 worker、文件 worker 与任务队列；`rvc_backend` 保留为兼容旧部署脚本的入口。
 
 其核心设计目标是在 NVIDIA Jetson Orin Nano (8GB VRAM) 共享内存架构下实现**极高吞吐、极低延迟以及不爆音 (Fail-safe) 的强互斥系统稳定性**。
 
@@ -18,11 +20,11 @@
 
 状态机遵循 **控制面与数据面解耦（Control-Data Plane Separation）** 的架构原则：
 * **数据面（Data Plane）**：音频采样点数组的捕获、清洗（降噪/高通/降采样）、特征提取及模型推理，完全在后台线程（如 I/O 线程、Preprocessor Worker、Inference Worker）中通过**无锁队列**自主闭环流动。
-* **控制面（Control Plane）**：`state_manager` **绝不触碰任何音频数据指针，也不执行具体波形运算**。它仅在收到 API 状态切换请求时，通过操作三大生命周期门面（Lifecycle Facades）来间接指挥全链路：
+* **控制面（Control Plane）**：`state` **绝不触碰任何音频数据指针，也不执行具体波形运算**。它仅在收到 API 状态切换请求时，通过操作三大生命周期门面（Lifecycle Facades）来间接指挥全链路：
 
 ```
                              ┌─────────────────┐
-                             │  state_manager  │
+                              │     state       │
                              └────────┬────────┘
                                       │
            ┌──────────────────────────┼──────────────────────────┐
@@ -38,6 +40,12 @@
 1. **模型大类判定**：若检测到大类变更（如从 RVC 切换为 Zero-Shot VC），控制面首先调用 `Model Facade` 卸载旧大类显存，并执行显式垃圾回收（Python `gc.collect()` 或 C++ `cudaDeviceReset`），之后载入新模型，规避 8GB 共享内存 OOM。
 2. **I/O 链路重构**：调用 `IO Facade`（`mozart_io_open_stream`），分配合适大小的无锁环形队列，并激活或断开对应的物理/网络通道。
 3. **工作线程激活**：调用 `Worker Facade`（`AudioWorker::start()`）拉起消费线程，数据管道开始流动。
+
+### 当前 Worker 划分
+
+* `RealtimeRvcWorker`：通过 `audio_io.h` 的 C ABI 创建、打开、关闭和销毁 UDP 契约流，并启动或停止 `AudioWorker`。
+* `FileRvcWorker`：单任务数据面 worker，负责 FFmpeg 解码、`mozart_pre_*` 预处理生命周期、RVC 推理、原子 WAV 输出和取消检查。
+* `ModeController`：只维护状态、资源所有权、队列、待切换槽和 worker 的 `start/stop` 调用；不直接处理 PCM 数据。
 
 ---
 
@@ -94,7 +102,7 @@
 
 ## 5. 文件缓存与阈值逐退机制 (Post-job Eviction)
 
-`state_manager` 监督本地扁平缓存目录 `storage/temp/`：
+`state` 监督本地扁平缓存目录 `storage/temp/`：
 * **重命名规则**：所有临时文件均使用微秒级 Unix 时间戳命名（如 `[timestamp]_input.mp3` 及 `[timestamp]_output.wav`），以无用户系统形态规避名字冲突，并实现自然的时间先后排序。
 * **逐退算法**：
   每次完成新文件写入时，异步触发容量审计。
