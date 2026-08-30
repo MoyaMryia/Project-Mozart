@@ -123,6 +123,7 @@ endif()
 # ══════════════════════════════════════════════════════════
 set(RUNTIME_SOURCES
     src/rvc/audio_worker.cpp
+    src/rvc/streaming_pipeline.cpp
     src/rvc/pipeline.cpp
     src/rvc/inferencer.cpp
     src/rvc/feature_extractor.cpp
@@ -139,6 +140,7 @@ set(RUNTIME_SOURCES
 set(HEADERS
     include/common.hpp
     include/rvc/audio_worker.hpp
+    include/rvc/streaming_pipeline.hpp
     include/rvc/pipeline.hpp
     include/rvc/inferencer.hpp
     include/rvc/feature_extractor.hpp
@@ -204,6 +206,7 @@ if(BUILD_TESTS)
     enable_testing()
     add_executable(test_udp_loopback tests/test_udp_loopback.cpp
         src/rvc/audio_worker.cpp
+        src/rvc/streaming_pipeline.cpp
         src/rvc/pipeline.cpp
         src/rvc/inferencer.cpp
         src/rvc/feature_extractor.cpp
@@ -227,6 +230,20 @@ if(BUILD_TESTS)
         target_link_libraries(test_udp_loopback PRIVATE ${ONNX_RUNTIME_LIB})
     endif()
     add_test(NAME rvc_udp_loopback COMMAND test_udp_loopback)
+
+    add_executable(test_streaming tests/test_streaming.cpp
+        src/rvc/streaming_pipeline.cpp
+    )
+    target_include_directories(test_streaming PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../IO/include)
+    if(USE_ONNX AND ONNX_RUNTIME_LIB)
+        target_include_directories(test_streaming PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+    endif()
+    target_link_libraries(test_streaming PRIVATE
+        spdlog::spdlog
+        Threads::Threads
+        ${ONNX_RUNTIME_LIB}
+    )
+    add_test(NAME test_streaming COMMAND test_streaming)
 
     add_executable(test_feature_extractor tests/test_feature_extractor.cpp
         src/rvc/feature_extractor.cpp
