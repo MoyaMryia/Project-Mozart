@@ -10,6 +10,11 @@
 
 namespace rvc {
 
+namespace {
+// pts 可信（非离线合成 0 值）时用于端到端延迟统计
+constexpr uint64_t kMinPlausiblePtsNs = 1000000000ull; // >1s 说明是真时钟
+} // namespace
+
 AudioWorker::AudioWorker(mozart_stream_handle_t stream,
                          RVCPipelineBase& pipeline,
                          Config config)
@@ -33,6 +38,19 @@ void AudioWorker::start() {
         running_ = false;
         throw std::invalid_argument("AudioWorker config does not match the fixed IO contract");
     }
+
+    stream_mode_ = !pipeline_.is_mock();
+    if (stream_mode_) {
+        StreamingRvc::Config scfg;
+        scfg.skip_silence = config_.skip_silence;
+        streaming_ = std::make_unique<StreamingRvc>(scfg);
+        inference_thread_ = std::thread([this] {
+            streaming_->inference_loop(pipeline_, running_);
+        });
+        spdlog::info("AudioWorker stream mode: sliding window (2s) + 50ms crossfade");
+    } else {
+        spdlog::info("AudioWorker frame mode (mock pipeline)");
+    }
     worker_thread_ = std::thread(&AudioWorker::process_loop, this);
 }
 
@@ -40,7 +58,17 @@ void AudioWorker::stop() {
     const bool was_running = running_.exchange(false);
     // Closing the stream releases a blocking ReadFrame during mode changes.
     if (was_running && mozart_io_is_stream_open(stream_)) mozart_io_close_stream(stream_);
+    if (inference_thread_.joinable()) inference_thread_.join();
     if (worker_thread_.joinable()) worker_thread_.join();
+    streaming_.reset();
+}
+
+void AudioWorker::record_input_meta(const mozart_input_frame_t& input)
+{
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    ++vad_frame_count_;
+    voiced_frame_count_ += input.meta.vad_flag != 0;
+    vad_confidence_total_ += input.meta.conf;
 }
 
 void AudioWorker::process_loop() {
@@ -55,36 +83,53 @@ void AudioWorker::process_loop() {
             if (!running_.load() || !mozart_io_is_stream_open(stream_)) break;
             continue;
         }
+        record_input_meta(input);
 
         const auto started = std::chrono::steady_clock::now();
         mozart_output_frame_t output{};
-        process_frame(input, output);
+        if (stream_mode_) {
+            output.meta = input.meta;
+            streaming_->push(input);
+            const size_t got = streaming_->pop_output(
+                output.pcm, MOZART_OUTPUT_SAMPLES);
+            if (got < MOZART_OUTPUT_SAMPLES) {
+                std::fill(output.pcm + got, output.pcm + MOZART_OUTPUT_SAMPLES, 0.0f);
+                std::lock_guard<std::mutex> lock(stats_mutex_);
+                ++underrun_count_;
+            }
+        } else {
+            process_frame(input, output);
+        }
         if (!mozart_io_write_frame(stream_, &output, sizeof(output)) && running_.load()) {
             spdlog::warn("AudioWorker failed to write output frame {}",
                          output.meta.frame_idx);
         }
 
-        const double elapsed_ms = std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - started).count();
+        // 流式模式优先用 pts 算真实端到端延迟；否则退化为泵耗时
+        double measured_ms;
+        if (stream_mode_ && input.meta.pts_ns > kMinPlausiblePtsNs) {
+            const auto now_ns = static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count());
+            measured_ms = static_cast<double>(now_ns - input.meta.pts_ns) / 1e6;
+        } else {
+            measured_ms = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - started).count();
+        }
         std::lock_guard<std::mutex> lock(stats_mutex_);
         ++latency_count_;
-        latency_total_ms_ += elapsed_ms;
-        latency_max_ms_ = std::max(latency_max_ms_, elapsed_ms);
+        latency_total_ms_ += measured_ms;
+        latency_max_ms_ = std::max(latency_max_ms_, measured_ms);
     }
 
     running_ = false;
     spdlog::info("AudioWorker stopped");
 }
 
+
 void AudioWorker::process_frame(const mozart_input_frame_t& input,
                                 mozart_output_frame_t& output) {
     output.meta = input.meta;
-    {
-        std::lock_guard<std::mutex> lock(stats_mutex_);
-        ++vad_frame_count_;
-        voiced_frame_count_ += input.meta.vad_flag != 0;
-        vad_confidence_total_ += input.meta.conf;
-    }
 
     if (config_.skip_silence && input.meta.vad_flag == 0) {
         std::memset(output.pcm, 0, sizeof(output.pcm));
@@ -126,6 +171,22 @@ AudioWorker::VadStats AudioWorker::get_vad_stats() const {
     std::lock_guard<std::mutex> lock(stats_mutex_);
     return {vad_frame_count_, voiced_frame_count_,
             vad_frame_count_ == 0 ? 0.0 : 100.0 * vad_confidence_total_ / (255.0 * vad_frame_count_)};
+}
+
+AudioWorker::StreamStats AudioWorker::get_stream_stats() const {
+    StreamStats s;
+    if (streaming_) {
+        s.blocks = streaming_->stats().blocks.load();
+        s.skipped_blocks = streaming_->stats().skipped_blocks.load();
+        s.resets = streaming_->stats().resets.load();
+        s.late_blocks = streaming_->stats().late_blocks.load();
+        s.input_overruns = streaming_->stats().input_overruns.load();
+        s.output_overruns = streaming_->stats().output_overruns.load();
+        s.inference_errors = streaming_->stats().inference_errors.load();
+    }
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    s.output_underruns = underrun_count_;
+    return s;
 }
 
 } // namespace rvc
