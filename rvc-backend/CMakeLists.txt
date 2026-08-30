@@ -212,11 +212,15 @@ if(BUILD_TESTS)
         src/rvc/index_search.cpp
     )
     target_include_directories(test_udp_loopback PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    if(USE_ONNX AND ONNX_RUNTIME_LIB)
+        target_include_directories(test_udp_loopback PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+    endif()
     target_link_libraries(test_udp_loopback PRIVATE
         mozart_io
         spdlog::spdlog
         Threads::Threads
         nlohmann_json::nlohmann_json
+        ${ONNX_RUNTIME_LIB}
     )
     if(USE_ONNX AND ONNX_RUNTIME_LIB)
         target_include_directories(test_udp_loopback PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
@@ -229,8 +233,12 @@ if(BUILD_TESTS)
         src/rvc/onnx_engine.cpp
     )
     target_include_directories(test_feature_extractor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    if(USE_ONNX AND ONNX_RUNTIME_LIB)
+        target_include_directories(test_feature_extractor PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+    endif()
     target_link_libraries(test_feature_extractor PRIVATE
         spdlog::spdlog
+        ${ONNX_RUNTIME_LIB}
     )
     if(USE_ONNX AND ONNX_RUNTIME_LIB)
         target_include_directories(test_feature_extractor PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
@@ -246,9 +254,13 @@ if(BUILD_TESTS)
         src/rvc/index_search.cpp
     )
     target_include_directories(test_inferencer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    if(USE_ONNX AND ONNX_RUNTIME_LIB)
+        target_include_directories(test_inferencer PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+    endif()
     target_link_libraries(test_inferencer PRIVATE
         spdlog::spdlog
         nlohmann_json::nlohmann_json
+        ${ONNX_RUNTIME_LIB}
     )
     if(USE_ONNX AND ONNX_RUNTIME_LIB)
         target_include_directories(test_inferencer PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
