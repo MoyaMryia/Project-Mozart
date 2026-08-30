@@ -79,11 +79,11 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
 
 ### P2 — 文字路
 
-- [ ] **STT 选型已定向：sherpa-onnx 流式**（中文流式 Zipformer，~300MB，CPU 实时 RTF~0.1x，不抢 GPU）。实施顺序：
-  - [ ] mozart-pre 双发（加 `-b` 第二目标参数，~10 行）
-  - [ ] stt-service 独立进程收流 + sherpa-onnx 跑通出字（独立进程而非内嵌后端，字幕路崩溃不影响变声）
-  - [ ] `segment_id` 驱动断句：段内喂解码器出 partial，段切换出 final（预处理已发 vad/segment，**不用再挂 VAD**）。注意 u8 回绕；退段固定 +500ms 句尾延迟（可用 partial 翻译掩盖）
-  - [ ] llama.cpp 改 `llama-server` 常驻（cli 每次加载 ~3-4s 不可接受），`-c 2048` 必须（默认 262144 会 OOM）；句级 final 送翻译
+- [x] **STT 选型已定向：sherpa-onnx 流式**（中文流式 Zipformer，~300MB，CPU 实时 RTF~0.1x，不抢 GPU）。实施顺序：
+  - [x] mozart-pre 双发（`-b IP:端口`，发送失败不致命）✅ 2026-08-30
+  - [x] stt-service 独立进程收流 + sherpa-onnx 出字（`tools/stt_service.py`，模型 `~/models/sherpa-onnx/zipformer-zh-14M`，54MB，hf-mirror 下载）✅ 实测 2 final 句
+  - [x] `segment_id` 驱动断句（段切换出 final；+1s 空闲兜底断句；partial 去重）✅
+  - [ ] llama.cpp 改 `llama-server` 常驻（cli 每次加载 ~3-4s 不可接受），`-c 2048` 必须（默认 262144 会 OOM）；stt-service `--json` 的 final 句队列送翻译（下一项工作）
   - [ ] 字幕输出端（WebSocket → 前端）；流式 ASR 无标点 → 用翻译结果（自带标点）整句替换
   - [ ] 并发验证 ASR 加入后的三方共存（内存预算：RVC ~2GB + LLM ~1.2GB + ASR ~0.3GB < 7.4GB，余量足）
 - [ ] TTS：**决策不做**（TARGET 文字路终点是字幕）。若将来要"翻译配音"，从 piper 起步，输出可直接灌 RVC 链统一音色
