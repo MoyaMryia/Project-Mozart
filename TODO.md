@@ -11,7 +11,7 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
 
 ---
 
-## 0.5 已完成（2026-08-30 会话，代码未提交）
+## 0.5 已完成（2026-08-30 会话）
 
 - [x] **preprocessor 重写为 `mozart-pre` daemon**（删 stage/pipeline 死抽象 + wet/dry 启发式 + 离线 demo）：
   - `src/capture.c` — ALSA 采集：S16_LE / 2ch / 48k / period 960（20ms），overrun 自动恢复+计数。麦克风契约：PCM S16_LE、FL/FR 两路为同信号副本（差 2 采样）→ 只取 FL 避免梳状滤波。**注意：USB 麦尚未插板验证 live 采集（arecord -l 当前只有 APE）**
@@ -19,6 +19,9 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - `src/wav.c` + `-i` 离线模式 — 无麦克风可全链验证
   - 单测 5 组全过（FL 取样/FR 隔离/直通增益/元数据/reset），构建零警告
 - [x] **闭环验证**：1000 帧 UDP 包格式正确（1300B / magic 0x4D5A5254 / idx 递增）；rvc-backend 实际收流 200 帧无错误（mock 直通模式）
+- [x] **RNNoise 权重出代码**：78MB `rnnoise_data.c` 移除，模型走 `assets/rnnoise_default.rnnb`（14MB blob）运行时加载（USE_WEIGHTS_FILE），librnnoise.a 12MB→242KB；切换前后 PCM SHA256 bit-exact；顺手修上游 fopen NULL 段错误
+- [x] **P0 滑窗分块（2026-08-30）**：`StreamingRvc` 落地——2s 窗（T=200 死约束）→ 独立推理线程 → 最小 60ms 交叉淡化拼接 → 输出环。稳态延迟 ≈ 2s + 推理（50% hann OLA 因 +1s 尾巴被否决）。hop=31040（97 帧整，避免帧量化漂移）；不连续（idx 缺口/segment 变化/pts 跳变）全量重置；静音窗跳推理；块异常降级静音不崩。单测逐样本连续性对拍通过；后端冒烟 400 帧→恰好 4 窗调度。AudioWorker 双模式：mock 保持 1:1 帧路零附加延迟
+- [x] **live 麦克风实测**：HK MIC（ff0f:0001）契约与实测完全一致，mozart-pre live 250 帧无 overrun；板载增益已顶满（15.6dB）
 - [x] **产品决策**：TTS 不做（翻译终点是字幕）；STT 选型定向 sherpa-onnx 流式（详见 P2）
 
 ---
@@ -59,9 +62,10 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
 
 ### P0 — 实时路能出声的前提
 
-- [ ] **AudioWorker 改滑动窗口分块**：攒 2s 环形缓冲 → RMVPE 按 1.28s 窗、HuBERT 按 0.2s 窗、Generator 按 T=200 块各自调度 → 输出 50% 重叠 + 交叉淡化拼接。当前逐帧 320 样本喂数链路作废（HuBERT 在 320 样本直接报错，Generator 引擎只认 T=200）。
-  - 已知漏点（2026-08-30 盘点）：丢帧造成时间轴空洞（需丢弃检测→重置窗口）；VAD bypass 与滑窗语义冲突；`switch_model` 无锁竞态被放大；RMVPE 1.28s 窗与 Generator 2s 块的 F0 对齐；fallback 直通也须过同一交叉淡化状态机；冷启动不满窗（建议直通透传）；segment_id 切换须清样本环/块队列/OLA 状态；stats 按 20ms 帧算的口径失真
-- [ ] **延迟目标改写**：30ms 目标废弃（DESIGN.md §1 需同步改），新目标 = 端到端 ~200-500ms + 无爆音 + 人耳无感。注意：2s 窗 + 1s hop 的稳态延迟实际 ~2-3s，与 500ms 目标矛盾，**待拍板**（Generator 只认 T=200=2s，没得选）
+- [x] **AudioWorker 改滑动窗口分块**（2026-08-30 完成，见 §0.5）：StreamingRvc 落地，剩余为真模型实测调优。
+  - 残留调优点：块边界音质需真模型出声后主观评估（60ms 淡化是否足够）；冷启动首窗前输出静音（可改直通透传但会有跳变）；switch_model 与推理线程竞态仍无锁保护
+- [x] **延迟目标改写**：新目标 = 端到端 2s + 推理 + 60ms（Generator T=200 架构死约束，30ms/500ms 均不可达；DESIGN.md §1 待同步）
+- [ ] **真模型出声验证**：放好 HuBERT/RMVPE/Generator 模型 → mozart-pre live → 滑窗全链 → 主观听感 + /api/status 延迟数字
 - [ ] **补全扬声器出声路径**（方案 A）：mozart-pre 加"收回包"——同进程收 3860B 输出包 → ALSA 播放（48k mono float→S16 立体声复制）。不依赖滑窗，配 mock 即可先验证时钟；回包 pts_ns 透传可量真实端到端延迟。备选：独立 player 工具 / PipeWire 直连（demo 前不碰）
 
 ### P1 — GPU 推理落地
