@@ -41,8 +41,9 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
     const uintmax_t input_bytes = std::filesystem::file_size(raw_input, filesystem_error);
     std::ifstream input(raw_input, std::ios::binary);
     std::ofstream output(raw_output, std::ios::binary | std::ios::trunc);
-    mozart_pre_config_t pre_config{};
-    mozart_pre_ctx_t* preprocessor = mozart_pre_init(&pre_config);
+    mozart_dsp_config_t dsp_config{};
+    dsp_config.rnnoise = true;
+    mozart_dsp_t* preprocessor = mozart_dsp_new(&dsp_config);
     if (!input || !output || !preprocessor) {
         error = "failed to initialize offline preprocessing";
         std::filesystem::remove(raw_input, filesystem_error);
@@ -116,16 +117,28 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
         }
         const size_t samples_read = static_cast<size_t>(bytes_read) / sizeof(float);
         std::fill(raw_frame.begin() + static_cast<std::ptrdiff_t>(samples_read), raw_frame.end(), 0.0f);
-        mozart_frame_meta_t meta{};
-        float contract_frame[MOZART_INPUT_SAMPLES]{};
-        if (mozart_pre_process(preprocessor, raw_frame.data(), MOZART_RAW_SAMPLES, contract_frame, &meta) != 0) {
+        // New preprocessor contract: 48 kHz interleaved S16 stereo in.
+        // Offline input is f32 mono — clamp, quantize, duplicate to both channels.
+        int16_t stereo_frame[MOZART_RAW_SAMPLES * 2];
+        for (size_t i = 0; i < MOZART_RAW_SAMPLES; ++i) {
+            float s = raw_frame[i];
+            if (s > 1.0f) s = 1.0f;
+            if (s < -1.0f) s = -1.0f;
+            const auto v = static_cast<int16_t>(s * 32767.0f);
+            stereo_frame[2 * i] = v;
+            stereo_frame[2 * i + 1] = v;
+        }
+        mozart_input_frame_t contract{};
+        if (mozart_dsp_process(preprocessor, stereo_frame, &contract) != 0) {
             error = "preprocessor failed";
             succeeded = false;
             break;
         }
-        if (meta.vad_flag == 0) std::fill(std::begin(contract_frame), std::end(contract_frame), 0.0f);
-        contract_chunk.insert(contract_chunk.end(), contract_frame, contract_frame + MOZART_INPUT_SAMPLES);
-        voiced_frames.push_back(meta.vad_flag != 0);
+        if (contract.meta.vad_flag == 0) {
+            std::fill(std::begin(contract.pcm), std::end(contract.pcm), 0.0f);
+        }
+        contract_chunk.insert(contract_chunk.end(), contract.pcm, contract.pcm + MOZART_INPUT_SAMPLES);
+        voiced_frames.push_back(contract.meta.vad_flag != 0);
         source_output_samples += samples_read;
         processed_bytes += static_cast<uintmax_t>(bytes_read);
         if (input_bytes > 0) progress(std::min(99, static_cast<int>(processed_bytes * 100 / input_bytes)));
@@ -136,7 +149,7 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
         if (!succeeded) break;
     }
     if (succeeded && !cancelled.load()) process_chunk(source_output_samples);
-    mozart_pre_free(preprocessor);
+    mozart_dsp_free(preprocessor);
     input.close();
     output.close();
 
