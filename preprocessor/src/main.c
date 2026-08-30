@@ -1,12 +1,13 @@
 // main.c — mozart-pre：USB 麦克风采集 → DSP 链 → MZRT UDP 发送
 // ============================================================================
 // 实时模式：
-//   mozart-pre [-d <alsa 设备>] [-a <目标 IP>] [-p <目标端口>] [-n <帧数>]
-//              [--no-rnnoise] [--model <path.rnnoise>]
+//   mozart-pre [-d <alsa 设备>] [-a <目标 IP>] [-p <目标端口>] [-b <第二目标IP:端口>]
+//              [-n <帧数>] [--no-rnnoise] [--model <path.rnnoise>]
 // 离线模式（无麦克风验证链路，输入须 48k/立体声/PCM16 WAV）：
 //   mozart-pre -i <input.wav> [其余参数同上，-n 默认无限循环]
 //
 // 输出：MZRT 输入契约包（20B 头 + 320×4B PCM = 1300B）逐帧 UDP 发送。
+// -b 第二目标（如 STT 服务）：同一帧双发；发送失败不致命（目标离线继续跑）。
 #define _POSIX_C_SOURCE 200809L
 #include "mozart.h"
 
@@ -63,6 +64,7 @@ int main(int argc, char **argv)
 {
     const char *device = "default";
     const char *host = "127.0.0.1";
+    const char *second_target = NULL;
     const char *wav_path = NULL;
     const char *rn_model = NULL;
     bool use_rnnoise = true;
@@ -73,6 +75,7 @@ int main(int argc, char **argv)
         if (!strcmp(argv[i], "-d") && i + 1 < argc) device = argv[++i];
         else if (!strcmp(argv[i], "-a") && i + 1 < argc) host = argv[++i];
         else if (!strcmp(argv[i], "-p") && i + 1 < argc) port = (uint16_t)atoi(argv[++i]);
+        else if (!strcmp(argv[i], "-b") && i + 1 < argc) second_target = argv[++i];
         else if (!strcmp(argv[i], "-n") && i + 1 < argc) max_frames = atol(argv[++i]);
         else if (!strcmp(argv[i], "-i") && i + 1 < argc) wav_path = argv[++i];
         else if (!strcmp(argv[i], "--no-rnnoise")) use_rnnoise = false;
@@ -88,6 +91,18 @@ int main(int argc, char **argv)
     // ---- UDP 发送端 ----
     int fd = udp_open(host, port);
     if (fd < 0) return 1;
+    int fd2 = -1;
+    if (second_target) {
+        char ip[64] = {0};
+        unsigned p = 0;
+        if (sscanf(second_target, "%63[^:]:%u", ip, &p) != 2) {
+            fprintf(stderr, "[pre] -b 需要格式 IP:端口，得到: %s\n", second_target);
+            return 1;
+        }
+        fd2 = udp_open(ip, (uint16_t)p);
+        if (fd2 < 0) return 1;
+        fprintf(stderr, "[pre] 双发第二目标: %s:%u\n", ip, p);
+    }
 
     // ---- DSP 链 ----
     mozart_dsp_config_t dcfg = { .rnnoise = use_rnnoise, .rnnoise_model = rn_model };
@@ -117,7 +132,7 @@ int main(int argc, char **argv)
     // MZRT 输入包：4B magic(LE) + 16B meta + 320×4B PCM = 1300B
     unsigned char pkt[4 + sizeof(frame)];
     pkt[0] = 0x54; pkt[1] = 0x52; pkt[2] = 0x5A; pkt[3] = 0x4D; // 'MZRT' LE
-    long sent = 0, overruns = 0;
+    long sent = 0, overruns = 0, send_errors = 0;
     uint64_t t0 = mozart_now_ns();
 
     while (!g_stop && (max_frames == 0 || sent < max_frames)) {
@@ -147,9 +162,13 @@ int main(int argc, char **argv)
             break;
         }
         memcpy(pkt + 4, &frame, sizeof(frame));
-        if (send(fd, pkt, sizeof(pkt), 0) != (ssize_t)sizeof(pkt)) {
-            perror("[pre] send");
-            break;
+        bool sent_ok = send(fd, pkt, sizeof(pkt), 0) == (ssize_t)sizeof(pkt);
+        if (fd2 >= 0 && send(fd2, pkt, sizeof(pkt), 0) != (ssize_t)sizeof(pkt))
+            sent_ok = false;
+        if (!sent_ok) {
+            // 目标离线不致命（双发场景常见）：计数并继续，每 250 帧提醒一次
+            if (++send_errors % 250 == 1)
+                perror("[pre] send（继续运行）");
         }
         sent++;
 
