@@ -1,41 +1,16 @@
-// mozart.h — Public C ABI for the Mozart preprocessing pipeline.
+// mozart.h — preprocessor 公共头（伞头文件）
 // ============================================================================
-// This is the only preprocessing header a downstream consumer needs.
-// It defines:
-//   - The preprocessing lifecycle and configuration.
-//   - Audio contract types imported from the shared IO module.
-//   - mozart_pre_config_t  — Pipeline configuration.
-//   - mozart_pre_*()       — Lifecycle: init → process → free.
-//
+// 下游只需 include 本文件。契约帧类型来自 IO/include/mozart/frame_meta.h
+// （唯一定义源）。
 #ifndef MOZART_H
 #define MOZART_H
 
 #include "mozart/frame_meta.h"
+#include "mozart/rnnoise.h"
+#include "mozart/dsp.h"
+#include "mozart/capture.h"
+#include "mozart/wav.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// ---- Opaque pipeline handle --------------------------------------------------
-typedef struct mozart_pre_ctx mozart_pre_ctx_t;
-
-// ---- Configuration -----------------------------------------------------------
-typedef struct {
-    const char *rnnoise_model;   /**< Path to .rnnoise model file (NULL = embedded). */
-    int         enable_aec;      /**< Enable acoustic echo cancellation (reserved). */
-} mozart_pre_config_t;
-
-// ---- Lifecycle ---------------------------------------------------------------
-mozart_pre_ctx_t *mozart_pre_init   (const mozart_pre_config_t *cfg);
-int               mozart_pre_process(mozart_pre_ctx_t *ctx,
-                                     const float *in, int in_samples,
-                                     float out[MOZART_INPUT_SAMPLES],
-                                     mozart_frame_meta_t *meta);
-void              mozart_pre_free   (mozart_pre_ctx_t *ctx);
-const char       *mozart_pre_version(void);
-
-#ifdef __cplusplus
-}
-#endif
+#define MOZART_PRE_VERSION "0.2.0"
 
 #endif /* MOZART_H */
