@@ -19,6 +19,15 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
         session_opts_->SetIntraOpNumThreads(2);
         session_opts_->SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
 
+#ifdef USE_CUDA_EP
+        // Opt-in GPU path: requires an ONNX Runtime build that ships the CUDA EP.
+        // Enable with -DUSE_CUDA_EP=ON once a CUDA-enabled libonnxruntime is installed.
+        // Default build (CPU-only ORT) must NOT define this, or linking fails.
+        Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(
+            session_opts_.get(), /*device_id=*/0));
+        spdlog::info("CUDA execution provider attached for {}", model_path.string());
+#endif
+
         session_ = std::make_unique<Ort::Session>(
             *env_, model_path.c_str(), *session_opts_
         );
