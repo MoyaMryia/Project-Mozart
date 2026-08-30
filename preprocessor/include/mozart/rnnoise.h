@@ -1,31 +1,39 @@
-// rnnoise.h — RNNoise denoiser stage constructor.
+// rnnoise.h — RNNoise 降噪器（纯 API，无 stage 抽象）
 // ============================================================================
-// Creates a mozart_stage_t that wraps xiph.org's RNNoise real-time noise
-// suppressor.  The stage can be inserted into any pipeline position.
+// RNNoise 原生工作在 48 kHz / 10 ms（480 样本）帧。本模块内部完成
+// ±32768 缩放（RNNoise 期望 int16 电平范围），调用方直接传 ±1.0 归一化
+// float。
 //
-// Two compile-time modes:
-//   MOZART_USE_RNNOISE=1  — Links native/rnnoise/; real GRU-based denoising.
-//   (undefined)            — Passthrough stub; copies input → output unchanged.
+// 输出策略为"全湿"：直接输出 100% 降噪信号，不做 wet/dry 混合。
 #ifndef MOZART_RNNOISE_H
 #define MOZART_RNNOISE_H
 
-#include "mozart/stage.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct mozart_rnnoise mozart_rnnoise_t;
+
+/** 创建降噪器。model_path 为 NULL 时使用内置默认模型。失败返回 NULL。 */
+mozart_rnnoise_t *mozart_rnnoise_new(const char *model_path);
+
 /**
- * Create an RNNoise denoiser stage.
- *
- * @param model_path  Path to a .rnnoise model file, or NULL to use the
- *                    compiled-in default model.
- * @return            Heap-allocated stage.
+ * 处理一帧（480 样本 @48 kHz）。
+ * in/out 可指向同一缓冲（原地处理）。vad_prob 输出 [0,1] 语音概率，可为 NULL。
+ * @return 0 成功，负数失败。
  */
-mozart_stage_t *mozart_rnnoise_new(const char *model_path);
+int mozart_rnnoise_process(mozart_rnnoise_t *rn, const float *in,
+                           float *out, float *vad_prob);
+
+/** 清空内部 GRU/FIR 状态（segment 切换时调用）。 */
+void mozart_rnnoise_reset(mozart_rnnoise_t *rn);
+
+void mozart_rnnoise_free(mozart_rnnoise_t *rn);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MOZART_RNNOISE_H */
+#endif // MOZART_RNNOISE_H

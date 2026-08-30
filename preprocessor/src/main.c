@@ -1,102 +1,172 @@
+// main.c — mozart-pre：USB 麦克风采集 → DSP 链 → MZRT UDP 发送
+// ============================================================================
+// 实时模式：
+//   mozart-pre [-d <alsa 设备>] [-a <目标 IP>] [-p <目标端口>] [-n <帧数>]
+//              [--no-rnnoise] [--model <path.rnnoise>]
+// 离线模式（无麦克风验证链路，输入须 48k/立体声/PCM16 WAV）：
+//   mozart-pre -i <input.wav> [其余参数同上，-n 默认无限循环]
+//
+// 输出：MZRT 输入契约包（20B 头 + 320×4B PCM = 1300B）逐帧 UDP 发送。
 #define _POSIX_C_SOURCE 200809L
 #include "mozart.h"
-#include "mozart/pipeline.h"
-#include "mozart/rnnoise.h"
+
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <string.h>
+#include <unistd.h>
 
-#define INPUT_FILE  "noisy_sample.wav"
-#define OUTPUT_FILE "output.wav"
+static volatile sig_atomic_t g_stop = 0;
 
-#define FRAME_SAMPLES 480   // RNNoise native: 48 kHz × 10 ms
-#define SAMPLE_RATE   48000
+static void on_signal(int sig) { (void)sig; g_stop = 1; }
 
-static inline float clampf(float x, float lo, float hi)
+static void usage(const char *prog)
 {
-    return x < lo ? lo : (x > hi ? hi : x);
+    fprintf(stderr,
+        "用法: %s [-d alsa设备] [-a 目标IP] [-p 端口] [-n 帧数] "
+        "[-i 输入.wav] [--no-rnnoise] [--model x.rnnoise]\n"
+        "  -d  ALSA 采集设备（默认 default；麦克风为 hw:X,0，S16_LE/2ch/48k）\n"
+        "  -a  rvc-backend 地址（默认 127.0.0.1）\n"
+        "  -p  rvc-backend 音频端口（默认 18000）\n"
+        "  -n  发送帧数上限，0 = 无限（默认实时 0 / 离线循环播放）\n"
+        "  -i  离线模式：读 48k/立体声/PCM16 WAV 代替麦克风\n",
+        prog);
 }
 
-static void write_wav_header(FILE *f, int sr, int ch, int *dso)
+static int udp_open(const char *host, uint16_t port)
 {
-    uint32_t br = sr * ch * sizeof(int16_t);
-    uint16_t ba = ch * sizeof(int16_t);
-    uint16_t bps = 16;
-
-    uint32_t cs = 36; fwrite("RIFF", 1, 4, f); fwrite(&cs, 4, 1, f);
-    fwrite("WAVE", 1, 4, f);
-    fwrite("fmt ", 1, 4, f);
-    uint32_t fs = 16; uint16_t af = 1;
-    fwrite(&fs, 4, 1, f); fwrite(&af, 2, 1, f);
-    fwrite(&ch, 2, 1, f);  fwrite(&sr, 4, 1, f);
-    fwrite(&br, 4, 1, f);  fwrite(&ba, 2, 1, f);
-    fwrite(&bps, 2, 1, f);
-    fwrite("data", 1, 4, f);
-    *dso = (int)ftell(f);
-    uint32_t ds = 0; fwrite(&ds, 4, 1, f);
+    struct addrinfo hints = {0}, *res = NULL;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    char port_str[6];
+    snprintf(port_str, sizeof(port_str), "%u", port);
+    if (getaddrinfo(host, port_str, &hints, &res) != 0 || !res) {
+        fprintf(stderr, "[net] 解析 %s 失败\n", host);
+        return -1;
+    }
+    int fd = socket(res->ai_family, res->ai_socktype, 0);
+    if (fd >= 0 && connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
+        close(fd);
+        fd = -1;
+    }
+    freeaddrinfo(res);
+    if (fd < 0) {
+        perror("[net] socket/connect");
+        return -1;
+    }
+    return fd;
 }
 
-static void finalise_wav_header(FILE *f, int dso, int ns)
+int main(int argc, char **argv)
 {
-    int ds = ns * sizeof(int16_t);
-    int fs = dso + ds;
-    fseek(f, 4,  SEEK_SET); fwrite(&fs, 4, 1, f);
-    fseek(f, dso, SEEK_SET); fwrite(&ds, 4, 1, f);
-    fseek(f, 0, SEEK_END);
-}
+    const char *device = "default";
+    const char *host = "127.0.0.1";
+    const char *wav_path = NULL;
+    const char *rn_model = NULL;
+    bool use_rnnoise = true;
+    uint16_t port = 18000;
+    long max_frames = -1;   // -1 = 按模式默认
 
-int main(void)
-{
-    setbuf(stdout, NULL);
-    printf("Mozart pre-processing v%s (RNNoise @ %d Hz / %d samples)\n",
-           mozart_pre_version(), SAMPLE_RATE, FRAME_SAMPLES);
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "-d") && i + 1 < argc) device = argv[++i];
+        else if (!strcmp(argv[i], "-a") && i + 1 < argc) host = argv[++i];
+        else if (!strcmp(argv[i], "-p") && i + 1 < argc) port = (uint16_t)atoi(argv[++i]);
+        else if (!strcmp(argv[i], "-n") && i + 1 < argc) max_frames = atol(argv[++i]);
+        else if (!strcmp(argv[i], "-i") && i + 1 < argc) wav_path = argv[++i];
+        else if (!strcmp(argv[i], "--no-rnnoise")) use_rnnoise = false;
+        else if (!strcmp(argv[i], "--model") && i + 1 < argc) rn_model = argv[++i];
+        else { usage(argv[0]); return 1; }
+    }
+    bool offline = wav_path != NULL;
+    if (max_frames < 0) max_frames = 0; // 两种模式都无限，-n>0 截断，SIGINT 退出
 
-    char cmd[512];
-    snprintf(cmd, sizeof(cmd),
-             "ffmpeg -i \"%s\" -f f32le -acodec pcm_f32le -ar %d -ac %d "
-             "-hide_banner -loglevel error -",
-             INPUT_FILE, SAMPLE_RATE, MOZART_CHANNELS);
+    signal(SIGINT, on_signal);
+    signal(SIGTERM, on_signal);
 
-    FILE *ffmpeg = popen(cmd, "r");
-    if (!ffmpeg) { fprintf(stderr, "ERROR: ffmpeg failed\n"); return 1; }
+    // ---- UDP 发送端 ----
+    int fd = udp_open(host, port);
+    if (fd < 0) return 1;
 
-    FILE *fout = fopen(OUTPUT_FILE, "wb");
-    if (!fout) { fprintf(stderr, "ERROR: cannot open %s\n", OUTPUT_FILE); pclose(ffmpeg); return 1; }
+    // ---- DSP 链 ----
+    mozart_dsp_config_t dcfg = { .rnnoise = use_rnnoise, .rnnoise_model = rn_model };
+    mozart_dsp_t *dsp = mozart_dsp_new(&dcfg);
+    if (!dsp) { fprintf(stderr, "dsp 初始化失败\n"); return 1; }
 
-    int dso;
-    write_wav_header(fout, SAMPLE_RATE, MOZART_CHANNELS, &dso);
-
-    mozart_stage_t *rn = mozart_rnnoise_new(NULL);
-    if (!rn) { fprintf(stderr, "ERROR: rnnoise new\n"); pclose(ffmpeg); fclose(fout); return 1; }
-
-    float in[FRAME_SAMPLES];
-    float out[FRAME_SAMPLES];
-    mozart_frame_meta_t meta = {0};
-    int fc = 0, ts = 0;
-
-    for (;;) {
-        size_t n = fread(in, sizeof(float), FRAME_SAMPLES, ffmpeg);
-        if (n == 0) break;
-        for (size_t i = n; i < FRAME_SAMPLES; i++) in[i] = 0.0f;
-
-        meta.frame_idx = fc + 1;
-        int rc = mozart_stage_process(rn, in, FRAME_SAMPLES, out, &meta);
-        if (rc < 0) { fprintf(stderr, "frame %d error %d\n", fc, rc); break; }
-
-        for (int i = 0; i < FRAME_SAMPLES; i++) {
-            float s = clampf(out[i], -1.0f, 1.0f);
-            int16_t pcm = (int16_t)(s * 32767.0f);
-            fwrite(&pcm, sizeof(pcm), 1, fout);
-        }
-        ts += FRAME_SAMPLES;
-        fc++;
+    // ---- 输入源 ----
+    mozart_capture_t *cap = NULL;
+    mozart_wav_reader_t *wav = NULL;
+    if (offline) {
+        wav = mozart_wav_open(wav_path);
+        if (!wav) return 1;
+        fprintf(stderr, "[pre] 离线模式: %s → %s:%u\n", wav_path, host, port);
+    } else {
+        mozart_capture_config_t ccfg = {
+            .device = device, .rate = MOZART_RAW_SAMPLE_RATE,
+            .channels = 2, .period_frames = MOZART_RAW_SAMPLES, .n_periods = 4,
+        };
+        cap = mozart_capture_open(&ccfg);
+        if (!cap) return 1;
+        fprintf(stderr, "[pre] 实时模式: %s → %s:%u\n", device, host, port);
     }
 
-    finalise_wav_header(fout, dso, ts);
-    fclose(fout);
-    pclose(ffmpeg);
-    mozart_stage_destroy(rn);
+    // ---- 主循环 ----
+    int16_t stereo[MOZART_RAW_SAMPLES * 2];
+    mozart_input_frame_t frame;
+    // MZRT 输入包：4B magic(LE) + 16B meta + 320×4B PCM = 1300B
+    unsigned char pkt[4 + sizeof(frame)];
+    pkt[0] = 0x54; pkt[1] = 0x52; pkt[2] = 0x5A; pkt[3] = 0x4D; // 'MZRT' LE
+    long sent = 0, overruns = 0;
+    uint64_t t0 = mozart_now_ns();
 
-    printf("Done: %d frames (%.2f s) -> %s\n", fc, (double)ts / SAMPLE_RATE, OUTPUT_FILE);
+    while (!g_stop && (max_frames == 0 || sent < max_frames)) {
+        int n;
+        if (offline) {
+            n = mozart_wav_read(wav, stereo, MOZART_RAW_SAMPLES);
+            if (n < MOZART_RAW_SAMPLES) {          // 循环播放
+                mozart_wav_rewind(wav);
+                int m = mozart_wav_read(wav, stereo + n * 2,
+                                        MOZART_RAW_SAMPLES - n);
+                if (m <= 0) break;
+                n += m;
+            }
+            frame.meta.pts_ns = (uint64_t)sent * 20000000ull; // 20ms/帧
+        } else {
+            if (mozart_capture_read(cap, stereo) < 0) {
+                fprintf(stderr, "[pre] 采集失败，退出\n");
+                break;
+            }
+            // 本帧覆盖 [now-20ms, now]，pts 取帧起始
+            frame.meta.pts_ns = mozart_now_ns() - 20000000ull;
+        }
+        if (cap) overruns = mozart_capture_overruns(cap);
+
+        if (mozart_dsp_process(dsp, stereo, &frame) < 0) {
+            fprintf(stderr, "[pre] dsp 处理失败\n");
+            break;
+        }
+        memcpy(pkt + 4, &frame, sizeof(frame));
+        if (send(fd, pkt, sizeof(pkt), 0) != (ssize_t)sizeof(pkt)) {
+            perror("[pre] send");
+            break;
+        }
+        sent++;
+
+        if (sent % 250 == 0) {   // 每 5s 一条心跳
+            fprintf(stderr, "[pre] frames=%ld vad=%u seg=%u energy=%u dB "
+                            "overruns=%ld elapsed=%.1fs\n",
+                    sent, frame.meta.vad_flag, frame.meta.segment_id,
+                    frame.meta.energy_db, overruns,
+                    (mozart_now_ns() - t0) / 1e9);
+        }
+    }
+
+    fprintf(stderr, "[pre] 结束: 发送 %ld 帧 (%.1f s), overruns=%ld\n",
+            sent, sent * 0.02, overruns);
+    mozart_capture_close(cap);
+    mozart_wav_close(wav);
+    mozart_dsp_free(dsp);
+    close(fd);
     return 0;
 }
