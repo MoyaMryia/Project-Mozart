@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <spdlog/spdlog.h>
+#include <chrono>
 
 namespace rvc {
 
@@ -129,6 +130,10 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
 
     // ---- 静音窗：跳过推理，输出等长静音 ----
     if (cfg_.skip_silence && !voiced) {
+        static std::atomic<uint64_t> skip_logged{0};
+        if (skip_logged.fetch_add(1) < 3) {
+            spdlog::warn("[stream] window skipped as silent (pushed={})", pushed_total_);
+        }
         std::fill(tail_.begin(), tail_.end(), 0.0f);
         tail_valid_ = false;
         push_output_zeros(emit_out_);
@@ -138,6 +143,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
 
     // ---- 推理（耗时操作，锁外执行）----
     std::vector<float> converted;
+    const auto t_infer = std::chrono::steady_clock::now();
     try {
         converted = pipeline.process(window);
     } catch (const std::exception& e) {
@@ -190,6 +196,16 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
 
     push_output(emit.data(), emit.size());
     stats_.blocks.fetch_add(1, std::memory_order_relaxed);
+    {
+        static std::atomic<uint64_t> blk_logged{0};
+        if (blk_logged.fetch_add(1) < 3) {
+            spdlog::info("[stream] block {} done: infer={}ms out={} samples",
+                         blk_logged.load(),
+                         std::chrono::duration<double, std::milli>(
+                             std::chrono::steady_clock::now() - t_infer).count(),
+                         converted.size());
+        }
+    }
     return true;
 }
 
