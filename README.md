@@ -1,154 +1,254 @@
-# Project Mozart · Realtime AI Voice Changer
+# Project Mozart
 
-面向 **NVIDIA Jetson Orin Nano Super 8GB** 的实时 AI 变声器。
+Real-time AI voice changer for **NVIDIA Jetson Orin Nano Super 8GB**.
+
+Plug in a microphone, talk, and the board outputs your voice — noise-reduced and pitch-shifted in real time. A parallel text path transcribes speech, translates it, and displays subtitles. One edge board, two processing paths, zero Python at runtime.
 
 ---
 
-## ⚠️ 两栖架构（Contributor 必读）
-
-本项目分 PC 端和 Jetson 端，**不要把 PyTorch 模型直接丢到 Jetson 上**：
+## Architecture
 
 ```
-[麦克风/UDP] ──► [IO] ──► [预处理 C11] ──契约流──► [RVC 后处理 C++17] ──► [IO] ──► [扬声器/UDP]
-
-                      │                              │
-                      │      PC 端 (一次性导出)        │
-                      │  .pth ──export──► .onnx      │
-                      │  只用一次，用完即弃            │
-                      │                              │
-                      ▼                              ▼
-              PyTorch (PC)                ONNX Runtime (Jetson)
-              零 Python · 零 PyTorch 依赖
+Microphone/UDP ──► [IO] ──► [Preprocessor C11] ──contract stream──► [RVC Backend C++17] ──► [IO] ──► Speaker/UDP
+                          │                                          │
+                          │      PC (one-time export)                │
+                          │  .pth ──export──► .onnx                  │
+                          │                                          │
+                          ▼                                          ▼
+                  PyTorch (PC)                           ONNX Runtime / TensorRT (Jetson)
+                  zero Python · zero PyTorch dependency
 ```
 
-> **为什么：** Jetson 的 PyTorch 是 NVIDIA 定制版，跟 RVC 依赖链（fairseq/torchcrepe/gradio）不兼容。
-> Jetson 只吃 ONNX——JetPack 自带 ONNX Runtime + TensorRT 原生加速。
+**Amphibious architecture**: Model export happens once on a PC with PyTorch. The Jetson runs only ONNX Runtime and TensorRT — no fairseq, no torchcrepe, no Python dependency chain.
+
+### Two parallel paths
+
+| Path | Latency target | Components |
+|------|---------------|------------|
+| **Realtime** | ~2s + inference (Generator T=200 constraint) | Preprocessor → HuBERT → RMVPE → Generator |
+| **Text** | 1–2s per sentence | STT (sherpa-onnx) → LLM (Qwen3.5-0.8B) → subtitles |
 
 ---
 
-## 项目结构
+## Project Structure
 
-| 目录 | 说明 |
-|------|------|
-| `IO/` | 统一契约帧、PipeWire/UDP 驱动、SPSC 环和 C-ABI 生命周期 |
-| `preprocessor/` | ✅ **预处理管线**：RNNoise 去噪 + 降采样 → 16kHz 契约流 (C11) |
-| `rvc-backend/` | ✅ **RVC 变声后端**：AudioWorker 编排 + ONNX/TensorRT 推理 + HTTP 管理 |
-| `api/` | ✅ **HTTP API**：控制面、模型管理、文件转换、字幕流 |
-| `monitor/` | ✅ **监控**：延迟统计、VAD 状态、系统快照 |
-| `state/` | ✅ 顶层 daemon：运行模式、IO/模型资源和 worker 生命周期编排 |
-| `rvc-golden/` | 🔧 **Golden Model 对比**：PyTorch 基线、ONNX 中间张量、回归测试 |
-| `frontend/` | 🌐 **控制台**：Vue 3 + Tailwind 管理界面 |
-| `rvc_post_bridge.py` | 🔌 **PC 端适配器**：本地 Python RVC 验证用 |
-
----
-
-## 文档索引
-
-| 文档 | 内容 | 受众 |
-|------|------|------|
-| [state/README.md](state/README.md) | 系统架构、状态机、契约帧、双通道调度 | 所有人 |
-| [state/API.md](state/API.md) | HTTP API 完整规范 | 前端/集成开发者 |
-| [jetson_deploy_prompt.txt](jetson_deploy_prompt.txt) | ⭐ **Jetson Orin Nano 部署指南** | Jetson 端贡献者 |
-| [jetson_remaining_tasks.txt](jetson_remaining_tasks.txt) | 当前 Jetson 待办 | 部署人员 |
-| [rvc-golden/README.md](rvc-golden/README.md) | Golden Model 调试工作流 | RVC 质量调试者 |
-| [rvc-backend/RVC_BACKEND.md](rvc-backend/RVC_BACKEND.md) | C++ RVC 后端开发 | 后端开发者 |
-| [preprocessor/README.md](preprocessor/README.md) | 预处理管线开发 | 预处理开发者 |
-| [frontend/DEPLOYMENT.md](frontend/DEPLOYMENT.md) | 前端构建部署 | 前端开发者 |
+| Directory | Language | Description |
+|-----------|----------|-------------|
+| `IO/` | C++17 + C ABI | Unified contract frames, PipeWire/UDP/Mock drivers, SPSC lock-free ring buffer |
+| `preprocessor/` | C11 | ALSA capture → HPF → RNNoise full-wet → 3:1 decimation → VAD hysteresis → MZRT UDP |
+| `rvc-backend/` | C++17 | ONNX/TensorRT inference, streaming pipeline with crossfade, HTTP API, model hot-switch |
+| `state/` | C++17 | Top-level daemon (`mozart_stated`): mode controller, IDLE/RT_RVC/FILE_RVC mutual exclusion |
+| `api/` | C++ | Native socket HTTP server — `/health`, `/status`, `/models`, `/file/*`, `/subtitles` (SSE) |
+| `monitor/` | C++ | System telemetry: CPU, memory, GPU load, PipeWire status |
+| `frontend/` | Vue 3 + TS + Tailwind | Control panel — mode switching, model management, file queue, subtitles |
+| `tools/` | Python | ONNX export scripts, STT/TTS services, full-chain demo, benchmarks |
+| `rvc-golden/` | Python | PyTorch golden reference for ONNX regression testing |
 
 ---
 
-## 快速开始
+## Quick Start
 
-### PC 端：ONNX 模型导出
+### 1. Export ONNX models (PC)
 
 ```bash
-cd Retrieval-based-Voice-Conversion-WebUI
-# 详见 rvc-golden/README.md 的导出章节
-
-# 导出基础模型 (一次)
+# Base models (one-time)
 python tools/export_hubert_onnx.py
 python tools/export_rmvpe_onnx.py
 
-# 每个音色模型各跑一次
-python tools/export_generator_onnx.py de_narrator.pth
+# Per-voice model
+python tools/export_generator_onnx.py <model>.pth
 
-# 部署到 Jetson
-scp -P 6001 *.onnx *.index moyamryia@<jetson-ip>:~/models/
+# Deploy to Jetson
+scp *.onnx *.index moyamryia@<jetson-ip>:~/models/
 ```
 
-### Jetson 端：预处理
+### 2. Build preprocessor (Jetson)
 
 ```bash
-cd ~/Mozart/preprocessor && make -j6
-./build/bin/mozart_pre_example --input clean_speech.wav
+cd preprocessor && make -j6
+# Live mode
+./build/bin/mozart-pre -d hw:1,0
+# Offline mode (no mic needed)
+./build/bin/mozart-pre -i input.wav
 ```
 
-### Jetson 端：RVC 后端
+### 3. Build RVC backend (Jetson)
 
 ```bash
-cd ~/Mozart/rvc-backend && mkdir -p build && cd build
+cd rvc-backend && mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON && make -j6
-vim ../config.yaml  # mock_mode: false
 ./rvc_backend ../config.yaml
 ```
 
-### Jetson 端：顶层 Daemon (推荐生产用)
+### 4. Run production daemon (recommended)
 
 ```bash
-cd ~/Mozart/state && mkdir -p build && cd build
+cd state && mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release && make -j6
 ./mozart_stated ../config.yaml
 ```
 
 ---
 
-## 当前状态
+## Inference Pipeline
 
-| 组件 | 状态 |
-|------|------|
-| preprocessor/ (RNNoise) | ✅ 编译完成，可用 |
-| IO/ (PipeWire + UDP + SPSC) | ✅ 契约帧 + 零拷贝环形缓冲 |
-| state/ (mozart_stated) | ✅ `IDLE` / `RT_RVC` / `FILE_RVC` 强互斥编排 |
-| rvc-backend/ (C++ 骨架) | ✅ CMake + ONNX Runtime + TensorRT 集成完毕 |
-| rvc-backend/ (推理组件) | ✅ `onnx_engine` + `feature_extractor` + `inferencer` + `model_loader` 已实现 |
-| rvc-backend/ (HTTP API) | ✅ `/health` `/status` `/models` `/activate` `/file/*` `/subtitles` 全部可用 |
-| monitor/ | ✅ 延迟直方图、VAD 快照、SSE 流 |
-| ONNX 导出脚本 (PC 端) | ✅ `tools/export_{hubert,rmvpe,generator}_onnx.py` 已就绪 |
-| Index 检索 | ✅ FAISS IVF .index 解析 + KNN 检索 |
-| Jetson 实机 | 🟢 环境就绪 (JetPack R39)，REAL 模式跑通 |
-| 音色模型 | 🟡 de_narrator 已加载，待导出更多 ONNX |
-| 前端控制台 | 🟡 Vue 3 基础框架就绪，待接入 API |
+```
+16kHz input
+  → RMVPE ONNX          (mel 128×128 → F0)
+  → HuBERT ONNX          (audio → [T, 768] features)
+  → Index search          (FAISS IVF, KNN1, no FAISS runtime dependency)
+  → Generator ONNX/TRT    (feats + pitch + sid → 48kHz audio)
+  → protect blending      (mix with original to preserve characteristics)
+```
 
----
+### Streaming architecture
 
-## 核心技术栈
+`StreamingRvc` buffers 2 seconds of audio (T=200 hard constraint), runs inference in a dedicated thread, and produces output with 60ms crossfade overlap-add. Discontinuities (frame index jumps, segment changes, PTS gaps) trigger full state reset.
 
-| 层级 | 技术 | 说明 |
-|------|------|------|
-| 音频 I/O | PipeWire / UDP | C-ABI 契约帧，SPSC 无锁环，MZRT 协议 |
-| 预处理 | RNNoise (xiph) | C11，NEON 优化，外部权重 blob |
-| 特征提取 | HuBERT (ONNX) | RVC v2 最终层 768 维，TensorRT 可选 |
-| 音高估计 | RMVPE (ONNX) | Mel + F0 + salience，TensorRT 可选 |
-| 生成器 | Generator (ONNX) | 每音色一模型，支持 .index 检索 |
-| 编排 | C++17 | 双通道 CPU/GPU 调度，强互斥状态机 |
-| 控制面 | HTTP + SSE | 原生 socket 实现，无第三方 Web 框架 |
-| 前端 | Vue 3 + Tailwind | Vite 构建，TypeScript |
+### Measured performance (Jetson Orin Nano Super 8GB)
+
+| Model | Input | FP32 | FP16 | GPU usage |
+|-------|-------|------|------|-----------|
+| RMVPE | 1.28s mel | 20.9 ms | 9.4 ms | ~0.7% |
+| HuBERT | 0.2s audio | 9.2 ms | 4.5 ms | ~2.3% |
+| Generator | 2s audio | 89.9 ms | 37.6 ms | ~1.9% |
+
+Full chain: ~98ms / 2s audio ≈ **5% GPU**.
 
 ---
 
-## 贡献注意事项
+## Contract Frames
 
-- ❌ 不要在 Jetson 上 `pip install fairseq` `pip install torchcrepe`
-- ❌ 不要提交 `.pth` 模型文件（用 .onnx）
-- ❌ 不要把 build/ 目录提交到 git
-- ✅ 新增文档放在对应模块目录下，更新本 README 的索引表
-- ✅ 新增音色模型 → 先在 PC 导出 ONNX → 再部署 Jetson
-- ✅ RVC 质量回归：先跑 Golden Model → 对比 ONNX → 再进后端
+All inter-component communication uses a single 16-byte metadata header defined in `IO/include/mozart/frame_meta.h`:
+
+```c
+typedef struct {
+    uint64_t pts_ns;       // presentation timestamp (nanoseconds)
+    uint32_t frame_idx;    // monotonic frame number
+    uint8_t  vad_flag;     // 0=silence 1=speech
+    uint8_t  energy_db;    // energy 0-255
+    uint8_t  conf;         // denoise confidence 0-255
+    uint8_t  segment_id;   // speech segment ID (0=silence gap)
+} mozart_frame_meta_t;     // 16 bytes, static_assert guaranteed
+```
+
+| Stage | Sample rate | Frame size | Bytes/frame |
+|-------|------------|------------|-------------|
+| raw (device → preprocessor) | 48 kHz | 960 samples (20ms) | 3856 B |
+| input (preprocessor → backend) | 16 kHz | 320 samples (20ms) | 1296 B |
+| output (backend → device) | 48 kHz | 960 samples (20ms) | 3856 B |
+
+UDP packets carry MZRT magic (`0x4D5A5254`) + 20-byte header + PCM payload. Input packets are 1300 bytes (under MTU 1500).
 
 ---
 
-## 相关仓库
+## HTTP API
 
-- [RVC WebUI (PC 端导出源)](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
-- [RNNoise (预处理上游)](https://github.com/xiph/rnnoise)
-- [ONNX Runtime (推理引擎)](https://github.com/microsoft/onnxruntime)
+Native socket implementation, zero web framework. Port 18080.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/status` | GET | Mode, current model, latency stats, bypass count |
+| `/monitor` | GET | CPU, memory, GPU load, PipeWire status |
+| `/logs` | GET | Backend log ring buffer |
+| `/models` | GET | List available voice models |
+| `/models/{id}/activate` | POST | Hot-switch voice model (~200ms) |
+| `/mode/switch` | POST | Switch operating mode (IDLE/RT_RVC/FILE_RVC) |
+| `/file/convert` | POST | Upload audio for batch conversion |
+| `/file/status` | GET | Job queue status |
+| `/subtitles` | GET | SSE stream of subtitle JSONL |
+| `/parameters` | GET/PUT | RVC inference parameters |
+| `/presets` | GET | Saved parameter presets |
+
+---
+
+## Configuration
+
+`rvc-backend/config.yaml`:
+
+```yaml
+rvc:
+  models_dir: "./models"
+  hubert_path: "./assets/hubert/hubert_base.onnx"
+  rmvpe_path: "./assets/rmvpe/rmvpe.onnx"
+  f0_method: "rmvpe"
+  pitch_shift: 0
+  index_rate: 0.75
+  protect: 0.33
+  device: "cuda"
+
+network:
+  audio:
+    port: 18000      # UDP contract stream
+  control:
+    port: 18080      # HTTP API
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Audio I/O | PipeWire / UDP / ALSA, SPSC lock-free ring, MZRT protocol |
+| Preprocessing | RNNoise (xiph), C11, ARM NEON optimized |
+| Feature extraction | HuBERT ONNX (768-dim), RMVPE ONNX |
+| Synthesis | Generator ONNX / TensorRT, per-voice model |
+| Orchestration | C++17 state machine, strong mutual exclusion |
+| Control plane | HTTP + SSE, native socket |
+| Frontend | Vue 3 + Vite + TypeScript + Tailwind CSS |
+| Export tools | Python (fairseq, torchcrepe) |
+
+---
+
+## State Machine
+
+Strong mutual exclusion — only one mode active at a time (8GB shared memory constraint):
+
+| State | Description |
+|-------|-------------|
+| `IDLE` | No processing, resources released |
+| `RT_RVC` | Realtime voice conversion |
+| `FILE_RVC` | Batch file conversion (queue, serial) |
+
+Transitions: realtime modes interrupt immediately; file mode waits for current job to complete. Same-category switch (RT_RVC ↔ FILE_RVC) reuses loaded models (~200ms). Cross-category unloads and reloads (~3–6s).
+
+---
+
+## Contributing
+
+- Do **not** `pip install fairseq torchcrepe` on Jetson
+- Do **not** commit `.pth` model files (export to ONNX first)
+- Do **not** commit `build/` directories
+- New documentation goes in the relevant module directory
+- New voice models: export ONNX on PC → deploy to Jetson
+- RVC quality regression: run Golden Model → compare ONNX → then test in backend
+
+See [AGENTS.md](AGENTS.md) for the debugging workflow and [DESIGN.md](DESIGN.md) for the full system design.
+
+---
+
+## Documentation
+
+| Document | Content |
+|----------|---------|
+| [DESIGN.md](DESIGN.md) | System design, architecture, contracts, implementation roadmap |
+| [TARGET.md](TARGET.md) | Product vision and delivery goals |
+| [TODO.md](TODO.md) | Active tasks with measured benchmarks |
+| [AGENTS.md](AGENTS.md) | RVC debugging workflow |
+| [state/README.md](state/README.md) | State machine, control/data plane separation |
+| [state/API.md](state/API.md) | HTTP API specification |
+| [rvc-backend/RVC_BACKEND.md](rvc-backend/RVC_BACKEND.md) | Backend development guide |
+| [preprocessor/README.md](preprocessor/README.md) | Preprocessor development |
+| [frontend/DEPLOYMENT.md](frontend/DEPLOYMENT.md) | Frontend build and deployment |
+| [rvc-golden/README.md](rvc-golden/README.md) | Golden model regression testing |
+
+---
+
+## Related
+
+- [RVC WebUI](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) — PC-side export source
+- [RNNoise](https://github.com/xiph/rnnoise) — Denoising upstream
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime) — Inference engine
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — STT/TTS engines
