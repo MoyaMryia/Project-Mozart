@@ -90,7 +90,9 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - [ ] 并发验证 ASR+LLM+TTS 加入后的共存（当前实测：ASR ~0.3GB CPU + LLM ~1.2GB GPU + TTS 按需，余量足；待与 RVC 三方压测）
 - [x] **TTS 小型部署（2026-08-30 实测）**：`tools/tts_service.py`（sherpa-onnx 三引擎）。**Matcha zh-baker 为推荐引擎：RTF ~0.2（5 倍实时，4 线程 CPU），共 90MB**；melo/kokoro int8 也能跑但 RTF 1.6-3 不实时（留存参考）。HDMI 播放（plughw:1,3）已验证。原来"TTS 不做"的决策更新为：**demo 可选"读出来"开关**，句子级延迟完全够
 - [x] **TTS 接线 + 全链演示（2026-08-31）**：`tools/demo_fullchain.py` 串起 **语音→ASR→LLM翻译→TTS→RVC变声→HDMI播放** 全链闭环（file 模式稳出声）。实测单句：ASR 0.7s / LLM 0.9s / TTS 13.5s（5s 音频，CPU 挤）/ RVC 27s（CPU RTF≈5）。关键坑：Matcha 纯中文词库读不了英文（换 melo 中英混读）；melo 输出安静 + rms_mix_rate 会把安静包络带进变声输出（发送前峰值归一化 0.9）；后端构建的 RNNoise blob 路径指向 rvc-backend/assets（已拷贝）。`tools/tts2rvc.py` 为 UDP 实时变声通路（P1 GPU 化后启用）
+- [ ] **并发基准（2026-08-31 实测，`tools/bench_concurrent.py`）**：极限并发（RVC 实时流 + TTS + ASR + LLM 同板）下——LLM GPU 315ms 稳如狗；ASR RTF 0.12 无压力；TTS RTF 4.1（solo 2.4，被挤 1.7×）；**RVC CPU ONNX RTF 0.16 是唯一短板**（10s/块，首块 11.3s）→ P1 GPU 化（TRT 引擎实测 37.6ms/块，~50×）是唯一卡点。注意：后端只回包给"首个 UDP 客户端"，多消费者需各开一路或改广播
 - [ ] TTS/RVC 提速：P1 GPU 化（TRT 直载或 GPU ORT）后，变声回实时路（RTF 0.05 可期），TTS 换 GPU 推理
+- [ ] **零样本变声（比赛杀招）**：seed-VC（github.com/DonkeyHang/seedVC）——翻译到目标语言后零样本克隆指定音色。待调研：模型体积/推理耗时/8GB 板可行性；与现有 RT_ZERO_SHOT 模式槽位对接
 
 ### P3 — 收尾
 
