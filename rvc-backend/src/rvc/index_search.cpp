@@ -9,6 +9,9 @@
 namespace rvc {
 
 bool IndexSearch::load(const std::filesystem::path& index_path, uint32_t feature_dim) {
+    nlist_ = 0;
+    centroids_.clear();
+    inverted_lists_.clear();
     feature_dim_ = feature_dim;
 
     if (!std::filesystem::exists(index_path)) {
@@ -24,6 +27,9 @@ bool IndexSearch::load(const std::filesystem::path& index_path, uint32_t feature
             index_path.filename().string(), nlist_, feature_dim_);
         return true;
     } catch (const std::exception& e) {
+        nlist_ = 0;
+        centroids_.clear();
+        inverted_lists_.clear();
         spdlog::error("Failed to load index {}: {}", index_path.string(), e.what());
         return false;
     }
