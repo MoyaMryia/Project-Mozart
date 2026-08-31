@@ -49,6 +49,13 @@ rvc-backend/storage/
 preprocessor/output.wav
 *.output.wav
 
+# Golden model test artifacts (regenerated locally, not in git)
+rvc-golden/assets/
+rvc-golden/external/
+rvc-golden/tensors/
+rvc-golden/output/
+rvc-golden/input/
+
 # CMake
 CMakeCache.txt
 CMakeFiles/
