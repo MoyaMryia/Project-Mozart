@@ -197,6 +197,11 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
         context->setTensorAddress(t->name.c_str(), t->dev);
     }
 
+    // TRT10: enqueueV3 前输出地址也必须绑定
+    for (const auto& t : tensors_) {
+        if (!t.is_input) context->setTensorAddress(t.name.c_str(), t.dev);
+    }
+
     if (!context->enqueueV3(stream)) {
         throw std::runtime_error("enqueueV3 failed");
     }
