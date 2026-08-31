@@ -98,5 +98,7 @@ storage:
   temp_dir: "./storage/temp"
   presets_path: "./storage/presets.json"
   ffmpeg_path: "ffmpeg"
+  # Clean file conversion should not pass through the realtime all-wet denoiser.
+  file_rnnoise: false
   max_queue_depth: 50
   max_cache_size_mb: 1000

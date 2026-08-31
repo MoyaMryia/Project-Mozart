@@ -19,6 +19,7 @@ ModeController::ModeController(RVCPipelineBase& pipeline, Config config)
     file_config.storage_dir = config_.storage_dir;
     file_config.ffmpeg_path = config_.ffmpeg_path;
     file_config.output_sample_rate = config_.output_sample_rate;
+    file_config.rnnoise = config_.file_rnnoise;
     file_worker_ = std::make_unique<FileRvcWorker>(pipeline_, std::move(file_config));
     file_thread_ = std::thread(&ModeController::file_loop, this);
 }
