@@ -48,7 +48,8 @@ private:
     std::vector<float> run_generator(
         const std::vector<float>& feats,
         const std::vector<float>& f0,
-        const std::vector<float>& original_audio
+        const std::vector<float>& original_audio,
+        const std::vector<float>& unindexed_feats
     );
 };
 
