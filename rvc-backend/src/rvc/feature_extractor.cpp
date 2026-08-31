@@ -1,4 +1,6 @@
 #include "rvc/feature_extractor.hpp"
+#include "rvc/trt_engine.hpp"
+
 #include <spdlog/spdlog.h>
 #include <fstream>
 #include <cmath>
@@ -23,8 +25,18 @@ FeatureExtractor::FeatureExtractor(
     , mock_rmvpe_(mock_rmvpe)
 {
     if (std::filesystem::exists(hubert_path_)) {
-        bool ok = hubert_engine_.load(hubert_path_);
-        if (ok) {
+        hubert_engine_ = make_engine(hubert_path_);
+        // TRT 引擎是固定形状：HuBERT 必须接受我们的整窗长度（流式 2s=32000）
+        if (auto* trt = dynamic_cast<TrtEngine*>(hubert_engine_.get())) {
+            const auto shape = trt->input_shape("audio");
+            const int64_t need = 32000; // 流式窗口 2s @16k
+            if (!shape.empty() && (shape.size() != 2 || shape[1] != need)) {
+                spdlog::warn("HuBERT TRT 引擎形状不符（audio={}[{}] ≠ [1,{}]），回退 ONNX",
+                             shape.size() >= 2 ? shape[1] : -1, shape.size(), need);
+                hubert_engine_.reset();
+            }
+        }
+        if (hubert_engine_ && hubert_engine_->loaded()) {
             spdlog::info("HuBERT engine loaded: {}", hubert_path_.string());
         }
     } else {
@@ -32,8 +44,16 @@ FeatureExtractor::FeatureExtractor(
     }
 
     if (rmvpe_path_ && std::filesystem::exists(*rmvpe_path_)) {
-        bool ok = rmvpe_engine_.load(*rmvpe_path_);
-        if (ok) {
+        rmvpe_engine_ = make_engine(*rmvpe_path_);
+        // RMVPE 固定 [1,128,128]（extract_f0 会零填充到该形状）
+        if (auto* trt = dynamic_cast<TrtEngine*>(rmvpe_engine_.get())) {
+            const auto shape = trt->input_shape("mel");
+            if (!shape.empty() && shape != std::vector<int64_t>({1, 128, 128})) {
+                spdlog::warn("RMVPE TRT 引擎形状不符，回退 ONNX");
+                rmvpe_engine_.reset();
+            }
+        }
+        if (rmvpe_engine_ && rmvpe_engine_->loaded()) {
             spdlog::info("RMVPE engine loaded: {}", rmvpe_path_->string());
         }
     } else if (rmvpe_path_) {
@@ -85,7 +105,7 @@ std::vector<float> FeatureExtractor::extract_f0(
     uint32_t sample_rate,
     const std::string& method
 ) {
-    if (method == "rmvpe" && rmvpe_engine_.loaded()) {
+    if (method == "rmvpe" && rmvpe_engine_ && rmvpe_engine_->loaded()) {
         auto mel = compute_mel(audio, sample_rate);
         // export_rmvpe_onnx.py exports the model with a fixed [1, 128, 128]
         // mel tensor. Preserve short-frame support by zero-padding the tail.
@@ -94,7 +114,7 @@ std::vector<float> FeatureExtractor::extract_f0(
         std::vector<float> fixed_mel(rmvpe_frames * mel_bins, 0.0f);
         std::copy_n(mel.begin(), std::min(mel.size(), fixed_mel.size()), fixed_mel.begin());
         const std::vector<int64_t> mel_shape = {1, static_cast<int64_t>(rmvpe_frames), static_cast<int64_t>(mel_bins)};
-        auto f0 = rmvpe_engine_.run(
+        auto f0 = rmvpe_engine_->run(
             {"mel"}, {mel_shape}, {fixed_mel}, {"f0"}
         );
         // RMVPE emits [1, 128, 360] logits. Convert the dominant pitch bin to
@@ -135,10 +155,10 @@ std::vector<float> FeatureExtractor::extract_features(
     const std::vector<float>& audio,
     uint32_t sample_rate
 ) {
-    if (hubert_engine_.loaded()) {
+    if (hubert_engine_ && hubert_engine_->loaded()) {
         size_t n_samples = audio.size();
         std::vector<int64_t> audio_shape = {1, static_cast<int64_t>(n_samples)};
-        auto feats = hubert_engine_.run(
+        auto feats = hubert_engine_->run(
             {"audio"}, {audio_shape}, {audio}, {"features"}
         );
         spdlog::debug("HuBERT features: {} elements extracted", feats.size());

@@ -1,9 +1,30 @@
 #include "rvc/onnx_engine.hpp"
+#include "rvc/trt_engine.hpp"
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <cstring>
 
 namespace rvc {
+
+std::unique_ptr<IEngine> make_engine(const std::filesystem::path& model_path) {
+    // 约定：模型 X.onnx 旁存在 X.engine 时优先 TensorRT 直载（GPU）
+    if (model_path.extension() == ".onnx") {
+        auto engine_path = model_path;
+        engine_path.replace_extension(".engine");
+        if (std::filesystem::exists(engine_path)) {
+            auto trt = std::make_unique<TrtEngine>();
+            if (trt->load(engine_path)) {
+                return trt;
+            }
+            spdlog::warn("TRT engine {} 加载失败，回退 ONNX", engine_path.string());
+        }
+    }
+    auto onnx = std::make_unique<OnnxEngine>();
+    if (onnx->load(model_path)) {
+        return onnx;
+    }
+    return nullptr;
+}
 
 #ifdef USE_ONNX
 
