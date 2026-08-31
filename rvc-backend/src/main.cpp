@@ -90,6 +90,7 @@ int main(int argc, char* argv[]) {
     controller_config.output_sample_rate = output_sample_rate;
     controller_config.frame_duration_ms = frame_duration_ms;
     controller_config.skip_silence = skip_silence;
+    controller_config.file_rnnoise = config.get_bool("storage.file_rnnoise", false);
     controller_config.storage_dir = config.get_string("storage.temp_dir", "./storage/temp");
     controller_config.ffmpeg_path = config.get_string("storage.ffmpeg_path", "ffmpeg");
     controller_config.max_queue_depth = static_cast<size_t>(config.get_int("storage.max_queue_depth", 50));

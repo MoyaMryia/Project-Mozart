@@ -42,7 +42,7 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
     std::ifstream input(raw_input, std::ios::binary);
     std::ofstream output(raw_output, std::ios::binary | std::ios::trunc);
     mozart_dsp_config_t dsp_config{};
-    dsp_config.rnnoise = true;
+    dsp_config.rnnoise = config_.rnnoise;
     mozart_dsp_t* preprocessor = mozart_dsp_new(&dsp_config);
     if (!input || !output || !preprocessor) {
         error = "failed to initialize offline preprocessing";
@@ -82,11 +82,14 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
             / (MOZART_RAW_SAMPLES * 100);
         // Offline conversion must not feed generated noise back into detected
         // silence. Keep one 20 ms frame on either side of speech for consonants.
-        std::vector<bool> audible = voiced_frames;
-        for (size_t frame = 0; frame < voiced_frames.size(); ++frame) {
-            if (!voiced_frames[frame]) continue;
-            if (frame > 0) audible[frame - 1] = true;
-            if (frame + 1 < audible.size()) audible[frame + 1] = true;
+        std::vector<bool> audible(voiced_frames.size(), true);
+        if (config_.rnnoise) {
+            audible = voiced_frames;
+            for (size_t frame = 0; frame < voiced_frames.size(); ++frame) {
+                if (!voiced_frames[frame]) continue;
+                if (frame > 0) audible[frame - 1] = true;
+                if (frame + 1 < audible.size()) audible[frame + 1] = true;
+            }
         }
         constexpr size_t fade_samples = 240; // 5 ms at the fixed 48 kHz output rate.
         float gain = audible.empty() || !audible.front() ? 0.0f : 1.0f;
@@ -134,7 +137,7 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
             succeeded = false;
             break;
         }
-        if (contract.meta.vad_flag == 0) {
+        if (config_.rnnoise && contract.meta.vad_flag == 0) {
             std::fill(std::begin(contract.pcm), std::end(contract.pcm), 0.0f);
         }
         contract_chunk.insert(contract_chunk.end(), contract.pcm, contract.pcm + MOZART_INPUT_SAMPLES);

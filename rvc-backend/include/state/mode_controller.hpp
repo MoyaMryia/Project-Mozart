@@ -32,6 +32,7 @@ public:
         uint32_t output_sample_rate = MOZART_OUTPUT_SAMPLE_RATE;
         uint32_t frame_duration_ms = MOZART_INPUT_FRAME_MS;
         bool skip_silence = true;
+        bool file_rnnoise = false;
         std::filesystem::path storage_dir = "./storage/temp";
         std::string ffmpeg_path = "ffmpeg";
         size_t max_queue_depth = 50;
