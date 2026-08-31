@@ -83,9 +83,10 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - [x] mozart-pre 双发（`-b IP:端口`，发送失败不致命）✅ 2026-08-30
   - [x] stt-service 独立进程收流 + sherpa-onnx 出字（`tools/stt_service.py`，模型 `~/models/sherpa-onnx/zipformer-zh-14M`，54MB，hf-mirror 下载）✅ 实测 2 final 句
   - [x] `segment_id` 驱动断句（段切换出 final；+1s 空闲兜底断句；partial 去重）✅
-  - [ ] llama.cpp 改 `llama-server` 常驻（cli 每次加载 ~3-4s 不可接受），`-c 2048` 必须（默认 262144 会 OOM）；stt-service `--json` 的 final 句队列送翻译（下一项工作）
-  - [ ] 字幕输出端（WebSocket → 前端）；流式 ASR 无标点 → 用翻译结果（自带标点）整句替换
-  - [ ] 并发验证 ASR 加入后的三方共存（内存预算：RVC ~2GB + LLM ~1.2GB + ASR ~0.3GB < 7.4GB，余量足）
+  - [x] llama-server 常驻 ✅ 2026-08-30：CUDA 版重编（b-9723942，固化回 ~/mozart-archive），Q4_K_M `-c 2048 -ngl 99` @18200，**翻译必须 `chat_template_kwargs:{"enable_thinking":false}`**（思考模式默认开会吃光 max_tokens）
+  - [x] 文字路全链胶水 `tools/subtitle_bridge.py` ✅ 实测：STT final → 翻译 0.57-0.70s/句 → 字幕 JSONL + `--speak` TTS 播报（~2s/句）
+  - [ ] 字幕输出端（WebSocket → 前端；subtitle_bridge 已产 JSONL，缺前端订阅）；流式 ASR 无标点 → 可用译文标点整句替换
+  - [ ] 并发验证 ASR+LLM+TTS 加入后的共存（当前实测：ASR ~0.3GB CPU + LLM ~1.2GB GPU + TTS 按需，余量足；待与 RVC 三方压测）
 - [x] **TTS 小型部署（2026-08-30 实测）**：`tools/tts_service.py`（sherpa-onnx 三引擎）。**Matcha zh-baker 为推荐引擎：RTF ~0.2（5 倍实时，4 线程 CPU），共 90MB**；melo/kokoro int8 也能跑但 RTF 1.6-3 不实时（留存参考）。HDMI 播放（plughw:1,3）已验证。原来"TTS 不做"的决策更新为：**demo 可选"读出来"开关**，句子级延迟完全够
 - [ ] TTS 接线：stt-service `--json` final 句 → TTS 队列 → aplay 播放（~50 行胶水）；若要统一音色可把 TTS 输出灌 RVC 链
 
