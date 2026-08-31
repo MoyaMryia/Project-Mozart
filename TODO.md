@@ -86,7 +86,8 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - [ ] llama.cpp 改 `llama-server` 常驻（cli 每次加载 ~3-4s 不可接受），`-c 2048` 必须（默认 262144 会 OOM）；stt-service `--json` 的 final 句队列送翻译（下一项工作）
   - [ ] 字幕输出端（WebSocket → 前端）；流式 ASR 无标点 → 用翻译结果（自带标点）整句替换
   - [ ] 并发验证 ASR 加入后的三方共存（内存预算：RVC ~2GB + LLM ~1.2GB + ASR ~0.3GB < 7.4GB，余量足）
-- [ ] TTS：**决策不做**（TARGET 文字路终点是字幕）。若将来要"翻译配音"，从 piper 起步，输出可直接灌 RVC 链统一音色
+- [x] **TTS 小型部署（2026-08-30 实测）**：`tools/tts_service.py`（sherpa-onnx 三引擎）。**Matcha zh-baker 为推荐引擎：RTF ~0.2（5 倍实时，4 线程 CPU），共 90MB**；melo/kokoro int8 也能跑但 RTF 1.6-3 不实时（留存参考）。HDMI 播放（plughw:1,3）已验证。原来"TTS 不做"的决策更新为：**demo 可选"读出来"开关**，句子级延迟完全够
+- [ ] TTS 接线：stt-service `--json` final 句 → TTS 队列 → aplay 播放（~50 行胶水）；若要统一音色可把 TTS 输出灌 RVC 链
 
 ### P3 — 收尾
 
