@@ -85,7 +85,8 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - [x] `segment_id` 驱动断句（段切换出 final；+1s 空闲兜底断句；partial 去重）✅
   - [x] llama-server 常驻 ✅ 2026-08-30：CUDA 版重编（b-9723942，固化回 ~/mozart-archive），Q4_K_M `-c 2048 -ngl 99` @18200，**翻译必须 `chat_template_kwargs:{"enable_thinking":false}`**（思考模式默认开会吃光 max_tokens）
   - [x] 文字路全链胶水 `tools/subtitle_bridge.py` ✅ 实测：STT final → 翻译 0.57-0.70s/句 → 字幕 JSONL + `--speak` TTS 播报（~2s/句）
-  - [ ] 字幕输出端（WebSocket → 前端；subtitle_bridge 已产 JSONL，缺前端订阅）；流式 ASR 无标点 → 可用译文标点整句替换
+  - [x] 字幕输出端 ✅ 2026-08-30：后端 `GET /api/subtitles`（SSE tail 字幕 JSONL，dup fd + detached 线程不阻塞 accept 循环）；前端 Vue 3 移植时新增 SUB 字幕条（EventSource，中英双语 + 状态点）；Vite 代理验证通过
+  - [x] 前端技术栈升级（2026-08-31）：vanilla DOM → **Vue 3 + Vite SFC**（UI 模板/class 1:1 保留零翻新；删除 1080 行死代码 inline script）；生产 dist 构建通过（gzip 38KB）
   - [ ] 并发验证 ASR+LLM+TTS 加入后的共存（当前实测：ASR ~0.3GB CPU + LLM ~1.2GB GPU + TTS 按需，余量足；待与 RVC 三方压测）
 - [x] **TTS 小型部署（2026-08-30 实测）**：`tools/tts_service.py`（sherpa-onnx 三引擎）。**Matcha zh-baker 为推荐引擎：RTF ~0.2（5 倍实时，4 线程 CPU），共 90MB**；melo/kokoro int8 也能跑但 RTF 1.6-3 不实时（留存参考）。HDMI 播放（plughw:1,3）已验证。原来"TTS 不做"的决策更新为：**demo 可选"读出来"开关**，句子级延迟完全够
 - [ ] TTS 接线：stt-service `--json` final 句 → TTS 队列 → aplay 播放（~50 行胶水）；若要统一音色可把 TTS 输出灌 RVC 链
