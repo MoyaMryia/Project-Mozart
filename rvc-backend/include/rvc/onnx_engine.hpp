@@ -24,7 +24,30 @@ struct OnnxInput {
     std::vector<int64_t> int64s;
 };
 
-class OnnxEngine {
+// 推理引擎抽象：OnnxEngine（CPU/CUDA EP）与 TrtEngine（TensorRT 直载）同接口
+class IEngine {
+public:
+    virtual ~IEngine() = default;
+    virtual bool load(const std::filesystem::path& model_path) = 0;
+    virtual bool loaded() const = 0;
+    virtual std::optional<OnnxInput::Type> input_type(const std::string& name) const = 0;
+    virtual std::vector<float> run(
+        const std::vector<const char*>& input_names,
+        const std::vector<std::vector<int64_t>>& input_shapes,
+        const std::vector<std::vector<float>>& input_data,
+        const std::vector<const char*>& output_names) = 0;
+    virtual std::vector<float> run(const std::vector<OnnxInput>& inputs,
+                                   const std::vector<const char*>& output_names) = 0;
+    // 引擎某输入的静态形状；动态/未知返回空（用于 TRT 固定形状校验）
+    virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+    virtual void unload() = 0;
+};
+
+// 工厂：model_path 为 .onnx；同目录 <stem>.engine 存在时优先 TensorRT，
+// 否则回退 ONNX Runtime。返回已加载的引擎（失败返回 nullptr）。
+std::unique_ptr<IEngine> make_engine(const std::filesystem::path& model_path);
+
+class OnnxEngine final : public IEngine {
 public:
     OnnxEngine() = default;
 

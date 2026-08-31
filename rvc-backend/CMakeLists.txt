@@ -119,11 +119,36 @@ if(USE_LIBTORCH)
 endif()
 
 # ══════════════════════════════════════════════════════════
+# TensorRT 直载（.engine 优先于 .onnx）
+# ══════════════════════════════════════════════════════════
+option(USE_TENSORRT "Enable TensorRT engine direct loading" ON)
+add_library(trt_flags INTERFACE)
+if(USE_TENSORRT)
+    find_path(TENSORRT_INCLUDE_DIR NvInfer.h
+        PATHS /usr/include/aarch64-linux-gnu /usr/include/x86_64-linux-gnu /usr/include)
+    find_path(CUDA_INCLUDE_DIR cuda_runtime_api.h
+        PATHS /usr/local/cuda/include /usr/local/cuda-13.2/include /usr/include)
+    find_library(TENSORRT_LIBRARY nvinfer
+        PATHS /usr/lib/aarch64-linux-gnu /usr/lib/x86_64-linux-gnu)
+    find_library(CUDART_LIBRARY cudart
+        PATHS /usr/local/cuda/lib64 /usr/local/cuda-13.2/lib64 /usr/lib/aarch64-linux-gnu)
+    if(TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY AND CUDART_LIBRARY)
+        target_include_directories(trt_flags INTERFACE ${TENSORRT_INCLUDE_DIR} ${CUDA_INCLUDE_DIR})
+        target_compile_definitions(trt_flags INTERFACE USE_TENSORRT=1)
+        target_link_libraries(trt_flags INTERFACE ${TENSORRT_LIBRARY} ${CUDART_LIBRARY})
+        message(STATUS "TensorRT enabled: ${TENSORRT_LIBRARY}")
+    else()
+        message(STATUS "TensorRT not found — engines fall back to ONNX Runtime")
+    endif()
+endif()
+
+# ══════════════════════════════════════════════════════════
 # Sources
 # ══════════════════════════════════════════════════════════
 set(RUNTIME_SOURCES
     src/rvc/audio_worker.cpp
     src/rvc/streaming_pipeline.cpp
+    src/rvc/trt_engine.cpp
     src/rvc/pipeline.cpp
     src/rvc/inferencer.cpp
     src/rvc/feature_extractor.cpp
@@ -165,6 +190,7 @@ target_include_directories(mozart_rvc_runtime PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../preprocessor
 )
 
+target_link_libraries(mozart_rvc_runtime PRIVATE trt_flags)
 target_link_libraries(mozart_rvc_runtime PUBLIC
     yaml-cpp
     nlohmann_json::nlohmann_json
@@ -207,6 +233,7 @@ if(BUILD_TESTS)
     add_executable(test_udp_loopback tests/test_udp_loopback.cpp
         src/rvc/audio_worker.cpp
         src/rvc/streaming_pipeline.cpp
+        src/rvc/trt_engine.cpp
         src/rvc/pipeline.cpp
         src/rvc/inferencer.cpp
         src/rvc/feature_extractor.cpp
@@ -219,6 +246,7 @@ if(BUILD_TESTS)
         target_include_directories(test_udp_loopback PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
     endif()
     target_link_libraries(test_udp_loopback PRIVATE
+        trt_flags
         mozart_io
         spdlog::spdlog
         Threads::Threads
@@ -248,12 +276,14 @@ if(BUILD_TESTS)
     add_executable(test_feature_extractor tests/test_feature_extractor.cpp
         src/rvc/feature_extractor.cpp
         src/rvc/onnx_engine.cpp
+        src/rvc/trt_engine.cpp
     )
     target_include_directories(test_feature_extractor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     if(USE_ONNX AND ONNX_RUNTIME_LIB)
         target_include_directories(test_feature_extractor PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
     endif()
     target_link_libraries(test_feature_extractor PRIVATE
+        trt_flags
         spdlog::spdlog
         ${ONNX_RUNTIME_LIB}
     )

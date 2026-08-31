@@ -34,7 +34,7 @@ public:
     bool load(const std::string& device = "cuda", bool half = false);
     void unload();
 
-    OnnxEngine& generator_engine() { return generator_engine_; }
+    IEngine& generator_engine() { return *generator_engine_; }
     IndexSearch& index() { return index_; }
 
 private:
@@ -47,7 +47,7 @@ private:
     RVCModelConfig config_;
     bool loaded_ = false;
 
-    OnnxEngine generator_engine_;
+    std::unique_ptr<IEngine> generator_engine_;
     IndexSearch index_;
 
     bool load_generator(const std::string& device, bool half);

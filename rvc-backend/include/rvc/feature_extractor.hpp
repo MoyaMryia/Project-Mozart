@@ -35,8 +35,8 @@ public:
         uint32_t sample_rate = 16000
     );
 
-    bool is_hubert_loaded() const { return hubert_engine_.loaded(); }
-    bool is_rmvpe_loaded() const { return rmvpe_engine_.loaded(); }
+    bool is_hubert_loaded() const { return hubert_engine_ && hubert_engine_->loaded(); }
+    bool is_rmvpe_loaded() const { return rmvpe_engine_ && rmvpe_engine_->loaded(); }
 
 private:
     std::filesystem::path hubert_path_;
@@ -46,8 +46,8 @@ private:
     bool mock_hubert_;
     bool mock_rmvpe_;
 
-    OnnxEngine hubert_engine_;
-    OnnxEngine rmvpe_engine_;
+    std::unique_ptr<IEngine> hubert_engine_;
+    std::unique_ptr<IEngine> rmvpe_engine_;
 
     std::vector<float> f0_harvest(const std::vector<float>& audio, uint32_t sample_rate);
     std::vector<float> f0_pm(const std::vector<float>& audio, uint32_t sample_rate);

@@ -82,14 +82,16 @@ bool RVCModel::load(const std::string& device, bool half) {
 }
 
 void RVCModel::unload() {
-    generator_engine_.unload();
+    if (generator_engine_) generator_engine_->unload();
+    generator_engine_.reset();
     loaded_ = false;
 }
 
 bool RVCModel::load_generator(const std::string& device, bool half) {
     if (std::filesystem::exists(onnx_path_)) {
-        spdlog::info("Loading ONNX generator: {}", onnx_path_.string());
-        return generator_engine_.load(onnx_path_);
+        spdlog::info("Loading generator: {}", onnx_path_.string());
+        generator_engine_ = make_engine(onnx_path_);
+        return generator_engine_ && generator_engine_->loaded();
     }
 
     spdlog::warn("ONNX model not found at {}; trying .pth fallback (needs libtorch)",
