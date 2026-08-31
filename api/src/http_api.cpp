@@ -8,6 +8,10 @@
 #include <fstream>
 #include <algorithm>
 #include <cctype>
+#include <chrono>
+#include <cstdlib>
+#include <thread>
+#include <unistd.h>
 
 namespace rvc {
 
@@ -247,6 +251,18 @@ void HttpApiServer::handle_request(int client_fd) {
         response = handle_file_result(client_fd, path);
         if (response.empty()) return;
     }
+    else if (route == "/api/subtitles" && method == "GET") {
+        // SSE 长连接：dup 出独立 fd 交给 detached 线程 tail 字幕 JSONL，
+        // 原连接立即返回由 run_server 关闭（dup 引用同一 TCP 连接）。
+        const int sse_fd = dup(client_fd);
+        if (sse_fd >= 0) {
+            std::thread([this](int fd) {
+                handle_subtitles_stream(fd);
+                socket_close(fd);
+            }, sse_fd).detach();
+        }
+        return;
+    }
     else if (route == "/api/file/cancel" && method == "DELETE") {
         response = handle_file_cancel(path);
     }
@@ -279,6 +295,52 @@ void HttpApiServer::handle_request(int client_fd) {
 std::string HttpApiServer::handle_health() {
     return http_response(200, R"({"status":"ok"})");
 }
+
+void HttpApiServer::handle_subtitles_stream(int client_fd) {
+    static const char* kHead =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/event-stream\r\n"
+        "Cache-Control: no-cache\r\n"
+        "Connection: keep-alive\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n";
+    if (send(client_fd, kHead, std::strlen(kHead), 0) < 0) return;
+
+    const char* env = std::getenv("MOZART_SUBTITLES_JSONL");
+    const std::string file_path = env && env[0] ? env : "/tmp/opencode/subtitles.jsonl";
+
+    std::ifstream file;
+    auto try_open = [&]() {
+        file.close();
+        file.clear();
+        file.open(file_path);
+        if (file) file.seekg(0, std::ios::end); // 只推新增行
+    };
+    try_open();
+    auto last_retry = std::chrono::steady_clock::now();
+
+    while (running_) {
+        if (!file.is_open()) {
+            const auto now = std::chrono::steady_clock::now();
+            if (now - last_retry > std::chrono::seconds(2)) {
+                try_open();
+                last_retry = now;
+            }
+        } else {
+            std::string line;
+            while (std::getline(file, line)) {
+                if (line.empty()) continue;
+                const std::string payload = "data: " + line + "\n\n";
+                if (send(client_fd, payload.c_str(), payload.size(), MSG_NOSIGNAL) < 0) {
+                    return; // 客户端断开
+                }
+            }
+            file.clear(); // EOF：等待新行
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+}
+
 
 std::string HttpApiServer::handle_status() {
     return http_response(200, controller_ ? controller_->status().dump(2) : R"({"error":"controller not initialized"})");

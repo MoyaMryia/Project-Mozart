@@ -63,6 +63,7 @@ private:
     std::string handle_file_remove(const std::string& path);
     std::string handle_file_clear_finished();
     std::string handle_file_result(int client_fd, const std::string& path);
+    void handle_subtitles_stream(int client_fd);
     std::string handle_activate_model(const std::string& model_id);
 };
 
