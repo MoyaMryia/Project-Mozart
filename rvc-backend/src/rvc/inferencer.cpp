@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <algorithm>
+#include <limits>
 
 namespace rvc {
 
@@ -43,10 +44,11 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
 
     auto f0 = feature_extractor_->extract_f0(audio_16k, 16000, f0_method_);
     auto feats = feature_extractor_->extract_features(audio_16k, 16000);
+    const auto unindexed_feats = feats;
 
     feats = apply_index(feats);
 
-    auto converted = run_generator(feats, f0, audio);
+    auto converted = run_generator(feats, f0, audio, unindexed_feats);
 
     return converted;
 }
@@ -89,7 +91,8 @@ std::vector<float> RVCInferencer::apply_index(const std::vector<float>& feats) {
 std::vector<float> RVCInferencer::run_generator(
     const std::vector<float>& feats,
     const std::vector<float>& f0,
-    const std::vector<float>& original_audio
+    const std::vector<float>& original_audio,
+    const std::vector<float>& unindexed_feats
 ) {
     if (!model_->generator_engine().loaded()) {
         spdlog::warn("Generator engine not loaded; falling back to upsampling");
@@ -111,34 +114,89 @@ std::vector<float> RVCInferencer::run_generator(
     }
 
     uint32_t emb_dim = model_->config().emb_channels;
-    const size_t source_feature_frames = std::max(size_t{1}, feats.size() / emb_dim);
     // Current deployed generator export only supports its tracing length T=200.
     constexpr size_t generator_frames = 200;
     const size_t T = generator_frames;
 
-    std::vector<float> feats_reshaped(T * emb_dim, 0.0f);
-    for (size_t target = 0; target < T; ++target) {
-        const size_t source = source_feature_frames == 1 ? 0
-            : target * (source_feature_frames - 1) / (T - 1);
-        const size_t source_offset = source * emb_dim;
-        if (source_offset >= feats.size()) continue;
-        const size_t available = std::min(static_cast<size_t>(emb_dim), feats.size() - source_offset);
-        std::copy_n(feats.begin() + static_cast<std::ptrdiff_t>(source_offset), available,
-                    feats_reshaped.begin() + static_cast<std::ptrdiff_t>(target * emb_dim));
-    }
+    const auto resize_features = [&](const std::vector<float>& source_feats) {
+        std::vector<float> resized(T * emb_dim, 0.0f);
+        const size_t source_frames = std::max(size_t{1}, source_feats.size() / emb_dim);
+        for (size_t target = 0; target < T; ++target) {
+            // RVC uses F.interpolate(..., scale_factor=2) with the default
+            // nearest mode. A 2 s HuBERT window yields 99 frames, so duplicate
+            // those to 198 and extend the final frame to the fixed T=200 export.
+            const size_t source = std::min(target / 2, source_frames - 1);
+            for (size_t channel = 0; channel < emb_dim; ++channel) {
+                const size_t source_offset = source * emb_dim + channel;
+                if (source_offset < source_feats.size()) {
+                    resized[target * emb_dim + channel] = source_feats[source_offset];
+                }
+            }
+        }
+        return resized;
+    };
+
+    std::vector<float> feats_reshaped = resize_features(feats);
+    const std::vector<float> unindexed_reshaped = resize_features(unindexed_feats);
 
     const size_t f0_frames = std::max(size_t{1}, f0.size());
     std::vector<int64_t> pitch(T, 0);
     std::vector<float> pitchf(T, 0.0f);
 
+    std::vector<float> raw_f0(T, 0.0f);
     for (size_t t = 0; t < T; ++t) {
         if (!f0.empty()) {
-            const size_t source = f0_frames == 1 ? 0 : t * (f0_frames - 1) / (T - 1);
-            float f0_val = f0[source];
-            pitch[t] = f0_val > 0.0f
-                ? static_cast<int64_t>(std::clamp(std::lround(std::log2(f0_val / 440.0f) * 12.0f + 69.0f + pitch_shift_), 1L, 255L))
-                : 0;
-            pitchf[t] = f0_val;
+            raw_f0[t] = f0[std::min(t, f0_frames - 1)];
+        }
+    }
+    // RVC fills unvoiced gaps before applying the requested pitch shift. This
+    // keeps consonants from forcing the generator to jump to coarse bin 1.
+    size_t first_voiced = 0;
+    while (first_voiced < raw_f0.size() && raw_f0[first_voiced] <= 0.0f) ++first_voiced;
+    if (first_voiced < raw_f0.size()) {
+        for (size_t t = 0; t < first_voiced; ++t) raw_f0[t] = raw_f0[first_voiced];
+        size_t left = first_voiced;
+        for (size_t t = first_voiced + 1; t < raw_f0.size(); ++t) {
+            if (raw_f0[t] <= 0.0f) continue;
+            const size_t right = t;
+            for (size_t gap = left + 1; gap < right; ++gap) {
+                const float amount = static_cast<float>(gap - left) / static_cast<float>(right - left);
+                raw_f0[gap] = raw_f0[left] * (1.0f - amount) + raw_f0[right] * amount;
+            }
+            left = right;
+        }
+        for (size_t t = left + 1; t < raw_f0.size(); ++t) raw_f0[t] = raw_f0[left];
+    }
+
+    std::vector<float> shifted_f0(T, 0.0f);
+    for (size_t t = 0; t < T; ++t) {
+        shifted_f0[t] = raw_f0[t] > 0.0f
+            ? raw_f0[t] * std::pow(2.0f, static_cast<float>(pitch_shift_) / 12.0f)
+            : 0.0f;
+        pitchf[t] = shifted_f0[t];
+        if (shifted_f0[t] > 0.0f) {
+                constexpr float f0_min = 50.0f;
+                constexpr float f0_max = 1100.0f;
+                const float mel_min = 1127.0f * std::log1p(f0_min / 700.0f);
+                const float mel_max = 1127.0f * std::log1p(f0_max / 700.0f);
+                const float f0_mel = 1127.0f * std::log1p(shifted_f0[t] / 700.0f);
+                const float coarse = (f0_mel - mel_min) * 254.0f / (mel_max - mel_min) + 1.0f;
+                pitch[t] = static_cast<int64_t>(std::clamp(std::lround(coarse), 1L, 255L));
+            } else {
+                pitch[t] = 1;
+            }
+    }
+
+    // RVC protect keeps the original HuBERT features around unvoiced consonants;
+    // it is not a waveform crossfade with the source audio.
+    if (protect_ > 0.0f && protect_ < 1.0f) {
+        for (size_t t = 0; t < T; ++t) {
+            const float feature_weight = shifted_f0[t] > 0.0f ? 1.0f : protect_;
+            for (size_t channel = 0; channel < emb_dim; ++channel) {
+                const size_t offset = t * emb_dim + channel;
+                feats_reshaped[offset] = feats_reshaped[offset] * feature_weight
+                    + unindexed_reshaped[offset] * (1.0f - feature_weight);
+            }
         }
     }
 
@@ -173,17 +231,36 @@ std::vector<float> RVCInferencer::run_generator(
         audio_out = resample(audio_out, model_->config().sample_rate, output_sample_rate_);
     }
 
-    // The generator output is at output_sample_rate_, while original_audio is
-    // at input_sample_rate_. Mixing them without resampling compresses the
-    // preserved consonants into the start of the output timeline.
-    if (protect_ > 0.0f) {
-        const auto original_at_output_rate = input_sample_rate_ == output_sample_rate_
-            ? original_audio
-            : resample(original_audio, input_sample_rate_, output_sample_rate_);
-        float alpha = 1.0f - protect_ * 0.5f;
-        size_t limit = std::min(audio_out.size(), original_at_output_rate.size());
-        for (size_t i = 0; i < limit; ++i) {
-            audio_out[i] = audio_out[i] * alpha + original_at_output_rate[i] * (1.0f - alpha);
+    if (rms_mix_rate_ < 1.0f && !original_audio.empty() && !audio_out.empty()) {
+        const auto input_at_output_rate = input_sample_rate_ == output_sample_rate_
+            ? original_audio : resample(original_audio, input_sample_rate_, output_sample_rate_);
+        const size_t frame = std::max<size_t>(1, output_sample_rate_ / 2);
+        const size_t hop = std::max<size_t>(1, output_sample_rate_ / 4);
+        const auto rms_curve = [](const std::vector<float>& samples, size_t frame_size,
+                                  size_t hop_size) {
+            std::vector<float> result;
+            for (size_t start = 0; start < samples.size(); start += hop_size) {
+                const size_t end = std::min(samples.size(), start + frame_size);
+                float sum = 0.0f;
+                for (size_t i = start; i < end; ++i) sum += samples[i] * samples[i];
+                result.push_back(std::sqrt(sum / static_cast<float>(std::max<size_t>(1, end - start))));
+            }
+            return result;
+        };
+        const auto input_rms = rms_curve(input_at_output_rate, frame, hop);
+        const auto output_rms = rms_curve(audio_out, frame, hop);
+        for (size_t i = 0; i < audio_out.size(); ++i) {
+            const float position = static_cast<float>(i) / static_cast<float>(hop);
+            const size_t left = std::min(static_cast<size_t>(position), output_rms.size() - 1);
+            const size_t right = std::min(left + 1, output_rms.size() - 1);
+            const float amount = position - static_cast<float>(left);
+            const float in_level = input_rms[std::min(left, input_rms.size() - 1)] * (1.0f - amount)
+                + input_rms[std::min(right, input_rms.size() - 1)] * amount;
+            const float out_level = std::max(output_rms[left] * (1.0f - amount)
+                + output_rms[right] * amount, 1e-6f);
+            const float correction = std::pow(std::max(in_level, 1e-6f) / out_level,
+                                              1.0f - rms_mix_rate_);
+            audio_out[i] *= correction;
         }
     }
 
