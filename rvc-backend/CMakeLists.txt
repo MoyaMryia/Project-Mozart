@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ══════════════════════════════════════════════════════════
 option(USE_LIBTORCH "Enable libtorch for real RVC inference" OFF)
 option(USE_ONNX "Enable ONNX Runtime for real RVC inference" ON)
+option(USE_CUDA_EP "Enable ONNX Runtime CUDA execution provider (requires CUDA-enabled ORT)" OFF)
 option(BUILD_TESTS "Build unit tests" ON)
 
 # ══════════════════════════════════════════════════════════
@@ -202,6 +203,9 @@ target_link_libraries(mozart_rvc_runtime PUBLIC
 
 if(USE_ONNX AND ONNX_RUNTIME_LIB)
     target_compile_definitions(mozart_rvc_runtime PUBLIC USE_ONNX)
+    if(USE_CUDA_EP)
+        target_compile_definitions(mozart_rvc_runtime PUBLIC USE_CUDA_EP)
+    endif()
     target_include_directories(mozart_rvc_runtime PUBLIC ${ONNX_RUNTIME_INCLUDE_DIR})
     target_link_libraries(mozart_rvc_runtime PUBLIC ${ONNX_RUNTIME_LIB})
 endif()
@@ -244,6 +248,9 @@ if(BUILD_TESTS)
     target_include_directories(test_udp_loopback PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     if(USE_ONNX AND ONNX_RUNTIME_LIB)
         target_include_directories(test_udp_loopback PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+        if(USE_CUDA_EP)
+            target_compile_definitions(test_udp_loopback PRIVATE USE_CUDA_EP)
+        endif()
     endif()
     target_link_libraries(test_udp_loopback PRIVATE
         trt_flags
@@ -281,6 +288,9 @@ if(BUILD_TESTS)
     target_include_directories(test_feature_extractor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     if(USE_ONNX AND ONNX_RUNTIME_LIB)
         target_include_directories(test_feature_extractor PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+        if(USE_CUDA_EP)
+            target_compile_definitions(test_feature_extractor PRIVATE USE_CUDA_EP)
+        endif()
     endif()
     target_link_libraries(test_feature_extractor PRIVATE
         trt_flags
@@ -303,6 +313,9 @@ if(BUILD_TESTS)
     target_include_directories(test_inferencer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     if(USE_ONNX AND ONNX_RUNTIME_LIB)
         target_include_directories(test_inferencer PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+        if(USE_CUDA_EP)
+            target_compile_definitions(test_inferencer PRIVATE USE_CUDA_EP)
+        endif()
     endif()
     target_link_libraries(test_inferencer PRIVATE
         spdlog::spdlog

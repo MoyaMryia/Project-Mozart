@@ -10,7 +10,7 @@
 
 - **产品定位**：一块边缘板子当"AI 声卡"（见 [TARGET.md](TARGET.md)）。比赛 demo 为近期交付，代码与文档按可长期演进的产品标准建设。
 - **核心指标**：
-  - 变声路（实时路）端到端延迟 **< 30ms**，不爆音、不打断。
+  - 变声路（实时路）端到端延迟 **≈ 2 秒 + 推理 + 60 ms 交叉淡化**（Generator T=200 固定窗口约束），不爆音、不打断。
   - 字幕路（文字路）容忍 1~2 秒延迟，优先准确率。
 - **两路并行**（一块板子带得动的前提）：
   - **实时路**：降噪 → RVC 变声（路线第 1 步，实现中）
@@ -34,15 +34,15 @@
 | 子系统 | 目录 | 语言 | 职责 | 状态 |
 |--------|------|------|------|------|
 | IO | `IO/` | C++17 + C ABI | 统一契约帧、UDP/PipeWire/Mock 驱动、SPSC 无锁环 | ✅ UDP 完整；PipeWire stub |
-| 预处理 | `preprocessor/` | C11 | HPF、RNNoise 降噪、自适应混合、3:1 降采样 | ✅ 可用 |
-| 后处理 | `rvc-backend/` | C++17 | AudioWorker 编排、ONNX 推理、HTTP 管理 | ✅ 主链路（CPU EP） |
-| 状态管理 | `state_manager/` | — | 4 模式编排、显存置换、任务队列 | 📐 设计完成，未编码 |
+| 预处理 | `preprocessor/` | C11 | HPF、RNNoise 降噪、3:1 降采样、VAD 滞回 | ✅ 可用 |
+| 后处理 | `rvc-backend/` | C++17 | AudioWorker 编排、ONNX/TensorRT 推理、HTTP 管理 | ✅ 主链路（GPU 生产落地待验证） |
+| 状态管理 | `state/` | C++17 | 4 模式编排、显存置换、任务队列、HTTP 控制面 | ✅ 已编码（`mozart_stated`） |
 | ONNX 导出 | `tools/` | Python | .pth → .onnx（PC 端一次性） | ✅ |
 
 ### 2.3 关键原则
 
 - **IO 不解释算法**：IO 是算法无关的传输通道；特征滑动窗口等上下文逻辑属于推理层内部。
-- **预处理/后处理不持有设备与网络资源**：流的生命周期由上层（state_manager）通过 IO 门面独立启停。
+- **预处理/后处理不持有设备与网络资源**：流的生命周期由上层 state 模块（`state/`）通过 IO 门面独立启停。
 - **契约帧唯一定义源**：`IO/include/mozart/frame_meta.h`。`preprocessor/mozart.h` 与 rvc-backend 均 include 该头，禁止各自复制定义。
 - **两栖架构**：Jetson 零 Python、零 PyTorch 依赖，只跑 ONNX Runtime（详见 §7）。
 
@@ -105,7 +105,7 @@ AudioStream (Open/Close/IsOpen)
 ```
 
 - **帧类型由流方向决定**：Capture 流 ReadFrame 产出 `mozart_raw_frame_t`（PipeWire 48k）或 `mozart_input_frame_t`（UDP 16k）；Playback 流 WriteFrame 消费 `mozart_output_frame_t`。`buf_size` 运行时校验。
-- **构造与打开分离**：`create_*_stream → open(sample_rate, frame_ms, ring_capacity) → read/write → close → destroy`，state_manager 可保留配置并独立启停底层资源。
+- **构造与打开分离**：`create_*_stream → open(sample_rate, frame_ms, ring_capacity) → read/write → close → destroy`，state 模块可保留配置并独立启停底层资源。
 - **C-ABI**（`mozart/audio_io.h`）：`mozart_io_create_pipewire_stream` / `mozart_io_create_udp_stream` / `mozart_io_open_stream` / `mozart_io_read_frame` / `mozart_ring_create|push|pop` 等。所有函数经 `cabi_guard` 收敛异常，保证 C 调用方永不抛出。
 
 ### 4.2 SPSC 无锁环（`ring_buffer.hpp`）
@@ -121,8 +121,9 @@ AudioStream (Open/Close/IsOpen)
 | 机制 | 说明 |
 |------|------|
 | 双环异步解耦 | 采集/播放按硬件时钟独立运行；推理在独立 Worker 线程，IO 回调绝不被 GPU 耗时（10~30ms 波动）阻塞 |
-| 线程优先级 | 物理 IO 线程 `SCHED_FIFO`，推理常规优先级（state_manager 阶段统一落地，见 §6.4） |
-| 丢帧追赶 | 输入环积压 > 4 帧（>80ms）说明延迟累积：丢弃最旧 N-1 帧，仅推理最新一帧，20ms 内把累积延迟清零；被丢帧补静音 |
+| 滑动窗口分块 | `StreamingRvc` 在 `AudioWorker` 内部缓冲 2 s 音频（T=200），独立推理线程按窗口提交；不连续事件触发状态重置 |
+| 输入环溢出保护 | `StreamingRvc` 输入环满时丢弃最旧样本，避免采集线程阻塞 |
+| 静音窗跳过 | 窗口内无 VAD 标记时直接输出等长静音，不占用 GPU |
 | XRun 保护 | 输出环为空时物理输出线程回填全零静音帧，防止声卡爆音 |
 
 ### 4.4 目录结构
@@ -158,7 +159,7 @@ UdpStream(18000, Capture) ─► AudioWorker::start()      # 独立推理线程
 HttpApiServer(18080)                                   # 管理面
 ```
 
-- `AudioWorker` 只持有 stream 与 pipeline 的**引用**，不拥有 socket/设备 → state_manager 可独立编排启停（`stop()` 时 Close stream 以解除阻塞的 ReadFrame）。
+- `AudioWorker` 只持有 stream 与 pipeline 的**引用**，不拥有 socket/设备 → state 模块可独立编排启停（`stop()` 时 Close stream 以解除阻塞的 ReadFrame）。
 - 每帧流程：`ReadFrame` → **VAD bypass**（`skip_silence && vad_flag==0` → 零帧 + bypass 计数）→ `pipeline.process()` → `WriteFrame`。
 - 统计：每帧推理延迟（avg/max）、inference/bypass 计数，定期打印并经 `/status` 暴露。
 
@@ -186,7 +187,7 @@ input (16kHz)
 
 组件实现：
 
-- **OnnxEngine**（`onnx_engine.cpp`）：ONNX Runtime C++ API；`Ort::Env` + `Ort::Session`，`IntraOpNumThreads(2)`、全图优化。当前 **CPU EP**；TensorRT EP / FP16 为第 1 步收尾项（Orin Nano 达标 30ms 必需）。
+- **OnnxEngine**（`onnx_engine.cpp`）：ONNX Runtime C++ API；`Ort::Env` + `Ort::Session`，`IntraOpNumThreads(2)`、全图优化。支持 **TensorRT 直载**：同路径下存在 `.engine` 时优先加载（见 `make_engine()`）；也支持通过 `USE_CUDA_EP=ON` 启用 CUDA Execution Provider。当前生产构建默认使用 CPU ONNX Runtime；GPU 路径需确认 Jetson 上 TRT 头文件/库或 CUDA-enabled ORT 可用。
 - **FeatureExtractor**（`feature_extractor.cpp`）：HuBERT / RMVPE 各持一个 OnnxEngine，构造时按路径加载。F0 方法 `rmvpe` 可用；`harvest` / `pm` 为占位（返回全零）。
 - **IndexSearch**（`index_search.cpp`）：自研 FAISS IVF `.index` 二进制解析（magic `IwFl`，质心 + 倒排表），**无 FAISS 运行时依赖**；`search()` 逐帧最近质心 + KNN1 混合。
 - **ModelManager / RVCModel**（`model_loader.cpp`）：模型目录约定 `models/<id>/{<id>.onnx, config.json, <id>.index}`；解析 config.json（sampling_rate / emb_channels / spk_id / has_f0）；`list_models()` 扫描目录；`switch_model()` 即"重载 Generator + 重建 inferencer"。
@@ -195,9 +196,9 @@ input (16kHz)
 
 | 项 | 现状 | 说明 |
 |----|------|------|
-| mel 谱图 | ⚠️ 占位 | `compute_mel` 是能量近似实现，非 FFT + mel 滤波器组；RMVPE 的 128 维 mel 输入需替换为真实实现 |
+| mel 谱图 | ✅ | `rvc-backend/src/rvc/feature_extractor.cpp` 已实现 radix-2 FFT + HTK mel 滤波器组 + Slaney 归一化，匹配 librosa `htk=True`；RMVPE 输入为真实 mel |
 | F0 方法 | ⚠️ 部分 | 仅 `rmvpe`(onnx) 可用；harvest/pm 返回全零 |
-| TensorRT EP / FP16 | ❌ | 当前 CPU EP；Jetson 压测前必须切换 |
+| TensorRT / GPU 推理 | ⚠️ | 代码已支持 TensorRT 直载 `.engine`（`make_engine()` 优先）与 `USE_CUDA_EP=ON`；生产 Jetson 构建上需验证 `.engine` 路径或 CUDA-enabled ORT 可用性 |
 | `.pth` 加载 | ❌ | 需 `-DUSE_LIBTORCH=ON` 且未实现；路线统一走 ONNX，**不做** |
 | HTTP `/models/upload` | ❌ | 死代码未挂路由；路线第 3 步（网页上传）时实现 |
 | Jetson 实机压测 | ⚠️ | `/status` 有 avg/max 统计，实机延迟未验证 |
@@ -237,15 +238,17 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON && make -j6
 
 依赖：`libyaml-cpp-dev`（apt）；nlohmann/json、spdlog（CMake FetchContent）；ONNX Runtime（`libonnxruntime-dev`）。
 
-## 6. 状态管理 state_manager（📐 设计完成，未编码）
+## 6. 状态管理 state（`state/`，C++17 已编码）
 
 ### 6.1 定位：控制面 / 数据面解耦
 
-state_manager 是全局生命周期与资源编排器，**不触碰任何音频数据**，只通过三个门面间接指挥全链路：
+state 模块（`state/`）是全局生命周期与资源编排器，**不触碰任何音频数据**，只通过三个门面间接指挥全链路：
 
 - **Model Facade**：模型加载/卸载（`pipeline->switch_model`）
 - **IO Facade**：设备流生命周期（`mozart_io_create/open/close/destroy`）
-- **Worker Facade**：工作线程启停（`AudioWorker::start/stop`）
+- **Worker Facade**：工作线程启停（`AudioWorker::start/stop`，由 `RealtimeRvcWorker` / `FileRvcWorker` 包装）
+
+当前实现：`state/src/main.cpp` 启动 `mozart::StateManagerDaemon`，后者组合 `rvc::ModeController`、`rvc::RVCPipelineBase` 与 `rvc::HttpApiServer`，完成 IDLE/RT_RVC/FILE_RVC 三模式编排。
 
 实时模式切换固定顺序：`stop worker → close IO → (跨大类时) unload/load model → open IO → start worker`。
 
@@ -310,17 +313,18 @@ Jetson:
 ## 8. 实现路线与当前状态
 
 | # | 目标 | 涉及组件 | 状态 |
-|---|------|---------|------|
-| 1 | **实时降噪 + RVC 变声** | preprocessor ✅ / IO ✅(UDP) / rvc-backend ✅(CPU EP) | **当前**：收尾 §5.4 缺口（真实 mel、TensorRT EP）+ PipeWire 真驱动 + Jetson 压测 |
-| 2 | **ASR 转写 + Qwen 翻译字幕** | 新模块 asr-translator（待设计：输入旁路 16k 契约帧，流式 ASR + 本地 Qwen 0.8B） | ⬜ |
-| 3 | **离线文件 / 网页上传变声** | IO OfflineStream + FFmpeg 解码 + 任务队列 + HTTP/WS API | ⬜ |
-| 4 | **Zero-Shot 零样本变声** | state_manager 4 模式落地 + 新推理引擎 + 角色注册 | ⬜ |
+|---|---|------|---------|
+| 1 | **实时降噪 + RVC 变声** | preprocessor ✅ / IO ✅(UDP) / rvc-backend ✅（ONNX 主链路、TensorRT 直载代码、滑动窗口） | **当前**：真实 mel 已实现；GPU 生产构建与真模型出声待验证；PipeWire 真驱动待实现 |
+| 2 | **ASR 转写 + Qwen 翻译 + 可选 TTS** | Python 工具链（`tools/stt_service.py`、`tools/subtitle_bridge.py`、`tools/tts_service.py`）已落地；尚未接入 C++ 守护进程 | ⬜ 工具链 ✅ / C++ 集成 ⬜ |
+| 3 | **离线文件 / 网页上传变声** | `state/` + `FileRvcWorker` + FFmpeg 解码 + HTTP API 任务队列 | ✅ |
+| 4 | **Zero-Shot 零样本变声** | state 4 模式落地 + 新推理引擎 + 角色注册 | ⬜ |
 
 已完成的基线（第 1 步前半）：
 
-- [x] 预处理全链路（HPF/RNNoise/自适应混合/3:1 降采样，C-ABI `mozart_pre_*`）
+- [x] 预处理全链路（HPF / RNNoise 全湿 / 3:1 降采样 / VAD 滞回，C-ABI `mozart_pre_*`）
 - [x] IO 契约帧唯一定义源 + UDP 驱动 + SPSC 无锁环 + C-ABI
-- [x] RVC 后端 ONNX 主链路（引擎/特征/推理/模型管理/HTTP API/Index 检索）
+- [x] RVC 后端 ONNX 主链路（引擎/特征/真实 mel/推理/模型管理/HTTP API/Index 检索）
+- [x] 滑动窗口流式推理 `StreamingRvc`（2 s 窗 + 60 ms 交叉淡化）
 - [x] ONNX 导出脚本 ×3；Jetson JetPack R39 环境就绪
 
 ## 9. 部署（Jetson Orin Nano Super 8GB）
@@ -330,7 +334,7 @@ Jetson:
   - preprocessor：`make -j6`（Makefile 指定 `-march=armv8.2-a+dotprod+fp16 -mtune=cortex-a78ae`，RNNoise 自动走 NEON 路径）
   - rvc-backend：`cmake -DUSE_ONNX=ON`（依赖 libonnxruntime-dev、libyaml-cpp-dev）
 - **端口**：UDP 18000（音频）、HTTP 18080（管理）。
-- **内存预算（7.4GiB LPDDR5 共享）**：RVC 三模型（HuBERT+RMVPE+Generator）常驻 ~2GB；OS/桌面 ~1.5GB；余量预留给第 2 步 ASR+Qwen 与系统峰值。
+- **内存预算（7.4GiB LPDDR5 共享）**：RVC 三模型（HuBERT+RMVPE+Generator）常驻 ~2GB；OS/桌面 ~1.5GB；余量预留给文字路（ASR+Qwen+可选 TTS）与系统峰值。
 - **服务化**：systemd unit + 启动脚本，第 1 步收尾后固化（随 PipeWire 真驱动一起交付）。
 - **排障**：GPU OOM → 关 `half` 或减少常驻模型；爆音 → 检查输出环 XRun 统计并确认丢帧追赶生效；模型加载失败 → 核对 ONNX opset 与路径。
 
@@ -340,9 +344,9 @@ Jetson:
 |------|------|
 | C-ABI 契约帧单一来源（frame_meta.h） | 消除 C/C++（及未来其他语言）跨层 ABI 漂移 |
 | SPSC 无锁环 + 预分配 | 零运行时 malloc、无锁竞争、确定性延迟 |
-| 双环异步 + 丢帧追赶 + 静音回填 | GPU 抖动（10→30ms）不打挂物理音频流；demo 不能爆音 |
+| 双环异步 + 滑动窗口 + 静音窗跳过 | GPU 抖动（10→30ms）不打挂物理音频流；demo 不能爆音 |
 | 两栖架构（ONNX Runtime） | Jetson 零 Python/PyTorch 依赖；导出一次性完成 |
 | 模型热切换 HTTP API | 运行时零停机换音色（仅换 Generator ~200ms） |
-| 控制面/数据面解耦（三 Facade） | state_manager 独立演进，不碰数据面 |
+| 控制面/数据面解耦（三 Facade） | state 模块独立演进，不碰数据面 |
 | 强互斥单活跃模式 | 8GB 共享内存下杜绝并发推理 OOM |
 | 推理失败 fallback mock | 链路永不中断，稳定性优先于单帧质量 |

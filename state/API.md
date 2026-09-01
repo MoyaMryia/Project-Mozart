@@ -28,7 +28,7 @@ from the root `build/` tree for the full daemon architecture.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /api/status` | Authoritative mode, pending transition, queue, selected model, and capabilities. |
+| `GET /api/status` | Authoritative mode, pending transition, queue, selected model, capabilities, plus `latency` (avg/max ms), `stream` (blocks/resets/overruns), `bypass` (inference/bypass counts), and `vad` stats from the active real-time worker. |
 | `POST /api/mode/switch` | JSON `{ "mode": "file_rvc", "speaker_id": "model_id" }`. A switch away from an active file job is deferred. |
 | `POST /api/file/convert` | Multipart `audio_file` and optional `speaker_id`; stores the upload and returns a queued job ID. |
 | `GET /api/file/status?job_id=...` | Job state, progress, error, and completed download URL. |

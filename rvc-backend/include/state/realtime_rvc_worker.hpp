@@ -33,6 +33,10 @@ public:
     void stop();
     bool running() const noexcept;
     AudioWorker::VadStats vad_stats() const;
+    AudioWorker::LatencyStats latency_stats() const;
+    AudioWorker::BypassStats bypass_stats() const;
+    AudioWorker::StreamStats stream_stats() const;
+    bool is_stream_mode() const noexcept;
 
 private:
     RVCPipelineBase& pipeline_;

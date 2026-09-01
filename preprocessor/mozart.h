@@ -9,6 +9,7 @@
 #include "mozart/rnnoise.h"
 #include "mozart/dsp.h"
 #include "mozart/capture.h"
+#include "mozart/playback.h"
 #include "mozart/wav.h"
 
 #define MOZART_PRE_VERSION "0.2.0"
