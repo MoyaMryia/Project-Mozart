@@ -54,6 +54,7 @@ public:
     bool load(const std::filesystem::path& model_path);
     bool loaded() const { return session_ != nullptr; }
     std::optional<OnnxInput::Type> input_type(const std::string& name) const;
+    std::vector<int64_t> input_shape(const std::string& name) const override;
 
     std::vector<float> run(
         const std::vector<const char*>& input_names,
@@ -74,6 +75,7 @@ private:
     Ort::MemoryInfo mem_info_{nullptr};
 #endif
     std::unordered_map<std::string, OnnxInput::Type> input_types_;
+    std::unordered_map<std::string, std::vector<int64_t>> input_shapes_;
 };
 
 } // namespace rvc

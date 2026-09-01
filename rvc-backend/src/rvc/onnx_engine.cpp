@@ -61,9 +61,21 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
             *env_, model_path.c_str(), *session_opts_
         );
         input_types_.clear();
+        input_shapes_.clear();
         for (size_t index = 0; index < session_->GetInputCount(); ++index) {
             const auto name = session_->GetInputNameAllocated(index, Ort::AllocatorWithDefaultOptions{});
-            const auto type = session_->GetInputTypeInfo(index).GetTensorTypeAndShapeInfo().GetElementType();
+            // Keep the TypeInfo alive: TensorTypeAndShapeInfo is a view into it.
+            const auto type_info = session_->GetInputTypeInfo(index);
+            const auto shape_info = type_info.GetTensorTypeAndShapeInfo();
+            const auto type = shape_info.GetElementType();
+            input_shapes_[name.get()] = shape_info.GetShape();
+            spdlog::debug("ONNX input[{}] {}: elem_type={} shape=[{}]", index, name.get(),
+                static_cast<int>(type),
+                [&]{
+                    std::string dims;
+                    for (auto d : shape_info.GetShape()) dims += std::to_string(d) + ",";
+                    return dims;
+                }());
             if (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
                 input_types_[name.get()] = OnnxInput::Type::Float;
             } else if (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64) {
@@ -94,6 +106,11 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
 std::optional<OnnxInput::Type> OnnxEngine::input_type(const std::string& name) const {
     const auto input = input_types_.find(name);
     return input == input_types_.end() ? std::nullopt : std::optional<OnnxInput::Type>(input->second);
+}
+
+std::vector<int64_t> OnnxEngine::input_shape(const std::string& name) const {
+    const auto input = input_shapes_.find(name);
+    return input == input_shapes_.end() ? std::vector<int64_t>{} : input->second;
 }
 
 std::vector<float> OnnxEngine::run(
@@ -157,6 +174,7 @@ void OnnxEngine::unload() {
     session_opts_.reset();
     env_.reset();
     input_types_.clear();
+    input_shapes_.clear();
 }
 
 #else // USE_ONNX not defined — stub implementation
@@ -169,6 +187,10 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
 
 std::optional<OnnxInput::Type> OnnxEngine::input_type(const std::string&) const {
     return std::nullopt;
+}
+
+std::vector<int64_t> OnnxEngine::input_shape(const std::string&) const {
+    return {};
 }
 
 std::vector<float> OnnxEngine::run(

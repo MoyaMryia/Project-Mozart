@@ -62,6 +62,13 @@ int main(int argc, char* argv[]) {
     };
     std::string device = config.get_string("rvc.device", "cuda");
     bool half = config.get_bool("rvc.half", false);
+    RvcParameters parameters;
+    parameters.f0_method = config.get_string("rvc.f0_method", parameters.f0_method);
+    parameters.pitch_shift = config.get_int("rvc.pitch_shift", parameters.pitch_shift);
+    parameters.index_rate = static_cast<float>(config.get_double("rvc.index_rate", parameters.index_rate));
+    parameters.filter_radius = config.get_int("rvc.filter_radius", parameters.filter_radius);
+    parameters.rms_mix_rate = static_cast<float>(config.get_double("rvc.rms_mix_rate", parameters.rms_mix_rate));
+    parameters.protect = static_cast<float>(config.get_double("rvc.protect", parameters.protect));
 
     // Network configuration
     std::string audio_host = config.get_string("network.audio.host", "0.0.0.0");
@@ -80,7 +87,8 @@ int main(int argc, char* argv[]) {
         input_sample_rate,
         output_sample_rate,
         device,
-        half
+        half,
+        parameters
     );
 
     ModeController::Config controller_config;
@@ -91,6 +99,7 @@ int main(int argc, char* argv[]) {
     controller_config.frame_duration_ms = frame_duration_ms;
     controller_config.skip_silence = skip_silence;
     controller_config.file_rnnoise = config.get_bool("storage.file_rnnoise", false);
+    controller_config.default_parameters = parameters;
     controller_config.storage_dir = config.get_string("storage.temp_dir", "./storage/temp");
     controller_config.ffmpeg_path = config.get_string("storage.ffmpeg_path", "ffmpeg");
     controller_config.max_queue_depth = static_cast<size_t>(config.get_int("storage.max_queue_depth", 50));

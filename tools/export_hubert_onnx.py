@@ -28,6 +28,11 @@ def main():
     parser.add_argument("--hubert-path", default="rvc-golden/assets/hubert_base")
     parser.add_argument("--output", default="hubert_base.onnx")
     parser.add_argument("--opset", type=int, default=17)
+    parser.add_argument(
+        "--dynamic",
+        action="store_true",
+        help="Export a dynamic-length audio axis instead of the fixed 32000-sample window",
+    )
     args = parser.parse_args()
 
     model = HubertModel.from_pretrained(
@@ -39,6 +44,13 @@ def main():
     with torch.inference_mode():
         reference = wrapper(dummy).numpy()
 
+    dynamic_axes = None
+    if args.dynamic:
+        dynamic_axes = {
+            "audio": {1: "samples"},
+            "features": {1: "frames"},
+        }
+
     torch.onnx.export(
         wrapper,
         dummy,
@@ -46,6 +58,7 @@ def main():
         input_names=["audio"],
         output_names=["features"],
         opset_version=args.opset,
+        dynamic_axes=dynamic_axes,
         dynamo=False,
     )
 
@@ -59,6 +72,25 @@ def main():
     if max_error >= 1e-3:
         raise RuntimeError(f"HuBERT ONNX output mismatch: max error {max_error}")
     print(f"Exported {args.output}: shape={actual.shape}, max_error={max_error:.6g}")
+
+    if args.dynamic:
+        # A dynamic export is only usable when several lengths actually pass
+        # inference with PyTorch-equivalent output.
+        for length in (16000, 48000):
+            probe = torch.randn(1, length)
+            with torch.inference_mode():
+                expected = wrapper(probe).numpy()
+            produced = session.run(["features"], {"audio": probe.numpy()})[0]
+            if produced.shape != expected.shape:
+                raise RuntimeError(
+                    f"dynamic HuBERT shape mismatch at {length}: {produced.shape} vs {expected.shape}"
+                )
+            probe_error = float(np.max(np.abs(produced - expected)))
+            if probe_error >= 1e-3:
+                raise RuntimeError(
+                    f"dynamic HuBERT mismatch at {length}: max error {probe_error}"
+                )
+            print(f"  dynamic length {length}: shape={produced.shape}, max_error={probe_error:.6g}")
 
 
 if __name__ == "__main__":

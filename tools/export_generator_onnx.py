@@ -15,10 +15,15 @@ class GeneratorWrapper(torch.nn.Module):
         self.generator = generator
 
     def forward(self, feats, p_len, pitch, pitchf, sid):
-        audio, _, _ = self.generator.infer(
-            feats, p_len.long(), pitch.long(), pitchf, sid.long()
-        )
-        return audio
+        # RVC's reference infer() samples Gaussian noise for z_p. That makes
+        # PyTorch and ONNX use different random streams and can produce a
+        # completely different waveform from identical tensors. Voice
+        # conversion does not need that VAE sampling, so use its deterministic
+        # mean path for a reproducible cross-runtime contract.
+        g = self.generator.emb_g(sid.long()).unsqueeze(-1)
+        m_p, _, x_mask = self.generator.enc_p(feats, pitch.long(), p_len.long())
+        z = self.generator.flow(m_p * x_mask, x_mask, g=g, reverse=True)
+        return self.generator.dec(z * x_mask, pitchf, g=g)
 
 
 def load_generator(model_path, rvc_source):
@@ -46,19 +51,24 @@ def load_generator(model_path, rvc_source):
     generator.remove_weight_norm()
     if hasattr(generator, "enc_q"):
         del generator.enc_q
+    generator.dec.m_source.l_sin_gen.noise_std = 0.0
     return GeneratorWrapper(generator.eval().float()), int(config[-1])
 
 
-def export_model(model_path, output_path, rvc_source, opset):
+def export_model(model_path, output_path, rvc_source, opset, frames, dynamo=False):
     wrapper, sample_rate = load_generator(model_path, rvc_source)
-    frames = 200
-    inputs = (
-        torch.randn(1, frames, 768),
-        torch.tensor([frames], dtype=torch.float32),
-        torch.randint(1, 255, (1, frames), dtype=torch.float32),
-        torch.rand(1, frames) * 150.0 + 70.0,
-        torch.tensor([0], dtype=torch.int64),
-    )
+    torch.manual_seed(114514)
+
+    def make_inputs(length):
+        return (
+            torch.randn(1, length, 768),
+            torch.tensor([length], dtype=torch.float32),
+            torch.randint(1, 255, (1, length), dtype=torch.float32),
+            torch.rand(1, length) * 150.0 + 70.0,
+            torch.tensor([0], dtype=torch.int64),
+        )
+
+    inputs = make_inputs(frames)
 
     torch.onnx.export(
         wrapper,
@@ -67,7 +77,7 @@ def export_model(model_path, output_path, rvc_source, opset):
         input_names=["feats", "p_len", "pitch", "pitchf", "sid"],
         output_names=["audio"],
         opset_version=opset,
-        dynamo=False,
+        dynamo=dynamo,
     )
 
     import onnx
@@ -75,9 +85,12 @@ def export_model(model_path, output_path, rvc_source, opset):
 
     onnx.checker.check_model(output_path)
     session = onnxruntime.InferenceSession(output_path, providers=["CPUExecutionProvider"])
+    test_inputs = make_inputs(frames)
+    with torch.inference_mode():
+        expected = wrapper(*test_inputs).numpy()
     feeds = {
         tensor.name: value.numpy()
-        for tensor, value in zip(session.get_inputs(), inputs)
+        for tensor, value in zip(session.get_inputs(), test_inputs)
     }
     audio = session.run(["audio"], feeds)[0]
     expected_samples = frames * sample_rate // 100
@@ -85,7 +98,16 @@ def export_model(model_path, output_path, rvc_source, opset):
         raise RuntimeError(f"unexpected generator output shape: {audio.shape}")
     if not np.isfinite(audio).all():
         raise RuntimeError("generator output contains non-finite values")
-    print(f"Exported {output_path}: shape={audio.shape}, rms={np.sqrt(np.mean(audio**2)):.6f}")
+    delta = audio - expected
+    rmse = float(np.sqrt(np.mean(delta * delta)))
+    relative = rmse / max(float(np.sqrt(np.mean(expected * expected))), 1e-12)
+    correlation = float(np.corrcoef(audio.reshape(-1), expected.reshape(-1))[0, 1])
+    print(
+        f"T={frames}: max_abs={np.max(np.abs(delta)):.6f} "
+        f"rmse={rmse:.6f} relative_rmse={relative:.6%} correlation={correlation:.6f}"
+    )
+    if relative > 0.03 or correlation < 0.999:
+        raise RuntimeError("PyTorch/ONNX mismatch")
 
 
 def main():
@@ -98,11 +120,18 @@ def main():
         default=Path("/home/moyamryia/mozart-archive/RVC"),
     )
     parser.add_argument("--opset", type=int, default=17)
+    parser.add_argument("--frames", type=int, default=200)
+    parser.add_argument(
+        "--dynamo",
+        action="store_true",
+        help="Use the dynamo exporter; fake-tensor propagation avoids the "
+        "activation memory blow-up of legacy tracing at large frame counts",
+    )
     args = parser.parse_args()
 
     output = args.output or args.model.with_suffix(".onnx")
     output.parent.mkdir(parents=True, exist_ok=True)
-    export_model(args.model, output, args.rvc_source, args.opset)
+    export_model(args.model, output, args.rvc_source, args.opset, args.frames, args.dynamo)
 
 
 if __name__ == "__main__":

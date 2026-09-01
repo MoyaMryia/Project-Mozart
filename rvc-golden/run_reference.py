@@ -46,7 +46,13 @@ class CapturingGenerator(torch.nn.Module):
         np.save(prefix.with_name(prefix.name + "_pitch.npy"), pitch.detach().cpu().numpy())
         np.save(prefix.with_name(prefix.name + "_pitchf.npy"), pitchf.detach().cpu().numpy())
         np.save(prefix.with_name(prefix.name + "_sid.npy"), sid.detach().cpu().numpy())
-        result = self.generator.infer(feats, p_len, pitch, pitchf, sid)
+        # Match tools/export_generator_onnx.py: avoid the random VAE sample in
+        # infer() so PyTorch and ONNX receive the same deterministic function.
+        g = self.generator.emb_g(sid).unsqueeze(-1)
+        m_p, _, x_mask = self.generator.enc_p(feats, pitch, p_len)
+        z = self.generator.flow(m_p * x_mask, x_mask, g=g, reverse=True)
+        audio = self.generator.dec(z * x_mask, pitchf, g=g)
+        result = (audio, x_mask, (z, m_p))
         np.save(prefix.with_name(prefix.name + "_audio.npy"), result[0].detach().cpu().numpy())
         self.call += 1
         return result
@@ -58,10 +64,12 @@ def load_generator(model_path):
         raise ValueError("reference runner requires an RVC v2 F0 model")
     checkpoint["config"][-3] = checkpoint["weight"]["emb_g.weight"].shape[0]
     generator = SynthesizerTrnMs768NSFsid(*checkpoint["config"], is_half=False)
-    del generator.enc_q
     generator.load_state_dict(checkpoint["weight"], strict=False)
+    # Load weight-norm parameters before removing the parametrizations.
+    del generator.enc_q
     generator.eval().float()
     generator.remove_weight_norm()
+    generator.dec.m_source.l_sin_gen.noise_std = 0.0
     return generator, int(checkpoint["config"][-1])
 
 
@@ -70,12 +78,13 @@ def main():
     parser.add_argument("--input", default=str(ROOT / "input" / "sample-10s.wav"))
     parser.add_argument("--model", default="/home/moyamryia/models/de_narrator_clean.pth")
     parser.add_argument("--output", default=str(ROOT / "output" / "python-reference.wav"))
+    parser.add_argument("--tensor-dir", default=str(ROOT / "tensors"))
     args = parser.parse_args()
 
     torch.manual_seed(114514)
     np.random.seed(114514)
 
-    tensor_dir = ROOT / "tensors"
+    tensor_dir = Path(args.tensor_dir)
     tensor_dir.mkdir(parents=True, exist_ok=True)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

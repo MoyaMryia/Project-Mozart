@@ -67,9 +67,9 @@ rvc:
   sample_rate: 48000          # RVC v2 生成器输出 48kHz
   f0_method: "rmvpe"          # rmvpe / harvest / pm
   pitch_shift: 0              # 变调（半音）
-  index_rate: 0.75            # 特征检索比例
+  index_rate: 0.0             # 0 对齐 golden；>0 时混合 .index
   filter_radius: 3
-  rms_mix_rate: 0.25
+  rms_mix_rate: 1.0           # 1.0 关闭 RMS 混合（golden）
   protect: 0.33
 
   # 性能
