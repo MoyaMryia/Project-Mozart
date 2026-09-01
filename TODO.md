@@ -7,7 +7,7 @@
 
 ## 0. 一句话现状
 
-RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 GPU 占用 ~5%）；Qwen3.5-0.8B 已量化验证（GPU 36-45 t/s）；**预处理已于 2026-08-30 重写完成并打通 rvc-backend 闭环**（RNNoise 全湿 + FL 取样 + 3:1 降采样 + VAD 滞回分段 + MZRT UDP 发送）；产品决策：TTS 不做（文字路终点是字幕）。卡脖子的架构问题不变：RVC 模型只吃大块音频（0.2s / 1.28s / 2s），AudioWorker 逐帧（20ms）喂数链路必须改成滑动窗口分块；此外全链还没有真实的扬声器出声路径。
+RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 GPU 占用 ~5%）；Qwen3.5-0.8B 已量化验证（GPU 36-45 t/s）；**预处理已于 2026-08-30 重写完成并打通 rvc-backend 闭环**（RNNoise 全湿 + FL 取样 + 3:1 降采样 + VAD 滞回分段 + MZRT UDP 发送）；**滑动窗口分块已于 2026-08-30 落地**，延迟目标改为端到端 2s + 推理 + 60ms；TTS 从"不做"改为 demo 可选"读出来"开关。当前最大卡点：① 真模型 + 真实扬声器出声路径未验证；② GPU 推理（TensorRT 直载 / GPU ONNX Runtime）需在生产 Jetson 构建上落地。
 
 ---
 
@@ -20,9 +20,10 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - 单测 5 组全过（FL 取样/FR 隔离/直通增益/元数据/reset），构建零警告
 - [x] **闭环验证**：1000 帧 UDP 包格式正确（1300B / magic 0x4D5A5254 / idx 递增）；rvc-backend 实际收流 200 帧无错误（mock 直通模式）
 - [x] **RNNoise 权重出代码**：78MB `rnnoise_data.c` 移除，模型走 `assets/rnnoise_default.rnnb`（14MB blob）运行时加载（USE_WEIGHTS_FILE），librnnoise.a 12MB→242KB；切换前后 PCM SHA256 bit-exact；顺手修上游 fopen NULL 段错误
-- [x] **P0 滑窗分块（2026-08-30）**：`StreamingRvc` 落地——2s 窗（T=200 死约束）→ 独立推理线程 → 最小 60ms 交叉淡化拼接 → 输出环。稳态延迟 ≈ 2s + 推理（50% hann OLA 因 +1s 尾巴被否决）。hop=31040（97 帧整，避免帧量化漂移）；不连续（idx 缺口/segment 变化/pts 跳变）全量重置；静音窗跳推理；块异常降级静音不崩。单测逐样本连续性对拍通过；后端冒烟 400 帧→恰好 4 窗调度。AudioWorker 双模式：mock 保持 1:1 帧路零附加延迟
+- [x] **P0 滑窗分块实现（2026-08-30）**：`StreamingRvc` 落地——2s 窗（T=200 死约束）→ 独立推理线程 → 60ms 交叉淡化拼接 → 输出环；不连续（idx 缺口/segment 变化/pts 跳变）全量重置；静音窗跳推理；块异常降级静音不崩。单测逐样本连续性对拍通过；后端冒烟 400 帧→恰好 4 窗调度。AudioWorker 双模式：mock 保持 1:1 帧路零附加延迟
+- [ ] **滑窗分块收尾**：`switch_model` 与推理线程竞态仍无锁保护；首窗前输出静音策略、块边界音质需真模型出声后主观评估
 - [x] **live 麦克风实测**：HK MIC（ff0f:0001）契约与实测完全一致，mozart-pre live 250 帧无 overrun；板载增益已顶满（15.6dB）
-- [x] **产品决策**：TTS 不做（翻译终点是字幕）；STT 选型定向 sherpa-onnx 流式（详见 P2）
+- [x] **产品决策更新**：TTS 从"不做"改为 demo 可选"读出来"开关。`tools/tts_service.py`（Matcha 中文 TTS）已落地，`tools/demo_fullchain.py --speak` 已验证；STT 选型定向 sherpa-onnx 流式（详见 P2）
 
 ---
 
@@ -62,20 +63,19 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
 
 ### P0 — 实时路能出声的前提
 
-- [x] **AudioWorker 改滑动窗口分块**（2026-08-30 完成，见 §0.5）：StreamingRvc 落地，剩余为真模型实测调优。
-  - 残留调优点：块边界音质需真模型出声后主观评估（60ms 淡化是否足够）；冷启动首窗前输出静音（可改直通透传但会有跳变）；switch_model 与推理线程竞态仍无锁保护
-- [x] **延迟目标改写**：新目标 = 端到端 2s + 推理 + 60ms（Generator T=200 架构死约束，30ms/500ms 均不可达；DESIGN.md §1 待同步）
+- [x] **AudioWorker 改滑动窗口分块**（2026-08-30 完成，见 §0.5）：`StreamingRvc` 已落地，剩余为真模型出声后的主观调优。
+- [x] **延迟目标改写**：新目标 = 端到端 2s + 推理 + 60ms（Generator T=200 架构死约束，30ms/500ms 均不可达）；DESIGN.md §1 已同步。
 - [ ] **真模型出声验证**：放好 HuBERT/RMVPE/Generator 模型 → mozart-pre live → 滑窗全链 → 主观听感 + /api/status 延迟数字
-- [ ] **补全扬声器出声路径**（方案 A）：mozart-pre 加"收回包"——同进程收 3860B 输出包 → ALSA 播放（48k mono float→S16 立体声复制）。不依赖滑窗，配 mock 即可先验证时钟；回包 pts_ns 透传可量真实端到端延迟。备选：独立 player 工具 / PipeWire 直连（demo 前不碰）
+- [x] **补全扬声器出声路径**（方案 A，2026-09-01）：`mozart-pre -o <alsa设备>` 已实现——同进程 UDP 接收线程收 3860B 输出包 → ALSA 播放（48k f32 mono → S16 立体声复制）。支持 e2e 延迟统计（pts_ns 透传）。待真模型联合验证。
 
 ### P1 — GPU 推理落地
 
 - [ ] **解决 GPU 版 ONNX Runtime**（三选一）：
   - a) 源码编译 ORT（`--use_cuda --use_tensorrt`，CUDA 13.2 + TRT 10.16 + cuDNN 9.20 齐备）；
-  - b) C++ 直接加载 `.engine`（绕过 ORT，需写 TRT runtime wrapper，头文件在 `/usr/include/x86_64-linux-gnu` 之外找 NvInfer.h）；
+  - b) C++ 直接加载 `.engine`（绕过 ORT，已落地 `TrtEngine`，头文件在 `/usr/include/x86_64-linux-gnu` 之外找 NvInfer.h）；
   - c) 等 JetPack 提供 aarch64 GPU ORT（官方 release 的 aarch64 包是 CPU-only）。
-- [ ] 装好后打开 `rvc-backend` 的 `USE_CUDA_EP=ON` 编译开关（`onnx_engine.cpp` 已留好挂载点，默认关闭）。
-- [ ] 或跳过 ORT：把 `gen_v2_fp16.engine` 直接接到 C++（引擎已实测，`/tmp/opencode/rvc-trt/`）。
+- [ ] 装好后打开 `rvc-backend` 的 `USE_CUDA_EP=ON` 编译开关（CMake 已留好选项，`onnx_engine.cpp` 已留好挂载点，默认关闭）。
+- [ ] 或跳过 ORT：把 `gen_v2_fp16.engine` 直接接到 C++（引擎已实测，`/tmp/opencode/rvc-trt/`）。**CMake 已支持 `USE_TENSORRT=ON`（默认），将 `.engine` 放同名 `.onnx` 旁即可自动加载。**
 
 ### P2 — 文字路
 
@@ -85,8 +85,10 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - [x] `segment_id` 驱动断句（段切换出 final；+1s 空闲兜底断句；partial 去重）✅
   - [x] llama-server 常驻 ✅ 2026-08-30：CUDA 版重编（b-9723942，固化回 ~/mozart-archive），Q4_K_M `-c 2048 -ngl 99` @18200，**翻译必须 `chat_template_kwargs:{"enable_thinking":false}`**（思考模式默认开会吃光 max_tokens）
   - [x] 文字路全链胶水 `tools/subtitle_bridge.py` ✅ 实测：STT final → 翻译 0.57-0.70s/句 → 字幕 JSONL + `--speak` TTS 播报（~2s/句）
-  - [x] 字幕输出端 ✅ 2026-08-30：后端 `GET /api/subtitles`（SSE tail 字幕 JSONL，dup fd + detached 线程不阻塞 accept 循环）；前端 Vue 3 移植时新增 SUB 字幕条（EventSource，中英双语 + 状态点）；Vite 代理验证通过
-  - [x] 前端技术栈升级（2026-08-31）：vanilla DOM → **Vue 3 + Vite SFC**（UI 模板/class 1:1 保留零翻新；删除 1080 行死代码 inline script）；生产 dist 构建通过（gzip 38KB）
+  - [x] 字幕 SSE 输出壳 ✅ 2026-08-30：后端 `GET /api/subtitles` 已实现 SSE tail（读取外部字幕 JSONL 文件）；前端 Vue 3 已新增 SUB 字幕条组件。
+  - [ ] **文字路接入生产守护进程**：当前 STT/翻译/TTS 由外部 Python 工具（`tools/stt_service.py`、`tools/subtitle_bridge.py`）独立运行并写 `/tmp/opencode/subtitles.jsonl`，未由 `mozart_stated` 统一拉起与守护。
+  - [x] 前端技术栈升级（2026-08-31）：vanilla DOM → **Vue 3 + Vite SFC**；生产 dist 构建通过（gzip 38KB）
+  - [ ] **前端实时面板接线**：`frontend/src/App.vue` 中 `showLive` 恒为 `false`，两个 canvas 波形未接数据；"静音麦克风 / 旁路直通"按钮、`音色管理库` 按钮未实现。
   - [ ] 并发验证 ASR+LLM+TTS 加入后的共存（当前实测：ASR ~0.3GB CPU + LLM ~1.2GB GPU + TTS 按需，余量足；待与 RVC 三方压测）
 - [x] **TTS 小型部署（2026-08-30 实测）**：`tools/tts_service.py`（sherpa-onnx 三引擎）。**Matcha zh-baker 为推荐引擎：RTF ~0.2（5 倍实时，4 线程 CPU），共 90MB**；melo/kokoro int8 也能跑但 RTF 1.6-3 不实时（留存参考）。HDMI 播放（plughw:1,3）已验证。原来"TTS 不做"的决策更新为：**demo 可选"读出来"开关**，句子级延迟完全够
 - [x] **TTS 接线 + 全链演示（2026-08-31）**：`tools/demo_fullchain.py` 串起 **语音→ASR→LLM翻译→TTS→RVC变声→HDMI播放** 全链闭环（file 模式稳出声）。实测单句：ASR 0.7s / LLM 0.9s / TTS 13.5s（5s 音频，CPU 挤）/ RVC 27s（CPU RTF≈5）。关键坑：Matcha 纯中文词库读不了英文（换 melo 中英混读）；melo 输出安静 + rms_mix_rate 会把安静包络带进变声输出（发送前峰值归一化 0.9）；后端构建的 RNNoise blob 路径指向 rvc-backend/assets（已拷贝）。`tools/tts2rvc.py` 为 UDP 实时变声通路（P1 GPU 化后启用）
@@ -97,10 +99,10 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
 ### P3 — 收尾
 
 - [ ] `de_narrator.index` 缺失（DESIGN 约定 `<id>.index`），index 检索链路未验证。
-- [ ] mel 谱图还是占位实现（DESIGN §5.4），RMVPE 喂的是假 mel —— 换真 FFT+mel 滤波器组。
+- [x] ~~mel 谱图还是占位实现~~ —— **已实现**：`rvc-backend/src/rvc/feature_extractor.cpp` 已包含 radix-2 FFT + HTK mel 滤波器组 + Slaney 归一化，RMVPE 输入为真实 mel。
 - [ ] 新导出的 `generator_dynamic.onnx` 与原 `de_narrator.onnx` 输出一致性校验（数值对比）后再替换。
-- [ ] DESIGN.md 更新：§1 延迟指标、§5.4 缺口清单、§4.3 实时性策略（逐帧→分块）。
-- [ ] 资产归档：`/tmp/opencode/` 重启会清，固化 GGUF/引擎/导出脚本到仓库或 ~/models。
+- [x] ~~DESIGN.md 更新~~：§1 延迟指标、§5.4 缺口清单、§4.3 实时性策略（逐帧→分块）均已同步，§2.2/§6 state_manager 状态已从"未编码"改为"已编码"。
+- [x] ~~README.md / TODO.md 自身清理~~：同步 TTS 决策、mel 实现、state_manager 落地等不一致描述；README 已改为中文。
 
 ---
 

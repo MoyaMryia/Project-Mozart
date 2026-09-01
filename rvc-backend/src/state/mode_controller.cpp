@@ -267,14 +267,25 @@ nlohmann::json ModeController::status() const {
     for (const auto& job : jobs_) queue.push_back(job_json(job));
     nlohmann::json model = pipeline_.model_info();
     const auto vad = realtime_worker_ ? realtime_worker_->vad_stats() : AudioWorker::VadStats{};
+    const auto latency = realtime_worker_ ? realtime_worker_->latency_stats() : AudioWorker::LatencyStats{};
+    const auto bypass = realtime_worker_ ? realtime_worker_->bypass_stats() : AudioWorker::BypassStats{};
+    const auto stream = realtime_worker_ ? realtime_worker_->stream_stats() : AudioWorker::StreamStats{};
     return {
         {"mode", mode_}, {"pending_target_mode", pending_mode_.empty() ? nlohmann::json(nullptr) : nlohmann::json(pending_mode_)},
         {"worker_running", realtime_worker_ && realtime_worker_->running()},
+        {"stream_mode", realtime_worker_ && realtime_worker_->is_stream_mode()},
         {"pipeline_mode", pipeline_.is_mock() ? "mock" : "real"},
         {"active_model_id", pipeline_.current_model_id()}, {"model", model},
         {"vad", {{"available", realtime_worker_ && realtime_worker_->running()}, {"frame_count", vad.frame_count},
                  {"voiced_percent", vad.frame_count == 0 ? 0.0 : 100.0 * vad.voiced_frame_count / vad.frame_count},
                  {"confidence_percent", vad.confidence_percent}}},
+        {"latency", {{"available", realtime_worker_ && realtime_worker_->running()}, {"count", latency.count},
+                     {"avg_ms", latency.avg_ms}, {"max_ms", latency.max_ms}}},
+        {"bypass", {{"inference_count", bypass.inference_count}, {"bypass_count", bypass.bypass_count}}},
+        {"stream", {{"blocks", stream.blocks}, {"skipped_blocks", stream.skipped_blocks},
+                    {"resets", stream.resets}, {"late_blocks", stream.late_blocks},
+                    {"input_overruns", stream.input_overruns}, {"output_overruns", stream.output_overruns},
+                    {"inference_errors", stream.inference_errors}, {"output_underruns", stream.output_underruns}}},
         {"queue", queue}, {"file_queue_paused", file_queue_paused_}, {"last_error", last_error_},
         {"capabilities", { {"rt_rvc", true}, {"file_rvc", true}, {"rt_zero_shot", false}, {"file_zero_shot", false} }}
     };

@@ -89,7 +89,7 @@ state-diagram-v2
 
 ### 2.3 IO 编排边界
 
-`status_manager` 不直接调用 PipeWire、socket 或预处理内部实现，只编排两个稳定边界：
+state 模块（`state/`）不直接调用 PipeWire、socket 或预处理内部实现，只编排两个稳定边界：
 
 1. **IO 生命周期门面**（`IO/include/mozart/audio_io.h`）：`mozart_io_create_*`、`mozart_io_open_stream`、`mozart_io_close_stream`、`mozart_io_destroy_stream`。
 2. **业务 Worker 门面**：实时 RVC 当前由 `rvc::AudioWorker::start/stop` 提供；后续 Zero-Shot Worker 应保持同样的启停语义。
@@ -104,7 +104,7 @@ stop current worker
   -> start target worker
 ```
 
-`FILE_*` 模式不复用实时流：进入文件模式前先关闭 PipeWire/UDP 实时流；文件流适配器尚未实现，后续应继续放在 `IO/`，不能回填到预处理或推理模块。
+`FILE_*` 模式不复用实时流：进入文件模式前先关闭 PipeWire/UDP 实时流；文件流当前由 `FileRvcWorker` 直接通过 FFmpeg + `mozart_pre_*` 处理，而非 `IO/` 中的通用 OfflineStream 适配器（该适配器尚未实现）。
 
 ---
 

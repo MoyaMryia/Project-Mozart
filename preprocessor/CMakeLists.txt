@@ -78,6 +78,7 @@ add_library(mozart_pre_core STATIC
     src/rnnoise.c
     src/dsp.c
     src/capture.c
+    src/playback.c
     src/wav.c
 )
 target_include_directories(mozart_pre_core PUBLIC
@@ -107,8 +108,9 @@ if(MOZART_USE_RNNOISE)
 endif()
 
 # ---- Daemon ------------------------------------------------------------------
+find_package(Threads REQUIRED)
 add_executable(mozart-pre src/main.c)
-target_link_libraries(mozart-pre PRIVATE mozart_pre_core)
+target_link_libraries(mozart-pre PRIVATE mozart_pre_core Threads::Threads)
 
 # ---- Tests -------------------------------------------------------------------
 if(MOZART_BUILD_TESTS)

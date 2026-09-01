@@ -14,6 +14,7 @@ std::unique_ptr<IEngine> make_engine(const std::filesystem::path& model_path) {
         if (std::filesystem::exists(engine_path)) {
             auto trt = std::make_unique<TrtEngine>();
             if (trt->load(engine_path)) {
+                spdlog::info("Engine backend: TensorRT (GPU) → {}", engine_path.filename().string());
                 return trt;
             }
             spdlog::warn("TRT engine {} 加载失败，回退 ONNX", engine_path.string());
@@ -21,6 +22,13 @@ std::unique_ptr<IEngine> make_engine(const std::filesystem::path& model_path) {
     }
     auto onnx = std::make_unique<OnnxEngine>();
     if (onnx->load(model_path)) {
+        spdlog::info("Engine backend: ONNX Runtime ({}) → {}",
+#ifdef USE_CUDA_EP
+                     "CUDA EP requested",
+#else
+                     "CPU",
+#endif
+                     model_path.filename().string());
         return onnx;
     }
     return nullptr;

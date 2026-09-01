@@ -61,4 +61,20 @@ AudioWorker::VadStats RealtimeRvcWorker::vad_stats() const {
     return worker_ ? worker_->get_vad_stats() : AudioWorker::VadStats{};
 }
 
+AudioWorker::LatencyStats RealtimeRvcWorker::latency_stats() const {
+    return worker_ ? worker_->get_latency_stats() : AudioWorker::LatencyStats{};
+}
+
+AudioWorker::BypassStats RealtimeRvcWorker::bypass_stats() const {
+    return worker_ ? worker_->get_bypass_stats() : AudioWorker::BypassStats{};
+}
+
+AudioWorker::StreamStats RealtimeRvcWorker::stream_stats() const {
+    return worker_ ? worker_->get_stream_stats() : AudioWorker::StreamStats{};
+}
+
+bool RealtimeRvcWorker::is_stream_mode() const noexcept {
+    return worker_ && worker_->is_stream_mode();
+}
+
 } // namespace rvc
