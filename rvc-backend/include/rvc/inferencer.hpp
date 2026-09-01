@@ -18,9 +18,9 @@ public:
         uint32_t output_sample_rate = 48000,
         std::string f0_method = "rmvpe",
         int pitch_shift = 0,
-        float index_rate = 0.75f,
+        float index_rate = 0.0f,
         int filter_radius = 3,
-        float rms_mix_rate = 0.25f,
+        float rms_mix_rate = 1.0f,
         float protect = 0.33f
     );
 
@@ -45,11 +45,22 @@ private:
 
     std::vector<float> apply_index(const std::vector<float>& feats);
 
-    std::vector<float> run_generator(
+    std::vector<float> synthesize_window(
         const std::vector<float>& feats,
-        const std::vector<float>& f0,
-        const std::vector<float>& original_audio,
+        const std::vector<float>& pitchf,
+        const std::vector<int64_t>& pitch,
         const std::vector<float>& unindexed_feats
+    );
+
+    std::vector<float> apply_rms_mix(
+        const std::vector<float>& original_16k,
+        std::vector<float> audio_out
+    );
+
+    std::vector<float> infer_window(
+        const std::vector<float>& audio_16k,
+        const std::vector<float>& pitchf,
+        const std::vector<int64_t>& pitch
     );
 };
 

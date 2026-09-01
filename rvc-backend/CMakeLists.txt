@@ -327,4 +327,18 @@ if(BUILD_TESTS)
         target_link_libraries(test_inferencer PRIVATE ${ONNX_RUNTIME_LIB})
     endif()
     add_test(NAME test_inferencer COMMAND test_inferencer)
+
+    add_executable(diag_f32 tests/diag_f32.cpp
+        src/rvc/feature_extractor.cpp
+        src/rvc/onnx_engine.cpp
+        src/rvc/trt_engine.cpp
+    )
+    target_include_directories(diag_f32 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    if(USE_ONNX AND ONNX_RUNTIME_LIB)
+        target_include_directories(diag_f32 PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
+    endif()
+    target_link_libraries(diag_f32 PRIVATE
+        spdlog::spdlog
+        ${ONNX_RUNTIME_LIB}
+    )
 endif()

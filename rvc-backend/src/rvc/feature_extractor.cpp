@@ -197,6 +197,13 @@ std::vector<float> FeatureExtractor::compute_mel(
     return mel;
 }
 
+std::vector<float> FeatureExtractor::extract_mel(
+    const std::vector<float>& audio,
+    uint32_t sample_rate
+) {
+    return compute_mel(audio, sample_rate);
+}
+
 std::vector<float> FeatureExtractor::extract_f0(
     const std::vector<float>& audio,
     uint32_t sample_rate,
@@ -204,21 +211,81 @@ std::vector<float> FeatureExtractor::extract_f0(
 ) {
     if (method == "rmvpe" && rmvpe_engine_ && rmvpe_engine_->loaded()) {
         auto mel = compute_mel(audio, sample_rate);
-        // export_rmvpe_onnx.py exports the model with a fixed
-        // [batch, mel_bin, time] tensor.
-        // Run fixed-size windows so a 2s input does not lose its last ~0.7s.
-        constexpr size_t rmvpe_frames = 128;
         constexpr size_t mel_bins = 128;
         const size_t mel_frames = mel.size() / mel_bins;
-        std::vector<float> hz;
-        hz.reserve(mel_frames);
+        std::vector<float> hz(mel_frames, 0.0f);
         constexpr size_t pitch_bins = 360;
         constexpr float cents_origin = 1997.3794084376191f;
         constexpr float salience_threshold = 0.03f;
-        const float log_silence = std::log(1e-5f);
 
-        for (size_t frame_start = 0; frame_start < mel_frames; frame_start += rmvpe_frames) {
-            std::vector<float> fixed_mel(rmvpe_frames * mel_bins, log_silence);
+        const auto decode_frame = [&](const std::vector<float>& salience, size_t frame) {
+            const auto begin = salience.begin() + static_cast<std::ptrdiff_t>(frame * pitch_bins);
+            const auto maximum = std::max_element(
+                begin, begin + static_cast<std::ptrdiff_t>(pitch_bins));
+            const size_t center = static_cast<size_t>(maximum - begin);
+            float weight_sum = 0.0f;
+            float cents_sum = 0.0f;
+            for (int offset = -4; offset <= 4; ++offset) {
+                const int bin = static_cast<int>(center) + offset;
+                if (bin < 0 || bin >= static_cast<int>(pitch_bins)) continue;
+                const float weight = begin[bin];
+                weight_sum += weight;
+                cents_sum += weight * (cents_origin + 20.0f * static_cast<float>(bin));
+            }
+            const float max_salience = *maximum;
+            if (max_salience <= salience_threshold || weight_sum <= std::numeric_limits<float>::epsilon()) {
+                return 0.0f;
+            }
+            return 10.0f * std::pow(2.0f, (cents_sum / weight_sum) / 1200.0f);
+        };
+
+        // A dynamic-length RMVPE export follows Python semantics exactly: pad
+        // the log-mel time axis to a 32-multiple with zeros and run the whole
+        // sequence in one model call. Windowed inference with a fixed
+        // [1,128,128] export corrupts frames near every window edge because
+        // the E2E U-Net has a receptive field far larger than the overlap.
+        const auto mel_input_shape = rmvpe_engine_->input_shape("mel");
+        const bool dynamic_time = mel_input_shape.size() >= 3 && mel_input_shape[2] < 0;
+        if (dynamic_time && mel_frames > 0) {
+            const size_t padded_frames = 32 * ((mel_frames - 1) / 32 + 1);
+            std::vector<float> fixed_mel(padded_frames * mel_bins, 0.0f);
+            for (size_t b = 0; b < mel_bins; ++b) {
+                for (size_t t = 0; t < mel_frames; ++t) {
+                    fixed_mel[b * padded_frames + t] = mel[t * mel_bins + b];
+                }
+            }
+            const std::vector<int64_t> mel_shape = {
+                1, static_cast<int64_t>(mel_bins), static_cast<int64_t>(padded_frames)
+            };
+            const auto salience = rmvpe_engine_->run(
+                {"mel"}, {mel_shape}, {fixed_mel}, {"f0"}
+            );
+            if (salience.size() < padded_frames * pitch_bins) {
+                throw std::runtime_error("RMVPE dynamic output smaller than [padded, 360]");
+            }
+            for (size_t t = 0; t < mel_frames; ++t) {
+                hz[t] = decode_frame(salience, t);
+            }
+            spdlog::debug("RMVPE F0 (single-pass): {} frames extracted", hz.size());
+            return hz;
+        }
+
+        // Fixed [batch, mel_bin, time]=[1,128,128] fallback: overlapping
+        // windows so arbitrary-length files retain their final F0 frames.
+        constexpr size_t rmvpe_frames = 128;
+        constexpr size_t hop_frames = 96;
+        constexpr size_t overlap_frames = rmvpe_frames - hop_frames;
+        size_t written_until = 0;
+
+        for (size_t frame_start = 0; frame_start < mel_frames; ) {
+            // Right-align the final window. Otherwise a tail shorter than the
+            // overlap would be discarded by keep_from below.
+            if (mel_frames > rmvpe_frames
+                && mel_frames - frame_start <= overlap_frames) {
+                frame_start = mel_frames - rmvpe_frames;
+            }
+            // Python RMVPE pads the already-logarithmic mel tensor with zero.
+            std::vector<float> fixed_mel(rmvpe_frames * mel_bins, 0.0f);
             const size_t copy_frames = std::min(rmvpe_frames, mel_frames - frame_start);
             for (size_t b = 0; b < mel_bins; ++b) {
                 for (size_t t = 0; t < copy_frames; ++t) {
@@ -227,7 +294,7 @@ std::vector<float> FeatureExtractor::extract_f0(
             }
 
             const std::vector<int64_t> mel_shape = {
-                1, static_cast<int64_t>(rmvpe_frames), static_cast<int64_t>(mel_bins)
+                1, static_cast<int64_t>(mel_bins), static_cast<int64_t>(rmvpe_frames)
             };
             const auto salience = rmvpe_engine_->run(
                 {"mel"}, {mel_shape}, {fixed_mel}, {"f0"}
@@ -236,26 +303,18 @@ std::vector<float> FeatureExtractor::extract_f0(
                 throw std::runtime_error("RMVPE output shape is smaller than [128, 360]");
             }
 
-            for (size_t frame = 0; frame < copy_frames; ++frame) {
-                const auto begin = salience.begin() + static_cast<std::ptrdiff_t>(frame * pitch_bins);
-                const auto maximum = std::max_element(
-                    begin, begin + static_cast<std::ptrdiff_t>(pitch_bins));
-                const size_t center = static_cast<size_t>(maximum - begin);
-                float weight_sum = 0.0f;
-                float cents_sum = 0.0f;
-                for (int offset = -4; offset <= 4; ++offset) {
-                    const int bin = static_cast<int>(center) + offset;
-                    if (bin < 0 || bin >= static_cast<int>(pitch_bins)) continue;
-                    const float weight = begin[bin];
-                    weight_sum += weight;
-                    cents_sum += weight * (cents_origin + 20.0f * static_cast<float>(bin));
-                }
-                const float max_salience = *maximum;
-                if (max_salience <= salience_threshold || weight_sum <= std::numeric_limits<float>::epsilon()) {
-                    hz.push_back(0.0f);
-                } else {
-                    hz.push_back(10.0f * std::pow(2.0f, (cents_sum / weight_sum) / 1200.0f));
-                }
+            const size_t keep_from = written_until > frame_start
+                ? written_until - frame_start : 0;
+            for (size_t frame = keep_from; frame < copy_frames; ++frame) {
+                hz[frame_start + frame] = decode_frame(salience, frame);
+            }
+            written_until = std::max(written_until, frame_start + copy_frames);
+            if (frame_start + copy_frames >= mel_frames) break;
+            const size_t next = frame_start + hop_frames;
+            if (mel_frames - next <= overlap_frames) {
+                frame_start = mel_frames - rmvpe_frames;
+            } else {
+                frame_start = next;
             }
         }
         spdlog::debug("RMVPE F0: {} frames extracted", hz.size());

@@ -35,6 +35,12 @@ public:
         uint32_t sample_rate = 16000
     );
 
+    // Diagnostic access to the RMVPE front-end mel (time-major [frames, 128]).
+    std::vector<float> extract_mel(
+        const std::vector<float>& audio,
+        uint32_t sample_rate = 16000
+    );
+
     bool is_hubert_loaded() const { return hubert_engine_ && hubert_engine_->loaded(); }
     bool is_rmvpe_loaded() const { return rmvpe_engine_ && rmvpe_engine_->loaded(); }
 
