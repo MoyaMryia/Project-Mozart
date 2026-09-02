@@ -1,15 +1,6 @@
 {
-  "version": 2,
-  "standard": {
-    "note": "Audible reference: original RVC generator.infer() random-VAE path (offline, full-length).",
-    "output": "output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav",
-    "output_sha256": "01a114c3db4a1175a41ddde86b71318de7e385eef745d6aced4e397f41425dce",
-    "output_format": {
-      "sample_rate": 48000,
-      "channels": 1,
-      "subtype": "FLOAT",
-      "samples": 1046400
-    },
+  "version": 3,
+  "context": {
     "input": "input/qiqi-espeak-pinyin-zh-en-mixed.wav",
     "input_sha256": "e93d38e7e44a86bbb88f19f073ce21f791bfc2f959e6257554d853fe87d99c51",
     "model": {
@@ -18,7 +9,7 @@
     },
     "runner": {
       "path": "run_reference.py",
-      "sha256": "6e65f75aad68127c6a409dd5d87e6c98c6ddd592acd1e73a63abb830adc31540"
+      "sha256": "c8e8d8b70a1613579f08e79d20dcdfc31ae3b92eeec239b7beb6fe1464007b73"
     },
     "streaming_runner": {
       "path": "run_streaming_reference.py",
@@ -54,48 +45,69 @@
       "rms_mix_rate": 1.0,
       "protect": 0.33,
       "version": "v2",
-      "speaker_id": 0,
-      "deterministic_generator": false
+      "speaker_id": 0
     }
   },
-  "numeric_standard": {
-    "note": "Deterministic mean-path streaming reference (run_streaming_reference.py --deterministic-generator). The production streaming backend (T398 golden-aligned framing) reproduces this at aligned correlation 1.0 and F0 median 0.0 cents; it isolates the deterministic generator path from the random-VAE audible reference above.",
-    "generator_mode": "deterministic",
-    "output": "output/qiqi-zh-espeak-pinyin-mixed-streaming-python-reference-DET.wav",
-    "output_sha256": "14a37492871945a87605a89f684541f6a32333933224bd44ef4d89f341e4b474",
-    "output_format": {
-      "sample_rate": 48000,
-      "channels": 1,
-      "subtype": "FLOAT",
-      "samples": 1143360
+  "standards": [
+    {
+      "id": "offline-audible",
+      "role": "audible",
+      "generator_mode": "random-vae",
+      "produced_by": "run_reference.py (default generator.infer)",
+      "output": "output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav",
+      "output_sha256": "01a114c3db4a1175a41ddde86b71318de7e385eef745d6aced4e397f41425dce",
+      "output_format": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "subtype": "FLOAT",
+        "samples": 1046400
+      },
+      "repro": {
+        "mode": "none",
+        "note": "Original RVC random-VAE path. A deterministic ONNX/TRT export cannot bit-match it; compare against offline-deterministic for numeric reproduction."
+      }
     },
-    "input": "input/qiqi-espeak-pinyin-zh-en-mixed.wav",
-    "input_sha256": "e93d38e7e44a86bbb88f19f073ce21f791bfc2f959e6257554d853fe87d99c51",
-    "model": {
-      "path": "/home/moyamryia/mozart-archive/RVC_Model_Collection/48k（新版）/原神/中文/七七/七七.pth",
-      "sha256": "d72bd33911b8a9d2ccac81dc005998a2c043e97587374cecf3ca38edef05d64d"
+    {
+      "id": "offline-deterministic",
+      "role": "numeric",
+      "generator_mode": "deterministic",
+      "produced_by": "run_reference.py --deterministic-generator",
+      "output": "output/qiqi-zh-espeak-pinyin-mixed-python-reference-DET.wav",
+      "output_sha256": "a4f575fcd6aa872894a651671fb310fea644b717965ab80ef987038114a383a8",
+      "output_format": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "subtype": "FLOAT",
+        "samples": 1046400
+      },
+      "repro": {
+        "mode": "file",
+        "model_id": "qiqi-zh-full",
+        "corr_min": 0.999,
+        "f0_max_cents": 25,
+        "note": "Full-length single-pass generator matching the offline pipeline for this exact input (T=2380). Backend file mode reproduces it at corr 1.0 / F0 0.0 cents."
+      }
     },
-    "streaming_runner": {
-      "path": "run_streaming_reference.py",
-      "sha256": "3c55c72161b84a35dc17ac0009d92770cdc19ef2db16e373e9becad4236bacbf"
-    },
-    "rvc_source": {
-      "path": "/home/moyamryia/mozart-archive/RVC",
-      "commit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
-      "tracked_subtree": "infer"
-    },
-    "parameters": {
-      "f0_method": "rmvpe",
-      "pitch_shift": 0,
-      "index_rate": 0.0,
-      "rms_mix_rate": 1.0,
-      "protect": 0.33,
-      "version": "v2",
-      "speaker_id": 0,
-      "window_samples": 32000,
-      "hop_samples": 31040,
-      "crossfade_output_samples": 2880,
-      "deterministic_generator": true
+    {
+      "id": "streaming-deterministic",
+      "role": "numeric",
+      "generator_mode": "deterministic",
+      "produced_by": "run_streaming_reference.py --deterministic-generator",
+      "output": "output/qiqi-zh-espeak-pinyin-mixed-streaming-python-reference-DET.wav",
+      "output_sha256": "14a37492871945a87605a89f684541f6a32333933224bd44ef4d89f341e4b474",
+      "output_format": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "subtype": "FLOAT",
+        "samples": 1143360
+      },
+      "repro": {
+        "mode": "streaming",
+        "model_id": "qiqi-zh",
+        "corr_min": 0.999,
+        "f0_max_cents": 25,
+        "note": "2s-window golden-aligned T398 streaming reference. Production streaming backend reproduces it at corr 1.0 / F0 0.0 cents."
+      }
     }
-  }
+  ]
 }
