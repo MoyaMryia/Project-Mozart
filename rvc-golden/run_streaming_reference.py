@@ -211,6 +211,9 @@ def main() -> None:
     parser.add_argument("--skip-silence", action="store_true",
                         help="match a backend with input.meta.vad_enabled=true")
     parser.add_argument("--pace", action="store_true", help="wait 20 ms between conceptual input frames")
+    parser.add_argument("--deterministic-generator", action="store_true",
+                        help="use the export-alignment mean path so the reference "
+                        "matches the deterministic ONNX/TRT generator")
     args = parser.parse_args()
 
     torch.manual_seed(114514)
@@ -222,10 +225,14 @@ def main() -> None:
 
     audio = load_input(args.input)
     np.save(tensor_dir / "input_16k.npy", audio)
-    generator, target_rate = load_generator(args.model)
+    generator, target_rate = load_generator(
+        args.model, deterministic=args.deterministic_generator
+    )
     if target_rate != OUT_RATE:
         raise ValueError(f"qiqi streaming reference expects 48 kHz model, got {target_rate}")
-    capturing_generator = CapturingGenerator(generator, tensor_dir)
+    capturing_generator = CapturingGenerator(
+        generator, tensor_dir, deterministic=args.deterministic_generator
+    )
 
     hubert_path = ROOT / "assets" / "hubert_base"
     hubert = HubertModelWithFinalProj.from_pretrained(

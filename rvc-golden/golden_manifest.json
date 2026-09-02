@@ -1,6 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "standard": {
+    "note": "Audible reference: original RVC generator.infer() random-VAE path (offline, full-length).",
     "output": "output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav",
     "output_sha256": "01a114c3db4a1175a41ddde86b71318de7e385eef745d6aced4e397f41425dce",
     "output_format": {
@@ -21,7 +22,7 @@
     },
     "streaming_runner": {
       "path": "run_streaming_reference.py",
-      "sha256": "6b2753cca21526c763dd2c9e613c5fd172393874e6a12a28b562e8627faf0c28"
+      "sha256": "3c55c72161b84a35dc17ac0009d92770cdc19ef2db16e373e9becad4236bacbf"
     },
     "rvc_source": {
       "path": "/home/moyamryia/mozart-archive/RVC",
@@ -55,6 +56,46 @@
       "version": "v2",
       "speaker_id": 0,
       "deterministic_generator": false
+    }
+  },
+  "numeric_standard": {
+    "note": "Deterministic mean-path streaming reference (run_streaming_reference.py --deterministic-generator). The production streaming backend (T398 golden-aligned framing) reproduces this at aligned correlation 1.0 and F0 median 0.0 cents; it isolates the deterministic generator path from the random-VAE audible reference above.",
+    "generator_mode": "deterministic",
+    "output": "output/qiqi-zh-espeak-pinyin-mixed-streaming-python-reference-DET.wav",
+    "output_sha256": "14a37492871945a87605a89f684541f6a32333933224bd44ef4d89f341e4b474",
+    "output_format": {
+      "sample_rate": 48000,
+      "channels": 1,
+      "subtype": "FLOAT",
+      "samples": 1143360
+    },
+    "input": "input/qiqi-espeak-pinyin-zh-en-mixed.wav",
+    "input_sha256": "e93d38e7e44a86bbb88f19f073ce21f791bfc2f959e6257554d853fe87d99c51",
+    "model": {
+      "path": "/home/moyamryia/mozart-archive/RVC_Model_Collection/48k（新版）/原神/中文/七七/七七.pth",
+      "sha256": "d72bd33911b8a9d2ccac81dc005998a2c043e97587374cecf3ca38edef05d64d"
+    },
+    "streaming_runner": {
+      "path": "run_streaming_reference.py",
+      "sha256": "3c55c72161b84a35dc17ac0009d92770cdc19ef2db16e373e9becad4236bacbf"
+    },
+    "rvc_source": {
+      "path": "/home/moyamryia/mozart-archive/RVC",
+      "commit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
+      "tracked_subtree": "infer"
+    },
+    "parameters": {
+      "f0_method": "rmvpe",
+      "pitch_shift": 0,
+      "index_rate": 0.0,
+      "rms_mix_rate": 1.0,
+      "protect": 0.33,
+      "version": "v2",
+      "speaker_id": 0,
+      "window_samples": 32000,
+      "hop_samples": 31040,
+      "crossfade_output_samples": 2880,
+      "deterministic_generator": true
     }
   }
 }

@@ -58,6 +58,28 @@ def check_rvc_source(record: dict, failures: list[str]) -> None:
         print(f"PASS rvc source: {actual} ({record['tracked_subtree']})")
 
 
+def check_output(label: str, standard: dict, base: Path, failures: list[str]) -> None:
+    output = (base / standard["output"]).resolve()
+    check_hash(f"{label} output", output, standard["output_sha256"], failures)
+    if not output.is_file():
+        return
+    try:
+        info = sf.info(output)
+        expected = standard["output_format"]
+        actual = {
+            "sample_rate": info.samplerate,
+            "channels": info.channels,
+            "subtype": info.subtype,
+            "samples": info.frames,
+        }
+        if actual != expected:
+            failures.append(f"{label} output format: {actual}, expected {expected}")
+        else:
+            print(f"PASS {label} output format: {actual}")
+    except Exception as error:
+        failures.append(f"{label} output format: {error}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default=str(ROOT / "golden_manifest.json"))
@@ -68,16 +90,15 @@ def main() -> int:
     manifest_path = Path(args.manifest).resolve()
     manifest = json.loads(manifest_path.read_text())
     standard = manifest["standard"]
+    base = manifest_path.parent
     failures: list[str] = []
 
-    output = (manifest_path.parent / standard["output"]).resolve()
-    input_path = (manifest_path.parent / standard["input"]).resolve()
-    runner = (manifest_path.parent / standard["runner"]["path"]).resolve()
-    streaming_runner = (manifest_path.parent / standard["streaming_runner"]["path"]).resolve()
+    input_path = (base / standard["input"]).resolve()
+    runner = (base / standard["runner"]["path"]).resolve()
+    streaming_runner = (base / standard["streaming_runner"]["path"]).resolve()
     model_record = standard["model"]
     model = Path(args.model or model_record["path"]).expanduser().resolve()
 
-    check_hash("output", output, standard["output_sha256"], failures)
     check_hash("input", input_path, standard["input_sha256"], failures)
     check_hash("model", model, model_record["sha256"], failures)
     check_hash("runner", runner, standard["runner"]["sha256"], failures)
@@ -86,25 +107,23 @@ def main() -> int:
     check_rvc_source(standard["rvc_source"], failures)
 
     for label, record in standard["assets"].items():
-        asset = (manifest_path.parent / record["path"]).resolve()
+        asset = (base / record["path"]).resolve()
         check_hash(f"asset {label}", asset, record["sha256"], failures)
 
-    if output.is_file():
-        try:
-            info = sf.info(output)
-            expected = standard["output_format"]
-            actual = {
-                "sample_rate": info.samplerate,
-                "channels": info.channels,
-                "subtype": info.subtype,
-                "samples": info.frames,
-            }
-            if actual != expected:
-                failures.append(f"output format: {actual}, expected {expected}")
-            else:
-                print(f"PASS output format: {actual}")
-        except Exception as error:
-            failures.append(f"output format: {error}")
+    check_output("standard", standard, base, failures)
+
+    # Optional numeric standard: the deterministic mean-path streaming
+    # reference the production backend reproduces. Verified independently so
+    # a drift in either the audible or the numeric lock fails the check.
+    numeric = manifest.get("numeric_standard")
+    if numeric:
+        check_output("numeric_standard", numeric, base, failures)
+        check_hash("numeric_standard input",
+                   (base / numeric["input"]).resolve(),
+                   numeric["input_sha256"], failures)
+        check_hash("numeric_standard streaming runner",
+                   (base / numeric["streaming_runner"]["path"]).resolve(),
+                   numeric["streaming_runner"]["sha256"], failures)
 
     if failures:
         print("Golden verification FAILED:", file=sys.stderr)
