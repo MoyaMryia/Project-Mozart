@@ -89,41 +89,29 @@ def main() -> int:
 
     manifest_path = Path(args.manifest).resolve()
     manifest = json.loads(manifest_path.read_text())
-    standard = manifest["standard"]
     base = manifest_path.parent
     failures: list[str] = []
 
-    input_path = (base / standard["input"]).resolve()
-    runner = (base / standard["runner"]["path"]).resolve()
-    streaming_runner = (base / standard["streaming_runner"]["path"]).resolve()
-    model_record = standard["model"]
+    context = manifest["context"]
+    model_record = context["model"]
     model = Path(args.model or model_record["path"]).expanduser().resolve()
-
-    check_hash("input", input_path, standard["input_sha256"], failures)
+    check_hash("input", (base / context["input"]).resolve(),
+               context["input_sha256"], failures)
     check_hash("model", model, model_record["sha256"], failures)
-    check_hash("runner", runner, standard["runner"]["sha256"], failures)
-    check_hash("streaming runner", streaming_runner,
-               standard["streaming_runner"]["sha256"], failures)
-    check_rvc_source(standard["rvc_source"], failures)
+    check_hash("runner", (base / context["runner"]["path"]).resolve(),
+               context["runner"]["sha256"], failures)
+    check_hash("streaming runner",
+               (base / context["streaming_runner"]["path"]).resolve(),
+               context["streaming_runner"]["sha256"], failures)
+    check_rvc_source(context["rvc_source"], failures)
+    for label, record in context["assets"].items():
+        check_hash(f"asset {label}", (base / record["path"]).resolve(),
+                   record["sha256"], failures)
 
-    for label, record in standard["assets"].items():
-        asset = (base / record["path"]).resolve()
-        check_hash(f"asset {label}", asset, record["sha256"], failures)
-
-    check_output("standard", standard, base, failures)
-
-    # Optional numeric standard: the deterministic mean-path streaming
-    # reference the production backend reproduces. Verified independently so
-    # a drift in either the audible or the numeric lock fails the check.
-    numeric = manifest.get("numeric_standard")
-    if numeric:
-        check_output("numeric_standard", numeric, base, failures)
-        check_hash("numeric_standard input",
-                   (base / numeric["input"]).resolve(),
-                   numeric["input_sha256"], failures)
-        check_hash("numeric_standard streaming runner",
-                   (base / numeric["streaming_runner"]["path"]).resolve(),
-                   numeric["streaming_runner"]["sha256"], failures)
+    # Each locked standard is verified independently so a drift in any one
+    # (audible or numeric, offline or streaming) fails the check.
+    for standard in manifest["standards"]:
+        check_output(standard["id"], standard, base, failures)
 
     if failures:
         print("Golden verification FAILED:", file=sys.stderr)

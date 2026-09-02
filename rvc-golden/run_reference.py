@@ -88,6 +88,8 @@ def main():
     parser.add_argument("--tensor-dir", default=str(ROOT / "tensors"))
     parser.add_argument("--deterministic-generator", action="store_true",
                         help="use the export-alignment mean path instead of original RVC inference")
+    parser.add_argument("--metadata", default=str(ROOT / "reference.json"),
+                        help="path to write the run metadata (defaults to reference.json)")
     args = parser.parse_args()
 
     torch.manual_seed(114514)
@@ -173,7 +175,9 @@ def main():
         "timings_seconds": times,
         "generator_calls": capturing_generator.call,
     }
-    (ROOT / "reference.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    metadata_path = Path(args.metadata)
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
     print(json.dumps(metadata, indent=2))
 
 
