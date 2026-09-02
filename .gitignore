@@ -62,6 +62,7 @@ rvc-golden/input/
 !rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav
 !rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-python-reference-DET.wav
 !rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-streaming-python-reference-DET.wav
+!rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-mozart-backend-trt-gpu-streaming-AUDITION.wav
 
 # CMake
 CMakeCache.txt
