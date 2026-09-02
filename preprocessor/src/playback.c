@@ -7,6 +7,7 @@
 #include "mozart/playback.h"
 #include "mozart/frame_meta.h"
 
+#include <alloca.h>
 #include <alsa/asoundlib.h>
 #include <sched.h>
 #include <stdio.h>
