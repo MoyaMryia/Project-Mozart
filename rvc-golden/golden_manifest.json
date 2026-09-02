@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "standard": {
+    "output": "output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav",
+    "output_sha256": "01a114c3db4a1175a41ddde86b71318de7e385eef745d6aced4e397f41425dce",
+    "output_format": {
+      "sample_rate": 48000,
+      "channels": 1,
+      "subtype": "FLOAT",
+      "samples": 1046400
+    },
+    "input": "input/qiqi-espeak-pinyin-zh-en-mixed.wav",
+    "input_sha256": "e93d38e7e44a86bbb88f19f073ce21f791bfc2f959e6257554d853fe87d99c51",
+    "model": {
+      "path": "/home/moyamryia/mozart-archive/RVC_Model_Collection/48k（新版）/原神/中文/七七/七七.pth",
+      "sha256": "d72bd33911b8a9d2ccac81dc005998a2c043e97587374cecf3ca38edef05d64d"
+    },
+    "runner": {
+      "path": "run_reference.py",
+      "sha256": "6e65f75aad68127c6a409dd5d87e6c98c6ddd592acd1e73a63abb830adc31540"
+    },
+    "streaming_runner": {
+      "path": "run_streaming_reference.py",
+      "sha256": "6b2753cca21526c763dd2c9e613c5fd172393874e6a12a28b562e8627faf0c28"
+    },
+    "rvc_source": {
+      "path": "/home/moyamryia/mozart-archive/RVC",
+      "commit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
+      "tracked_subtree": "infer"
+    },
+    "assets": {
+      "hubert": {
+        "path": "assets/hubert_base/pytorch_model.bin",
+        "sha256": "cc8c20f4b90a520757260197a3ff2505705a7adbd20ad9eeaa4e1a9b38442ef5"
+      },
+      "hubert_config": {
+        "path": "assets/hubert_base/config.json",
+        "sha256": "0346950779dfb7f9316fa74ed846e2b8a22a08eedfdc5387b73f327cb1a4a7cf"
+      },
+      "hubert_preprocessor_config": {
+        "path": "assets/hubert_base/preprocessor_config.json",
+        "sha256": "7c1976a680fb7acc757cd36fb08eef878fa36c70b4c9d2d595df9c608bbbbf0e"
+      },
+      "rmvpe": {
+        "path": "assets/rmvpe/rmvpe.pt",
+        "sha256": "6d62215f4306e3ca278246188607209f09af3dc77ed4232efdd069798c4ec193"
+      }
+    },
+    "parameters": {
+      "f0_method": "rmvpe",
+      "pitch_shift": 0,
+      "index_rate": 0.0,
+      "rms_mix_rate": 1.0,
+      "protect": 0.33,
+      "version": "v2",
+      "speaker_id": 0,
+      "deterministic_generator": false
+    }
+  }
+}
