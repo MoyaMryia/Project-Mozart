@@ -43,6 +43,8 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
     }
 
     try {
+        model_path_ = model_path;
+        cuda_attached_ = false;
         env_ = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "rvc_backend");
         session_opts_ = std::make_unique<Ort::SessionOptions>();
         session_opts_->SetIntraOpNumThreads(2);
@@ -52,8 +54,14 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
         // Opt-in GPU path: requires an ONNX Runtime build that ships the CUDA EP.
         // Enable with -DUSE_CUDA_EP=ON once a CUDA-enabled libonnxruntime is installed.
         // Default build (CPU-only ORT) must NOT define this, or linking fails.
-        Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(
-            session_opts_.get(), /*device_id=*/0));
+         // Use the current C++ API. The legacy exported C symbol is absent
+         // from the Jetson ONNX Runtime package, while this calls the provider
+         // through ORT's API table.
+         OrtCUDAProviderOptions cuda_options;
+         cuda_options.device_id = 0;
+         cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchHeuristic;
+         session_opts_->AppendExecutionProvider_CUDA(cuda_options);
+        cuda_attached_ = true;
         spdlog::info("CUDA execution provider attached for {}", model_path.string());
 #endif
 
@@ -127,6 +135,52 @@ std::vector<float> OnnxEngine::run(
     return run(inputs, output_names);
 }
 
+std::vector<float> OnnxEngine::run_once(
+    const std::vector<const char*>& input_names,
+    const std::vector<Ort::Value>& input_tensors,
+    const std::vector<const char*>& output_names
+) {
+    auto output_tensors = session_->Run(
+        Ort::RunOptions{nullptr},
+        input_names.data(), input_tensors.data(), input_tensors.size(),
+        output_names.data(), output_names.size()
+    );
+
+    auto& out = output_tensors[0];
+    auto* out_data = out.GetTensorMutableData<float>();
+    auto out_shape = out.GetTensorTypeAndShapeInfo().GetShape();
+    size_t out_elem_count = 1;
+    for (auto d : out_shape) out_elem_count *= static_cast<size_t>(d);
+
+    return std::vector<float>(out_data, out_data + out_elem_count);
+}
+
+bool OnnxEngine::reload_cpu() {
+    spdlog::warn("CUDA EP failed at runtime for {}; rebuilding session on CPU",
+                 model_path_.filename().string());
+    try {
+        auto env = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "rvc_backend");
+        auto opts = std::make_unique<Ort::SessionOptions>();
+        opts->SetIntraOpNumThreads(2);
+        opts->SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        auto session = std::make_unique<Ort::Session>(
+            *env, model_path_.c_str(), *opts
+        );
+        session_.reset();
+        session_opts_.reset();
+        env_.reset();
+        env_ = std::move(env);
+        session_opts_ = std::move(opts);
+        session_ = std::move(session);
+        cuda_attached_ = false;
+        return true;
+    } catch (const Ort::Exception& e) {
+        spdlog::error("CPU session rebuild failed for {}: {}",
+                      model_path_.string(), e.what());
+        return false;
+    }
+}
+
 std::vector<float> OnnxEngine::run(const std::vector<OnnxInput>& inputs,
                                    const std::vector<const char*>& output_names) {
     if (!session_) {
@@ -154,25 +208,23 @@ std::vector<float> OnnxEngine::run(const std::vector<OnnxInput>& inputs,
         }
     }
 
-    auto output_tensors = session_->Run(
-        Ort::RunOptions{nullptr},
-        input_names.data(), input_tensors.data(), input_tensors.size(),
-        output_names.data(), output_names.size()
-    );
-
-    auto& out = output_tensors[0];
-    auto* out_data = out.GetTensorMutableData<float>();
-    auto out_shape = out.GetTensorTypeAndShapeInfo().GetShape();
-    size_t out_elem_count = 1;
-    for (auto d : out_shape) out_elem_count *= static_cast<size_t>(d);
-
-    return std::vector<float>(out_data, out_data + out_elem_count);
+    try {
+        return run_once(input_names, input_tensors, output_names);
+    } catch (const Ort::Exception& e) {
+        const std::string message = e.what();
+        if (cuda_attached_ && message.find("CUDA error") != std::string::npos
+                && reload_cpu()) {
+            return run_once(input_names, input_tensors, output_names);
+        }
+        throw;
+    }
 }
 
 void OnnxEngine::unload() {
     session_.reset();
     session_opts_.reset();
     env_.reset();
+    cuda_attached_ = false;
     input_types_.clear();
     input_shapes_.clear();
 }
