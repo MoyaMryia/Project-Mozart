@@ -267,3 +267,65 @@ GPU 构建新增的 backend 代码变更：
 5. 只有 backend 满足 `late_blocks=0`、`input_overruns=0`、
    `output_underruns=0`、`inference_errors=0` 且 UDP 无丢帧时，才生成可听的
    backend 流式参考结果。
+
+## 精度对齐修复（2026-09-02 续）
+
+### 张量级 bisect 结论
+
+按 AGENTS 流程逐层对拍 golden `block_000` 张量：
+
+- **RMVPE 前端逐位对齐**：喂同一 reflect-padded 64000 输入，C++ mel
+  rel_rmse ≈ 2%（max_abs 出现在个别 log-mel 下限 bin），F0 voiced 帧中位差
+  **0.2 音分**，voiced/nonzero 帧数 276 vs 275 基本一致。RMVPE 不是分歧源。
+- **framing 才是分歧源**：golden `run_streaming_reference.py` 把整个 32000
+  窗口交给 RVC `pipeline.vc`，后者先 `np.pad(t_pad=16000)`→64000 再喂
+  HuBERT；HuBERT 64000→199 帧，`F.interpolate(scale_factor=2)`→398，
+  generator **T=398**，输出 191040，再按 `[t_pad_tgt:-t_pad_tgt]`（各去
+  48000）裁到 95040。而旧 backend 流式路径把 HuBERT 只喂中心 32000→99 帧、
+  generator 用固定 **T=200**→96000，两者帧数与上下文完全不同。
+
+### 生产 backend 的修复（非测试专用）
+
+改的是流式/文件主路径，真实部署同样生效：
+
+- `inferencer.cpp` 流式路径（`audio<=kWindow16k`）与 file windowed 循环统一
+  改为 golden-aligned：HuBERT 输入 `reflect_pad(window, kPad16k)`=64000，
+  pitch/pitchf 取 `pitch_full[0:T]`（offset 0，非旧的 frame_start），
+  generator 按引擎原生 T（398）运行，输出去两侧 `t_pad_tgt` 再补零到
+  `kWindow16k*model_sr/16000` 的 block 契约。
+- `feature_extractor.cpp` HuBERT TRT 形状校验由固定 `need=32000` 放宽为
+  `[1,N>0]`；非契约长度仍走动态 ONNX 兜底。
+- 用 `tools/export_generator_onnx.py --frames 398` 重新导出确定性 mean-path
+  generator ONNX（自带 PyTorch/ONNX 校验 relative_rmse 0.0007%、corr 1.0），
+  `trtexec --noTF32` 构建 `qiqi-zh-t398.engine`；HuBERT 构建
+  `hubert_base_64k.engine`。模型目录用符号链接把 `qiqi-zh/qiqi-zh.engine`、
+  `qiqi-zh/qiqi-zh.onnx` 指向 T398，`hubert_base_dynamic.engine` 指向 64k，
+  不改动 backend.yaml。
+
+### 修复后实测
+
+- 流式：12/12 blocks、inference_errors=0、late_blocks=0，稳态 ~645ms
+  （T398 generator 约为 T200 两倍工作量，仍远低于 1940ms 实时预算）。
+- 加载日志确认三引擎：HuBERT `audio[1x64000]→features[1x199x768]`、
+  RMVPE `mel[1x128x416]`、Generator `feats[1x398x768]→audio[1x1x191040]`。
+- **backend-T398 vs 确定性 golden（mean vs mean，同 framing）**：
+  对齐 corr = **1.0000**，RMSE = 7e-5，F0 中位差 = **0.0 音分**。生产流式
+  后端已逐样本复现确定性 PyTorch golden。
+- file 模式：21.807s、finite、无削波，未回归。
+
+### 残余「区别」= 随机 VAE，不可消除
+
+锁定的 `python-reference` 用 `generator.infer()` 随机 VAE 路径；ONNX/TRT 是
+确定性 mean path（cross-runtime 契约）。golden-det↔golden-rand corr 仅 0.394，
+backend↔golden-rand 亦 0.395 —— backend 相对确定性 golden 的额外误差为 0，
+用户听感和锁定参考的差别来自生成器 RNG，非 pipeline bug。
+
+新增 `run_streaming_reference.py --deterministic-generator`，可复现生成
+mean-path 流式基线做纯数值对拍。
+
+### 待办
+
+- 决定锁定标准是否同时登记确定性 golden（`...-streaming-...-DET.wav`）作为
+  backend 的数值基准，随机 VAE 版作为可听基准。
+- 若要在锁定参考下进一步逼近，需评估是否在导出图中保留固定种子 RNG（不推荐，
+  破坏确定性）。
