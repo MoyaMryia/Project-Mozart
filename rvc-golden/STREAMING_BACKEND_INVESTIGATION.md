@@ -329,3 +329,35 @@ mean-path 流式基线做纯数值对拍。
   backend 的数值基准，随机 VAE 版作为可听基准。
 - 若要在锁定参考下进一步逼近，需评估是否在导出图中保留固定种子 RNG（不推荐，
   破坏确定性）。
+
+## 文件推理复现 + 可扩展锁定（2026-09-02 续2）
+
+- `qiqi-zh-full.onnx` 固定 T=2380（= 本条 21.8s/16k 输入 offline 单趟的
+  padded 380908/160），输出 1142400、裁 `[48000:-48000]`=1046400=参考长度。
+  文件模式用它即触发 inferencer 的 full-length 单趟路径。
+- 生成 `run_reference.py --deterministic-generator` 离线确定性参照
+  `...python-reference-DET.wav`。
+- **backend 文件模式（qiqi-zh-full） vs 离线‑DET：对齐 corr=1.0000、
+  F0 中位差 0.0 音分、RMS/peak 完全相同**。整条离线链路端到端复现。
+- 澄清：先前文件模式 −1.2 dB 是「模型选错走了分块路径」，非 bug；用对
+  full-length 模型即逐样本一致。
+- `run_reference.py` 加 `--metadata`，避免确定性复现运行覆盖可听 reference.json。
+
+### golden 锁定 v3
+
+`golden_manifest.json` 重构为 `context` + `standards[]`，可独立扩展：
+
+- `offline-audible`（随机‑VAE，可听）
+- `offline-deterministic`（mean‑path，文件复现目标，repro mode=file/qiqi-zh-full）
+- `streaming-deterministic`（mean‑path，流式复现目标，repro mode=streaming/qiqi-zh）
+
+`verify_golden.py` 遍历校验每条标准的 hash+format。新增 `verify_backend.py`：
+驱动真实 backend（HTTP file + UDP streaming），把每条 `repro` 标准与锁定的
+WAV 做包络对齐 corr / 自相关 F0 / RMS 对拍，按 manifest 容差输出 PASS/FAIL。
+实测两条确定性标准均 `corr=1.0000 / F0=0.0c / rms=+0.0dB`。
+
+### 下一步：流式收敛
+
+file/offline 已钉死。流式当前与 offline full-length 仍差分块（每窗独立
+reflect‑pad + T398 边界），目标：让流式输出收敛到 offline 结果（减小
+chunk 边界与跨窗不一致）。

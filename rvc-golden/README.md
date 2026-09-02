@@ -16,23 +16,51 @@ RVC_CUDA_GRAPH=0 /home/moyamryia/vc_backend_venv/bin/python \
 Inputs, outputs, model hashes, and intermediate tensors are kept under this
 directory so each C++ stage can be compared numerically.
 
-## Locked standard
+## Locked standards
 
-The checked-in standard is
-`output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav`. Its exact WAV
-bytes, source input, external `.pth` model, both runners, RVC source commit,
-and HuBERT/RMVPE assets are recorded in `golden_manifest.json`. Verify the
-complete context before using a result as a regression reference:
+`golden_manifest.json` (version 3) records a shared `context` (input, model,
+runners, RVC source commit, HuBERT/RMVPE assets, parameters) and a list of
+`standards`, each locked by SHA-256 + WAV format and independently verified:
+
+- `offline-audible` — the original RVC `generator.infer()` random-VAE offline
+  reference (`output/...python-reference.wav`). A deterministic ONNX/TRT export
+  cannot bit-match it (different RNG realization).
+- `offline-deterministic` — the mean-path offline reference
+  (`run_reference.py --deterministic-generator`, `...python-reference-DET.wav`).
+  File-mode inference through the full-length `qiqi-zh-full` model reproduces
+  it at aligned correlation 1.0 / F0 0.0 cents.
+- `streaming-deterministic` — the mean-path 2 s-window streaming reference
+  (`run_streaming_reference.py --deterministic-generator`,
+  `...streaming-...-DET.wav`). The production streaming backend (golden-aligned
+  T398 framing) reproduces it at aligned correlation 1.0 / F0 0.0 cents.
+
+Each standard carries a `repro` block (`mode`, `model_id`, `corr_min`,
+`f0_max_cents`) used by the backend self-verifier. Verify the locked context
+and every standard (hashes / formats only):
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
   rvc-golden/verify_golden.py
 ```
 
-The verifier exits with status `1` if any SHA-256, RVC source commit, source
-tree cleanliness, or WAV format field differs.
-Use `--model PATH` when the model is stored at a different location; the
-expected model hash remains the one recorded in the manifest.
+The verifier exits `1` if any SHA-256, RVC source commit, tree cleanliness, or
+WAV format field differs. Use `--model PATH` when the model is elsewhere.
+
+To additionally reproduce each numeric standard against the **running backend**
+(HTTP + UDP), which drives file mode and the streaming dataplane and checks
+correlation / F0 / RMS against the manifest tolerances:
+
+```bash
+build-gpu/state/mozart_stated rvc-golden/qiqi-zh-run/backend.yaml &
+/home/moyamryia/vc_backend_venv/bin/python \
+  rvc-golden/verify_backend.py \
+  --api http://127.0.0.1:18181 --udp 127.0.0.1:18101
+```
+
+`verify_backend.py` prints a per-standard PASS/FAIL line and exits `1` if any
+standard is not reproduced within tolerance. Deterministic standards regenerate
+via `run_reference.py --deterministic-generator --metadata <path>` and
+`run_streaming_reference.py --deterministic-generator`.
 
 ## Streaming reference
 
