@@ -6,21 +6,28 @@ RVC implementation against the original RVC inference path.
 It intentionally does not use Mozart preprocessing, ONNX Runtime, TensorRT, or
 the handwritten C++ mel/F0 implementation.
 
-Run:
+Reproduce the locked qiqi audible reference through the original PyTorch RVC
+path and require an exact WAV SHA-256 match:
 
 ```bash
 RVC_CUDA_GRAPH=0 /home/moyamryia/vc_backend_venv/bin/python \
-  rvc-golden/run_reference.py
+  rvc-golden/verify_golden.py --reproduce offline-audible
 ```
 
 Inputs, outputs, model hashes, and intermediate tensors are kept under this
 directory so each C++ stage can be compared numerically.
 
+The runner fixes Torch/NumPy RNG with seed `114514`. During locked reproduction
+it also restores the original WAV `PEAK` chunk timestamp recorded in the
+manifest. Libsndfile otherwise writes the current time into that chunk, making
+two sample-identical FLOAT WAV files have different whole-file hashes.
+
 ## Locked standards
 
-`golden_manifest.json` (version 3) records a shared `context` (input, model,
-runners, RVC source commit, HuBERT/RMVPE assets, parameters) and a list of
-`standards`, each locked by SHA-256 + WAV format and independently verified:
+`golden_manifest.json` (version 4) records a shared `context` (input, model,
+runners, verifier, runtime, RVC source commit, HuBERT/RMVPE assets, parameters)
+and a list of `standards`, each locked by SHA-256 + WAV format and independently
+verified:
 
 - `offline-audible` — the original RVC `generator.infer()` random-VAE offline
   reference (`output/...python-reference.wav`). A deterministic ONNX/TRT export
@@ -45,6 +52,25 @@ and every standard (hashes / formats only):
 
 The verifier exits `1` if any SHA-256, RVC source commit, tree cleanliness, or
 WAV format field differs. Use `--model PATH` when the model is elsewhere.
+With `--reproduce offline-audible`, it additionally runs `run_reference.py` in
+a temporary directory and requires the generated WAV to match the locked file
+byte for byte.
+
+## Preprocessor MP4 reference
+
+The first 30 seconds of `preprocessor/sample.mp4` are extracted as 16 kHz mono
+PCM16 and run through the same offline qiqi PyTorch reference. The source MP4,
+ffmpeg arguments, extracted input, model/code context, and output WAV are all
+locked in the manifest.
+
+```bash
+/home/moyamryia/vc_backend_venv/bin/python \
+  rvc-golden/verify_golden.py \
+  --reproduce preprocessor-sample-mp4-30s-offline-audible
+```
+
+Audition output:
+`output/preprocessor-sample-mp4-30s-python-reference.wav`.
 
 To additionally reproduce each numeric standard against the **running backend**
 (HTTP + UDP), which drives file mode and the streaming dataplane and checks
