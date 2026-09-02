@@ -69,11 +69,21 @@ public:
 
 private:
 #ifdef USE_ONNX
+    // CUDA EP 运行期失败（如 provider 二进制与本机 sm 架构不符）时，
+    // 重建纯 CPU 会话并重试一次
+    bool reload_cpu();
+    std::vector<float> run_once(
+        const std::vector<const char*>& input_names,
+        const std::vector<Ort::Value>& input_tensors,
+        const std::vector<const char*>& output_names);
+
     std::unique_ptr<Ort::Env> env_;
     std::unique_ptr<Ort::SessionOptions> session_opts_;
     std::unique_ptr<Ort::Session> session_;
     Ort::MemoryInfo mem_info_{nullptr};
 #endif
+    bool cuda_attached_ = false;
+    std::filesystem::path model_path_;
     std::unordered_map<std::string, OnnxInput::Type> input_types_;
     std::unordered_map<std::string, std::vector<int64_t>> input_shapes_;
 };
