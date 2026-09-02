@@ -1,15 +1,26 @@
 {
-  "version": 3,
+  "version": 4,
   "context": {
     "input": "input/qiqi-espeak-pinyin-zh-en-mixed.wav",
     "input_sha256": "e93d38e7e44a86bbb88f19f073ce21f791bfc2f959e6257554d853fe87d99c51",
     "model": {
       "path": "/home/moyamryia/mozart-archive/RVC_Model_Collection/48k（新版）/原神/中文/七七/七七.pth",
-      "sha256": "d72bd33911b8a9d2ccac81dc005998a2c043e97587374cecf3ca38edef05d64d"
+      "sha256": "d72bd33911b8a9d2ccac81dc005998a2c043e97587374cecf3ca38edef05d64d",
+      "metadata": {
+        "version": "v2",
+        "f0": 1,
+        "sample_rate": 48000,
+        "speaker_count": 202,
+        "feature_dim": 768
+      }
     },
     "runner": {
       "path": "run_reference.py",
-      "sha256": "c8e8d8b70a1613579f08e79d20dcdfc31ae3b92eeec239b7beb6fe1464007b73"
+      "sha256": "1ae31af949746dab8016d4593385ddce5a48bb61a6d3a80c30250bcda0c77028"
+    },
+    "verifier": {
+      "path": "verify_golden.py",
+      "sha256": "d61c945d35cab345e633df34c8291ebee387c03a22fc142930f5605e8754560f"
     },
     "streaming_runner": {
       "path": "run_streaming_reference.py",
@@ -18,7 +29,25 @@
     "rvc_source": {
       "path": "/home/moyamryia/mozart-archive/RVC",
       "commit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
-      "tracked_subtree": "infer"
+      "tracked_paths": [
+        "infer",
+        "tools/cuda_graph.py"
+      ]
+    },
+    "runtime": {
+      "python": "3.12.3",
+      "machine": "aarch64",
+      "libsndfile": "1.2.2",
+      "packages": {
+        "torch": "2.12.0+cu132",
+        "numpy": "2.4.6",
+        "scipy": "1.18.0",
+        "librosa": "0.11.0",
+        "soundfile": "0.14.0",
+        "transformers": "4.46.3",
+        "faiss-cpu": "1.14.3",
+        "praat-parselmouth": "0.4.7"
+      }
     },
     "assets": {
       "hubert": {
@@ -45,7 +74,8 @@
       "rms_mix_rate": 1.0,
       "protect": 0.33,
       "version": "v2",
-      "speaker_id": 0
+      "speaker_id": 0,
+      "random_seed": 114514
     }
   },
   "standards": [
@@ -56,6 +86,7 @@
       "produced_by": "run_reference.py (default generator.infer)",
       "output": "output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav",
       "output_sha256": "01a114c3db4a1175a41ddde86b71318de7e385eef745d6aced4e397f41425dce",
+      "wav_peak_timestamp": 1788186008,
       "output_format": {
         "sample_rate": 48000,
         "channels": 1,
@@ -107,6 +138,40 @@
         "corr_min": 0.999,
         "f0_max_cents": 25,
         "note": "2s-window golden-aligned T398 streaming reference. Production streaming backend reproduces it at corr 1.0 / F0 0.0 cents."
+      }
+    }
+  ],
+  "reference_cases": [
+    {
+      "id": "preprocessor-sample-mp4-30s-offline-audible",
+      "role": "audible",
+      "generator_mode": "random-vae",
+      "produced_by": "run_reference.py (default generator.infer)",
+      "input_extraction": {
+        "source": "../preprocessor/sample.mp4",
+        "source_sha256": "fb89b1176c5c87205af71a900e727673d0d283876af43a7bc1de8a93c167d5ca",
+        "executable": "ffmpeg",
+        "arguments": [
+          "-t",
+          "30",
+          "-vn",
+          "-ac",
+          "1",
+          "-ar",
+          "16000",
+          "-c:a",
+          "pcm_s16le"
+        ],
+        "output_sha256": "d7dafb12f8d444b2270f2d06158f47c235ca7892aaca1513561dc9971f2a8654"
+      },
+      "output": "output/preprocessor-sample-mp4-30s-python-reference.wav",
+      "output_sha256": "313871d68f8e47426e701b72dfb12ead4fe0d21142d24bd6be570a467d5fe801",
+      "wav_peak_timestamp": 1788186008,
+      "output_format": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "subtype": "FLOAT",
+        "samples": 1439040
       }
     }
   ]

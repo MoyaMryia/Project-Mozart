@@ -32,6 +32,29 @@ class ReferenceConfig:
     x_max = 41
 
 
+def set_wav_peak_timestamp(path, timestamp):
+    """Set libsndfile's PEAK timestamp so a FLOAT WAV is byte-reproducible."""
+    if not 0 <= timestamp <= 0xFFFFFFFF:
+        raise ValueError("WAV PEAK timestamp must fit in an unsigned 32-bit integer")
+    with path.open("r+b") as wav:
+        header = wav.read(12)
+        if header[:4] != b"RIFF" or header[8:] != b"WAVE":
+            raise ValueError(f"not a RIFF/WAVE file: {path}")
+        while chunk_header := wav.read(8):
+            if len(chunk_header) != 8:
+                break
+            chunk_id = chunk_header[:4]
+            chunk_size = int.from_bytes(chunk_header[4:], "little")
+            if chunk_id == b"PEAK":
+                if chunk_size < 8:
+                    break
+                wav.seek(4, 1)
+                wav.write(timestamp.to_bytes(4, "little"))
+                return
+            wav.seek(chunk_size + (chunk_size & 1), 1)
+    raise ValueError(f"FLOAT WAV has no valid PEAK chunk: {path}")
+
+
 class CapturingGenerator(torch.nn.Module):
     def __init__(self, generator, tensor_dir, deterministic=False):
         super().__init__()
@@ -70,7 +93,15 @@ def load_generator(model_path, deterministic=False):
         raise ValueError("reference runner requires an RVC v2 F0 model")
     checkpoint["config"][-3] = checkpoint["weight"]["emb_g.weight"].shape[0]
     generator = SynthesizerTrnMs768NSFsid(*checkpoint["config"], is_half=False)
-    generator.load_state_dict(checkpoint["weight"], strict=False)
+    incompatible = generator.load_state_dict(checkpoint["weight"], strict=False)
+    missing_inference_weights = [
+        key for key in incompatible.missing_keys if not key.startswith("enc_q.")
+    ]
+    if missing_inference_weights or incompatible.unexpected_keys:
+        raise RuntimeError(
+            "generator checkpoint mismatch: "
+            f"missing={missing_inference_weights}, unexpected={incompatible.unexpected_keys}"
+        )
     # Load weight-norm parameters before removing the parametrizations.
     del generator.enc_q
     generator.eval().float()
@@ -90,10 +121,17 @@ def main():
                         help="use the export-alignment mean path instead of original RVC inference")
     parser.add_argument("--metadata", default=str(ROOT / "reference.json"),
                         help="path to write the run metadata (defaults to reference.json)")
+    parser.add_argument("--seed", type=int, default=114514)
+    parser.add_argument(
+        "--wav-peak-timestamp",
+        type=int,
+        default=None,
+        help="set the FLOAT WAV PEAK timestamp for byte-reproducible output",
+    )
     args = parser.parse_args()
 
-    torch.manual_seed(114514)
-    np.random.seed(114514)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     tensor_dir = Path(args.tensor_dir)
     tensor_dir.mkdir(parents=True, exist_ok=True)
@@ -164,6 +202,8 @@ def main():
         )
 
     sf.write(output_path, converted.astype(np.float32) / 32768.0, target_rate, subtype="FLOAT")
+    if args.wav_peak_timestamp is not None:
+        set_wav_peak_timestamp(output_path, args.wav_peak_timestamp)
     metadata = {
         "input": str(Path(args.input).resolve()),
         "model": str(Path(args.model).resolve()),
@@ -172,6 +212,8 @@ def main():
         "target_rate": target_rate,
         "input_samples_16k": int(audio.size),
         "output_samples": int(converted.size),
+        "seed": args.seed,
+        "wav_peak_timestamp": args.wav_peak_timestamp,
         "timings_seconds": times,
         "generator_calls": capturing_generator.call,
     }
