@@ -92,8 +92,12 @@ def main() -> None:
     parser.add_argument("--backend", default="127.0.0.1:18000", help="UDP host:port")
     parser.add_argument("--api", default="http://127.0.0.1:18080", help="backend HTTP base URL")
     parser.add_argument("--model-id", default="", help="model directory ID sent to RT_RVC")
-    parser.add_argument("--flush-seconds", type=float, default=2.0,
-                        help="silence sent after input to drain the 2 s backend window")
+    parser.add_argument("--flush-seconds", type=float, default=3.0,
+                        help="trailing silence sent after input so the backend's "
+                             "cold-start + first-block latency (the whole stream is "
+                             "shifted later by ~0.7 s) drains through the final block; "
+                             "keep >= the 2 s window plus inference latency to avoid "
+                             "clipping the last phoneme's decay")
     parser.add_argument("--timeout", type=float, default=15.0,
                         help="maximum seconds to wait for missing UDP replies")
     parser.add_argument("--no-activate", action="store_true",
