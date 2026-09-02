@@ -33,11 +33,12 @@ class ReferenceConfig:
 
 
 class CapturingGenerator(torch.nn.Module):
-    def __init__(self, generator, tensor_dir):
+    def __init__(self, generator, tensor_dir, deterministic=False):
         super().__init__()
         self.generator = generator
         self.tensor_dir = tensor_dir
         self.call = 0
+        self.deterministic = deterministic
 
     def infer(self, feats, p_len, pitch, pitchf, sid):
         prefix = self.tensor_dir / f"generator_{self.call:02d}"
@@ -46,19 +47,24 @@ class CapturingGenerator(torch.nn.Module):
         np.save(prefix.with_name(prefix.name + "_pitch.npy"), pitch.detach().cpu().numpy())
         np.save(prefix.with_name(prefix.name + "_pitchf.npy"), pitchf.detach().cpu().numpy())
         np.save(prefix.with_name(prefix.name + "_sid.npy"), sid.detach().cpu().numpy())
-        # Match tools/export_generator_onnx.py: avoid the random VAE sample in
-        # infer() so PyTorch and ONNX receive the same deterministic function.
-        g = self.generator.emb_g(sid).unsqueeze(-1)
-        m_p, _, x_mask = self.generator.enc_p(feats, pitch, p_len)
-        z = self.generator.flow(m_p * x_mask, x_mask, g=g, reverse=True)
-        audio = self.generator.dec(z * x_mask, pitchf, g=g)
-        result = (audio, x_mask, (z, m_p))
+        if self.deterministic:
+            # Optional ONNX-alignment path. This is not the original RVC
+            # inference path and must not be the Golden default.
+            g = self.generator.emb_g(sid).unsqueeze(-1)
+            m_p, _, x_mask = self.generator.enc_p(feats, pitch, p_len)
+            z = self.generator.flow(m_p * x_mask, x_mask, g=g, reverse=True)
+            audio = self.generator.dec(z * x_mask, pitchf, g=g)
+            result = (audio, x_mask, (z, m_p))
+        else:
+            # Preserve the original RVC inference semantics. The seeded random
+            # latent is part of the model's synthesis path, not an export aid.
+            result = self.generator.infer(feats, p_len, pitch, pitchf, sid)
         np.save(prefix.with_name(prefix.name + "_audio.npy"), result[0].detach().cpu().numpy())
         self.call += 1
         return result
 
 
-def load_generator(model_path):
+def load_generator(model_path, deterministic=False):
     checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
     if checkpoint.get("version") != "v2" or checkpoint.get("f0", 1) != 1:
         raise ValueError("reference runner requires an RVC v2 F0 model")
@@ -69,7 +75,8 @@ def load_generator(model_path):
     del generator.enc_q
     generator.eval().float()
     generator.remove_weight_norm()
-    generator.dec.m_source.l_sin_gen.noise_std = 0.0
+    if deterministic:
+        generator.dec.m_source.l_sin_gen.noise_std = 0.0
     return generator, int(checkpoint["config"][-1])
 
 
@@ -79,6 +86,8 @@ def main():
     parser.add_argument("--model", default="/home/moyamryia/models/de_narrator_clean.pth")
     parser.add_argument("--output", default=str(ROOT / "output" / "python-reference.wav"))
     parser.add_argument("--tensor-dir", default=str(ROOT / "tensors"))
+    parser.add_argument("--deterministic-generator", action="store_true",
+                        help="use the export-alignment mean path instead of original RVC inference")
     args = parser.parse_args()
 
     torch.manual_seed(114514)
@@ -99,8 +108,12 @@ def main():
         audio /= audio_max
     np.save(tensor_dir / "input_16k.npy", audio)
 
-    generator, target_rate = load_generator(args.model)
-    capturing_generator = CapturingGenerator(generator, tensor_dir)
+    generator, target_rate = load_generator(
+        args.model, deterministic=args.deterministic_generator
+    )
+    capturing_generator = CapturingGenerator(
+        generator, tensor_dir, deterministic=args.deterministic_generator
+    )
 
     hubert_path = ROOT / "assets" / "hubert_base"
     hubert = HubertModelWithFinalProj.from_pretrained(

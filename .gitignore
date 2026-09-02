@@ -3,6 +3,9 @@
 venv/
 rvc-env/
 
+# Local third-party runtimes (ORT GPU staged from PyPI wheel, never system-wide)
+third_party/
+
 # Python caches and build artifacts
 __pycache__/
 *.py[cod]
@@ -53,8 +56,10 @@ preprocessor/output.wav
 rvc-golden/assets/
 rvc-golden/external/
 rvc-golden/tensors/
-rvc-golden/output/
+rvc-golden/output/*
 rvc-golden/input/
+!rvc-golden/output/
+!rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-python-reference.wav
 
 # CMake
 CMakeCache.txt

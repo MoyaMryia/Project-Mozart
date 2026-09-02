@@ -1,15 +1,15 @@
 {
   "input": "/home/moyamryia/Mozart/rvc-golden/input/qiqi-espeak-pinyin-zh-en-mixed.wav",
   "model": "/home/moyamryia/mozart-archive/RVC_Model_Collection/48k\uff08\u65b0\u7248\uff09/\u539f\u795e/\u4e2d\u6587/\u4e03\u4e03/\u4e03\u4e03.pth",
-  "output": "/home/moyamryia/Mozart/rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-python-reference-latest.wav",
+  "output": "/home/moyamryia/Mozart/rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-python-reference-corrected.wav",
   "source_rate": 16000,
   "target_rate": 48000,
   "input_samples_16k": 348908,
   "output_samples": 1046400,
   "timings_seconds": [
-    8.301932334899902,
-    9.81243109703064,
-    64.87502789497375
+    8.133553504943848,
+    9.578661680221558,
+    55.70152139663696
   ],
   "generator_calls": 1
 }
