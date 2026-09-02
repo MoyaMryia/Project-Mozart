@@ -243,28 +243,29 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
     }
 
     if (audio_16k.size() <= kWindow16k) {
-        // A short Golden input is inferred once with two-sided context. Center
-        // that source in the fixed T=200 export window and crop the context
-        // from the generated waveform before returning it.
-        const size_t start = (padded.size() - kWindow16k) / 2;
-        const auto window = slice_or_pad(padded, start, kWindow16k);
-        const size_t frame_start = start / kHop16k;
-        auto pitchf = slice_or_pad(pitchf_full, frame_start, kGeneratorFrames);
-        std::vector<int64_t> pitch(kGeneratorFrames, 1);
-        for (size_t t = 0; t < kGeneratorFrames; ++t) {
-            const size_t source = std::min(frame_start + t, pitch_full.size() - 1);
+        // Golden-aligned: feed the reflect-padded window to HuBERT (matching
+        // RVC pipeline.vc which pads by t_pad before HuBERT) and run the
+        // generator at the engine's native T (398 for the streaming contract).
+        // Crop the generator output by t_pad_tgt on each side like RVC's
+        // [t_pad_tgt:-t_pad_tgt], then pad to the block contract so the
+        // streaming pipeline's out_block_/emit_out_ assumptions hold.
+        const size_t T = generator_frames;
+        auto pitchf = slice_or_pad(pitchf_full, 0, T);
+        std::vector<int64_t> pitch(T, 1);
+        for (size_t t = 0; t < T; ++t) {
+            const size_t source = std::min(t, pitch_full.size() - 1);
             pitch[t] = pitch_full[source];
         }
-        auto converted = infer_window(window, pitchf, pitch);
-        const size_t source_offset = (kPad16k - start) * model_sr / 16000;
-        const size_t keep = audio_16k.size() * model_sr / 16000;
-        if (source_offset < converted.size()) {
-            const size_t count = std::min(keep, converted.size() - source_offset);
+        auto converted = infer_window(padded, pitchf, pitch);
+        const size_t pad_tgt = kPad16k * model_sr / 16000;
+        if (converted.size() > 2 * pad_tgt) {
             converted = std::vector<float>(
-                converted.begin() + static_cast<std::ptrdiff_t>(source_offset),
-                converted.begin() + static_cast<std::ptrdiff_t>(source_offset + count));
-        } else {
-            converted.clear();
+                converted.begin() + static_cast<std::ptrdiff_t>(pad_tgt),
+                converted.end() - static_cast<std::ptrdiff_t>(pad_tgt));
+        }
+        const size_t contract = kWindow16k * model_sr / 16000;
+        if (converted.size() < contract) {
+            converted.resize(contract, 0.0f);
         }
         converted = apply_rms_mix(audio_16k, std::move(converted));
         if (model_sr != output_sample_rate_) {
@@ -275,20 +276,29 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
     }
 
     const size_t hop_in = kWindow16k / 2;
+    const size_t pad_tgt = kPad16k * model_sr / 16000;
     std::vector<float> assembled;
     assembled.reserve((padded.size() * model_sr / 16000) + window_out);
     size_t windows = 0;
     for (size_t start = 0; start < padded.size(); start += hop_in) {
         auto window = slice_or_pad(padded, start, kWindow16k);
+        // Golden-aligned per window: reflect-pad the 2 s window to 4 s before
+        // HuBERT (matching RVC pipeline.vc) and run at the engine's native T.
+        auto hubert_input = reflect_pad(window, kPad16k);
         const size_t f0_start = start / kHop16k;
-        std::vector<float> pitchf(kGeneratorFrames, 0.0f);
-        std::vector<int64_t> pitch(kGeneratorFrames, 1);
-        for (size_t t = 0; t < kGeneratorFrames; ++t) {
+        std::vector<float> pitchf(generator_frames, 0.0f);
+        std::vector<int64_t> pitch(generator_frames, 1);
+        for (size_t t = 0; t < generator_frames; ++t) {
             const size_t src = std::min(f0_start + t, pitchf_full.size() - 1);
             pitchf[t] = pitchf_full[src];
             pitch[t] = pitch_full[src];
         }
-        auto converted = infer_window(window, pitchf, pitch);
+        auto converted = infer_window(hubert_input, pitchf, pitch);
+        if (converted.size() > 2 * pad_tgt) {
+            converted = std::vector<float>(
+                converted.begin() + static_cast<std::ptrdiff_t>(pad_tgt),
+                converted.end() - static_cast<std::ptrdiff_t>(pad_tgt));
+        }
         if (converted.size() < window_out) converted.resize(window_out, 0.0f);
         if (windows == 0) {
             assembled.insert(assembled.end(), converted.begin(),

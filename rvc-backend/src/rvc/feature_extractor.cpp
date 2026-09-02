@@ -40,10 +40,13 @@ FeatureExtractor::FeatureExtractor(
         // 其他长度（file 模式全长输入）由动态 ONNX 兜底引擎处理。
         if (auto* trt = dynamic_cast<TrtEngine*>(hubert_engine_.get())) {
             const auto shape = trt->input_shape("audio");
-            const int64_t need = 32000; // 流式窗口 2s @16k
-            if (!shape.empty() && (shape.size() != 2 || shape[1] != need)) {
-                spdlog::warn("HuBERT TRT 引擎形状不符（audio={}[{}] ≠ [1,{}]），回退 ONNX",
-                             shape.size() >= 2 ? shape[1] : -1, shape.size(), need);
+            // 接受任意 [1, N>0] 固定形状；流式 padded 64000 或其他契约长度，
+            // 非契约长度（file 全长）由动态 ONNX 兜底。
+            const bool ok = shape.empty()
+                || (shape.size() == 2 && shape[0] == 1 && shape[1] > 0);
+            if (!ok) {
+                spdlog::warn("HuBERT TRT 引擎形状不符（期望 [1,N>0]，实际 rank={}），回退 ONNX",
+                             shape.size());
                 hubert_engine_.reset();
             }
         }
