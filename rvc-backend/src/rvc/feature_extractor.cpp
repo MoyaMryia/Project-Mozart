@@ -7,8 +7,17 @@
 #include <complex>
 #include <numbers>
 #include <limits>
+#include <thread>
+#include <vector>
 
 namespace rvc {
+
+namespace {
+IEngine* ensure_onnx_fallback(std::unique_ptr<IEngine>& slot,
+                              const std::filesystem::path& onnx_path);
+void warmup_zeros(IEngine& engine, const char* input,
+                  std::vector<int64_t> shape, const char* output);
+} // namespace
 
 FeatureExtractor::FeatureExtractor(
     const std::filesystem::path& hubert_path,
@@ -27,7 +36,8 @@ FeatureExtractor::FeatureExtractor(
 {
     if (std::filesystem::exists(hubert_path_)) {
         hubert_engine_ = make_engine(hubert_path_);
-        // TRT 引擎是固定形状：HuBERT 必须接受我们的整窗长度（流式 2s=32000）
+        // TRT 引擎是固定形状：HuBERT 必须接受我们的整窗长度（流式 2s=32000）。
+        // 其他长度（file 模式全长输入）由动态 ONNX 兜底引擎处理。
         if (auto* trt = dynamic_cast<TrtEngine*>(hubert_engine_.get())) {
             const auto shape = trt->input_shape("audio");
             const int64_t need = 32000; // 流式窗口 2s @16k
@@ -38,6 +48,7 @@ FeatureExtractor::FeatureExtractor(
             }
         }
         if (hubert_engine_ && hubert_engine_->loaded()) {
+            warmup_zeros(*hubert_engine_, "audio", {1, 32000}, "features");
             spdlog::info("HuBERT engine loaded: {}", hubert_path_.string());
         }
     } else {
@@ -46,15 +57,23 @@ FeatureExtractor::FeatureExtractor(
 
     if (rmvpe_path_ && std::filesystem::exists(*rmvpe_path_)) {
         rmvpe_engine_ = make_engine(*rmvpe_path_);
-        // RMVPE 固定 [1,128,128]（extract_f0 会零填充到该形状）
+        // TRT 引擎固定 [1,128,T]：T 与窗口 mel 补齐到 32 倍数的时长一致时
+        // extract_f0 走单趟推理（与 Python 语义一致）；其他时长由动态
+        // ONNX 兜底引擎处理，[1,128,128] 保留滑窗回退路径。
         if (auto* trt = dynamic_cast<TrtEngine*>(rmvpe_engine_.get())) {
             const auto shape = trt->input_shape("mel");
-            if (!shape.empty() && shape != std::vector<int64_t>({1, 128, 128})) {
-                spdlog::warn("RMVPE TRT 引擎形状不符，回退 ONNX");
+            const bool ok = shape.empty()
+                || (shape.size() == 3 && shape[0] == 1
+                    && shape[1] == 128 && shape[2] > 0);
+            if (!ok) {
+                spdlog::warn("RMVPE TRT 引擎形状不符（期望 [1,128,T]），回退 ONNX");
                 rmvpe_engine_.reset();
             }
         }
         if (rmvpe_engine_ && rmvpe_engine_->loaded()) {
+            const auto shape = rmvpe_engine_->input_shape("mel");
+            const int64_t time = (shape.size() == 3 && shape[2] > 0) ? shape[2] : 416;
+            warmup_zeros(*rmvpe_engine_, "mel", {1, 128, time}, "f0");
             spdlog::info("RMVPE engine loaded: {}", rmvpe_path_->string());
         }
     } else if (rmvpe_path_) {
@@ -133,6 +152,33 @@ std::vector<float> build_htk_mel_basis(uint32_t sr, int n_mels, int n_fft,
     return basis;
 }
 
+// 懒加载固定形状 TRT 引擎的动态 ONNX 兜底（file 模式任意长度输入）
+IEngine* ensure_onnx_fallback(std::unique_ptr<IEngine>& slot,
+                              const std::filesystem::path& onnx_path) {
+    if (slot && slot->loaded()) return slot.get();
+    auto onnx = std::make_unique<OnnxEngine>();
+    if (!onnx->load(onnx_path)) return nullptr;
+    spdlog::info("Lazy-loaded ONNX fallback: {}", onnx_path.filename().string());
+    slot = std::move(onnx);
+    return slot.get();
+}
+
+// 零输入预热：吸收 TRT 首调 JIT/惰性加载开销；ONNX+CUDA 不健康时在
+// 加载期触发自愈降级而不是首个真实窗口
+void warmup_zeros(IEngine& engine, const char* input,
+                  std::vector<int64_t> shape, const char* output) {
+    size_t elems = 1;
+    for (auto d : shape) {
+        if (d <= 0) return;
+        elems *= static_cast<size_t>(d);
+    }
+    try {
+        engine.run({input}, {shape}, {std::vector<float>(elems, 0.0f)}, {output});
+    } catch (const std::exception& e) {
+        spdlog::debug("Engine warmup skipped ({}): {}", input, e.what());
+    }
+}
+
 } // namespace
 
 std::vector<float> FeatureExtractor::compute_mel(
@@ -174,25 +220,46 @@ std::vector<float> FeatureExtractor::compute_mel(
 
     const int n_bins = n_fft / 2 + 1;
     std::vector<float> mel(static_cast<size_t>(frames) * n_mels, 0.0f);
-    std::vector<float> re(n_fft), im(n_fft);
-    for (size_t f = 0; f < frames; ++f) {
-        const size_t off = f * static_cast<size_t>(hop_length);
-        for (int i = 0; i < n_fft; ++i) {
-            re[i] = padded[off + i] * window[i];
-            im[i] = 0.0f;
-        }
-        fft_radix2(re, im);
-        for (int k = 0; k < n_bins; ++k) {
-            const float mag = std::sqrt(re[k] * re[k] + im[k] * im[k]);
+
+    // 每帧写入互不相交的 mel 行；单元素累加顺序不变 → 多线程逐位一致
+    const auto frame_loop = [&](size_t f_begin, size_t f_end) {
+        std::vector<float> re(n_fft), im(n_fft);
+        for (size_t f = f_begin; f < f_end; ++f) {
+            const size_t off = f * static_cast<size_t>(hop_length);
+            for (int i = 0; i < n_fft; ++i) {
+                re[i] = padded[off + i] * window[i];
+                im[i] = 0.0f;
+            }
+            fft_radix2(re, im);
+            for (int k = 0; k < n_bins; ++k) {
+                const float mag = std::sqrt(re[k] * re[k] + im[k] * im[k]);
+                for (int m = 0; m < n_mels; ++m) {
+                    const float w = mel_basis[static_cast<size_t>(m) * n_bins + k];
+                    if (w != 0.0f) mel[f * n_mels + m] += w * mag;
+                }
+            }
             for (int m = 0; m < n_mels; ++m) {
-                const float w = mel_basis[static_cast<size_t>(m) * n_bins + k];
-                if (w != 0.0f) mel[f * n_mels + m] += w * mag;
+                float& v = mel[f * n_mels + m];
+                v = std::log(std::max(v, 1e-5f));
             }
         }
-        for (int m = 0; m < n_mels; ++m) {
-            float& v = mel[f * n_mels + m];
-            v = std::log(std::max(v, 1e-5f));
+    };
+
+    const unsigned hw = std::thread::hardware_concurrency();
+    const unsigned nthreads = std::min(4u, std::max(1u, hw));
+    if (frames >= 64 && nthreads > 1) {
+        std::vector<std::thread> pool;
+        pool.reserve(nthreads);
+        const size_t chunk = (frames + nthreads - 1) / nthreads;
+        for (unsigned t = 0; t < nthreads; ++t) {
+            const size_t begin = static_cast<size_t>(t) * chunk;
+            const size_t end = std::min(frames, begin + chunk);
+            if (begin >= end) break;
+            pool.emplace_back(frame_loop, begin, end);
         }
+        for (auto& th : pool) th.join();
+    } else {
+        frame_loop(0, frames);
     }
     return mel;
 }
@@ -244,10 +311,32 @@ std::vector<float> FeatureExtractor::extract_f0(
         // sequence in one model call. Windowed inference with a fixed
         // [1,128,128] export corrupts frames near every window edge because
         // the E2E U-Net has a receptive field far larger than the overlap.
-        const auto mel_input_shape = rmvpe_engine_->input_shape("mel");
-        const bool dynamic_time = mel_input_shape.size() >= 3 && mel_input_shape[2] < 0;
-        if (dynamic_time && mel_frames > 0) {
-            const size_t padded_frames = 32 * ((mel_frames - 1) / 32 + 1);
+        // A fixed-shape TRT engine takes the same single-pass path only when
+        // its time axis equals the padded length (streaming contract);
+        // other lengths (file mode) fall back to the dynamic ONNX engine.
+        IEngine* rmvpe = rmvpe_engine_.get();
+        bool dynamic_time = false;
+        int64_t fixed_time = -1;
+        if (rmvpe) {
+            const auto mel_input_shape = rmvpe->input_shape("mel");
+            if (mel_input_shape.size() >= 3) {
+                if (mel_input_shape[2] < 0) dynamic_time = true;
+                else if (mel_input_shape[2] > 0) fixed_time = mel_input_shape[2];
+            }
+        }
+        const size_t padded_frames = mel_frames > 0
+            ? 32 * ((mel_frames - 1) / 32 + 1) : 0;
+        if (rmvpe && !dynamic_time
+                && static_cast<size_t>(fixed_time) != padded_frames
+                && ensure_onnx_fallback(rmvpe_onnx_engine_, *rmvpe_path_)) {
+            spdlog::debug("RMVPE TRT fixed time {} != padded {}; using ONNX fallback",
+                          fixed_time, padded_frames);
+            rmvpe = rmvpe_onnx_engine_.get();
+            dynamic_time = true;
+        }
+        if (rmvpe && (dynamic_time
+                || static_cast<size_t>(fixed_time) == padded_frames)
+                && mel_frames > 0) {
             std::vector<float> fixed_mel(padded_frames * mel_bins, 0.0f);
             for (size_t b = 0; b < mel_bins; ++b) {
                 for (size_t t = 0; t < mel_frames; ++t) {
@@ -257,7 +346,7 @@ std::vector<float> FeatureExtractor::extract_f0(
             const std::vector<int64_t> mel_shape = {
                 1, static_cast<int64_t>(mel_bins), static_cast<int64_t>(padded_frames)
             };
-            const auto salience = rmvpe_engine_->run(
+            const auto salience = rmvpe->run(
                 {"mel"}, {mel_shape}, {fixed_mel}, {"f0"}
             );
             if (salience.size() < padded_frames * pitch_bins) {
@@ -344,8 +433,20 @@ std::vector<float> FeatureExtractor::extract_features(
 ) {
     if (hubert_engine_ && hubert_engine_->loaded()) {
         size_t n_samples = audio.size();
+        // TRT 固定形状引擎只接受构建时长；其他长度走动态 ONNX 兜底
+        IEngine* engine = hubert_engine_.get();
+        if (auto* trt = dynamic_cast<TrtEngine*>(engine)) {
+            const auto shape = trt->input_shape("audio");
+            if (shape.size() == 2 && shape[1] > 0
+                    && static_cast<size_t>(shape[1]) != n_samples
+                    && ensure_onnx_fallback(hubert_onnx_engine_, hubert_path_)) {
+                spdlog::debug("HuBERT TRT fixed length {} != {}; using ONNX fallback",
+                              shape[1], n_samples);
+                engine = hubert_onnx_engine_.get();
+            }
+        }
         std::vector<int64_t> audio_shape = {1, static_cast<int64_t>(n_samples)};
-        auto feats = hubert_engine_->run(
+        auto feats = engine->run(
             {"audio"}, {audio_shape}, {audio}, {"features"}
         );
         spdlog::debug("HuBERT features: {} elements extracted", feats.size());

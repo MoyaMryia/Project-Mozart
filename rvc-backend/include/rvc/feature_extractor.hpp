@@ -54,6 +54,9 @@ private:
 
     std::unique_ptr<IEngine> hubert_engine_;
     std::unique_ptr<IEngine> rmvpe_engine_;
+    // 固定形状 TRT 引擎的动态 ONNX 兜底（file 模式全长输入）
+    std::unique_ptr<IEngine> hubert_onnx_engine_;
+    std::unique_ptr<IEngine> rmvpe_onnx_engine_;
 
     std::vector<float> f0_harvest(const std::vector<float>& audio, uint32_t sample_rate);
     std::vector<float> f0_pm(const std::vector<float>& audio, uint32_t sample_rate);
