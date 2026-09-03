@@ -40,10 +40,16 @@ verified:
   (`run_streaming_reference.py --deterministic-generator`,
   `...streaming-...-DET.wav`). The production streaming backend (golden-aligned
   T398 framing) reproduces it at aligned correlation 1.0 / F0 0.0 cents.
+- `streaming-quality-audible` — the quality-first random-VAE streaming audition
+  reference. It recomputes from the complete stream start with 2 s lookahead
+  and restores the post-load RNG state for every prefix.
+- `streaming-quality-deterministic` — the same quality-first framing with the
+  deterministic mean-path Generator. This is the numerical quality ceiling for
+  future C++ streaming work, not the current production framing contract.
 
-Each standard carries a `repro` block (`mode`, `model_id`, `corr_min`,
-`f0_max_cents`) used by the backend self-verifier. Verify the locked context
-and every standard (hashes / formats only):
+Backend targets carry `mode`, `model_id`, `corr_min`, and `f0_max_cents` in
+their `repro` blocks. Verify the locked context, hashes, formats, recorded
+streaming quality metrics, and all-unvoiced F0 contract:
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
@@ -52,9 +58,9 @@ and every standard (hashes / formats only):
 
 The verifier exits `1` if any SHA-256, RVC source commit, tree cleanliness, or
 WAV format field differs. Use `--model PATH` when the model is elsewhere.
-With `--reproduce offline-audible`, it additionally runs `run_reference.py` in
-a temporary directory and requires the generated WAV to match the locked file
-byte for byte.
+With `--reproduce STANDARD`, it additionally runs the appropriate reference
+runner in a temporary directory and requires the generated WAV to match the
+locked file byte for byte.
 
 ## Preprocessor MP4 reference
 
@@ -71,6 +77,16 @@ locked in the manifest.
 
 Audition output:
 `output/preprocessor-sample-mp4-30s-python-reference.wav`.
+
+The same extracted input has also passed the quality-first streaming path. Its
+latency-free audition output is:
+`output/preprocessor-sample-mp4-30s-streaming-quality-python-reference.wav`.
+
+```bash
+/home/moyamryia/vc_backend_venv/bin/python \
+  rvc-golden/verify_golden.py \
+  --reproduce preprocessor-sample-mp4-30s-streaming-quality-audible
+```
 
 To additionally reproduce each numeric standard against the **running backend**
 (HTTP + UDP), which drives file mode and the streaming dataplane and checks
@@ -90,26 +106,51 @@ via `run_reference.py --deterministic-generator --metadata <path>` and
 
 ## Streaming reference
 
-`run_streaming_reference.py` models the realtime data path without involving
-the C++ backend. It consumes 20 ms / 320-sample frames, waits for a 32000
-sample window, advances by 31040 input samples, and crossfades each 96000
-sample generator result into a 93120-sample output block. Each block is saved
-under the selected tensor directory, including the exact window, RMVPE
-intermediates, Generator inputs, and Generator output.
+`run_streaming_reference.py` has two purposes without involving the C++
+backend:
 
-Example for the checked-in qiqi-zh assets:
+- Its legacy defaults model the current realtime contract: 20 ms input frames,
+  a 2 s window, a 1.94 s hop, and a 60 ms crossfade. This remains the production
+  backend's locked numeric target.
+- Its quality-first mode recomputes each 2 s target from the complete prefix,
+  waits for 2 s of real future context, and emits a latency-free audition
+  timeline. It deliberately spends much more time and memory to provide a
+  stronger streaming debugging target. Deployment efficiency belongs in the
+  C++ implementation, not this Golden ceiling.
+
+Both modes save each window's exact input, RMVPE intermediates, Generator
+inputs, and Generator output under the selected tensor directory. The
+quality-first path also adds an 80-sample HuBERT guard, avoiding the legacy
+20 ms zero-padding at each window end, and safely preserves all-unvoiced RMVPE
+windows without exception-driven control flow.
+
+Reproduce the checked-in quality-first qiqi standards:
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
-  rvc-golden/run_streaming_reference.py \
-  --input rvc-golden/input/qiqi-espeak-zh-en-mixed.wav \
-  --output rvc-golden/output/qiqi-zh-espeak-zh-en-mixed-streaming-python-reference.wav \
-  --tensor-dir rvc-golden/tensors/qiqi_zh_zh_en_mixed_streaming
+  rvc-golden/verify_golden.py --reproduce streaming-quality-audible
+/home/moyamryia/vc_backend_venv/bin/python \
+  rvc-golden/verify_golden.py --reproduce streaming-quality-deterministic
 ```
 
-The output WAV intentionally contains the raw stream timeline, including the
-two-second cold-start silence and the configured flush tail. The JSON beside
-the WAV records the window and hop contract.
+Compare a streaming audition against its offline deterministic Golden:
+
+```bash
+/home/moyamryia/vc_backend_venv/bin/python \
+  rvc-golden/compare_streaming_quality.py \
+  rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-python-reference-DET.wav \
+  rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-streaming-quality-python-reference-DET.wav \
+  --stream-hop 31040
+```
+
+Raw stream outputs retain startup latency and flush. Files passed through
+`--audition-output` contain only the assembled content timeline, cropped to the
+same HuBERT frame contract as the corresponding offline result.
+Quality-first mode rejects any prefix whose target plus lookahead can exceed the
+original RVC pipeline's 41-second unsplit limit. With the locked 2 s target and
+2 s lookahead, inputs are therefore limited to about 37 seconds. Split longer
+test material into locked cases rather than silently changing the output-length
+rule.
 
 The realtime UDP client is separate from this Golden runner because the
 backend's audio data plane is UDP, not HTTP:

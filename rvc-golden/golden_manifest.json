@@ -20,11 +20,15 @@
     },
     "verifier": {
       "path": "verify_golden.py",
-      "sha256": "d61c945d35cab345e633df34c8291ebee387c03a22fc142930f5605e8754560f"
+      "sha256": "6ad196262a77e4cb00b9ab3833210fc9adfeb4c38a7e2aaafc635443f9da846e"
     },
     "streaming_runner": {
       "path": "run_streaming_reference.py",
-      "sha256": "3c55c72161b84a35dc17ac0009d92770cdc19ef2db16e373e9becad4236bacbf"
+      "sha256": "89cd25d61bc96549aa5bc634c76e201356946ecf48a5549334356e9bc0085f37"
+    },
+    "streaming_quality_comparator": {
+      "path": "compare_streaming_quality.py",
+      "sha256": "22d3a9f98a34b2b30efcd882c3cd9cac03c2301e128b61743830a00008a22b3b"
     },
     "rvc_source": {
       "path": "/home/moyamryia/mozart-archive/RVC",
@@ -105,6 +109,7 @@
       "produced_by": "run_reference.py --deterministic-generator",
       "output": "output/qiqi-zh-espeak-pinyin-mixed-python-reference-DET.wav",
       "output_sha256": "a4f575fcd6aa872894a651671fb310fea644b717965ab80ef987038114a383a8",
+      "wav_peak_timestamp": 1788329098,
       "output_format": {
         "sample_rate": 48000,
         "channels": 1,
@@ -126,11 +131,22 @@
       "produced_by": "run_streaming_reference.py --deterministic-generator",
       "output": "output/qiqi-zh-espeak-pinyin-mixed-streaming-python-reference-DET.wav",
       "output_sha256": "14a37492871945a87605a89f684541f6a32333933224bd44ef4d89f341e4b474",
+      "wav_peak_timestamp": 1788320915,
       "output_format": {
         "sample_rate": 48000,
         "channels": 1,
         "subtype": "FLOAT",
         "samples": 1143360
+      },
+      "streaming": {
+        "target_seconds": 2.0,
+        "left_context_seconds": 0.0,
+        "right_context_seconds": 0.0,
+        "crossfade_seconds": 0.06,
+        "flush_seconds": 2.0,
+        "full_history": false,
+        "reset_generator_rng": false,
+        "audition_timeline": false
       },
       "repro": {
         "mode": "streaming",
@@ -138,6 +154,82 @@
         "corr_min": 0.999,
         "f0_max_cents": 25,
         "note": "2s-window golden-aligned T398 streaming reference. Production streaming backend reproduces it at corr 1.0 / F0 0.0 cents."
+      }
+    },
+    {
+      "id": "streaming-quality-audible",
+      "role": "audible",
+      "generator_mode": "random-vae",
+      "produced_by": "run_streaming_reference.py --full-history --reset-generator-rng",
+      "output": "output/qiqi-zh-espeak-pinyin-mixed-streaming-python-reference-audition.wav",
+      "output_sha256": "511ca1e055ab632eb19ccdd8c8ca7cb3e5b94f9947679e8650ecb240ce8e2329",
+      "wav_peak_timestamp": 1788186008,
+      "output_format": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "subtype": "FLOAT",
+        "samples": 1046400
+      },
+      "streaming": {
+        "target_seconds": 2.0,
+        "left_context_seconds": 0.0,
+        "right_context_seconds": 2.0,
+        "crossfade_seconds": 0.06,
+        "flush_seconds": 4.0,
+        "full_history": true,
+        "reset_generator_rng": true,
+        "audition_timeline": true
+      },
+      "quality_against": {
+        "standard": "offline-audible",
+        "logmel_corr": 0.9831957370389086,
+        "logmel_mae_db": 2.650686264038086,
+        "rms_envelope_corr": 0.9654827553417316,
+        "f0_median_cents": 19.999999999999687,
+        "voiced_iou": 0.7872023809523809,
+        "clip_percent": 0.0
+      },
+      "repro": {
+        "mode": "none",
+        "note": "Quality-first Python streaming ceiling. Full prefix history and 2s lookahead intentionally prioritize quality over inference cost."
+      }
+    },
+    {
+      "id": "streaming-quality-deterministic",
+      "role": "numeric-quality",
+      "generator_mode": "deterministic",
+      "produced_by": "run_streaming_reference.py --full-history --deterministic-generator",
+      "output": "output/qiqi-zh-espeak-pinyin-mixed-streaming-quality-python-reference-DET.wav",
+      "output_sha256": "f76b367f859a7bcd60e32548e62f0d5d3cb2a2cea98b0a77d494775cd7a0fb71",
+      "wav_peak_timestamp": 1788186008,
+      "output_format": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "subtype": "FLOAT",
+        "samples": 1046400
+      },
+      "streaming": {
+        "target_seconds": 2.0,
+        "left_context_seconds": 0.0,
+        "right_context_seconds": 2.0,
+        "crossfade_seconds": 0.06,
+        "flush_seconds": 4.0,
+        "full_history": true,
+        "reset_generator_rng": false,
+        "audition_timeline": true
+      },
+      "quality_against": {
+        "standard": "offline-deterministic",
+        "logmel_corr": 0.9928534900550162,
+        "logmel_mae_db": 1.6411640644073486,
+        "rms_envelope_corr": 0.9853841588594567,
+        "f0_median_cents": 0.0,
+        "voiced_iou": 0.8830455259026687,
+        "clip_percent": 0.0
+      },
+      "repro": {
+        "mode": "none",
+        "note": "Deterministic quality ceiling for future C++ streaming optimization; not the current production framing contract."
       }
     }
   ],
@@ -172,6 +264,57 @@
         "channels": 1,
         "subtype": "FLOAT",
         "samples": 1439040
+      }
+    },
+    {
+      "id": "preprocessor-sample-mp4-30s-streaming-quality-audible",
+      "role": "audible",
+      "generator_mode": "random-vae",
+      "produced_by": "run_streaming_reference.py --full-history --reset-generator-rng",
+      "input_extraction": {
+        "source": "../preprocessor/sample.mp4",
+        "source_sha256": "fb89b1176c5c87205af71a900e727673d0d283876af43a7bc1de8a93c167d5ca",
+        "executable": "ffmpeg",
+        "arguments": [
+          "-t",
+          "30",
+          "-vn",
+          "-ac",
+          "1",
+          "-ar",
+          "16000",
+          "-c:a",
+          "pcm_s16le"
+        ],
+        "output_sha256": "d7dafb12f8d444b2270f2d06158f47c235ca7892aaca1513561dc9971f2a8654"
+      },
+      "output": "output/preprocessor-sample-mp4-30s-streaming-quality-python-reference.wav",
+      "output_sha256": "5d2d2171278cd2b977df491c0d8d9929a444919f64ccb0bcb7a8d764af8f6517",
+      "wav_peak_timestamp": 1788186008,
+      "output_format": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "subtype": "FLOAT",
+        "samples": 1439040
+      },
+      "streaming": {
+        "target_seconds": 2.0,
+        "left_context_seconds": 0.0,
+        "right_context_seconds": 2.0,
+        "crossfade_seconds": 0.06,
+        "flush_seconds": 4.0,
+        "full_history": true,
+        "reset_generator_rng": true,
+        "audition_timeline": true
+      },
+      "quality_against": {
+        "reference_case": "preprocessor-sample-mp4-30s-offline-audible",
+        "logmel_corr": 0.9771557432405117,
+        "logmel_mae_db": 2.898972988128662,
+        "rms_envelope_corr": 0.9771421820377076,
+        "f0_median_cents": 10.000000000000258,
+        "voiced_iou": 0.6678004535147393,
+        "clip_percent": 0.0
       }
     }
   ]

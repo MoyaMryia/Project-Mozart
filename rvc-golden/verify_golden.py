@@ -12,7 +12,10 @@ import sys
 import tempfile
 from pathlib import Path
 
+import numpy as np
 import soundfile as sf
+
+from compare_streaming_quality import compare as compare_streaming_quality
 
 
 ROOT = Path(__file__).resolve().parent
@@ -117,7 +120,78 @@ def check_output(label: str, standard: dict, base: Path, failures: list[str]) ->
         failures.append(f"{label} output format: {error}")
 
 
-def reproduce_offline_standard(
+def check_quality(
+    record: dict,
+    records_by_id: dict[str, dict],
+    base: Path,
+    failures: list[str],
+) -> None:
+    expected = record.get("quality_against")
+    if not expected:
+        return
+    reference_id = expected.get("standard") or expected.get("reference_case")
+    reference = records_by_id.get(reference_id)
+    if reference is None:
+        failures.append(f"{record['id']} quality: unknown reference {reference_id}")
+        return
+    settings = record["streaming"]
+    stream_hop = (
+        round(settings["target_seconds"] * 16_000)
+        - round(settings["crossfade_seconds"] * 48_000) // 3
+    )
+    try:
+        actual = compare_streaming_quality(
+            base / reference["output"], base / record["output"], stream_hop
+        )
+    except Exception as error:
+        failures.append(f"{record['id']} quality comparison: {error}")
+        return
+    if abs(actual["duration_delta_s"]) > 1e-12:
+        failures.append(
+            f"{record['id']} quality duration delta: "
+            f"{actual['duration_delta_s']:.9f}s"
+        )
+    checked = {}
+    for metric, expected_value in expected.items():
+        if metric in {"standard", "reference_case"}:
+            continue
+        actual_value = actual[metric]
+        checked[metric] = actual_value
+        if (
+            actual_value is None
+            or not np.isfinite(actual_value)
+            or abs(actual_value - expected_value) > 1e-6
+        ):
+            failures.append(
+                f"{record['id']} quality {metric}: "
+                f"{actual_value}, expected {expected_value}"
+            )
+    if not any(failure.startswith(f"{record['id']} quality") for failure in failures):
+        print(f"PASS {record['id']} quality: {checked}")
+
+
+def check_all_unvoiced_f0(failures: list[str]) -> None:
+    from run_streaming_reference import StreamingPipeline
+
+    class ZeroRmvpe:
+        @staticmethod
+        def infer_from_audio(samples, thred=0.03):
+            return np.zeros(200, dtype=np.float32)
+
+    pipeline = object.__new__(StreamingPipeline)
+    pipeline.model_rmvpe = ZeroRmvpe()
+    coarse, continuous = pipeline.get_f0(
+        np.zeros(32_000, dtype=np.float32), 200, 0, "rmvpe"
+    )
+    if not np.array_equal(coarse, np.ones(200, dtype=np.int32)):
+        failures.append("all-unvoiced F0: coarse pitch is not all 1")
+    elif not np.array_equal(continuous, np.zeros(200, dtype=np.float32)):
+        failures.append("all-unvoiced F0: continuous pitch is not all 0")
+    else:
+        print("PASS all-unvoiced F0: coarse=1, continuous=0")
+
+
+def reproduce_standard(
     standard: dict,
     context: dict,
     base: Path,
@@ -134,7 +208,10 @@ def reproduce_offline_standard(
         failures.append(f"{standard['id']} reproduction: missing wav_peak_timestamp")
         return
 
-    runner = (base / context["runner"]["path"]).resolve()
+    produced_by = standard["produced_by"]
+    streaming = produced_by.startswith("run_streaming_reference.py")
+    runner_record = context["streaming_runner"] if streaming else context["runner"]
+    runner = (base / runner_record["path"]).resolve()
     expected = (base / standard["output"]).resolve()
     with tempfile.TemporaryDirectory(prefix="rvc-golden-") as temp:
         temp_dir = Path(temp)
@@ -168,17 +245,37 @@ def reproduce_offline_standard(
         else:
             input_path = (base / context["input"]).resolve()
         output = temp_dir / expected.name
-        command = [
-            sys.executable,
-            str(runner),
-            "--input", str(input_path),
-            "--model", str(model),
-            "--output", str(output),
-            "--tensor-dir", str(temp_dir / "tensors"),
-            "--metadata", str(temp_dir / "reference.json"),
+        command = [sys.executable, str(runner), "--input", str(input_path),
+                   "--model", str(model)]
+        if streaming:
+            settings = standard["streaming"]
+            raw_output = temp_dir / f"{standard['id']}-raw.wav"
+            stream_output = raw_output if settings["audition_timeline"] else output
+            command.extend([
+                "--output", str(stream_output),
+                "--tensor-dir", str(temp_dir / "tensors"),
+                "--flush-seconds", str(settings["flush_seconds"]),
+                "--target-seconds", str(settings["target_seconds"]),
+                "--left-context-seconds", str(settings["left_context_seconds"]),
+                "--right-context-seconds", str(settings["right_context_seconds"]),
+                "--crossfade-seconds", str(settings["crossfade_seconds"]),
+            ])
+            if settings["audition_timeline"]:
+                command.extend(["--audition-output", str(output)])
+            if settings["full_history"]:
+                command.append("--full-history")
+            if settings["reset_generator_rng"]:
+                command.append("--reset-generator-rng")
+        else:
+            command.extend([
+                "--output", str(output),
+                "--tensor-dir", str(temp_dir / "tensors"),
+                "--metadata", str(temp_dir / "reference.json"),
+            ])
+        command.extend([
             "--seed", str(context["parameters"]["random_seed"]),
             "--wav-peak-timestamp", str(standard["wav_peak_timestamp"]),
-        ]
+        ])
         if standard["generator_mode"] == "deterministic":
             command.append("--deterministic-generator")
         env = os.environ.copy()
@@ -207,7 +304,7 @@ def main() -> int:
     parser.add_argument(
         "--reproduce",
         metavar="STANDARD",
-        help="rerun an offline standard and require an exact output SHA-256 match",
+        help="rerun a standard and require an exact output SHA-256 match",
     )
     args = parser.parse_args()
 
@@ -229,6 +326,10 @@ def main() -> int:
     check_hash("streaming runner",
                (base / context["streaming_runner"]["path"]).resolve(),
                context["streaming_runner"]["sha256"], failures)
+    check_hash("streaming quality comparator",
+               (base / context["streaming_quality_comparator"]["path"]).resolve(),
+               context["streaming_quality_comparator"]["sha256"], failures)
+    check_all_unvoiced_f0(failures)
     check_runtime(context["runtime"], failures)
     check_rvc_source(context["rvc_source"], failures)
     for label, record in context["assets"].items():
@@ -237,6 +338,8 @@ def main() -> int:
 
     # Each locked standard is verified independently so a drift in any one
     # (audible or numeric, offline or streaming) fails the check.
+    all_records = manifest["standards"] + manifest.get("reference_cases", [])
+    records_by_id = {record["id"]: record for record in all_records}
     for standard in manifest["standards"]:
         check_output(standard["id"], standard, base, failures)
     for case in manifest.get("reference_cases", []):
@@ -248,21 +351,25 @@ def main() -> int:
             failures,
         )
         check_output(case["id"], case, base, failures)
+    if not failures:
+        for record in all_records:
+            check_quality(record, records_by_id, base, failures)
 
     if args.reproduce and not failures:
-        reproducible = manifest["standards"] + manifest.get("reference_cases", [])
         matches = [
-            standard for standard in reproducible
+            standard for standard in all_records
             if standard["id"] == args.reproduce
         ]
         if not matches:
             failures.append(f"unknown standard for reproduction: {args.reproduce}")
-        elif not matches[0]["produced_by"].startswith("run_reference.py"):
+        elif not matches[0]["produced_by"].startswith(
+            ("run_reference.py", "run_streaming_reference.py")
+        ):
             failures.append(
-                f"{args.reproduce} is not produced by the offline reference runner"
+                f"{args.reproduce} is not produced by a supported reference runner"
             )
         else:
-            reproduce_offline_standard(matches[0], context, base, model, failures)
+            reproduce_standard(matches[0], context, base, model, failures)
 
     if failures:
         print("Golden verification FAILED:", file=sys.stderr)
