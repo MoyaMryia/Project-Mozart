@@ -66,6 +66,7 @@ rvc-golden/input/
 !rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-mozart-backend-trt-gpu-streaming-AUDITION.wav
 !rvc-golden/output/preprocessor-sample-mp4-30s-python-reference.wav
 !rvc-golden/output/preprocessor-sample-mp4-30s-streaming-quality-python-reference.wav
+!rvc-golden/output/preprocessor-sample-mp4-30s-fp16-mozart-backend.wav
 
 # CMake
 CMakeCache.txt
