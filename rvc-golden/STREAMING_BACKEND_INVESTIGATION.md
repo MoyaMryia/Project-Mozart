@@ -361,3 +361,36 @@ WAV 做包络对齐 corr / 自相关 F0 / RMS 对拍，按 manifest 容差输出
 file/offline 已钉死。流式当前与 offline full-length 仍差分块（每窗独立
 reflect‑pad + T398 边界），目标：让流式输出收敛到 offline 结果（减小
 chunk 边界与跨窗不一致）。
+
+## Quality-first streaming Golden（2026-09-03）
+
+离线 `offline-audible` 继续作为最高质量真值，不被流式结果替换。新增的
+quality-first Python 流式基准用于提供质量上界，部署效率留给后续 C++ 优化：
+
+- 每个 2 s target 从语句起点重新计算完整 prefix，使用固定 2 s lookahead、
+  60 ms overlap，并输出无启动静音的 audition timeline。
+- random-VAE 路径在每个 prefix 前恢复模型加载后的 Torch RNG state；
+  deterministic 路径继续使用 mean path。
+- 增加 80-sample HuBERT guard，使每窗得到完整有效 target，不再像旧 32000
+  输入那样得到 95040 samples 后补 960 samples 零。
+- RMVPE 全 unvoiced 窗口明确保留全零 continuous F0 / coarse pitch 1，不再依赖
+  原始 pipeline 捕获 `np.interp` 空输入异常。
+
+qiqi deterministic 相对离线 deterministic 的旧→新结果：
+
+- log-mel correlation：0.9751 → **0.9929**
+- log-mel MAE：2.97 dB → **1.64 dB**
+- RMS envelope correlation：0.9553 → **0.9854**
+- F0 median absolute error：10 cents → **0 cents**
+- voiced IoU：0.793 → **0.883**
+
+qiqi random-VAE 相对 `offline-audible` 的旧→新结果：log-mel correlation
+0.9689 → **0.9832**，MAE 3.64 dB → **2.65 dB**，RMS envelope correlation
+0.9299 → **0.9655**，voiced IoU 0.683 → **0.787**。随机 latent 仍使逐样本波形
+和单次 F0 统计不能作为严格通过门槛。
+
+同一 profile 已处理 `preprocessor/sample.mp4` 的固定前 30 s：相对其离线
+Golden，log-mel correlation = **0.9772**、RMS envelope correlation =
+**0.9771**、F0 median error = **10 cents**、clip = **0%**。边界样本跳变均值
+0.0132，低于全局样本跳变均值 0.0200。该 30 s CPU Golden 运行约 18.8 min，
+这是调试质量上界，不是生产性能结果。
