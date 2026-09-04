@@ -338,6 +338,7 @@ if(BUILD_TESTS)
         target_include_directories(diag_f32 PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
     endif()
     target_link_libraries(diag_f32 PRIVATE
+        trt_flags
         spdlog::spdlog
         ${ONNX_RUNTIME_LIB}
     )

@@ -36,22 +36,25 @@ FeatureExtractor::FeatureExtractor(
 {
     if (std::filesystem::exists(hubert_path_)) {
         hubert_engine_ = make_engine(hubert_path_);
-        // TRT 引擎是固定形状：HuBERT 必须接受我们的整窗长度（流式 2s=32000）。
-        // 其他长度（file 模式全长输入）由动态 ONNX 兜底引擎处理。
+        // HuBERT accepts either a fixed positive sample length or a dynamic
+        // optimization-profile axis. Other fixed lengths use ONNX fallback.
         if (auto* trt = dynamic_cast<TrtEngine*>(hubert_engine_.get())) {
             const auto shape = trt->input_shape("audio");
-            // 接受任意 [1, N>0] 固定形状；流式 padded 64000 或其他契约长度，
-            // 非契约长度（file 全长）由动态 ONNX 兜底。
             const bool ok = shape.empty()
-                || (shape.size() == 2 && shape[0] == 1 && shape[1] > 0);
+                || (shape.size() == 2 && shape[0] == 1 && shape[1] != 0);
             if (!ok) {
-                spdlog::warn("HuBERT TRT 引擎形状不符（期望 [1,N>0]，实际 rank={}），回退 ONNX",
+                spdlog::warn("HuBERT TRT 引擎形状不符（期望 [1,N]，实际 rank={}），回退 ONNX",
                              shape.size());
                 hubert_engine_.reset();
             }
         }
         if (hubert_engine_ && hubert_engine_->loaded()) {
-            warmup_zeros(*hubert_engine_, "audio", {1, 32000}, "features");
+            const auto shape = hubert_engine_->input_shape("audio");
+            if (shape.size() == 2 && shape[1] > 0) {
+                warmup_zeros(
+                    *hubert_engine_, "audio", {1, shape[1]}, "features"
+                );
+            }
             spdlog::info("HuBERT engine loaded: {}", hubert_path_.string());
         }
     } else {
@@ -60,14 +63,12 @@ FeatureExtractor::FeatureExtractor(
 
     if (rmvpe_path_ && std::filesystem::exists(*rmvpe_path_)) {
         rmvpe_engine_ = make_engine(*rmvpe_path_);
-        // TRT 引擎固定 [1,128,T]：T 与窗口 mel 补齐到 32 倍数的时长一致时
-        // extract_f0 走单趟推理（与 Python 语义一致）；其他时长由动态
-        // ONNX 兜底引擎处理，[1,128,128] 保留滑窗回退路径。
+        // RMVPE accepts fixed T or a dynamic optimization-profile axis.
         if (auto* trt = dynamic_cast<TrtEngine*>(rmvpe_engine_.get())) {
             const auto shape = trt->input_shape("mel");
             const bool ok = shape.empty()
                 || (shape.size() == 3 && shape[0] == 1
-                    && shape[1] == 128 && shape[2] > 0);
+                    && shape[1] == 128 && shape[2] != 0);
             if (!ok) {
                 spdlog::warn("RMVPE TRT 引擎形状不符（期望 [1,128,T]），回退 ONNX");
                 rmvpe_engine_.reset();
@@ -75,8 +76,11 @@ FeatureExtractor::FeatureExtractor(
         }
         if (rmvpe_engine_ && rmvpe_engine_->loaded()) {
             const auto shape = rmvpe_engine_->input_shape("mel");
-            const int64_t time = (shape.size() == 3 && shape[2] > 0) ? shape[2] : 416;
-            warmup_zeros(*rmvpe_engine_, "mel", {1, 128, time}, "f0");
+            if (shape.size() == 3 && shape[2] > 0) {
+                warmup_zeros(
+                    *rmvpe_engine_, "mel", {1, 128, shape[2]}, "f0"
+                );
+            }
             spdlog::info("RMVPE engine loaded: {}", rmvpe_path_->string());
         }
     } else if (rmvpe_path_) {
@@ -206,44 +210,62 @@ std::vector<float> FeatureExtractor::compute_mel(
     }
     std::copy_n(audio.begin(), n_samples, padded.begin() + pad);
 
-    // hann 周期窗 + mel 滤波器组缓存
-    static std::vector<float> window;
-    static std::vector<float> mel_basis;
-    static int cached_fft = 0, cached_mels = 0;
-    static uint32_t cached_sr = 0;
+    const int n_bins = n_fft / 2 + 1;
+    thread_local std::vector<float> window;
+    thread_local std::vector<float> mel_basis;
+    thread_local std::vector<std::pair<int, int>> mel_ranges;
+    thread_local int cached_fft = 0;
+    thread_local int cached_mels = 0;
+    thread_local uint32_t cached_sr = 0;
     if (cached_fft != n_fft || cached_mels != n_mels || cached_sr != sample_rate) {
         window.assign(n_fft, 0.0f);
         for (int i = 0; i < n_fft; ++i) {
-            window[i] = 0.5f * (1.0f - std::cos(2.0f * static_cast<float>(M_PI) * i / n_fft));
+            window[i] = 0.5f * (1.0f - std::cos(
+                2.0f * static_cast<float>(M_PI) * i / n_fft));
         }
-        mel_basis = build_htk_mel_basis(sample_rate, n_mels, n_fft,
-                                        30.0f, std::min(8000.0f, sample_rate / 2.0f));
-        cached_fft = n_fft; cached_mels = n_mels; cached_sr = sample_rate;
+        mel_basis = build_htk_mel_basis(
+            sample_rate, n_mels, n_fft, 30.0f,
+            std::min(8000.0f, sample_rate / 2.0f));
+        mel_ranges.assign(n_mels, {0, 0});
+        for (int m = 0; m < n_mels; ++m) {
+            const float* row = mel_basis.data() + static_cast<size_t>(m) * n_bins;
+            int first = 0;
+            while (first < n_bins && row[first] == 0.0f) ++first;
+            int last = n_bins;
+            while (last > first && row[last - 1] == 0.0f) --last;
+            mel_ranges[m] = {first, last};
+        }
+        cached_fft = n_fft;
+        cached_mels = n_mels;
+        cached_sr = sample_rate;
     }
-
-    const int n_bins = n_fft / 2 + 1;
     std::vector<float> mel(static_cast<size_t>(frames) * n_mels, 0.0f);
+    const float* window_values = window.data();
+    const float* basis_values = mel_basis.data();
+    const std::pair<int, int>* range_values = mel_ranges.data();
 
     // 每帧写入互不相交的 mel 行；单元素累加顺序不变 → 多线程逐位一致
     const auto frame_loop = [&](size_t f_begin, size_t f_end) {
         std::vector<float> re(n_fft), im(n_fft);
+        std::vector<float> magnitude(n_bins);
         for (size_t f = f_begin; f < f_end; ++f) {
             const size_t off = f * static_cast<size_t>(hop_length);
             for (int i = 0; i < n_fft; ++i) {
-                re[i] = padded[off + i] * window[i];
+                re[i] = padded[off + i] * window_values[i];
                 im[i] = 0.0f;
             }
             fft_radix2(re, im);
             for (int k = 0; k < n_bins; ++k) {
-                const float mag = std::sqrt(re[k] * re[k] + im[k] * im[k]);
-                for (int m = 0; m < n_mels; ++m) {
-                    const float w = mel_basis[static_cast<size_t>(m) * n_bins + k];
-                    if (w != 0.0f) mel[f * n_mels + m] += w * mag;
-                }
+                magnitude[k] = std::sqrt(re[k] * re[k] + im[k] * im[k]);
             }
             for (int m = 0; m < n_mels; ++m) {
-                float& v = mel[f * n_mels + m];
-                v = std::log(std::max(v, 1e-5f));
+                float value = 0.0f;
+                const float* row = basis_values + static_cast<size_t>(m) * n_bins;
+                const auto [first, last] = range_values[m];
+                for (int k = first; k < last; ++k) {
+                    value += row[k] * magnitude[k];
+                }
+                mel[f * n_mels + m] = std::log(std::max(value, 1e-5f));
             }
         }
     };

@@ -86,8 +86,10 @@ int main()
         while (s.try_process_one(pipe)) {}
 
         const size_t blocks = s.stats().blocks.load();
-        // 首块需 window=32000（100 帧）；此后每 hop=31200（97.5 帧）一块
+        // 首块需 window=32000（100 帧）；此后每 hop=31040（97 帧）一块
         CHECK(blocks == 5, "block cadence: 5 blocks for 500 frames");
+        CHECK(s.stats().input_overruns.load() == 0,
+              "healthy rolling history is not reported as overrun");
 
         const std::vector<float> out = drain(s);
         const size_t emit_out = (cfg.window_samples - cfg.crossfade_out / 3) * 3;
@@ -101,7 +103,6 @@ int main()
             max_err = std::max(max_err, static_cast<double>(std::fabs(out[j] - ref)));
         }
         CHECK(max_err < 1e-6, "streamed output matches direct 3x upsample");
-        CHECK(max_err >= 0.0, "placeholder");
     }
 
     // ---- 用例 3：静音窗跳过 ----
@@ -150,6 +151,88 @@ int main()
         CHECK(s.stats().blocks.load() == 2, "stream recovers after reset");
         const std::vector<float> out = drain(s);
         CHECK(out.size() == 93120, "post-reset output present");
+    }
+
+    // ---- 用例 5：Golden full-history + lookahead 调度和 target crop ----
+    printf("test_full_history_context_crop\n");
+    {
+        StreamingRvc::Config cfg;
+        cfg.skip_silence = false;
+        cfg.full_history = true;
+        cfg.right_context_samples = 32000;
+        cfg.guard_samples = 80;
+        StreamingRvc s(cfg);
+        Upsample3Pipeline pipe;
+
+        constexpr size_t kFrames = 500;
+        std::vector<float> pushed;
+        pushed.reserve(kFrames * MOZART_INPUT_SAMPLES);
+        for (size_t frame = 0; frame < kFrames; ++frame) {
+            const float value = std::sin(0.01f * static_cast<float>(frame));
+            const auto input = make_frame(
+                static_cast<uint32_t>(frame + 1), 1, value
+            );
+            s.push(input);
+            pushed.insert(
+                pushed.end(), input.pcm, input.pcm + MOZART_INPUT_SAMPLES
+            );
+            while (s.try_process_one(pipe)) {}
+        }
+
+        const size_t blocks = s.stats().blocks.load();
+        CHECK(blocks == 4, "full-history waits for 2s lookahead and guard");
+        CHECK(s.stats().input_overruns.load() == 0,
+              "full-history retains the complete prefix");
+        const auto out = drain(s);
+        const size_t emit = (cfg.window_samples - cfg.crossfade_out / 3) * 3;
+        CHECK(out.size() == blocks * emit,
+              "full-history emits one target hop per prefix");
+        double max_err = 0.0;
+        for (size_t sample = 0; sample < out.size(); ++sample) {
+            max_err = std::max(max_err, static_cast<double>(
+                std::fabs(out[sample] - pushed[sample / 3])
+            ));
+        }
+        CHECK(max_err < 1e-6, "full-history crops the target timeline exactly");
+    }
+
+    // ---- 用例 6：quality 模式先积攒两块余量再开始播放 ----
+    printf("test_quality_startup_buffer\n");
+    {
+        StreamingRvc::Config cfg;
+        cfg.skip_silence = false;
+        cfg.full_history = true;
+        cfg.right_context_samples = 32000;
+        cfg.guard_samples = 80;
+        cfg.startup_buffer_blocks = 3;
+        StreamingRvc s(cfg);
+        Upsample3Pipeline pipe;
+
+        uint32_t idx = 1;
+        for (size_t frame = 0; frame < 201; ++frame) {
+            s.push(make_frame(idx++, 1, 0.25f));
+            while (s.try_process_one(pipe)) {}
+        }
+        float output[MOZART_OUTPUT_SAMPLES]{};
+        CHECK(s.stats().blocks.load() == 1, "first quality block is ready");
+        CHECK(s.pop_output(output, MOZART_OUTPUT_SAMPLES) == 0,
+              "first block remains buffered");
+
+        for (size_t frame = 0; frame < 97; ++frame) {
+            s.push(make_frame(idx++, 1, 0.25f));
+            while (s.try_process_one(pipe)) {}
+        }
+        CHECK(s.stats().blocks.load() == 2, "second quality block is ready");
+        CHECK(s.pop_output(output, MOZART_OUTPUT_SAMPLES) == 0,
+              "second block remains buffered");
+
+        for (size_t frame = 0; frame < 97; ++frame) {
+            s.push(make_frame(idx++, 1, 0.25f));
+            while (s.try_process_one(pipe)) {}
+        }
+        CHECK(s.stats().blocks.load() == 3, "third quality block is ready");
+        CHECK(s.pop_output(output, MOZART_OUTPUT_SAMPLES) == MOZART_OUTPUT_SAMPLES,
+              "playback starts with two reserve blocks");
     }
 
     if (g_fail) {

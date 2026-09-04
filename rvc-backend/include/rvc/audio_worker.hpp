@@ -59,6 +59,7 @@ public:
         uint64_t output_overruns = 0;
         uint64_t inference_errors = 0;
         uint64_t output_underruns = 0;
+        uint64_t startup_output_underruns = 0;
     };
 
     AudioWorker(mozart_stream_handle_t stream,
@@ -99,6 +100,8 @@ private:
     uint64_t inference_count_{0};
     uint64_t bypass_count_{0};
     uint64_t underrun_count_{0};
+    uint64_t startup_underrun_count_{0};
+    bool stream_output_started_{false};
     uint64_t vad_frame_count_{0};
     uint64_t voiced_frame_count_{0};
     uint64_t vad_confidence_total_{0};

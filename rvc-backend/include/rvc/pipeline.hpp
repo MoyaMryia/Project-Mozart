@@ -41,6 +41,7 @@ public:
     virtual std::map<std::string, std::string> model_info() const { return {}; }
     virtual RvcParameters parameters() const { return {}; }
     virtual bool set_parameters(const RvcParameters&) { return false; }
+    virtual bool supports_quality_streaming() const { return false; }
 };
 
 class MockRVCPipeline : public RVCPipelineBase {
@@ -80,6 +81,7 @@ public:
     std::map<std::string, std::string> model_info() const override;
     RvcParameters parameters() const override { return parameters_; }
     bool set_parameters(const RvcParameters& parameters) override;
+    bool supports_quality_streaming() const override;
 
     std::shared_ptr<ModelManager> model_manager() const { return model_manager_; }
 

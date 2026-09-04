@@ -108,6 +108,30 @@ def main() -> None:
                         help="keep the initial cold-start silence in the WAV")
     parser.add_argument("--allow-missing", action="store_true",
                         help="write zero-filled gaps instead of failing on UDP loss")
+    parser.add_argument(
+        "--wait-for-blocks", action="store_true",
+        help="pause at each quality-profile trigger until backend inference "
+             "finishes; isolates correctness from realtime performance",
+    )
+    parser.add_argument(
+        "--block-timeout", type=float, default=600.0,
+        help="maximum wait for each block in --wait-for-blocks mode",
+    )
+    parser.add_argument(
+        "--trim-leading-seconds", type=float, default=2.0,
+        help="startup latency removed from the output; use 4.02 for the "
+              "Golden full-history quality profile",
+    )
+    parser.add_argument(
+        "--trim-leading-underruns", action="store_true",
+        help="remove the startup frames reported by the backend instead of "
+             "using --trim-leading-seconds",
+    )
+    parser.add_argument(
+        "--trim-to-rvc-duration", action="store_true",
+        help="crop the latency-free output to the exact RVC/HuBERT duration "
+             "for the input audio",
+    )
     args = parser.parse_args()
 
     host, port_text = args.backend.rsplit(":", 1)
@@ -150,6 +174,9 @@ def main() -> None:
     receiver.start()
     started = time.monotonic()
     pts_ns = time.monotonic_ns()
+    quality_hop = 31_040
+    next_quality_trigger = 64_080
+    expected_quality_blocks = 0
     try:
         for frame_idx in range(total_frames):
             start = frame_idx * IN_SAMPLES
@@ -157,9 +184,41 @@ def main() -> None:
             voiced = frame_idx < input_frames
             sock.sendto(packet(frame_idx, audio[start:end], pts_ns, voiced), (host, port))
             pts_ns += 20_000_000
+            pushed_samples = (frame_idx + 1) * IN_SAMPLES
+            if args.wait_for_blocks and pushed_samples >= next_quality_trigger:
+                expected_quality_blocks += 1
+                deadline = time.monotonic() + args.block_timeout
+                while time.monotonic() < deadline:
+                    status = request_json(args.api.rstrip("/") + "/api/status")
+                    stream = status.get("stream", {})
+                    completed = (
+                        stream.get("blocks", 0)
+                        + stream.get("skipped_blocks", 0)
+                        + stream.get("inference_errors", 0)
+                    )
+                    if completed >= expected_quality_blocks:
+                        break
+                    time.sleep(0.1)
+                else:
+                    raise RuntimeError(
+                        f"backend did not finish quality block "
+                        f"{expected_quality_blocks} within {args.block_timeout}s"
+                    )
+                if stream.get("inference_errors", 0):
+                    raise RuntimeError(
+                        f"quality stream reported inference errors: {stream}"
+                    )
+                next_quality_trigger += quality_hop
             if not args.no_pace:
-                target = started + (frame_idx + 1) * 0.02
-                time.sleep(max(0.0, target - time.monotonic()))
+                if args.wait_for_blocks:
+                    # Correctness waits intentionally stop the conceptual
+                    # clock. Do not burst packets afterward to catch up with
+                    # the original wall-clock schedule: that can overflow UDP
+                    # receive buffers and reset the stream on frame gaps.
+                    time.sleep(0.02)
+                else:
+                    target = started + (frame_idx + 1) * 0.02
+                    time.sleep(max(0.0, target - time.monotonic()))
 
         deadline = time.monotonic() + args.timeout
         while len(received) < total_frames and time.monotonic() < deadline:
@@ -187,12 +246,30 @@ def main() -> None:
             start = frame_idx * OUT_SAMPLES
             output[start:start + OUT_SAMPLES] = samples
 
+    status = request_json(args.api.rstrip("/") + "/api/status")
+    stream_stats = status.get("stream", {})
     if not args.no_trim_leading:
-        # RT_RVC needs one 2 s window before its first non-zero block.  Keep
-        # the stream packet indices intact above, then make the file useful to
-        # audition by removing that deterministic startup latency.
-        trim = min(output.size, 2 * OUT_RATE)
+        if args.trim_leading_underruns:
+            startup_underruns = stream_stats.get("startup_output_underruns")
+            if startup_underruns is None:
+                raise RuntimeError(
+                    "backend status does not report startup_output_underruns"
+                )
+            trim = int(startup_underruns) * OUT_SAMPLES
+        else:
+            trim = round(args.trim_leading_seconds * OUT_RATE)
+        trim = min(output.size, trim)
         output = output[trim:]
+
+    if args.trim_to_rvc_duration:
+        hubert_frames = (audio.size + 2 * IN_RATE - 400) // 320 + 1
+        expected_samples = (hubert_frames * 2 - 200) * (OUT_RATE // 100)
+        if output.size < expected_samples:
+            raise RuntimeError(
+                f"captured output has {output.size} samples after startup trim; "
+                f"RVC duration requires {expected_samples}. Increase --flush-seconds."
+            )
+        output = output[:expected_samples]
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -205,6 +282,7 @@ def main() -> None:
         "received_frames": len(received),
         "missing_frames": missing,
         "output_samples": int(output.size),
+        "stream": stream_stats,
     }, indent=2))
 
 

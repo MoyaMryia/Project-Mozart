@@ -95,12 +95,25 @@ void test_empty_audio() {
     std::cout << "  [OK]\n";
 }
 
+void test_multithreaded_mel() {
+    std::cout << "[test] multithreaded mel cache...\n";
+
+    rvc::FeatureExtractor fe("nonexistent.pt", std::nullopt, "cpu", false);
+    std::vector<float> audio(16000, 0.0f);
+    const auto mel = fe.extract_mel(audio, 16000);
+    CHECK(mel.size() == 101 * 128);
+    for (const float value : mel) CHECK(std::isfinite(value));
+
+    std::cout << "  [OK]\n";
+}
+
 int main() {
     test_feature_extractor_init();
     test_extract_features_stub();
     test_extract_f0_stub();
     test_extract_f0_method_fallback();
     test_empty_audio();
+    test_multithreaded_mel();
 
     if (g_failures == 0) {
         std::cout << "\n[PASS] All feature_extractor tests passed\n";

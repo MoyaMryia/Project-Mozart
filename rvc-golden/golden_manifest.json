@@ -16,7 +16,7 @@
     },
     "runner": {
       "path": "run_reference.py",
-      "sha256": "1ae31af949746dab8016d4593385ddce5a48bb61a6d3a80c30250bcda0c77028"
+      "sha256": "1fa23fc417a0b7806fc0134e0de61b197f84a8725c62ce901d6d3ac4480b36d5"
     },
     "verifier": {
       "path": "verify_golden.py",
@@ -24,7 +24,7 @@
     },
     "streaming_runner": {
       "path": "run_streaming_reference.py",
-      "sha256": "89cd25d61bc96549aa5bc634c76e201356946ecf48a5549334356e9bc0085f37"
+      "sha256": "10c6c58c98c0c7380381e003daf764d04d1d403a2fe69ba492026bac2a64087d"
     },
     "streaming_quality_comparator": {
       "path": "compare_streaming_quality.py",

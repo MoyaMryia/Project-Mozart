@@ -396,7 +396,7 @@ def main() -> None:
     parser.add_argument(
         "--reset-generator-rng",
         action="store_true",
-        help="restore the post-load Torch RNG state before each window",
+        help="restore the post-load Torch RNG state before each inference window",
     )
     parser.add_argument("--seed", type=int, default=114514)
     parser.add_argument("--wav-peak-timestamp", type=int, default=None)
@@ -421,8 +421,6 @@ def main() -> None:
         raise ValueError(
             "crossfade must be a positive 20 ms multiple shorter than the target"
         )
-    if args.reset_generator_rng and not args.full_history:
-        raise ValueError("reset-generator-rng requires full-history prefix recomputation")
     if args.full_history and left_context_samples:
         raise ValueError("left-context-seconds is redundant with full-history")
 
