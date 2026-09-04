@@ -126,6 +126,14 @@ std::map<std::string, std::string> RealRVCPipeline::model_info() const {
     return info;
 }
 
+bool RealRVCPipeline::supports_quality_streaming() const {
+    const auto model = model_manager_->current_model();
+    if (!model || !model->loaded()) return false;
+    const auto shape = model->generator_engine().input_shape("feats");
+    return shape.size() >= 2 && shape[1] <= 0
+        && model->generator_engine().input_type("latent_noise").has_value();
+}
+
 std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
     if (mock_.generator) {
         MockRVCPipeline mock(input_sample_rate_, output_sample_rate_);

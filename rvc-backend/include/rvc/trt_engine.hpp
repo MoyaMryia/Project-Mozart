@@ -3,8 +3,8 @@
 // trt_engine.hpp — TensorRT 10 直载引擎（绕过 ONNX Runtime）
 // ============================================================================
 // 与 OnnxEngine 同接口（IEngine），由 make_engine() 在发现 <stem>.engine
-// 时选用。引擎由 trtexec 离线构建（min=opt=max 固定形状），运行时：
-//   deserialize → cudaMalloc 绑定地址 → enqueueV3 → D2H 回拷。
+// 时选用。固定和 optimization-profile 动态引擎都支持，运行时：
+//   deserialize → setInputShape → 按需扩容绑定 → enqueueV3 → D2H 回拷。
 // 输入类型 float / int64 / int32（int64 输入若引擎要 int32 会自动降转换）。
 #include "rvc/onnx_engine.hpp"
 
@@ -44,6 +44,7 @@ private:
         std::vector<int64_t> dims;
         size_t elems = 0;
         size_t bytes = 0;
+        size_t capacity_bytes = 0;
         void* dev = nullptr;
     };
 

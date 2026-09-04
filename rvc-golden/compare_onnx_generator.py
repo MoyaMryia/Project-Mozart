@@ -28,6 +28,15 @@ def main():
         "pitch": np.load(prefix.with_name(prefix.name + "_pitch.npy")).astype(np.float32),
         "pitchf": np.load(prefix.with_name(prefix.name + "_pitchf.npy")).astype(np.float32),
         "sid": np.load(prefix.with_name(prefix.name + "_sid.npy")).astype(np.int64),
+        "latent_noise": np.load(
+            prefix.with_name(prefix.name + "_latent_noise.npy")
+        ).astype(np.float32),
+        "source_phase": np.load(
+            prefix.with_name(prefix.name + "_source_phase.npy")
+        ).astype(np.float32),
+        "source_noise": np.load(
+            prefix.with_name(prefix.name + "_source_noise.npy")
+        ).astype(np.float32),
     }
     session = ort.InferenceSession(args.model, providers=["CPUExecutionProvider"])
     audio = session.run(["audio"], feeds)[0][0, 0].astype(np.float32)

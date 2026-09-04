@@ -43,11 +43,20 @@ void AudioWorker::start() {
     if (stream_mode_) {
         StreamingRvc::Config scfg;
         scfg.skip_silence = config_.skip_silence;
+        scfg.full_history = pipeline_.supports_quality_streaming();
+        if (scfg.full_history) {
+            scfg.right_context_samples = 32000;
+            scfg.guard_samples = 80;
+            scfg.startup_buffer_blocks = 3;
+        }
         streaming_ = std::make_unique<StreamingRvc>(scfg);
         inference_thread_ = std::thread([this] {
             streaming_->inference_loop(pipeline_, running_);
         });
-        spdlog::info("AudioWorker stream mode: sliding window (2s) + 50ms crossfade");
+        spdlog::info("AudioWorker stream mode: {}",
+            scfg.full_history
+                ? "Golden quality profile (full history + 2s lookahead + 2 hop reserve)"
+                : "sliding window (2s) + 60ms crossfade");
     } else {
         spdlog::info("AudioWorker frame mode (mock pipeline)");
     }
@@ -94,9 +103,13 @@ void AudioWorker::process_loop() {
                 output.pcm, MOZART_OUTPUT_SAMPLES);
             if (got < MOZART_OUTPUT_SAMPLES) {
                 std::fill(output.pcm + got, output.pcm + MOZART_OUTPUT_SAMPLES, 0.0f);
-                std::lock_guard<std::mutex> lock(stats_mutex_);
-                ++underrun_count_;
             }
+            std::lock_guard<std::mutex> lock(stats_mutex_);
+            if (got < MOZART_OUTPUT_SAMPLES) {
+                ++underrun_count_;
+                if (!stream_output_started_) ++startup_underrun_count_;
+            }
+            if (got > 0) stream_output_started_ = true;
         } else {
             process_frame(input, output);
         }
@@ -186,6 +199,7 @@ AudioWorker::StreamStats AudioWorker::get_stream_stats() const {
     }
     std::lock_guard<std::mutex> lock(stats_mutex_);
     s.output_underruns = underrun_count_;
+    s.startup_output_underruns = startup_underrun_count_;
     return s;
 }
 

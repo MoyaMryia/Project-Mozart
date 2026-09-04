@@ -285,7 +285,8 @@ nlohmann::json ModeController::status() const {
         {"stream", {{"blocks", stream.blocks}, {"skipped_blocks", stream.skipped_blocks},
                     {"resets", stream.resets}, {"late_blocks", stream.late_blocks},
                     {"input_overruns", stream.input_overruns}, {"output_overruns", stream.output_overruns},
-                    {"inference_errors", stream.inference_errors}, {"output_underruns", stream.output_underruns}}},
+                    {"inference_errors", stream.inference_errors}, {"output_underruns", stream.output_underruns},
+                    {"startup_output_underruns", stream.startup_output_underruns}}},
         {"queue", queue}, {"file_queue_paused", file_queue_paused_}, {"last_error", last_error_},
         {"capabilities", { {"rt_rvc", true}, {"file_rvc", true}, {"rt_zero_shot", false}, {"file_zero_shot", false} }}
     };

@@ -14,13 +14,16 @@ import torch
 
 
 ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = ROOT.parent
 RVC_SOURCE = Path(os.environ.get("RVC_SOURCE", "/home/moyamryia/mozart-archive/RVC"))
+sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(RVC_SOURCE))
 
 from infer.hubert import HubertModelWithFinalProj  # noqa: E402
 from infer.module.models import SynthesizerTrnMs768NSFsid  # noqa: E402
 from infer.rmvpe import RMVPE  # noqa: E402
 from infer.vc.pipeline import Pipeline  # noqa: E402
+from tools.export_generator_onnx import GeneratorWrapper  # noqa: E402
 
 
 class ReferenceConfig:
@@ -62,6 +65,7 @@ class CapturingGenerator(torch.nn.Module):
         self.tensor_dir = tensor_dir
         self.call = 0
         self.deterministic = deterministic
+        self.export_wrapper = GeneratorWrapper(generator)
 
     def infer(self, feats, p_len, pitch, pitchf, sid):
         prefix = self.tensor_dir / f"generator_{self.call:02d}"
@@ -79,9 +83,36 @@ class CapturingGenerator(torch.nn.Module):
             audio = self.generator.dec(z * x_mask, pitchf, g=g)
             result = (audio, x_mask, (z, m_p))
         else:
-            # Preserve the original RVC inference semantics. The seeded random
-            # latent is part of the model's synthesis path, not an export aid.
-            result = self.generator.infer(feats, p_len, pitch, pitchf, sid)
+            latent_noise = torch.randn(
+                feats.shape[0], self.generator.inter_channels, feats.shape[1],
+                device=feats.device, dtype=feats.dtype,
+            )
+            source_dim = self.generator.dec.m_source.l_sin_gen.dim
+            source_phase = torch.rand(
+                1, 1, source_dim, device=feats.device, dtype=feats.dtype
+            )
+            source_phase[..., 0] = 0
+            source_noise = torch.randn(
+                feats.shape[0], pitchf.shape[1] * self.generator.dec.upp, source_dim,
+                device=feats.device, dtype=feats.dtype,
+            )
+            np.save(
+                prefix.with_name(prefix.name + "_latent_noise.npy"),
+                latent_noise.detach().cpu().numpy(),
+            )
+            np.save(
+                prefix.with_name(prefix.name + "_source_phase.npy"),
+                source_phase.detach().cpu().numpy(),
+            )
+            np.save(
+                prefix.with_name(prefix.name + "_source_noise.npy"),
+                source_noise.detach().cpu().numpy(),
+            )
+            audio = self.export_wrapper(
+                feats, p_len, pitch, pitchf, sid,
+                latent_noise, source_phase, source_noise,
+            )
+            result = (audio, None, None)
         np.save(prefix.with_name(prefix.name + "_audio.npy"), result[0].detach().cpu().numpy())
         self.call += 1
         return result

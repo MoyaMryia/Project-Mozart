@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <random>
 
 namespace rvc {
 
@@ -140,7 +141,8 @@ std::pair<std::vector<int64_t>, std::vector<float>> f0_to_pitch(
         if (pitchf[t] > 0.0f) {
             const float f0_mel = 1127.0f * std::log1p(pitchf[t] / 700.0f);
             const float coarse = (f0_mel - mel_min) * 254.0f / (mel_max - mel_min) + 1.0f;
-            pitch[t] = static_cast<int64_t>(std::clamp(std::lround(coarse), 1L, 255L));
+            // NumPy's rint (used by the Golden path) rounds exact ties to even.
+            pitch[t] = static_cast<int64_t>(std::clamp(std::nearbyint(coarse), 1.0f, 255.0f));
         }
     }
     return {std::move(pitch), std::move(pitchf)};
@@ -208,21 +210,42 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
     const size_t window_out = kWindow16k * model_sr / 16000;
     const size_t pad_out = kPad16k * model_sr / 16000;
 
+    size_t generator_frames = kGeneratorFrames;
+    const auto generator_shape = model_->generator_engine().input_shape("feats");
+    const bool dynamic_generator = generator_shape.size() >= 2
+        && generator_shape[1] <= 0;
+    if (generator_shape.size() >= 2 && generator_shape[1] > 0) {
+        generator_frames = static_cast<size_t>(generator_shape[1]);
+    }
+
     const auto padded = reflect_pad(audio_16k, kPad16k);
+    const size_t full_frames = padded.size() / kHop16k;
     const auto f0_full = feature_extractor_->extract_f0(padded, 16000, f0_method_);
     auto [pitch_full, pitchf_full] = f0_to_pitch(f0_full, pitch_shift_,
         std::max(f0_full.size(), padded.size() / kHop16k + 1));
 
-    size_t generator_frames = kGeneratorFrames;
-    const auto generator_shape = model_->generator_engine().input_shape("feats");
-    if (generator_shape.size() >= 2 && generator_shape[1] > 0) {
-        generator_frames = static_cast<size_t>(generator_shape[1]);
+    // The correctness-first dynamic contract follows the original RVC path:
+    // one reflect-padded prefix enters HuBERT and one Generator invocation.
+    // Static engines retain the legacy fixed-window behavior below.
+    if (dynamic_generator) {
+        auto converted = infer_window(padded, pitchf_full, pitch_full);
+        const size_t context = kPad16k * model_sr / 16000;
+        if (converted.size() > 2 * context) {
+            converted = std::vector<float>(
+                converted.begin() + static_cast<std::ptrdiff_t>(context),
+                converted.end() - static_cast<std::ptrdiff_t>(context));
+        }
+        converted = apply_rms_mix(audio_16k, std::move(converted));
+        if (model_sr != output_sample_rate_) {
+            converted = resample(converted, model_sr, output_sample_rate_);
+        }
+        limit_peak(converted, 0.99f);
+        return converted;
     }
 
     // A statically exported full-length Generator can follow the Golden
     // pipeline directly. This avoids changing the model's sequence semantics
     // through 2-second chunking when a matching fixed-length export exists.
-    const size_t full_frames = padded.size() / kHop16k;
     if (generator_frames != kGeneratorFrames && generator_frames == full_frames) {
         auto pitchf = slice_or_pad(pitchf_full, 0, generator_frames);
         auto pitch = std::vector<int64_t>(generator_frames, 1);
@@ -393,6 +416,8 @@ std::vector<float> RVCInferencer::synthesize_window(
     const auto generator_shape = model_->generator_engine().input_shape("feats");
     if (generator_shape.size() >= 2 && generator_shape[1] > 0) {
         T = static_cast<size_t>(generator_shape[1]);
+    } else if (generator_shape.size() >= 2 && generator_shape[1] <= 0) {
+        T = 2 * (feats.size() / emb_dim);
     }
 
     const auto resize_features = [&](const std::vector<float>& source_feats) {
@@ -444,17 +469,70 @@ std::vector<float> RVCInferencer::synthesize_window(
     std::vector<int64_t> sid_shape = {1};
 
     const auto typed_input = [&](const char* name, const std::vector<int64_t>& shape,
-                                 std::vector<float> floats, std::vector<int64_t> int64s) {
+                                  std::vector<float>&& floats, std::vector<int64_t>&& int64s) {
         const auto type = model_->generator_engine().input_type(name).value_or(OnnxInput::Type::Float);
         return OnnxInput{name, shape, type, std::move(floats), std::move(int64s)};
     };
-    const std::vector<OnnxInput> inputs = {
-        typed_input("feats", feats_shape, feats_reshaped, {}),
-        typed_input("p_len", p_len_shape, p_len_float, p_len_int64),
-        typed_input("pitch", pitch_shape, pitch_float, pitch_fixed),
-        typed_input("pitchf", pitchf_shape, pitchf_fixed, {}),
-        typed_input("sid", sid_shape, sid_float, sid_int64)
-    };
+    std::vector<OnnxInput> inputs;
+    inputs.reserve(8);
+    inputs.push_back(typed_input(
+        "feats", feats_shape, std::move(feats_reshaped), {}
+    ));
+    inputs.push_back(typed_input(
+        "p_len", p_len_shape, std::move(p_len_float), std::move(p_len_int64)
+    ));
+    inputs.push_back(typed_input(
+        "pitch", pitch_shape, std::move(pitch_float), std::move(pitch_fixed)
+    ));
+    inputs.push_back(typed_input(
+        "pitchf", pitchf_shape, std::move(pitchf_fixed), {}
+    ));
+    inputs.push_back(typed_input(
+        "sid", sid_shape, std::move(sid_float), std::move(sid_int64)
+    ));
+
+    if (model_->generator_engine().input_type("latent_noise")) {
+        const auto latent_model_shape =
+            model_->generator_engine().input_shape("latent_noise");
+        const size_t channels = latent_model_shape.size() >= 2
+            && latent_model_shape[1] > 0
+            ? static_cast<size_t>(latent_model_shape[1]) : 192;
+        const auto source_model_shape =
+            model_->generator_engine().input_shape("source_noise");
+        const size_t source_dim = source_model_shape.size() >= 3
+            && source_model_shape[2] > 0
+            ? static_cast<size_t>(source_model_shape[2]) : 1;
+        const size_t output_per_frame = model_->config().sample_rate / 100;
+
+        // Resetting per prefix preserves the Golden full-history contract:
+        // overlapping latent positions receive the same sampled values.
+        std::mt19937 random(114514);
+        std::normal_distribution<float> normal(0.0f, 1.0f);
+        std::uniform_real_distribution<float> uniform(0.0f, 1.0f);
+        std::vector<float> latent_noise(channels * T);
+        for (float& value : latent_noise) value = normal(random);
+        std::vector<float> source_phase(source_dim);
+        for (float& value : source_phase) value = uniform(random);
+        source_phase.front() = 0.0f;
+        std::vector<float> source_noise(T * output_per_frame * source_dim);
+        for (float& value : source_noise) value = normal(random);
+
+        inputs.push_back(typed_input(
+            "latent_noise",
+            {1, static_cast<int64_t>(channels), static_cast<int64_t>(T)},
+            std::move(latent_noise), {}
+        ));
+        inputs.push_back(typed_input(
+            "source_phase", {1, 1, static_cast<int64_t>(source_dim)},
+            std::move(source_phase), {}
+        ));
+        inputs.push_back(typed_input(
+            "source_noise",
+            {1, static_cast<int64_t>(T * output_per_frame),
+             static_cast<int64_t>(source_dim)},
+            std::move(source_noise), {}
+        ));
+    }
     return model_->generator_engine().run(inputs, {"audio"});
 }
 

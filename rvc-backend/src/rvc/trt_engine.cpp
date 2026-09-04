@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 #include <fstream>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 
 #ifdef USE_TENSORRT
@@ -38,6 +39,21 @@ size_t dtype_size(int32_t dtype) {
 
 std::vector<int64_t> to_dims(const nvinfer1::Dims& d) {
     return {d.d, d.d + d.nbDims};
+}
+
+nvinfer1::Dims from_dims(const std::vector<int64_t>& values) {
+    if (values.size() > nvinfer1::Dims::MAX_DIMS) {
+        throw std::invalid_argument("TRT input rank exceeds MAX_DIMS");
+    }
+    nvinfer1::Dims dims;
+    dims.nbDims = static_cast<int32_t>(values.size());
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (values[i] <= 0 || values[i] > std::numeric_limits<int32_t>::max()) {
+            throw std::invalid_argument("TRT input dimension is invalid");
+        }
+        dims.d[i] = static_cast<int32_t>(values[i]);
+    }
+    return dims;
 }
 
 } // namespace
@@ -87,7 +103,8 @@ bool TrtEngine::load(const std::filesystem::path& engine_path) {
         return false;
     }
 
-    // 枚举 I/O 张量并分配设备缓冲
+    // 枚举 I/O 张量。固定形状立即分配；动态形状在 run() 设置 profile
+    // shape 后按实际大小延迟分配。
     tensors_.clear();
     input_types_.clear();
     for (int32_t i = 0; i < engine->getNbIOTensors(); ++i) {
@@ -98,20 +115,25 @@ bool TrtEngine::load(const std::filesystem::path& engine_path) {
         t.dtype = static_cast<int32_t>(engine->getTensorDataType(name));
         t.dims = to_dims(engine->getTensorShape(name));
         t.elems = 1;
+        bool dynamic = false;
         for (auto d : t.dims) {
             if (d < 0) {
-                spdlog::error("TRT engine has dynamic dim ({}: {}={}) — 不支持，"
-                              "请用固定形状重建引擎", engine_path.string(), name, d);
-                unload();
-                return false;
+                dynamic = true;
+                continue;
             }
             t.elems *= static_cast<size_t>(d);
         }
-        t.bytes = t.elems * dtype_size(t.dtype);
-        if (cudaMalloc(&t.dev, t.bytes) != cudaSuccess) {
-            spdlog::error("cudaMalloc {} bytes failed for {}", t.bytes, name);
-            unload();
-            return false;
+        if (dynamic) {
+            t.elems = 0;
+            t.bytes = 0;
+        } else {
+            t.bytes = t.elems * dtype_size(t.dtype);
+            if (cudaMalloc(&t.dev, t.bytes) != cudaSuccess) {
+                spdlog::error("cudaMalloc {} bytes failed for {}", t.bytes, name);
+                unload();
+                return false;
+            }
+            t.capacity_bytes = t.bytes;
         }
         if (t.is_input) {
             input_types_[t.name] = t.dtype == 8 ? OnnxInput::Type::Int64
@@ -153,19 +175,59 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
     auto* context = static_cast<nvinfer1::IExecutionContext*>(context_);
     auto* stream = static_cast<cudaStream_t>(stream_);
 
-    auto find_tensor = [&](const std::string& name) -> const Tensor* {
-        for (const auto& t : tensors_) {
+    auto find_tensor = [&](const std::string& name) -> Tensor* {
+        for (auto& t : tensors_) {
             if (t.name == name) return &t;
         }
         return nullptr;
     };
 
-    // H2D：按引擎实际 dtype 拷贝（int64 输入若引擎是 int32 则降转换）
+    // Set every runtime input shape before asking TensorRT for output shapes.
     for (const auto& input : inputs) {
-        const Tensor* t = find_tensor(input.name);
+        Tensor* t = find_tensor(input.name);
         if (!t || !t->is_input) {
             throw std::runtime_error("TRT input tensor not found: " + std::string(input.name));
         }
+        if (input.shape.size() != t->dims.size()) {
+            throw std::invalid_argument("TRT input rank mismatch: " + std::string(input.name));
+        }
+        for (size_t dimension = 0; dimension < input.shape.size(); ++dimension) {
+            if (t->dims[dimension] > 0
+                && t->dims[dimension] != input.shape[dimension]) {
+                throw std::invalid_argument("TRT static input shape mismatch: " + std::string(input.name));
+            }
+        }
+        if (!context->setInputShape(t->name.c_str(), from_dims(input.shape))) {
+            throw std::invalid_argument("TRT profile rejected input shape: " + std::string(input.name));
+        }
+    }
+
+    for (auto& tensor : tensors_) {
+        const auto concrete = context->getTensorShape(tensor.name.c_str());
+        tensor.elems = 1;
+        for (int32_t dimension = 0; dimension < concrete.nbDims; ++dimension) {
+            if (concrete.d[dimension] <= 0) {
+                throw std::runtime_error("TRT could not resolve shape for " + tensor.name);
+            }
+            tensor.elems *= static_cast<size_t>(concrete.d[dimension]);
+        }
+        tensor.bytes = tensor.elems * dtype_size(tensor.dtype);
+        if (tensor.bytes > tensor.capacity_bytes) {
+            if (tensor.dev) cudaFree(tensor.dev);
+            tensor.dev = nullptr;
+            if (cudaMalloc(&tensor.dev, tensor.bytes) != cudaSuccess) {
+                throw std::runtime_error(
+                    "cudaMalloc " + std::to_string(tensor.bytes)
+                    + " bytes failed for " + tensor.name);
+            }
+            tensor.capacity_bytes = tensor.bytes;
+        }
+        context->setTensorAddress(tensor.name.c_str(), tensor.dev);
+    }
+
+    // H2D：按引擎实际 dtype 拷贝（int64 输入若引擎是 int32 则降转换）
+    for (const auto& input : inputs) {
+        Tensor* t = find_tensor(input.name);
         const void* host = nullptr;
         size_t bytes = 0;
         std::vector<int32_t> as_int32;
@@ -194,22 +256,14 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
             != cudaSuccess) {
             throw std::runtime_error("cudaMemcpyAsync H2D failed for " + std::string(input.name));
         }
-        context->setTensorAddress(t->name.c_str(), t->dev);
-    }
-
-    // TRT10: enqueueV3 前输出地址也必须绑定
-    for (const auto& t : tensors_) {
-        if (!t.is_input) context->setTensorAddress(t.name.c_str(), t.dev);
     }
 
     if (!context->enqueueV3(stream)) {
         throw std::runtime_error("enqueueV3 failed");
     }
-    if (cudaStreamSynchronize(stream) != cudaSuccess) {
-        throw std::runtime_error("cudaStreamSynchronize failed");
-    }
 
-    // D2H：第一个输出（三个引擎都是单输出）
+    // The D2H copy is ordered after inference on the same stream, so a separate
+    // pre-copy synchronization only adds a host round trip.
     (void)output_names;
     for (const auto& t : tensors_) {
         if (t.is_input) continue;
@@ -218,7 +272,9 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
                             cudaMemcpyDeviceToHost, stream) != cudaSuccess) {
             throw std::runtime_error("cudaMemcpyAsync D2H failed for " + t.name);
         }
-        cudaStreamSynchronize(stream);
+        if (cudaStreamSynchronize(stream) != cudaSuccess) {
+            throw std::runtime_error("cudaStreamSynchronize failed for " + t.name);
+        }
         return out;
     }
     throw std::runtime_error("TRT engine has no output tensor");

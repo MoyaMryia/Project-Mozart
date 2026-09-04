@@ -2,7 +2,9 @@
 
 // streaming_pipeline.hpp — 实时滑动窗口流式 RVC
 // ============================================================================
-// 把 20ms 契约帧流改造成 2s 窗分块推理（Generator 只认 T=200=2s，架构死约束）：
+// 把 20ms 契约帧流改造成 RVC 分块推理。静态 Generator 使用旧的 2s
+// 滑窗；动态显式噪声 Generator 可使用与 Golden 相同的 full-history +
+// 2s lookahead correctness profile。
 //
 //   push(320样本帧) ──→ 样本级环形缓冲 ──→ 推理线程取"最新 2s 窗"
 //                                             ↓ pipeline.process(32000)
@@ -39,6 +41,14 @@ public:
         // 帧量化漂移、窗口错位。2880/3=960 → hop=31040=97 帧 ✓（60ms）
         size_t crossfade_out = 2880;
         bool skip_silence = true;
+        bool full_history = false;
+        size_t right_context_samples = 0;
+        size_t guard_samples = 0;
+        size_t max_history_samples = 41 * 16000;
+        // Keep this many complete output hops queued before playback starts.
+        // Quality mode uses extra reserve hops because prefix inference gets
+        // slower as history grows.
+        size_t startup_buffer_blocks = 1;
     };
 
     struct Stats {
@@ -83,12 +93,13 @@ private:
     std::vector<float> ring_;
     size_t ring_head_ = 0;       // 环内最旧样本下标
     size_t ring_size_ = 0;
-    uint64_t pushed_total_ = 0;  // 累计入环样本（含被丢的）
+    uint64_t pushed_total_ = 0;  // 累计入环样本；由 cv_mutex_ 保护
 
     // 窗口调度状态（cv_mutex_ 保护）
     std::mutex cv_mutex_;
     std::condition_variable cv_;
     uint64_t owned_ = 0;         // 上次取窗时已见到的 pushed_total_
+    uint64_t next_window_start_ = 0;
     bool have_window_base_ = false;
     bool window_voiced_ = false; // 自上次取窗以来出现过 VAD
     std::atomic<uint64_t> reset_gen_{0};     // 重置代数（push 侧递增，推理侧对齐）
@@ -105,6 +116,7 @@ private:
     size_t out_head_ = 0;
     size_t out_size_ = 0;
     uint64_t out_total_ = 0;
+    bool output_started_ = false;
 
     // 块间淡化尾（crossfade_out 样本），cv_mutex_ 保护（仅推理线程读写）
     std::vector<float> tail_;
@@ -112,6 +124,7 @@ private:
 
     void handle_discontinuity();
     void read_last_window(std::vector<float>& dst);
+    bool read_prefix(size_t count, std::vector<float>& dst);
     void push_output(const float* data, size_t n);
     void push_output_zeros(size_t n);
 };
