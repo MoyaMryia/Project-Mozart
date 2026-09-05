@@ -36,10 +36,18 @@ bool StateManagerDaemon::start() {
     const std::string rmvpe_path_text = config_.get_string("rvc.rmvpe_path", "");
     const std::optional<std::filesystem::path> rmvpe_path = rmvpe_path_text.empty()
         ? std::nullopt : std::optional<std::filesystem::path>(config_.resolve_file_path("rvc.rmvpe_path", ""));
-    spdlog::info("RVC config: generator={}, hubert={}, rmvpe={}, models={}, hubert_path={}, rmvpe_path={}",
+    const std::string realtime_hubert_text = config_.get_string("rvc.realtime_hubert_path", "");
+    const std::optional<std::filesystem::path> realtime_hubert_path = realtime_hubert_text.empty()
+        ? std::nullopt : std::optional<std::filesystem::path>(config_.resolve_file_path("rvc.realtime_hubert_path", ""));
+    const std::string realtime_rmvpe_text = config_.get_string("rvc.realtime_rmvpe_path", "");
+    const std::optional<std::filesystem::path> realtime_rmvpe_path = realtime_rmvpe_text.empty()
+        ? std::nullopt : std::optional<std::filesystem::path>(config_.resolve_file_path("rvc.realtime_rmvpe_path", ""));
+    spdlog::info("RVC config: generator={}, hubert={}, rmvpe={}, models={}, hubert_path={}, rmvpe_path={}, realtime_hubert_path={}, realtime_rmvpe_path={}",
                  mock.generator ? "mock" : "real", mock.hubert ? "mock" : "real",
                  mock.rmvpe ? "mock" : "real", models_dir.string(), hubert_path.string(),
-                 rmvpe_path ? rmvpe_path->string() : "disabled");
+                 rmvpe_path ? rmvpe_path->string() : "disabled",
+                 realtime_hubert_path ? realtime_hubert_path->string() : "disabled",
+                 realtime_rmvpe_path ? realtime_rmvpe_path->string() : "disabled");
     rvc::RvcParameters default_parameters;
     default_parameters.f0_method = config_.get_string("rvc.f0_method", default_parameters.f0_method);
     default_parameters.pitch_shift = config_.get_int("rvc.pitch_shift", default_parameters.pitch_shift);
@@ -49,7 +57,9 @@ bool StateManagerDaemon::start() {
     default_parameters.protect = static_cast<float>(config_.get_double("rvc.protect", default_parameters.protect));
     pipeline_ = rvc::RVCPipelineFactory::create(
         mock, models_dir, hubert_path, rmvpe_path,
-        input_rate, output_rate, config_.get_string("rvc.device", "cuda"), config_.get_bool("rvc.half", false), default_parameters);
+        input_rate, output_rate, config_.get_string("rvc.device", "cuda"),
+        config_.get_bool("rvc.half", false), default_parameters,
+        realtime_hubert_path, realtime_rmvpe_path);
 
     rvc::ModeController::Config controller_config;
     controller_config.audio_host = config_.get_string("network.audio.host", "0.0.0.0");

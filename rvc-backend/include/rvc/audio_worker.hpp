@@ -20,8 +20,8 @@ namespace rvc {
 //
 // 双模式：
 //   - mock pipeline → 逐帧 1:1 直通（20ms 帧，零附加延迟）
-//   - real pipeline → 流式滑动窗口（2s 窗分块推理 + 50ms 交叉淡化，
-//                     独立推理线程，泵线程只做 IO）
+//   - real pipeline → 模型支持时使用短块 realtime + SOLA，否则回退
+//                     quality/full-history 或 2s 滑窗；推理与 IO 分线程
 class AudioWorker {
 public:
     struct Config {

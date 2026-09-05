@@ -48,13 +48,19 @@ int main(int argc, char* argv[]) {
     uint32_t output_sample_rate = config.get_int("output.sample_rate", 48000);
 
     // RVC configuration
-    std::string models_dir = config.get_string("rvc.models_dir", "./models");
-    std::string hubert_path = config.get_string("rvc.hubert_path", "./assets/hubert/hubert_base.pt");
+    auto models_dir = config.resolve_file_path("rvc.models_dir", "./models");
+    auto hubert_path = config.resolve_file_path("rvc.hubert_path", "./assets/hubert/hubert_base.onnx");
     std::string rmvpe_path_str = config.get_string("rvc.rmvpe_path", "");
     std::optional<std::filesystem::path> rmvpe_path;
     if (!rmvpe_path_str.empty()) {
-        rmvpe_path = rmvpe_path_str;
+        rmvpe_path = config.resolve_file_path("rvc.rmvpe_path", "");
     }
+    const std::string realtime_hubert_path_str = config.get_string("rvc.realtime_hubert_path", "");
+    const std::optional<std::filesystem::path> realtime_hubert_path = realtime_hubert_path_str.empty()
+        ? std::nullopt : std::optional<std::filesystem::path>(config.resolve_file_path("rvc.realtime_hubert_path", ""));
+    const std::string realtime_rmvpe_path_str = config.get_string("rvc.realtime_rmvpe_path", "");
+    const std::optional<std::filesystem::path> realtime_rmvpe_path = realtime_rmvpe_path_str.empty()
+        ? std::nullopt : std::optional<std::filesystem::path>(config.resolve_file_path("rvc.realtime_rmvpe_path", ""));
     RvcMockConfig mock{
         config.get_bool("rvc.mock.generator", false),
         config.get_bool("rvc.mock.hubert", false),
@@ -88,7 +94,9 @@ int main(int argc, char* argv[]) {
         output_sample_rate,
         device,
         half,
-        parameters
+        parameters,
+        realtime_hubert_path,
+        realtime_rmvpe_path
     );
 
     ModeController::Config controller_config;

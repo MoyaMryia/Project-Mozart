@@ -43,7 +43,17 @@ void AudioWorker::start() {
     if (stream_mode_) {
         StreamingRvc::Config scfg;
         scfg.skip_silence = config_.skip_silence;
-        scfg.full_history = pipeline_.supports_quality_streaming();
+        scfg.upstream_realtime = pipeline_.supports_realtime_streaming();
+        if (scfg.upstream_realtime) {
+            scfg.window_samples = 3840;
+            scfg.crossfade_out = 2400;
+            scfg.past_context_samples = 40000;
+            scfg.sola_search_out = 480;
+            scfg.startup_buffer_blocks = 1;
+            pipeline_.reset_realtime();
+        }
+        scfg.full_history = !scfg.upstream_realtime
+            && pipeline_.supports_quality_streaming();
         if (scfg.full_history) {
             scfg.right_context_samples = 32000;
             scfg.guard_samples = 80;
@@ -54,9 +64,11 @@ void AudioWorker::start() {
             streaming_->inference_loop(pipeline_, running_);
         });
         spdlog::info("AudioWorker stream mode: {}",
-            scfg.full_history
-                ? "Golden quality profile (full history + 2s lookahead + 2 hop reserve)"
-                : "sliding window (2s) + 60ms crossfade");
+            scfg.upstream_realtime
+                ? "upstream realtime (240ms block + 2.5s past + SOLA)"
+                : (scfg.full_history
+                    ? "Golden quality profile (full history + 2s lookahead + 2 hop reserve)"
+                    : "sliding window (2s) + 60ms crossfade"));
     } else {
         spdlog::info("AudioWorker frame mode (mock pipeline)");
     }

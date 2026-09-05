@@ -4,7 +4,8 @@
 // ============================================================================
 // 把 20ms 契约帧流改造成 RVC 分块推理。静态 Generator 使用旧的 2s
 // 滑窗；动态显式噪声 Generator 可使用与 Golden 相同的 full-history +
-// 2s lookahead correctness profile。
+// 2s lookahead correctness profile；upstream realtime 模式使用短 block、
+// 固定过去上下文和 SOLA，不等待 future audio。
 //
 //   push(320样本帧) ──→ 样本级环形缓冲 ──→ 推理线程取"最新 2s 窗"
 //                                             ↓ pipeline.process(32000)
@@ -42,6 +43,9 @@ public:
         size_t crossfade_out = 2880;
         bool skip_silence = true;
         bool full_history = false;
+        bool upstream_realtime = false;
+        size_t past_context_samples = 40000;
+        size_t sola_search_out = 480;
         size_t right_context_samples = 0;
         size_t guard_samples = 0;
         size_t max_history_samples = 41 * 16000;
@@ -87,6 +91,7 @@ private:
     const size_t hop_in_;        // 窗口推进步长（输入样本）
     const size_t emit_out_;      // 每块固定输出的样本数（= hop_in * 3）
     const size_t out_block_;     // 单块推理输出长度（= window * 3）
+    const size_t analysis_samples_;
 
     // 输入样本环（容量 = 4 窗，推理落后时丢最旧）
     std::mutex ring_mutex_;
@@ -123,7 +128,7 @@ private:
     bool tail_valid_ = false;    // false = 下一块直接输出不混合
 
     void handle_discontinuity();
-    void read_last_window(std::vector<float>& dst);
+    void read_last_window(size_t count, std::vector<float>& dst);
     bool read_prefix(size_t count, std::vector<float>& dst);
     void push_output(const float* data, size_t n);
     void push_output_zeros(size_t n);

@@ -37,6 +37,22 @@ public:
     bool is_mock() const override { return false; } // 强制流式语义
 };
 
+class RealtimeTailPipeline : public Upsample3Pipeline {
+public:
+    std::vector<float> process_realtime(
+        const std::vector<float>& audio, const RvcRealtimeRequest& request
+    ) override {
+        ++calls;
+        last_input_samples = audio.size();
+        last_request = request;
+        return RVCPipelineBase::process_realtime(audio, request);
+    }
+
+    size_t calls = 0;
+    size_t last_input_samples = 0;
+    RvcRealtimeRequest last_request;
+};
+
 mozart_input_frame_t make_frame(uint32_t idx, uint8_t vad, float value,
                                 uint8_t segment = 1, uint64_t pts_ns = 0)
 {
@@ -233,6 +249,54 @@ int main()
         CHECK(s.stats().blocks.load() == 3, "third quality block is ready");
         CHECK(s.pop_output(output, MOZART_OUTPUT_SAMPLES) == MOZART_OUTPUT_SAMPLES,
               "playback starts with two reserve blocks");
+    }
+
+    // ---- 用例 7：upstream realtime 只等一个短块，过去上下文补零 ----
+    printf("test_upstream_realtime_short_block\n");
+    {
+        StreamingRvc::Config cfg;
+        cfg.window_samples = 3840;       // 240 ms，匹配 20 ms IO 帧
+        cfg.crossfade_out = 2400;        // 50 ms @48k
+        cfg.upstream_realtime = true;
+        cfg.past_context_samples = 40000; // 2.5 s，仅过去上下文
+        cfg.sola_search_out = 480;       // 10 ms @48k
+        cfg.skip_silence = false;
+        StreamingRvc s(cfg);
+        RealtimeTailPipeline pipe;
+
+        uint32_t idx = 1;
+        for (size_t frame = 0; frame < 11; ++frame) {
+            s.push(make_frame(idx++, 1, 0.1f));
+            CHECK(!s.try_process_one(pipe), "realtime waits until the 240ms block");
+        }
+        s.push(make_frame(idx++, 1, 0.1f));
+        CHECK(s.try_process_one(pipe), "realtime starts after one 240ms block");
+        CHECK(pipe.calls == 1, "one realtime inference call");
+        CHECK(pipe.last_input_samples == 44800,
+              "realtime input is 2.5s past + block + overlap + search");
+        CHECK(pipe.last_request.block_samples_16k == 3840,
+              "pipeline receives the explicit input block size");
+        CHECK(pipe.last_request.skip_head_frames == 250,
+              "pipeline receives the explicit past-frame crop");
+        CHECK(pipe.last_request.return_frames == 30,
+              "pipeline receives the explicit return-frame count");
+        CHECK(pipe.last_request.output_samples == 14400,
+              "pipeline returns block + overlap + SOLA search");
+        auto first = drain(s);
+        CHECK(first.size() == 11520, "realtime emits exactly one 240ms block");
+
+        for (size_t frame = 0; frame < 12; ++frame) {
+            s.push(make_frame(idx++, 1, 0.2f));
+            while (s.try_process_one(pipe)) {}
+        }
+        CHECK(pipe.calls == 2, "realtime cadence is one call per 240ms");
+        const auto second = drain(s);
+        CHECK(second.size() == 11520, "second realtime block has fixed length");
+        bool finite = true;
+        for (float value : second) finite = finite && std::isfinite(value);
+        CHECK(finite, "SOLA output is finite");
+        CHECK(s.stats().input_overruns.load() == 0,
+              "rolling realtime history is pruned without overrun");
     }
 
     if (g_fail) {

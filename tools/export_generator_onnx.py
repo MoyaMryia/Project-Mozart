@@ -11,53 +11,58 @@ import torch
 import torch.nn.functional as F
 
 
+def decode_generator(decoder, z, pitchf, g, source_phase, source_noise):
+    sine = decoder.m_source.l_sin_gen
+
+    f0 = pitchf[:, None].transpose(1, 2)
+    rad = f0 / sine.sampling_rate * torch.arange(
+        1, decoder.upp + 1, device=f0.device
+    )
+    rad2 = torch.fmod(rad[..., -1:].float() + 0.5, 1.0) - 0.5
+    rad_acc = rad2.cumsum(dim=1).fmod(1.0).to(f0)
+    rad += F.pad(rad_acc, (0, 0, 1, -1))
+    rad = rad.reshape(f0.shape[0], -1, 1)
+    rad = rad * torch.arange(
+        1, sine.dim + 1, device=f0.device
+    ).reshape(1, 1, -1)
+    sine_waves = torch.sin(2 * np.pi * (rad + source_phase)) * sine.sine_amp
+    uv = (f0 > sine.voiced_threshold).to(f0)
+    uv = F.interpolate(
+        uv.transpose(2, 1), scale_factor=float(decoder.upp), mode="nearest"
+    ).transpose(2, 1)
+    noise_amp = uv * sine.noise_std + (1 - uv) * sine.sine_amp / 3
+    source = sine_waves * uv + noise_amp * source_noise
+    source = decoder.m_source.l_tanh(decoder.m_source.l_linear(
+        source.to(dtype=decoder.m_source.l_linear.weight.dtype)
+    )).transpose(1, 2)
+
+    x = decoder.conv_pre(z)
+    x = x + decoder.cond(g)
+    for i, (upsample, noise_conv) in enumerate(
+        zip(decoder.ups, decoder.noise_convs)
+    ):
+        x = F.leaky_relu(x, decoder.lrelu_slope)
+        x = upsample(x)
+        x = x + noise_conv(source)
+        combined = None
+        first = i * decoder.num_kernels
+        for resblock in decoder.resblocks[first:first + decoder.num_kernels]:
+            value = resblock(x)
+            combined = value if combined is None else combined + value
+        x = combined / decoder.num_kernels
+    x = F.leaky_relu(x)
+    return torch.tanh(decoder.conv_post(x))
+
+
 class GeneratorWrapper(torch.nn.Module):
     def __init__(self, generator):
         super().__init__()
         self.generator = generator
 
     def _decode(self, z, pitchf, g, source_phase, source_noise):
-        decoder = self.generator.dec
-        sine = decoder.m_source.l_sin_gen
-
-        f0 = pitchf[:, None].transpose(1, 2)
-        rad = f0 / sine.sampling_rate * torch.arange(
-            1, decoder.upp + 1, device=f0.device
+        return decode_generator(
+            self.generator.dec, z, pitchf, g, source_phase, source_noise
         )
-        rad2 = torch.fmod(rad[..., -1:].float() + 0.5, 1.0) - 0.5
-        rad_acc = rad2.cumsum(dim=1).fmod(1.0).to(f0)
-        rad += F.pad(rad_acc, (0, 0, 1, -1))
-        rad = rad.reshape(f0.shape[0], -1, 1)
-        rad = rad * torch.arange(
-            1, sine.dim + 1, device=f0.device
-        ).reshape(1, 1, -1)
-        sine_waves = torch.sin(2 * np.pi * (rad + source_phase)) * sine.sine_amp
-        uv = (f0 > sine.voiced_threshold).to(f0)
-        uv = F.interpolate(
-            uv.transpose(2, 1), scale_factor=float(decoder.upp), mode="nearest"
-        ).transpose(2, 1)
-        noise_amp = uv * sine.noise_std + (1 - uv) * sine.sine_amp / 3
-        source = sine_waves * uv + noise_amp * source_noise
-        source = decoder.m_source.l_tanh(decoder.m_source.l_linear(
-            source.to(dtype=decoder.m_source.l_linear.weight.dtype)
-        )).transpose(1, 2)
-
-        x = decoder.conv_pre(z)
-        x = x + decoder.cond(g)
-        for i, (upsample, noise_conv) in enumerate(
-            zip(decoder.ups, decoder.noise_convs)
-        ):
-            x = F.leaky_relu(x, decoder.lrelu_slope)
-            x = upsample(x)
-            x = x + noise_conv(source)
-            combined = None
-            first = i * decoder.num_kernels
-            for resblock in decoder.resblocks[first:first + decoder.num_kernels]:
-                value = resblock(x)
-                combined = value if combined is None else combined + value
-            x = combined / decoder.num_kernels
-        x = F.leaky_relu(x)
-        return torch.tanh(decoder.conv_post(x))
 
     def forward(
         self, feats, p_len, pitch, pitchf, sid,

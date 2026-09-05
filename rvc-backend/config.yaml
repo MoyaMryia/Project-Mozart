@@ -62,6 +62,10 @@ rvc:
   # 特征提取器（16kHz 输入）
   hubert_path: "./assets/hubert/hubert_base.onnx"
   rmvpe_path: "./assets/rmvpe/rmvpe.onnx"
+  # Optional fixed-shape TensorRT assets for the 240 ms realtime profile.
+  # File and quality modes continue to use the variable-length paths above.
+  realtime_hubert_path: ""
+  realtime_rmvpe_path: ""
 
   # 推理参数
   sample_rate: 48000          # RVC v2 生成器输出 48kHz

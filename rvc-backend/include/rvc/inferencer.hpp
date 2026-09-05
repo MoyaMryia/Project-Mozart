@@ -3,11 +3,20 @@
 #include <vector>
 #include <memory>
 #include <cstdint>
+#include <cstddef>
+#include <random>
 
 #include "rvc/model_loader.hpp"
 #include "rvc/feature_extractor.hpp"
 
 namespace rvc {
+
+struct RvcRealtimeRequest {
+    size_t block_samples_16k = 0;
+    size_t skip_head_frames = 0;
+    size_t return_frames = 0;
+    size_t output_samples = 0;
+};
 
 class RVCInferencer {
 public:
@@ -25,6 +34,11 @@ public:
     );
 
     std::vector<float> infer(const std::vector<float>& audio);
+    std::vector<float> infer_realtime(
+        const std::vector<float>& audio,
+        const RvcRealtimeRequest& request
+    );
+    void reset_realtime();
 
 private:
     std::shared_ptr<RVCModel> model_;
@@ -37,6 +51,9 @@ private:
     int filter_radius_;
     float rms_mix_rate_;
     float protect_;
+    std::vector<int64_t> realtime_pitch_cache_;
+    std::vector<float> realtime_pitchf_cache_;
+    std::mt19937 realtime_random_{114514};
 
     std::vector<float> resample(
         const std::vector<float>& audio,
