@@ -168,6 +168,56 @@ The terminal panel renders daemon logs from `GET /api/logs`; it is not a
 browser-side simulation. The active RVC parameters are read from and written
 to `GET`/`PUT /api/parameters`.
 
+## First-Time Realtime Setup
+
+Start with FILE_RVC. Any ordinary model only needs `<model_id>.onnx`,
+`config.json`, and the quality HuBERT/RMVPE paths shown above. Realtime is an
+optional profile for one selected model; it does not require every voice model
+to be exported twice.
+
+The currently validated low-latency model is `qiqi-zh-realtime`. Its model
+directory must contain split Generator engines:
+
+```text
+rvc-backend/models/qiqi-zh-realtime/
+├── qiqi-zh-realtime-front.onnx
+├── qiqi-zh-realtime-front.engine
+├── qiqi-zh-realtime-decoder.onnx
+├── qiqi-zh-realtime-decoder.engine
+└── config.json
+```
+
+The two shared fixed-shape feature engines are configured separately from the
+quality/file assets:
+
+```yaml
+rvc:
+  hubert_path: "./assets/hubert/hubert_base_dynamic.onnx"
+  rmvpe_path: "./assets/rmvpe/rmvpe_dynamic.onnx"
+  realtime_hubert_path: "./assets/hubert/hubert-realtime.onnx"
+  realtime_rmvpe_path: "./assets/rmvpe/rmvpe-realtime.onnx"
+```
+
+The realtime files must have neighboring `.engine` files. Their contracts are
+HuBERT `[1,44800]` and RMVPE `[1,128,32]`. Do not replace the quality paths with
+these fixed-shape files, or variable-length FILE_RVC jobs can fail.
+
+Switch the running daemon to realtime and verify the startup log:
+
+```bash
+curl -X POST http://127.0.0.1:18080/api/mode/switch \
+  -H 'Content-Type: application/json' \
+  --data '{"mode":"rt_rvc","model_id":"qiqi-zh-realtime"}'
+curl "http://127.0.0.1:18080/api/logs?limit=50"
+```
+
+Look for `upstream realtime (240ms block + 2.5s past + SOLA)`. The validated
+profile produces its first converted audio after about 320 ms. The 2.5 s past
+buffer is historical context, not future waiting. Ordinary models without
+realtime assets continue with quality/legacy streaming; `qiqi-zh-realtime`
+requires its complete realtime asset set and should not be treated as deployed
+when validation fails.
+
 ## Runtime API Checks
 
 Useful commands during deployment:

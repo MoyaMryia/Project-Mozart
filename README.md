@@ -10,7 +10,7 @@
 
 做一块"AI 声卡"：插上麦克风就能当声卡用。
 
-- **实时路**：人声降噪 → RVC 变声，端到端延迟约 **2 秒 + 推理 + 60 ms**（受 Generator T=200 固定窗口约束）。
+- **实时路**：人声降噪 → RVC 变声。已验证的 C++ upstream realtime profile 从首帧输入到首帧出声约 **320 ms**。
 - **文字路**：ASR 转写 → 本地 Qwen(0.8B) 翻译 → 字幕，单句 1–2 秒延迟可接受。
 - 两条路径在 8 GB 共享内存板子上分开跑，强互斥单活跃模式。
 
@@ -35,7 +35,7 @@ Microphone/UDP ──► [IO] ──► [Preprocessor C11] ──contract stream
 
 | 路径 | 延迟目标 | 组件 |
 |------|---------|------|
-| **实时变声** | ~2 s + 推理（Generator T=200 硬约束） | Preprocessor → HuBERT → RMVPE → Generator |
+| **实时变声** | 约 320 ms 首帧出声（已验证 profile） | Preprocessor → HuBERT → RMVPE → split Generator → SOLA |
 | **翻译字幕** | 1–2 s / 句 | STT（sherpa-onnx）→ LLM（Qwen3.5-0.8B）→ 字幕 |
 
 ---
@@ -46,7 +46,7 @@ Microphone/UDP ──► [IO] ──► [Preprocessor C11] ──contract stream
 |------|------|------|------|
 | `IO/` | C++17 + C ABI | 统一契约帧、UDP/PipeWire/Mock 驱动、SPSC 无锁环 | UDP/Mock ✅；PipeWire 物理声卡 ⚠️ stub |
 | `preprocessor/` | C11 | ALSA 采集 → HPF → RNNoise 全湿 → 3:1 降采样 → VAD 滞回 → MZRT UDP | ✅ 可用 |
-| `rvc-backend/` | C++17 | ONNX/TensorRT 推理、滑动窗口流式管线、HTTP API、模型热切换 | 主链路 ✅；GPU 生产落地待验证 |
+| `rvc-backend/` | C++17 | ONNX/TensorRT 推理、低延迟 realtime 管线、HTTP API、模型热切换 | 主链路 ✅；一个 realtime 音色已验收 |
 | `state/` | C++17 | 顶层守护进程 `mozart_stated`：模式控制器、IDLE/RT_RVC/FILE_RVC 强互斥 | ✅ 已编码 |
 | `api/` | C++ | 原生 socket HTTP 服务器：`/health`、`/status`、`/models`、`/file/*`、`/subtitles`（SSE） | ✅ |
 | `monitor/` | C++ | 系统遥测：CPU、内存、GPU 负载、PipeWire 状态 | ✅ |
@@ -105,6 +105,90 @@ cmake .. -DCMAKE_BUILD_TYPE=Release && make -j6
 ./mozart_stated ../config.yaml
 ```
 
+### 第一次部署：先跑通普通模型，再启用一个低延迟音色
+
+第一次上手建议先验证 FILE_RVC。普通音色目录只需要 Generator 和配置文件：
+
+```text
+rvc-backend/models/<model_id>/
+├── <model_id>.onnx
+├── <model_id>.engine       # 可选；存在时优先 TensorRT
+└── config.json
+```
+
+同时在 `rvc-backend/config.yaml` 配置普通 quality/file 特征资产：
+
+```yaml
+rvc:
+  models_dir: "./models"
+  hubert_path: "./assets/hubert/hubert_base.onnx"
+  rmvpe_path: "./assets/rmvpe/rmvpe.onnx"
+  realtime_hubert_path: ""
+  realtime_rmvpe_path: ""
+  device: "cuda"
+  mock:
+    generator: false
+    hubert: false
+    rmvpe: false
+```
+
+启动后依次检查：
+
+```bash
+curl http://127.0.0.1:18080/api/health
+curl http://127.0.0.1:18080/api/models
+curl http://127.0.0.1:18080/api/status
+```
+
+验证文件转换：
+
+```bash
+curl -X POST http://127.0.0.1:18080/api/mode/switch \
+  -H 'Content-Type: application/json' \
+  --data '{"mode":"file_rvc","model_id":"<model_id>"}'
+curl -X POST http://127.0.0.1:18080/api/file/convert \
+  -F 'audio_file=@input.wav' -F 'model_id=<model_id>'
+```
+
+低延迟 realtime 不是所有音色都必须具备。当前只维护一个已经验收的 C++
+realtime 音色 `qiqi-zh-realtime`。它需要额外的固定形状资产：
+
+```text
+<model_id>-front.engine       # feats [1,280,768] -> z [1,192,30]
+<model_id>-decoder.engine     # z [1,192,30] -> audio [1,1,14400]
+hubert-realtime.engine        # audio [1,44800]
+rmvpe-realtime.engine         # mel [1,128,32]
+```
+
+并在配置中填写两份 realtime 特征资产路径；普通 `hubert_path` 和
+`rmvpe_path` 仍然保留给 file/quality：
+
+```yaml
+rvc:
+  hubert_path: "/path/to/hubert_base_dynamic.onnx"
+  rmvpe_path: "/path/to/rmvpe_dynamic.onnx"
+  realtime_hubert_path: "/path/to/hubert-realtime.onnx"
+  realtime_rmvpe_path: "/path/to/rmvpe-realtime.onnx"
+```
+
+启动日志必须出现 `upstream realtime (240ms block + 2.5s past + SOLA)`。
+然后可用 UDP 客户端验证：
+
+```bash
+python tools/stream_audio_udp.py input.wav realtime-output.wav \
+  --backend 127.0.0.1:18000 \
+  --api http://127.0.0.1:18080 \
+  --model-id qiqi-zh-realtime \
+  --flush-seconds 3 \
+  --trim-leading-underruns \
+  --trim-to-rvc-duration
+```
+
+本次已验收结果：首帧出声约 `320ms`，稳定 pipeline median `88ms`、p95
+`93ms`。`2.5s past` 是滚动历史上下文，不是等待时间。普通音色缺少 realtime
+资产时会继续使用 quality/legacy streaming；`qiqi-zh-realtime` 需要完整的
+realtime 资产，不应把缺失资产当成低延迟部署成功。
+
 ---
 
 ## 推理管线
@@ -120,7 +204,9 @@ cmake .. -DCMAKE_BUILD_TYPE=Release && make -j6
 
 ### 流式架构
 
-`StreamingRvc` 缓冲 2 秒音频（T=200 硬约束），在独立推理线程中运行，输出通过 60 ms 交叉淡化重叠相加。帧序号跳变、段变化、PTS 缺口等不连续事件会触发全量状态重置。
+普通 quality/file 路径使用可变长特征和模型原生窗口。低延迟 realtime 路径使用
+240 ms block、2.5 s 滚动过去上下文、pitch cache、split Generator 和 SOLA；
+2.5 s 是历史上下文，不是等待时间。帧序号跳变、段变化、PTS 缺口等不连续事件会触发全量状态重置。
 
 ### 实测性能（Jetson Orin Nano Super 8GB）
 
@@ -128,7 +214,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release && make -j6
 |------|---------|------|------|---------|
 | RMVPE（F0） | mel 128×128 = **1.28 s**，固定 | 20.9 ms | **9.4 ms** | ~0.7 % |
 | HuBERT（特征） | audio 3200 = **0.2 s** | 9.2 ms | **4.5 ms** | ~2.3 % |
-| Generator（合成） | T=200 = **2 s**，固定 | 89.9 ms | **37.6 ms** | ~1.9 % |
+| Generator（quality/legacy 合成） | T=200 = **2 s**，固定 | 89.9 ms | **37.6 ms** | ~1.9 % |
 
 全链合计 ≈ 98 ms / 2 s 音频 ≈ **5 % GPU**。
 
@@ -193,6 +279,9 @@ rvc:
   models_dir: "./models"
   hubert_path: "./assets/hubert/hubert_base.onnx"
   rmvpe_path: "./assets/rmvpe/rmvpe.onnx"
+  # 可选：一个低延迟 realtime 音色使用的固定形状 TensorRT 特征引擎
+  realtime_hubert_path: ""
+  realtime_rmvpe_path: ""
   f0_method: "rmvpe"
   pitch_shift: 0
   index_rate: 0.75
@@ -241,12 +330,10 @@ network:
 
 详见 [TODO.md](TODO.md)，核心未竟项：
 
-1. **真模型出声验证**：放置 HuBERT/RMVPE/Generator 模型，跑通 `mozart-pre live` + 后端滑窗全链。
-2. **扬声器出声路径**：`mozart-pre -o <alsa设备>` 已实现 UDP 回包接收与 ALSA 播放，待真模型联合验证。
-3. **GPU 推理生产落地**：TensorRT 直载或 GPU ONNX Runtime 在 Jetson 上的实际构建与加载验证。
-4. **PipeWire 物理声卡驱动**：当前为 stub，需实现 `pw_stream` capture/playback。
-5. **文字路接入 C++ 守护进程**：STT/LLM/TTS 当前由独立 Python 进程运行。
-6. **零样本变声**：尚未实现。
+1. **默认音色的 realtime 资产**：当前已验收一个低延迟 C++ realtime 音色；其他音色仍可只部署普通 Generator 做 file/quality 推理。
+2. **PipeWire 物理声卡驱动**：当前为 stub，需实现 `pw_stream` capture/playback。
+3. **文字路接入 C++ 守护进程**：STT/LLM/TTS 当前由独立 Python 进程运行。
+4. **零样本变声**：尚未实现。
 
 ---
 

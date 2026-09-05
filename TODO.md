@@ -1,13 +1,13 @@
 # TODO
 
 > 2026-08-28 板上实测后落盘，2026-08-30 预处理重写后更新。所有数字均在 Jetson Orin Nano Super 8GB（MAXN_SUPER 满频）实测，非估算。
-> 配套文档：TARGET.md（定位）、DESIGN.md（设计）。本文件只管"接下来做什么"。
+> 配套文档：TARGET.md（定位）、DESIGN.md（设计）。低延迟 C++ realtime profile 已完成并验收；本文件只管"接下来做什么"。
 
 ---
 
 ## 0. 一句话现状
 
-RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 GPU 占用 ~5%）；Qwen3.5-0.8B 已量化验证（GPU 36-45 t/s）；**预处理已于 2026-08-30 重写完成并打通 rvc-backend 闭环**（RNNoise 全湿 + FL 取样 + 3:1 降采样 + VAD 滞回分段 + MZRT UDP 发送）；**滑动窗口分块已于 2026-08-30 落地**，延迟目标改为端到端 2s + 推理 + 60ms；TTS 从"不做"改为 demo 可选"读出来"开关。当前最大卡点：① 真模型 + 真实扬声器出声路径未验证；② GPU 推理（TensorRT 直载 / GPU ONNX Runtime）需在生产 Jetson 构建上落地。
+RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 TensorRT 下实测通过；qiqi profile 首帧出声约 320ms，稳态 pipeline p95 约 93ms。Qwen3.5-0.8B 已量化验证（GPU 36-45 t/s）；预处理、HTTP/UDP 数据面和 state daemon 已打通。当前主要卡点是其他音色尚未导出 realtime split 资产，以及 PipeWire 物理声卡仍为 stub。
 
 ---
 
@@ -20,8 +20,8 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - 单测 5 组全过（FL 取样/FR 隔离/直通增益/元数据/reset），构建零警告
 - [x] **闭环验证**：1000 帧 UDP 包格式正确（1300B / magic 0x4D5A5254 / idx 递增）；rvc-backend 实际收流 200 帧无错误（mock 直通模式）
 - [x] **RNNoise 权重出代码**：78MB `rnnoise_data.c` 移除，模型走 `assets/rnnoise_default.rnnb`（14MB blob）运行时加载（USE_WEIGHTS_FILE），librnnoise.a 12MB→242KB；切换前后 PCM SHA256 bit-exact；顺手修上游 fopen NULL 段错误
-- [x] **P0 滑窗分块实现（2026-08-30）**：`StreamingRvc` 落地——2s 窗（T=200 死约束）→ 独立推理线程 → 60ms 交叉淡化拼接 → 输出环；不连续（idx 缺口/segment 变化/pts 跳变）全量重置；静音窗跳推理；块异常降级静音不崩。单测逐样本连续性对拍通过；后端冒烟 400 帧→恰好 4 窗调度。AudioWorker 双模式：mock 保持 1:1 帧路零附加延迟
-- [ ] **滑窗分块收尾**：`switch_model` 与推理线程竞态仍无锁保护；首窗前输出静音策略、块边界音质需真模型出声后主观评估
+- [x] **P0 滑窗分块实现（2026-08-30）**：quality/legacy `StreamingRvc` 保留 2s 窗（T=200）和 60ms 交叉淡化；低延迟 profile 另走 240ms block + 2.5s rolling past + SOLA。两条路径均在独立推理线程运行，不连续事件全量重置，静音窗跳推理，块异常降级静音不崩。
+- [x] **低延迟 upstream realtime profile（2026-09-05）**：240ms block + 2.5s rolling past + pitch cache + split Generator + SOLA；首帧约 320ms，试听验收合格
 - [x] **live 麦克风实测**：HK MIC（ff0f:0001）契约与实测完全一致，mozart-pre live 250 帧无 overrun；板载增益已顶满（15.6dB）
 - [x] **产品决策更新**：TTS 从"不做"改为 demo 可选"读出来"开关。`tools/tts_service.py`（Matcha 中文 TTS）已落地，`tools/demo_fullchain.py --speak` 已验证；STT 选型定向 sherpa-onnx 流式（详见 P2）
 
@@ -64,18 +64,18 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
 ### P0 — 实时路能出声的前提
 
 - [x] **AudioWorker 改滑动窗口分块**（2026-08-30 完成，见 §0.5）：`StreamingRvc` 已落地，剩余为真模型出声后的主观调优。
-- [x] **延迟目标改写**：新目标 = 端到端 2s + 推理 + 60ms（Generator T=200 架构死约束，30ms/500ms 均不可达）；DESIGN.md §1 已同步。
-- [ ] **真模型出声验证**：放好 HuBERT/RMVPE/Generator 模型 → mozart-pre live → 滑窗全链 → 主观听感 + /api/status 延迟数字
+- [x] **延迟目标改写**：低延迟 upstream realtime profile 的已验收结果为首帧约 320ms、稳态 pipeline p95 约 93ms；quality/legacy 路径仍受 Generator T=200 约束。
+- [x] **真模型 C++ realtime 出声验证**：qiqi profile 已完成 TensorRT UDP 端到端验证，0 inference error、0 late block、0 丢包
 - [x] **补全扬声器出声路径**（方案 A，2026-09-01）：`mozart-pre -o <alsa设备>` 已实现——同进程 UDP 接收线程收 3860B 输出包 → ALSA 播放（48k f32 mono → S16 立体声复制）。支持 e2e 延迟统计（pts_ns 透传）。待真模型联合验证。
 
 ### P1 — GPU 推理落地
 
-- [ ] **解决 GPU 版 ONNX Runtime**（三选一）：
+- [x] **GPU 推理落地**：qiqi realtime 特征和 split Generator 通过 TensorRT 直载；普通动态 ONNX 在当前 sm87 环境仍可能回退 CPU
   - a) 源码编译 ORT（`--use_cuda --use_tensorrt`，CUDA 13.2 + TRT 10.16 + cuDNN 9.20 齐备）；
   - b) C++ 直接加载 `.engine`（绕过 ORT，已落地 `TrtEngine`，头文件在 `/usr/include/x86_64-linux-gnu` 之外找 NvInfer.h）；
   - c) 等 JetPack 提供 aarch64 GPU ORT（官方 release 的 aarch64 包是 CPU-only）。
-- [ ] 装好后打开 `rvc-backend` 的 `USE_CUDA_EP=ON` 编译开关（CMake 已留好选项，`onnx_engine.cpp` 已留好挂载点，默认关闭）。
-- [ ] 或跳过 ORT：把 `gen_v2_fp16.engine` 直接接到 C++（引擎已实测，`/tmp/opencode/rvc-trt/`）。**CMake 已支持 `USE_TENSORRT=ON`（默认），将 `.engine` 放同名 `.onnx` 旁即可自动加载。**
+- [x] `rvc-backend` 的 GPU 构建与 TensorRT 直载已验证；CUDA EP 仍作为普通 ONNX 的可选 fallback。
+- [x] 跳过 ORT 直接加载 `.engine`：CMake 支持 `USE_TENSORRT=ON`，将 `.engine` 放同名 `.onnx` 旁即可自动加载。
 
 ### P2 — 文字路
 
@@ -92,8 +92,8 @@ RVC 三模型已全部在 TensorRT 下实测通过（FP16 加速 2.4×，全链 
   - [ ] 并发验证 ASR+LLM+TTS 加入后的共存（当前实测：ASR ~0.3GB CPU + LLM ~1.2GB GPU + TTS 按需，余量足；待与 RVC 三方压测）
 - [x] **TTS 小型部署（2026-08-30 实测）**：`tools/tts_service.py`（sherpa-onnx 三引擎）。**Matcha zh-baker 为推荐引擎：RTF ~0.2（5 倍实时，4 线程 CPU），共 90MB**；melo/kokoro int8 也能跑但 RTF 1.6-3 不实时（留存参考）。HDMI 播放（plughw:1,3）已验证。原来"TTS 不做"的决策更新为：**demo 可选"读出来"开关**，句子级延迟完全够
 - [x] **TTS 接线 + 全链演示（2026-08-31）**：`tools/demo_fullchain.py` 串起 **语音→ASR→LLM翻译→TTS→RVC变声→HDMI播放** 全链闭环（file 模式稳出声）。实测单句：ASR 0.7s / LLM 0.9s / TTS 13.5s（5s 音频，CPU 挤）/ RVC 27s（CPU RTF≈5）。关键坑：Matcha 纯中文词库读不了英文（换 melo 中英混读）；melo 输出安静 + rms_mix_rate 会把安静包络带进变声输出（发送前峰值归一化 0.9）；后端构建的 RNNoise blob 路径指向 rvc-backend/assets（已拷贝）。`tools/tts2rvc.py` 为 UDP 实时变声通路（P1 GPU 化后启用）
-- [ ] **并发基准（2026-08-31 实测，`tools/bench_concurrent.py`）**：极限并发（RVC 实时流 + TTS + ASR + LLM 同板）下——LLM GPU 315ms 稳如狗；ASR RTF 0.12 无压力；TTS RTF 4.1（solo 2.4，被挤 1.7×）；**RVC CPU ONNX RTF 0.16 是唯一短板**（10s/块，首块 11.3s）→ P1 GPU 化（TRT 引擎实测 37.6ms/块，~50×）是唯一卡点。注意：后端只回包给"首个 UDP 客户端"，多消费者需各开一路或改广播
-- [ ] TTS/RVC 提速：P1 GPU 化（TRT 直载或 GPU ORT）后，变声回实时路（RTF 0.05 可期），TTS 换 GPU 推理
+- [ ] **并发基准（2026-08-31 实测，`tools/bench_concurrent.py`）**：极限并发（RVC realtime 流 + TTS + ASR + LLM 同板）尚需用已验收的 qiqi profile 重测；旧数据中的 RVC CPU ONNX 短板不再代表 realtime TensorRT 路径。注意：后端只回包给"首个 UDP 客户端"，多消费者需各开一路或改广播
+- [ ] TTS/RVC 提速：继续评估普通 quality/file 路径的 GPU ONNX fallback，并将 TTS 从 CPU 推理迁移到 GPU（如收益明确）
 - [ ] **零样本变声（比赛杀招）**：seed-VC（github.com/DonkeyHang/seedVC）——翻译到目标语言后零样本克隆指定音色。待调研：模型体积/推理耗时/8GB 板可行性；与现有 RT_ZERO_SHOT 模式槽位对接
 
 ### P3 — 收尾

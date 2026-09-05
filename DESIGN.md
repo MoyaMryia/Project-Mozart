@@ -10,10 +10,10 @@
 
 - **产品定位**：一块边缘板子当"AI 声卡"（见 [TARGET.md](TARGET.md)）。比赛 demo 为近期交付，代码与文档按可长期演进的产品标准建设。
 - **核心指标**：
-  - 变声路（实时路）端到端延迟 **≈ 2 秒 + 推理 + 60 ms 交叉淡化**（Generator T=200 固定窗口约束），不爆音、不打断。
+  - 变声路（实时路）使用 upstream realtime contract；已验收 profile 从首帧输入到首帧出声约 **320 ms**，不爆音、不打断。
   - 字幕路（文字路）容忍 1~2 秒延迟，优先准确率。
 - **两路并行**（一块板子带得动的前提）：
-  - **实时路**：降噪 → RVC 变声（路线第 1 步，实现中）
+  - **实时路**：降噪 → RVC 变声（低延迟 upstream profile 已验收）
   - **文字路**：ASR 转写 → 本地 Qwen(0.8B) 翻译 → 字幕（路线第 2 步）
 - **平台**：NVIDIA Jetson Orin Nano Super 8GB（JetPack R39，ONNX Runtime / TensorRT，6×Cortex-A78AE + Ampere SM8.7 GPU，7.4GiB LPDDR5 共享内存）。
 
@@ -121,7 +121,8 @@ AudioStream (Open/Close/IsOpen)
 | 机制 | 说明 |
 |------|------|
 | 双环异步解耦 | 采集/播放按硬件时钟独立运行；推理在独立 Worker 线程，IO 回调绝不被 GPU 耗时（10~30ms 波动）阻塞 |
-| 滑动窗口分块 | `StreamingRvc` 在 `AudioWorker` 内部缓冲 2 s 音频（T=200），独立推理线程按窗口提交；不连续事件触发状态重置 |
+| upstream realtime 分块 | `AudioWorker` 聚合 240 ms block，保留 2.5 s rolling past；pitch cache、split Generator、SOLA 在独立推理线程运行 |
+| quality/file 分块 | 普通 file/quality 路径继续使用模型原生的可变长或固定窗口，不复用 realtime 固定特征资产 |
 | 输入环溢出保护 | `StreamingRvc` 输入环满时丢弃最旧样本，避免采集线程阻塞 |
 | 静音窗跳过 | 窗口内无 VAD 标记时直接输出等长静音，不占用 GPU |
 | XRun 保护 | 输出环为空时物理输出线程回填全零静音帧，防止声卡爆音 |
@@ -188,7 +189,7 @@ input (16kHz)
 组件实现：
 
 - **OnnxEngine**（`onnx_engine.cpp`）：ONNX Runtime C++ API；`Ort::Env` + `Ort::Session`，`IntraOpNumThreads(2)`、全图优化。支持 **TensorRT 直载**：同路径下存在 `.engine` 时优先加载（见 `make_engine()`）；也支持通过 `USE_CUDA_EP=ON` 启用 CUDA Execution Provider。当前生产构建默认使用 CPU ONNX Runtime；GPU 路径需确认 Jetson 上 TRT 头文件/库或 CUDA-enabled ORT 可用。
-- **FeatureExtractor**（`feature_extractor.cpp`）：HuBERT / RMVPE 各持一个 OnnxEngine，构造时按路径加载。F0 方法 `rmvpe` 可用；`harvest` / `pm` 为占位（返回全零）。
+- **FeatureExtractor**（`feature_extractor.cpp`）：quality/file 与 realtime 各自持有 HuBERT/RMVPE 引擎。realtime 资产必须满足固定 shape `[1,44800]`、`[1,128,32]`，并实际加载为 TensorRT；F0 方法 `rmvpe` 可用，`harvest` / `pm` 为占位。
 - **IndexSearch**（`index_search.cpp`）：自研 FAISS IVF `.index` 二进制解析（magic `IwFl`，质心 + 倒排表），**无 FAISS 运行时依赖**；`search()` 逐帧最近质心 + KNN1 混合。
 - **ModelManager / RVCModel**（`model_loader.cpp`）：模型目录约定 `models/<id>/{<id>.onnx, config.json, <id>.index}`；解析 config.json（sampling_rate / emb_channels / spk_id / has_f0）；`list_models()` 扫描目录；`switch_model()` 即"重载 Generator + 重建 inferencer"。
 
@@ -198,10 +199,10 @@ input (16kHz)
 |----|------|------|
 | mel 谱图 | ✅ | `rvc-backend/src/rvc/feature_extractor.cpp` 已实现 radix-2 FFT + HTK mel 滤波器组 + Slaney 归一化，匹配 librosa `htk=True`；RMVPE 输入为真实 mel |
 | F0 方法 | ⚠️ 部分 | 仅 `rmvpe`(onnx) 可用；harvest/pm 返回全零 |
-| TensorRT / GPU 推理 | ⚠️ | 代码已支持 TensorRT 直载 `.engine`（`make_engine()` 优先）与 `USE_CUDA_EP=ON`；生产 Jetson 构建上需验证 `.engine` 路径或 CUDA-enabled ORT 可用性 |
+| TensorRT / GPU 推理 | ✅/⚠️ | qiqi realtime 的固定形状特征与 split Generator 已在 TensorRT 直载下验收；普通动态 ONNX 的 GPU Execution Provider 仍需在目标 Jetson 上单独确认 |
 | `.pth` 加载 | ❌ | 需 `-DUSE_LIBTORCH=ON` 且未实现；路线统一走 ONNX，**不做** |
 | HTTP `/models/upload` | ❌ | 死代码未挂路由；路线第 3 步（网页上传）时实现 |
-| Jetson 实机压测 | ⚠️ | `/status` 有 avg/max 统计，实机延迟未验证 |
+| Jetson 实机压测 | ✅ | qiqi realtime profile：首帧约 320 ms，稳态 pipeline median 88 ms，p95 93 ms |
 | `config.yaml` 部分字段 | ⚠️ | `f0_method`/`pitch_shift`/`index_rate` 等已定义但由 inferencer 构造默认值消费，main 未透传 |
 
 ### 5.5 HTTP API（端口 18080，原生 socket，零依赖）
@@ -219,6 +220,7 @@ input (16kHz)
 |----|------|------|
 | `rvc.mock_mode` | false | true=Mock 直通，false=真实 ONNX 推理 |
 | `rvc.hubert_path` / `rvc.rmvpe_path` | `./assets/...onnx` | 特征提取模型路径 |
+| `rvc.realtime_hubert_path` / `rvc.realtime_rmvpe_path` | 空 | 可选的单个低延迟 realtime 音色固定形状 TensorRT 特征资产 |
 | `rvc.device` / `rvc.half` | cuda / false | 推理设备与 FP16（共享内存有限，谨慎开启） |
 | `rvc.pitch_shift` / `index_rate` / `protect` | 0 / 0.75 / 0.33 | 变声参数 |
 | `network.audio.port` | 18000 | UDP 音频契约流 |
@@ -324,7 +326,8 @@ Jetson:
 - [x] 预处理全链路（HPF / RNNoise 全湿 / 3:1 降采样 / VAD 滞回，C-ABI `mozart_pre_*`）
 - [x] IO 契约帧唯一定义源 + UDP 驱动 + SPSC 无锁环 + C-ABI
 - [x] RVC 后端 ONNX 主链路（引擎/特征/真实 mel/推理/模型管理/HTTP API/Index 检索）
-- [x] 滑动窗口流式推理 `StreamingRvc`（2 s 窗 + 60 ms 交叉淡化）
+- [x] quality/legacy 滑动窗口流式推理 `StreamingRvc`（2 s 窗 + 60 ms 交叉淡化）
+- [x] upstream realtime 流式推理（240 ms block + 2.5 s rolling past + split Generator + SOLA）
 - [x] ONNX 导出脚本 ×3；Jetson JetPack R39 环境就绪
 
 ## 9. 部署（Jetson Orin Nano Super 8GB）

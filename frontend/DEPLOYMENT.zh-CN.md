@@ -196,6 +196,52 @@ GET /api/parameters
 PUT /api/parameters
 ```
 
+## 第一次启用实时变声
+
+建议第一次先按上面的 FILE_RVC 流程验证普通模型。普通音色只需要
+`<model_id>.onnx`、`config.json` 以及 quality/file 使用的 HuBERT/RMVPE
+资产；不需要给所有音色都导出 realtime 版本。
+
+当前已经验收的低延迟音色是 `qiqi-zh-realtime`。它的模型目录需要包含拆分后
+的 Generator 引擎：
+
+```text
+rvc-backend/models/qiqi-zh-realtime/
+├── qiqi-zh-realtime-front.onnx
+├── qiqi-zh-realtime-front.engine
+├── qiqi-zh-realtime-decoder.onnx
+├── qiqi-zh-realtime-decoder.engine
+└── config.json
+```
+
+两份 realtime 特征引擎与普通 quality/file 资产分开配置：
+
+```yaml
+rvc:
+  hubert_path: "./assets/hubert/hubert_base_dynamic.onnx"
+  rmvpe_path: "./assets/rmvpe/rmvpe_dynamic.onnx"
+  realtime_hubert_path: "./assets/hubert/hubert-realtime.onnx"
+  realtime_rmvpe_path: "./assets/rmvpe/rmvpe-realtime.onnx"
+```
+
+realtime 文件旁必须存在同名 `.engine`。固定契约是 HuBERT `[1,44800]`、
+RMVPE `[1,128,32]`。不要把这两份固定形状文件填到普通 `hubert_path` 或
+`rmvpe_path`，否则可变长度的 FILE_RVC 任务可能失败。
+
+启动 daemon 后切换到实时模式：
+
+```bash
+curl -X POST http://127.0.0.1:18080/api/mode/switch \
+  -H 'Content-Type: application/json' \
+  --data '{"mode":"rt_rvc","model_id":"qiqi-zh-realtime"}'
+curl "http://127.0.0.1:18080/api/logs?limit=50"
+```
+
+日志应出现 `upstream realtime (240ms block + 2.5s past + SOLA)`。已验收 profile
+从首帧输入到首帧变声输出约 320ms；2.5 秒 past 是历史上下文，不是等待时间。
+没有 realtime 资产的普通音色会继续使用 quality/legacy streaming；
+`qiqi-zh-realtime` 必须完整提供 realtime 资产，校验失败时不能视为部署成功。
+
 ## 运行时 API 检查
 
 常用检查命令：
