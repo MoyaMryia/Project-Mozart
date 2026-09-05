@@ -35,6 +35,15 @@ public:
     void unload();
 
     IEngine& generator_engine() { return *generator_engine_; }
+    IEngine& realtime_front_engine() { return *realtime_front_engine_; }
+    IEngine& realtime_decoder_engine() { return *realtime_decoder_engine_; }
+    bool has_generator() const {
+        return generator_engine_ && generator_engine_->loaded();
+    }
+    bool has_realtime_generator() const {
+        return realtime_front_engine_ && realtime_front_engine_->loaded()
+            && realtime_decoder_engine_ && realtime_decoder_engine_->loaded();
+    }
     IndexSearch& index() { return index_; }
 
 private:
@@ -42,15 +51,20 @@ private:
     std::filesystem::path model_dir_;
     std::filesystem::path pth_path_;
     std::filesystem::path onnx_path_;
+    std::filesystem::path realtime_front_path_;
+    std::filesystem::path realtime_decoder_path_;
     std::filesystem::path index_path_;
     std::filesystem::path config_path_;
     RVCModelConfig config_;
     bool loaded_ = false;
 
     std::unique_ptr<IEngine> generator_engine_;
+    std::unique_ptr<IEngine> realtime_front_engine_;
+    std::unique_ptr<IEngine> realtime_decoder_engine_;
     IndexSearch index_;
 
     bool load_generator(const std::string& device, bool half);
+    bool load_realtime_generator();
     bool load_index();
 };
 

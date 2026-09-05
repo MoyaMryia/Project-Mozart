@@ -5,6 +5,58 @@
 
 namespace rvc {
 
+namespace {
+
+bool warmup_fixed_engine(
+    IEngine& engine,
+    const std::vector<const char*>& names,
+    const char* output
+) {
+    std::vector<OnnxInput> inputs;
+    inputs.reserve(names.size());
+    int64_t sequence_frames = 0;
+    const auto feats_shape = engine.input_shape("feats");
+    if (feats_shape.size() >= 2) sequence_frames = feats_shape[1];
+    for (const char* name : names) {
+        auto shape = engine.input_shape(name);
+        size_t elements = 1;
+        for (const int64_t dimension : shape) {
+            if (dimension <= 0) return false;
+            elements *= static_cast<size_t>(dimension);
+        }
+        const auto type = engine.input_type(name).value_or(OnnxInput::Type::Float);
+        std::vector<float> floats;
+        std::vector<int64_t> integers;
+        if (type == OnnxInput::Type::Int64) {
+            integers.assign(elements, 0);
+            if (std::string(name) == "p_len") {
+                std::fill(integers.begin(), integers.end(), sequence_frames);
+            } else if (std::string(name) == "pitch") {
+                std::fill(integers.begin(), integers.end(), 1);
+            }
+        } else {
+            floats.assign(elements, 0.0f);
+            if (std::string(name) == "p_len") {
+                std::fill(floats.begin(), floats.end(), static_cast<float>(sequence_frames));
+            } else if (std::string(name) == "pitch") {
+                std::fill(floats.begin(), floats.end(), 1.0f);
+            }
+        }
+        inputs.push_back({
+            name, std::move(shape), type, std::move(floats), std::move(integers)
+        });
+    }
+    try {
+        engine.run(inputs, {output});
+        return true;
+    } catch (const std::exception& error) {
+        spdlog::error("Realtime engine warmup failed: {}", error.what());
+        return false;
+    }
+}
+
+} // namespace
+
 std::optional<RVCModelConfig> RVCModelConfig::from_json(const std::filesystem::path& path) {
     std::ifstream f(path);
     if (!f) {
@@ -41,13 +93,18 @@ RVCModel::RVCModel(const std::string& model_id, const std::filesystem::path& mod
     , model_dir_(model_dir)
     , pth_path_(model_dir / (model_id + ".pth"))
     , onnx_path_(model_dir / (model_id + ".onnx"))
+    , realtime_front_path_(model_dir / (model_id + "-front.onnx"))
+    , realtime_decoder_path_(model_dir / (model_id + "-decoder.onnx"))
     , index_path_(model_dir / (model_id + ".index"))
     , config_path_(model_dir / "config.json")
 {}
 
 bool RVCModel::exists() const {
+    const bool realtime = std::filesystem::exists(realtime_front_path_)
+        && std::filesystem::exists(realtime_decoder_path_);
     return std::filesystem::exists(config_path_) &&
-           (std::filesystem::exists(onnx_path_) || std::filesystem::exists(pth_path_));
+           (std::filesystem::exists(onnx_path_) || std::filesystem::exists(pth_path_)
+            || realtime);
 }
 
 bool RVCModel::load(const std::string& device, bool half) {
@@ -61,7 +118,16 @@ bool RVCModel::load(const std::string& device, bool half) {
         if (!cfg) return false;
         config_ = *cfg;
 
-        if (!load_generator(device, half)) {
+        const bool has_generator_asset = std::filesystem::exists(onnx_path_)
+            || std::filesystem::exists(pth_path_);
+        const bool has_realtime_assets = std::filesystem::exists(realtime_front_path_)
+            && std::filesystem::exists(realtime_decoder_path_);
+        const bool generator_loaded = has_generator_asset
+            && load_generator(device, half);
+        const bool realtime_loaded = has_realtime_assets
+            && load_realtime_generator();
+        if (!generator_loaded && !realtime_loaded) {
+            spdlog::error("No usable Generator engine found for {}", model_id_);
             return false;
         }
 
@@ -70,8 +136,10 @@ bool RVCModel::load(const std::string& device, bool half) {
         }
 
         loaded_ = true;
-        spdlog::info("RVC model '{}' loaded (sr={}, emb={}) on {}",
-            model_id_, config_.sample_rate, config_.emb_channels, device);
+        spdlog::info(
+            "RVC model '{}' loaded (sr={}, emb={}, offline={}, realtime={}) on {}",
+            model_id_, config_.sample_rate, config_.emb_channels,
+            generator_loaded, realtime_loaded, device);
         return true;
 
     } catch (const std::exception& e) {
@@ -83,7 +151,11 @@ bool RVCModel::load(const std::string& device, bool half) {
 
 void RVCModel::unload() {
     if (generator_engine_) generator_engine_->unload();
+    if (realtime_front_engine_) realtime_front_engine_->unload();
+    if (realtime_decoder_engine_) realtime_decoder_engine_->unload();
     generator_engine_.reset();
+    realtime_front_engine_.reset();
+    realtime_decoder_engine_.reset();
     loaded_ = false;
 }
 
@@ -102,6 +174,28 @@ bool RVCModel::load_generator(const std::string& device, bool half) {
     spdlog::error("No ONNX model and USE_LIBTORCH=OFF; cannot load generator");
     return false;
 #endif
+}
+
+bool RVCModel::load_realtime_generator() {
+    spdlog::info("Loading realtime Generator front: {}", realtime_front_path_.string());
+    auto front = make_engine(realtime_front_path_);
+    if (!front || !front->loaded()) return false;
+
+    spdlog::info("Loading realtime Generator decoder: {}", realtime_decoder_path_.string());
+    auto decoder = make_engine(realtime_decoder_path_);
+    if (!decoder || !decoder->loaded()) return false;
+
+    if (!warmup_fixed_engine(
+            *front, {"feats", "p_len", "pitch", "sid", "latent_noise"}, "z")
+        || !warmup_fixed_engine(
+            *decoder, {"z", "pitchf", "sid", "source_phase", "source_noise"},
+            "audio")) {
+        return false;
+    }
+
+    realtime_front_engine_ = std::move(front);
+    realtime_decoder_engine_ = std::move(decoder);
+    return true;
 }
 
 bool RVCModel::load_index() {

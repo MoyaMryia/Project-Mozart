@@ -152,6 +152,24 @@ original RVC pipeline's 41-second unsplit limit. With the locked 2 s target and
 test material into locked cases rather than silently changing the output-length
 rule.
 
+The quality-first mode above is deliberately not the low-latency contract used
+by upstream realtime RVC. A separate headless runner exercises that path with a
+short output block, rolling past context, cached pitch, Generator head cropping,
+and SOLA alignment:
+
+```bash
+RVC_CUDA_GRAPH=0 /home/moyamryia/vc_backend_venv/bin/python \
+  rvc-golden/run_realtime_reference.py \
+  --block-seconds 0.25 --extra-seconds 2.5 \
+  --output /tmp/opencode/qiqi-upstream-realtime.wav
+```
+
+This runner defaults to CPU for portable semantic comparison. Its measured CPU
+time is not a backend latency estimate; use the exported TensorRT stages for
+performance work. Realtime output is expected to differ numerically from the
+offline Golden, so compare it against upstream realtime output plus objective
+audio statistics and listening tests.
+
 The realtime UDP client is separate from this Golden runner because the
 backend's audio data plane is UDP, not HTTP:
 
