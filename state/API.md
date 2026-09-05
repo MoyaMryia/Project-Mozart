@@ -24,6 +24,15 @@ from the root `build/` tree for the full daemon architecture.
 - `file_rvc`: closes the real-time stream and consumes one queued job at a time.
 - `rt_zero_shot` and `file_zero_shot`: return HTTP `501` until their worker is implemented.
 
+`rt_rvc` automatically selects the low-latency upstream realtime profile when
+the selected model has split `front`/`decoder` engines and the configured
+realtime HuBERT/RMVPE assets pass fixed-shape TensorRT validation. The validated
+profile uses a 240 ms block and 2.5 s rolling past context; the past context is
+not future buffering. If those assets are absent, the worker falls back to the
+quality/legacy streaming profile when that model has a regular Generator.
+The split-only `qiqi-zh-realtime` profile requires its realtime assets and is
+not considered deployed when validation fails.
+
 ## Endpoints
 
 | Endpoint | Purpose |

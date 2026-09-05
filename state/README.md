@@ -75,7 +75,7 @@
 ## 3. 强互斥状态转移与优雅等待队列
 
 系统定义了 4 种具体模式：
-* `RT_RVC`：实时 RVC 变声（独占 PipeWire 音频物理采集与播放，加载 HuBERT+RMVPE+Generator）。
+* `RT_RVC`：实时 RVC 变声（独占 PipeWire 音频物理采集与播放）。若当前模型和固定形状 realtime 特征资产齐全，则使用约 320 ms 首帧出声的 upstream realtime 路径；普通模型缺少这些资产时使用 quality/legacy fallback。
 * `FILE_RVC`：离线文件批量变声（断开 PipeWire 设备，仅加载 RVC 核心进行高速批处理）。
 * `RT_ZERO_SHOT`：实时零样本变声（加载 Zero-Shot Torch/ONNX 提示词变声核心）。
 * `FILE_ZERO_SHOT`：离线零样本变声。
