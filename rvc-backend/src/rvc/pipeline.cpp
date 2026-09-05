@@ -54,7 +54,9 @@ RealRVCPipeline::RealRVCPipeline(
     const std::string& device,
     bool half,
     RvcMockConfig mock,
-    RvcParameters parameters
+    RvcParameters parameters,
+    const std::optional<std::filesystem::path>& realtime_hubert_path,
+    const std::optional<std::filesystem::path>& realtime_rmvpe_path
 )
     : model_manager_(model_manager)
     , input_sample_rate_(input_sample_rate)
@@ -65,7 +67,8 @@ RealRVCPipeline::RealRVCPipeline(
     , parameters_(std::move(parameters))
 {
     feature_extractor_ = std::make_shared<FeatureExtractor>(
-        hubert_path, rmvpe_path, device, half, mock_.hubert, mock_.rmvpe
+        hubert_path, rmvpe_path, device, half, mock_.hubert, mock_.rmvpe,
+        realtime_hubert_path, realtime_rmvpe_path
     );
     rebuild_inferencer();
 }
@@ -117,7 +120,9 @@ std::map<std::string, std::string> RealRVCPipeline::model_info() const {
         info["id"] = model->id();
         info["loaded"] = model->loaded() ? "true" : "false";
         info["has_index"] = model->index().loaded() ? "true" : "false";
-        info["has_generator"] = model->generator_engine().loaded() ? "true" : "false";
+        info["has_generator"] = model->has_generator() ? "true" : "false";
+        info["has_realtime_generator"] = model->has_realtime_generator()
+            ? "true" : "false";
         info["sample_rate"] = std::to_string(model->config().sample_rate);
     } else {
         info["id"] = "";
@@ -128,10 +133,29 @@ std::map<std::string, std::string> RealRVCPipeline::model_info() const {
 
 bool RealRVCPipeline::supports_quality_streaming() const {
     const auto model = model_manager_->current_model();
-    if (!model || !model->loaded()) return false;
+    if (!model || !model->loaded() || !model->has_generator()) return false;
     const auto shape = model->generator_engine().input_shape("feats");
     return shape.size() >= 2 && shape[1] <= 0
         && model->generator_engine().input_type("latent_noise").has_value();
+}
+
+bool RealRVCPipeline::supports_realtime_streaming() const {
+    const auto model = model_manager_->current_model();
+    if (!model || !model->loaded() || !model->has_realtime_generator()
+        || model->config().sample_rate != output_sample_rate_
+        || input_sample_rate_ != 16000
+        || !feature_extractor_->supports_realtime_hubert_samples(44800)) {
+        return false;
+    }
+    if (parameters_.f0_method == "rmvpe"
+        && !feature_extractor_->supports_realtime_rmvpe_frames(32)) {
+        return false;
+    }
+    const auto front_shape = model->realtime_front_engine().input_shape("feats");
+    const auto decoder_shape = model->realtime_decoder_engine().input_shape("z");
+    return front_shape.size() == 3 && front_shape[1] == 280
+        && front_shape[2] == static_cast<int64_t>(model->config().emb_channels)
+        && decoder_shape.size() == 3 && decoder_shape[2] == 30;
 }
 
 std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
@@ -146,6 +170,23 @@ std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
     return inferencer_->infer(audio);
 }
 
+std::vector<float> RealRVCPipeline::process_realtime(
+    const std::vector<float>& audio,
+    const RvcRealtimeRequest& request
+) {
+    if (mock_.generator) {
+        return RVCPipelineBase::process_realtime(audio, request);
+    }
+    if (!inferencer_) {
+        throw std::runtime_error("RVC realtime Generator is unavailable");
+    }
+    return inferencer_->infer_realtime(audio, request);
+}
+
+void RealRVCPipeline::reset_realtime() {
+    if (inferencer_) inferencer_->reset_realtime();
+}
+
 std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
     RvcMockConfig mock,
     const std::filesystem::path& models_dir,
@@ -155,7 +196,9 @@ std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
     uint32_t output_sample_rate,
     const std::string& device,
     bool half,
-    RvcParameters parameters
+    RvcParameters parameters,
+    const std::optional<std::filesystem::path>& realtime_hubert_path,
+    const std::optional<std::filesystem::path>& realtime_rmvpe_path
 ) {
     auto model_manager = std::make_shared<ModelManager>(models_dir, device, half);
     if (!mock.generator) {
@@ -174,7 +217,8 @@ std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
     auto pipeline = std::make_unique<RealRVCPipeline>(
         model_manager, hubert_path, rmvpe_path,
         input_sample_rate, output_sample_rate,
-        device, half, mock, std::move(parameters)
+        device, half, mock, std::move(parameters),
+        realtime_hubert_path, realtime_rmvpe_path
     );
     spdlog::info(
         "RVC pipeline initialized: generator={}, hubert={}, rmvpe={} ({}Hz -> {}Hz)",
