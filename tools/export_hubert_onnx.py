@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the fixed-window RVC v2 HuBERT feature extractor to ONNX."""
+"""Export a fixed-window or dynamic RVC v2 HuBERT extractor to ONNX."""
 
 import argparse
 from pathlib import Path
@@ -28,18 +28,21 @@ def main():
     parser.add_argument("--hubert-path", default="rvc-golden/assets/hubert_base")
     parser.add_argument("--output", default="hubert_base.onnx")
     parser.add_argument("--opset", type=int, default=17)
+    parser.add_argument("--samples", type=int, default=32000)
     parser.add_argument(
         "--dynamic",
         action="store_true",
         help="Export a dynamic-length audio axis instead of the fixed 32000-sample window",
     )
     args = parser.parse_args()
+    if args.samples <= 0:
+        raise ValueError("samples must be positive")
 
     model = HubertModel.from_pretrained(
         Path(args.hubert_path), local_files_only=True, torch_dtype=torch.float32
     ).eval()
     wrapper = RvcV2Hubert(model).eval()
-    dummy = torch.randn(1, 32000)
+    dummy = torch.randn(1, args.samples)
 
     with torch.inference_mode():
         reference = wrapper(dummy).numpy()

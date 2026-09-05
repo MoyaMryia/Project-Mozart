@@ -35,6 +35,20 @@ public:
 
     virtual std::vector<float> process(const std::vector<float>& audio) = 0;
 
+    virtual std::vector<float> process_realtime(
+        const std::vector<float>& audio, const RvcRealtimeRequest& request
+    ) {
+        auto output = process(audio);
+        if (output.size() > request.output_samples) {
+            output.erase(
+                output.begin(),
+                output.end() - static_cast<std::ptrdiff_t>(request.output_samples)
+            );
+        }
+        return output;
+    }
+    virtual void reset_realtime() {}
+
     virtual bool switch_model(const std::string&) { return false; }
     virtual std::string current_model_id() const { return ""; }
     virtual bool is_mock() const { return true; }
@@ -42,6 +56,7 @@ public:
     virtual RvcParameters parameters() const { return {}; }
     virtual bool set_parameters(const RvcParameters&) { return false; }
     virtual bool supports_quality_streaming() const { return false; }
+    virtual bool supports_realtime_streaming() const { return false; }
 };
 
 class MockRVCPipeline : public RVCPipelineBase {
@@ -71,10 +86,17 @@ public:
         const std::string& device = "cuda",
         bool half = false,
         RvcMockConfig mock = {},
-        RvcParameters parameters = {}
+        RvcParameters parameters = {},
+        const std::optional<std::filesystem::path>& realtime_hubert_path = std::nullopt,
+        const std::optional<std::filesystem::path>& realtime_rmvpe_path = std::nullopt
     );
 
     std::vector<float> process(const std::vector<float>& audio) override;
+    std::vector<float> process_realtime(
+        const std::vector<float>& audio,
+        const RvcRealtimeRequest& request
+    ) override;
+    void reset_realtime() override;
     bool switch_model(const std::string& model_id) override;
     std::string current_model_id() const override;
     bool is_mock() const override { return false; }
@@ -82,6 +104,7 @@ public:
     RvcParameters parameters() const override { return parameters_; }
     bool set_parameters(const RvcParameters& parameters) override;
     bool supports_quality_streaming() const override;
+    bool supports_realtime_streaming() const override;
 
     std::shared_ptr<ModelManager> model_manager() const { return model_manager_; }
 
@@ -111,7 +134,9 @@ public:
         uint32_t output_sample_rate = 48000,
         const std::string& device = "cuda",
         bool half = false,
-        RvcParameters parameters = {}
+        RvcParameters parameters = {},
+        const std::optional<std::filesystem::path>& realtime_hubert_path = std::nullopt,
+        const std::optional<std::filesystem::path>& realtime_rmvpe_path = std::nullopt
     );
 };
 

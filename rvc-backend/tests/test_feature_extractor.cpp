@@ -32,6 +32,8 @@ void test_feature_extractor_init() {
     );
     CHECK(!fe.is_hubert_loaded());
     CHECK(!fe.is_rmvpe_loaded());
+    CHECK(!fe.supports_realtime_hubert_samples(44800));
+    CHECK(!fe.supports_realtime_rmvpe_frames(32));
 
     std::cout << "  [OK]\n";
 }

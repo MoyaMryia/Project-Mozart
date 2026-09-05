@@ -1,5 +1,6 @@
 // trt_engine.cpp — TensorRT 10 直载实现（见头文件）
 #include "rvc/trt_engine.hpp"
+#include "rvc/profile.hpp"
 #include <spdlog/spdlog.h>
 #include <fstream>
 #include <cstring>
@@ -174,6 +175,7 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
     if (!context_) throw std::runtime_error("TRT engine not loaded");
     auto* context = static_cast<nvinfer1::IExecutionContext*>(context_);
     auto* stream = static_cast<cudaStream_t>(stream_);
+    const auto profile_start = profile::Clock::now();
 
     auto find_tensor = [&](const std::string& name) -> Tensor* {
         for (auto& t : tensors_) {
@@ -224,6 +226,7 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
         }
         context->setTensorAddress(tensor.name.c_str(), tensor.dev);
     }
+    const auto profile_shapes = profile::Clock::now();
 
     // H2D：按引擎实际 dtype 拷贝（int64 输入若引擎是 int32 则降转换）
     for (const auto& input : inputs) {
@@ -257,10 +260,12 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
             throw std::runtime_error("cudaMemcpyAsync H2D failed for " + std::string(input.name));
         }
     }
+    const auto profile_h2d = profile::Clock::now();
 
     if (!context->enqueueV3(stream)) {
         throw std::runtime_error("enqueueV3 failed");
     }
+    const auto profile_enqueue = profile::Clock::now();
 
     // The D2H copy is ordered after inference on the same stream, so a separate
     // pre-copy synchronization only adds a host round trip.
@@ -268,12 +273,29 @@ std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
     for (const auto& t : tensors_) {
         if (t.is_input) continue;
         std::vector<float> out(t.elems);
+        const auto profile_output_alloc = profile::Clock::now();
         if (cudaMemcpyAsync(out.data(), t.dev, t.elems * sizeof(float),
                             cudaMemcpyDeviceToHost, stream) != cudaSuccess) {
             throw std::runtime_error("cudaMemcpyAsync D2H failed for " + t.name);
         }
+        const auto profile_d2h = profile::Clock::now();
         if (cudaStreamSynchronize(stream) != cudaSuccess) {
             throw std::runtime_error("cudaStreamSynchronize failed for " + t.name);
+        }
+        if (profile::enabled()) {
+            const auto profile_done = profile::Clock::now();
+            spdlog::info(
+                "[profile][trt:{}] shape_alloc={:.3f}ms input_h2d_call={:.3f}ms "
+                "enqueue_call={:.3f}ms output_alloc={:.3f}ms d2h_call={:.3f}ms "
+                "sync_wait={:.3f}ms total={:.3f}ms",
+                inputs.empty() ? "unknown" : inputs.front().name,
+                profile::elapsed_ms(profile_start, profile_shapes),
+                profile::elapsed_ms(profile_shapes, profile_h2d),
+                profile::elapsed_ms(profile_h2d, profile_enqueue),
+                profile::elapsed_ms(profile_enqueue, profile_output_alloc),
+                profile::elapsed_ms(profile_output_alloc, profile_d2h),
+                profile::elapsed_ms(profile_d2h, profile_done),
+                profile::elapsed_ms(profile_start, profile_done));
         }
         return out;
     }
