@@ -24,6 +24,9 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
 - [x] **低延迟 upstream realtime profile（2026-09-05）**：240ms block + 2.5s rolling past + pitch cache + split Generator + SOLA；首帧约 320ms，试听验收合格
 - [x] **live 麦克风实测**：HK MIC（ff0f:0001）契约与实测完全一致，mozart-pre live 250 帧无 overrun；板载增益已顶满（15.6dB）
 - [x] **产品决策更新**：TTS 从"不做"改为 demo 可选"读出来"开关。`tools/tts_service.py`（Matcha 中文 TTS）已落地，`tools/demo_fullchain.py --speak` 已验证；STT 选型定向 sherpa-onnx 流式（详见 P2）
+- [x] **过期二进制排查与重建（2026-09-05 下午会话）**：`rvc-backend/build`（9/1 编）与 `preprocessor/build`（8/30 编）落后于源码，加载 `qiqi-zh-realtime` 报 "Model files missing"。已重建两者；确认顶层 `build-gpu/`（当日 16:1x，晚于最后一次提交）为最新全组件构建，`mozart-pre` / `mozart_stated` / `libmozart_monitor` 均可执行验证通过。踩坑细节见 §3
+- [x] **低延迟 realtime UDP 端到端重放验证（2026-09-05）**：新二进制 + `rvc-golden/qiqi-zh-run/backend.yaml`（UDP 18101 / HTTP 18181），`tools/stream_audio_udp.py` 假麦送 18s espeak 中文输入 → 88 块推理，0 inference error / 0 late block / 0 reset / 0 丢包，输出 18.12s@48kHz（mean -21.5dB / peak -0.8dB）；16 个冷启动 underrun 由 `--trim-leading-underruns` 裁掉。realtime 资产（hubert/rmvpe-realtime + split front/decoder）全部 TensorRT 直载
+- [x] **FILE_RVC HTTP 全链验证（2026-09-05）**：`/api/mode/switch` → `/api/file/convert` → `/api/file/status?job_id=` → `/api/file/result`，de_narrator 输出 18.1s@48kHz 正常（mean -21.5dB / peak -1.7dB）。注意 `/api/file/status` 不带 `job_id` 时返回 "job not found"
 
 ---
 
@@ -115,6 +118,7 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
 - ❌ **MTP 投机解码救 CPU**：draft 开销 > 收益（5.4 → 2.2 t/s）。
 - ❌ **Q4 在 CPU 上比 Q8 快**：该架构（线性注意力）不成立，两者都是 ~5 t/s。
 - ⚠️ **不设 `-c 2048` 跑 llama**：默认 262144 上下文 → 峰值 4.7GB，8GB 板会 OOM。
+- ⚠️ **改源码后忘重编**：9/5 低延迟 realtime 代码合入后，旧 `rvc-backend/build` 二进制（9/1 编）加载 `qiqi-zh-realtime` 报 "Model files missing"——旧代码没有 split realtime 资产概念，报错文案有误导性。验证前先核对二进制 mtime 晚于最后一次源码改动；当前可信构建是顶层 `build-gpu/`（ninja 全组件）与重建后的 `rvc-backend/build`、`preprocessor/build`。
 
 ---
 
@@ -133,3 +137,21 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
 | .pth 音色权重（4 个） | `~/models/` |
 
 > `/tmp/opencode/` 原件可删；下次实验若需重建 llama.cpp/TRT 引擎，归档 README 里有完整编译/构建命令。
+
+---
+
+## 5. USB 声卡形态（2026-09-06 已定案，见 usb-gadget/DECISION.md）
+
+**结论**：Tegra234 XUDC device mode 不支持 ISO 端点（NVIDIA 文档明示 + 实测
+ISO 流必现 ring underrun 0xe，软件修复候选全部无效），标准 UAC1/UAC2 USB
+声卡在本机不可实现。gadget 路线锁死关闭，系统已恢复官方状态
+（`usb-gadget/RESTORE-20260906.md`）。
+
+- [x] 根因调查与证据归档：`usb-gadget/candidate/`、`iso-test-20260906/`、
+  `completion-test-20260906/`、`crash-20260905-serial-test/`
+- [x] 系统恢复：initrd / tegra-xudc.ko / 服务全部还原为官方原件
+- [x] **最终方案**：USB→3.5mm 声卡小尾巴插 Jetson USB-A host 口
+  （免驱 UAC），3.5mm 线进电脑麦克风口；`mozart-pre -o plughw:<小尾巴>`
+  联调，板端零内核改动
+- [ ] 采购对录线/小尾巴（验收标准见 `usb-gadget/DECISION.md`）
+- [ ] `mozart-pre -o plughw:<小尾巴>` 端到端联调（线到货后 10 分钟级）

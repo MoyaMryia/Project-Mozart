@@ -1,0 +1,910 @@
+Oops#1 Part1
+<6>[    8.660365] /bus@0/aconnect@2900000/ahub@2900800/adx@2903800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660380] /bus@0/aconnect@2900000/ahub@2900800/adx@2903900: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660395] /bus@0/aconnect@2900000/ahub@2900800/adx@2903a00: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660410] /bus@0/aconnect@2900000/ahub@2900800/adx@2903b00: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660427] /bus@0/aconnect@2900000/ahub@2900800/processing-engine@2908000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660441] /bus@0/aconnect@2900000/ahub@2900800/mvc@290a000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660455] /bus@0/aconnect@2900000/ahub@2900800/mvc@290a200: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660468] /bus@0/aconnect@2900000/ahub@2900800/amixer@290bb00: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.660488] /bus@0/aconnect@2900000/ahub@2900800/admaif@290f000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.662640] /bus@0/aconnect@2900000/ahub@2900800/asrc@2910000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    8.665694] CAN device driver interface
+<6>[    8.671416] tegra-dce d800000.dce: Adding to iommu group 35
+<6>[    8.671491] tegra-dce d800000.dce: dce-reset not supported in dce kmd
+<6>[    8.671496] tegra-dce d800000.dce: Setting DCE HSP functions for tegra234-dce
+<6>[    8.672464] dce: dce_ipc_channel_init_unlocked:248  Invalid Channel State [0x0] for ch_type [2]
+<6>[    8.673265] dce: tegra_dce_probe:370  Found display consumer device
+<6>[    8.673700] dce: dce_admin_send_cmd_ver:824  version : dcefw:[0x4] dcekmd:[0x4] err : [0x0]
+<6>[    8.673929] dce: dce_admin_setup_clients_ipc:1002 Channel Reset Complete for Type [1] ...
+<6>[    8.673933] dce: dce_admin_setup_clients_ipc:978  Get queue info failed for [2]
+<6>[    8.674152] dce: dce_admin_setup_clients_ipc:1002 Channel Reset Complete for Type [3] ...
+<6>[    8.674729] dce: dce_start_boot_flow:207  DCE_BOOT_DONE
+<6>[    8.684818] thermal-trip-event cpu-throttle-alert: cooling device registered.
+<6>[    8.694301] tegra234-aon c000000.aon: Adding to iommu group 36
+<6>[    8.694657] input: NVIDIA Jetson Orin Nano HDA HDMI/DP,pcm=3 as /devices/platform/bus@0/3510000.hda/sound/card1/input11
+<6>[    8.694808] input: NVIDIA Jetson Orin Nano HDA HDMI/DP,pcm=7 as /devices/platform/bus@0/3510000.hda/sound/card1/input12
+<6>[    8.694943] input: NVIDIA Jetson Orin Nano HDA HDMI/DP,pcm=8 as /devices/platform/bus@0/3510000.hda/sound/card1/input13
+<6>[    8.694944]  c000000.aon:hsp: probed
+<6>[    8.695030] input: NVIDIA Jetson Orin Nano HDA HDMI/DP,pcm=9 as /devices/platform/bus@0/3510000.hda/sound/card1/input14
+<6>[    8.695064] tegra234-aon c000000.aon: init done
+<6>[    8.696188] gic 2a41000.interrupt-controller: GIC IRQ controller registered
+<6>[    8.700946] thermal-trip-event gpu-throttle-alert: cooling device registered.
+<6>[    8.706491] thermal-trip-event cv0-throttle-alert: cooling device registered.
+<6>[    8.715287] tegra-aconnect bus@0:aconnect@2900000: Tegra ACONNECT bus registered
+<6>[    8.716747] tegra194-pcie 140a0000.pcie: PCIe Gen.1 x1 link up
+<6>[    8.717628] tegra194-pcie 140a0000.pcie: PCI host bridge to bus 0008:00
+<6>[    8.717638] pci_bus 0008:00: root bus resource [bus 00-ff]
+<6>[    8.717642] pci_bus 0008:00: root bus resource [mem 0x3240000000-0x3527ffffff pref]
+<6>[    8.717646] pci_bus 0008:00: root bus resource [mem 0x3528000000-0x352fffffff] (bus address [0x40000000-0x47ffffff])
+<6>[    8.717649] pci_bus 0008:00: root bus resource [io  0x300000-0x3fffff] (bus address [0x2a100000-0x2a1fffff])
+<6>[    8.717865] pci 0008:00:00.0: [10de:229c] type 01 class 0x060400 PCIe Root Port
+<6>[    8.717897] pci 0008:00:00.0: PCI bridge to [bus 01-ff]
+<6>[    8.717906] pci 0008:00:00.0:   bridge window [io  0x0000-0x0fff]
+<6>[    8.717911] pci 0008:00:00.0:   bridge window [mem 0x00000000-0x000fffff]
+<6>[    8.717922] pci 0008:00:00.0:   bridge window [mem 0x00000000-0x000fffff 64bit pref]
+<6>[    8.718039] pci 0008:00:00.0: PME# supported from D0 D3hot
+<6>[    8.720189] TT CAN feature is not supported
+<6>[    8.721232] 	 Message RAM Configuration
+<6>[    8.721232] 	| base addr   |0x0c312000|
+<6>[    8.721232] 	| sidfc_flssa |0x00000000|
+<6>[    8.721232] 	| xidfc_flesa |0x00000040|
+<6>[    8.721232] 	| rxf0c_f0sa  |0x000000c0|
+<6>[    8.721232] 	| rxf1c_f1sa  |0x000009c0|
+<6>[    8.721232] 	| rxbc_rbsa   |0x000009c0|
+<6>[    8.721232] 	| txefc_efsa  |0x000009c0|
+<6>[    8.721232] 	| txbc_tbsa   |0x00000a40|
+<6>[    8.721232] 	| tmc_tmsa    |0x00000ec0|
+<6>[    8.721232] 	| mram size   |0x00001000|
+<6>[    8.724683] Release 3.2.3 from 09.06.2018
+<6>[    8.725409] pci 0008:01:00.0: [10ec:8168] type 00 class 0x020000 PCIe Endpoint
+<6>[    8.725891] pci 0008:01:00.0: BAR 0 [io  0x0000-0x00ff]
+<6>[    8.725934] pci 0008:01:00.0: BAR 2 [mem 0x00000000-0x00000fff 64bit]
+<6>[    8.725962] pci 0008:01:00.0: BAR 4 [mem 0x00000000-0x00003fff 64bit]
+<6>[    8.726627] thermal-trip-event cv1-throttle-alert: cooling device registered.
+<6>[    8.726965] pci 0008:01:00.0: supports D1 D2
+<6>[    8.726969] pci 0008:01:00.0: PME# supported from D0 D1 D2 D3hot D3cold
+<6>[    8.733210] net can0: mttcan device registered (regs=0000000063293abd, irq=214)
+<6>[    8.767715] thermal-trip-event cv2-throttle-alert: cooling device registered.
+<6>[    8.768981] pci 0008:00:00.0: bridge window [mem 0x3528000000-0x35280fffff]: assigned
+<6>[    8.768992] pci 0008:00:00.0: bridge window [io  0x300000-0x300fff]: assigned
+<6>[    8.768999] pci 0008:01:00.0: BAR 4 [mem 0x3528000000-0x3528003fff 64bit]: assigned
+<6>[    8.769093] pci 0008:01:00.0: BAR 2 [mem 0x3528004000-0x3528004fff 64bit]: assigned
+<6>[    8.769190] pci 0008:01:00.0: BAR 0 [io  0x300000-0x3000ff]: assigned
+<6>[    8.769319] pci 0008:00:00.0: PCI bridge to [bus 01-ff]
+<6>[    8.769324] pci 0008:00:00.0:   bridge window [io  0x300000-0x300fff]
+<6>[    8.769328] pci 0008:00:00.0:   bridge window [mem 0x3528000000-0x35280fffff]
+<6>[    8.769337] pci_bus 0008:00: resource 4 [mem 0x3240000000-0x3527ffffff pref]
+<6>[    8.769339] pci_bus 0008:00: resource 5 [mem 0x3528000000-0x352fffffff]
+<6>[    8.769341] pci_bus 0008:00: resource 6 [io  0x300000-0x3fffff]
+<6>[    8.769343] pci_bus 0008:01: resource 0 [io  0x300000-0x300fff]
+<6>[    8.769344] pci_bus 0008:01: resource 1 [mem 0x3528000000-0x35280fffff]
+<6>[    8.769357] pci 0008:00:00.0: Max Payload Size set to  256/ 256 (was  128), Max Read Rq  256
+<6>[    8.769487] pci 0008:01:00.0: Max Payload Size set to  128/ 128 (was  128), Max Read Rq  128
+<6>[    8.769720] pcieport 0008:00:00.0: Adding to iommu group 33
+<6>[    8.769831] pcieport 0008:00:00.0: PME: Signaling with IRQ 203
+<6>[    8.770047] pcieport 0008:00:00.0: AER: enabled with IRQ 203
+<6>[    8.782578] thermal-trip-event soc0-throttle-alert: cooling device registered.
+<6>[    8.829279] irq: IRQ218: trimming hierarchy from :bus@0:pmc@c360000
+<6>[    8.833319] fusb301 1-0025: device id: 0x12
+<6>[    8.842548] thermal-trip-event soc1-throttle-alert: cooling device registered.
+<6>[    8.858931] thermal-trip-event soc2-throttle-alert: cooling device registered.
+<6>[    8.878119] fusb301 1-0025: toggle_time(0) is not updated
+<6>[    8.878456] fusb301 1-0025: fusb301_set_mode: mode (32)(32)
+<6>[    8.878784] fusb301 1-0025: fusb301_detach: type[0x00] chipstate[0x01]
+<6>[    8.878787] fusb301 1-0025: fusb_update_state: 1
+<6>[    8.879569] fusb301 1-0025: mode[0x20], host_cur[0x02], dttime[0x00]
+<6>[    8.883034] thermal-trip-event hot-surface-alert: cooling device registered.
+<6>[    8.906567] Bluetooth: Core ver 2.22
+<6>[    8.906610] NET: Registered PF_BLUETOOTH protocol family
+<6>[    8.906613] Bluetooth: HCI device and connection manager initialized
+<6>[    8.906621] Bluetooth: HCI socket layer initialized
+<6>[    8.906625] Bluetooth: L2CAP socket layer initialized
+<6>[    8.906632] Bluetooth: SCO socket layer initialized
+<6>[    8.910320] ivc-cdev: hypervisor not present
+<14>[    9.002680] modprobe: btusb: not loading in-tree driver, out-of-tree rtk_btusb is present
+<14>[    9.010453] modprobe: btusb: not loading in-tree driver, out-of-tree rtk_btusb is present
+<14>[    9.020302] modprobe: btusb: not loading in-tree driver, out-of-tree rtk_btusb is present
+<14>[    9.025357] modprobe: btusb: not loading in-tree driver, out-of-tree rtk_btusb is present
+<6>[    9.029096] nvsciipc nvsciipc: creating nvsciipc_uid sysfs group
+<6>[    9.029111] nvsciipc nvsciipc: nvsciipc_uid sysfs group: done
+<6>[    9.041682] nvsciipc: Failed to find nvsciipc node
+<6>[    9.041690] nvsciipc: loaded module
+<7>[    9.065875] rtk_btusb: Realtek Bluetooth USB driver ver 3.1.65ab490.20240531-141726
+<7>[    9.065887] rtk_btcoex: rtk_btcoex_init: version: 1.2
+<7>[    9.065890] rtk_btcoex: create workqueue
+<7>[    9.066380] rtk_btcoex: alloc buffers 1792, 2432 for ev and l2
+<6>[    9.066444] rtk_btusb: btusb_probe intf->cur_altsetting->desc.bInterfaceNumber 0
+<7>[    9.066449] rtk_btusb: btusb_probe can_wakeup 1, may wakeup 0
+<7>[    9.066453] rtk_btusb: patch_add
+<7>[    9.066456] rtk_btusb: auto suspend is disabled
+<7>[    9.066459] rtk_btusb: pid = 0x3549
+<7>[    9.066463] rtk_btusb: patch_add: Reset gEVersion to 0xff
+<6>[    9.072369] nvmap_heap_init: nvmap_heap_init: created heap block cache
+<6>[    9.072627] nvmap_init_ivc_queue: nvmap-sci-ipc-ivc-queue property not found
+<6>[    9.072640] nvmap_page_pool_init: Total RAM pages: 1931797
+<6>[    9.072644] nvmap_page_pool_init: nvmap page pool size: 241474 pages (943 MB)
+<7>[    9.076119] rtk_btusb: btusb_probe: done
+<6>[    9.076198] usbcore: registered new interface driver rtk_btusb
+<7>[    9.076311] rtk_btusb: btusb_open start
+<7>[    9.076317] rtk_btusb: btusb_open hdev->promisc ==0
+<7>[    9.076320] rtk_btusb: download_patch start
+<6>[    9.076323] rtk_btusb: chip type value: 0x73
+<6>[    9.076481] nvmap_background_zero_thread: PP zeroing thread starting.
+<7>[    9.077652] rtk_btusb: chip_type->status = 0x0, chip_type->chip = 0xbeef
+<7>[    9.077660] rtk_btusb: HCI reset.
+<7>[    9.088635] rtk_btusb: read_ver_rsp->lmp_subver = 0x8822
+<7>[    9.088645] rtk_btusb: read_ver_rsp->hci_rev = 0xc
+<7>[    9.088647] rtk_btusb: patch_entry->lmp_sub = 0x8822
+<7>[    9.088648] rtk_btusb: load_firmware start
+<7>[    9.088650] rtk_btusb: lmp_version = 0x8822
+<6>[    9.088652] rtk_btusb: config filename rtl8822cu_config
+<7>[    9.088955] rtk_btusb: no bdaddr file /opt/bdaddr
+<6>[    9.088958] rtk_btusb: Origin cfg len 6
+<7>[    9.088960] rtk_btusb: 55 ab 23 87 00 00
+<6>[    9.088962] rtk_btusb: New cfg len 6
+<7>[    9.088963] rtk_btusb: 55 ab 23 87 00 00
+<7>[    9.088970] rtk_btusb: fw name is  rtl8822cu_fw
+<7>[    9.089598] rtk_btusb: This is not 8723a, use new patch style!
+<7>[    9.089601] rtk_btusb: rtk_get_eversion: gEVersion 255
+<7>[    9.090626] rtk_btusb: eversion->status = 0x0, eversion->version = 0x3
+<7>[    9.090631] rtk_btusb: load_firmware: New gEVersion 3
+<7>[    9.090635] rtk_btusb: rtk_get_fw_project_id: opcode 0, len 1, data 13
+<7>[    9.090638] rtk_btusb: lmp_version is 8822, project_id is 13, match!
+<7>[    9.090640] rtk_btusb: fw_version = 0xefd6d8d7
+<7>[    9.090641] rtk_btusb: number_of_total_patch = 3
+<7>[    9.090643] rtk_btusb: chipID 4
+<7>[    9.090644] rtk_btusb: patch_length 0x8660
+<7>[    9.090645] rtk_btusb: start_offset 0x00005d00
+<7>[    9.090646] rtk_btusb: Svn version: -412133102
+<7>[    9.090647] rtk_btusb: Coexistence: BTCOEX_20210106-2020
+<7>[    9.090649] rtk_btusb: buf_len = 0x8666
+<7>[    9.090666] rtk_btusb: fw: exists, config file: exists
+<7>[    9.090667] rtk_btusb: load_firmware done
+<7>[    9.090678] rtk_btusb: download_data start
+<6>[    9.156008] tegra194-vi5 13e00000.host1x:vi0@15c00000: Adding to iommu group 37
+<6>[    9.160698] tegra194-vi5 13e00000.host1x:vi0@15c00000: vi5_probe: client init done
+<6>[    9.160917] driver not enabled, cannot register any devices
+<6>[    9.160921] tegra194-vi5 13e00000.host1x:vi0@15c00000: Unable to create debugfs entry
+<6>[    9.165582] driver not enabled, cannot register any devices
+<6>[    9.184419] tegra194-vi5 13e00000.host1x:vi1@14c00000: Adding to iommu group 38
+<6>[    9.188898] tegra194-vi5 13e00000.host1x:vi1@14c00000: vi5_probe: client init done
+<6>[    9.189137] driver not enabled, cannot register any devices
+<6>[    9.189142] tegra194-vi5 13e00000.host1x:vi1@14c00000: Unable to create debugfs entry
+<6>[    9.256605] nvvrs-pseq-rtc nvvrs-pseq-rtc: registered as rtc0
+<6>[    9.258632] nvvrs-pseq-rtc nvvrs-pseq-rtc: setting system clock to 2026-09-05T13:32:05 UTC (1788615125)
+<7>[    9.296748] rtk_btusb: download_data done
+<7>[    9.296798] rtk_btusb: HCI reset.
+<7>[    9.308619] rtk_btusb: read_ver_rsp->lmp_subver = 0xd8d7
+<7>[    9.308631] rtk_btusb: read_ver_rsp->hci_rev = 0xefd6
+<7>[    9.308634] rtk_btusb: patch_entry->lmp_sub = 0x8822
+<7>[    9.308644] rtk_btusb: Rtk patch end 0
+<6>[    9.308647] rtk_btusb: chip type value: 0x73
+<6>[    9.308649] rtk_btusb: btusb_open set HCI UP RUNNING
+<6>[    9.308669] rtk_btcoex: Open BTCOEX
+<7>[    9.308671] rtk_btusb: btusb_open end
+<6>[    9.310804] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/i2s@2901100
+<6>[    9.311580] /bus@0/aconnect@2900000/ahub@2900800/i2s@2901100: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.317601] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/i2s@2901300
+<6>[    9.317663] /bus@0/aconnect@2900000/ahub@2900800/i2s@2901300: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<7>[    9.320801] rtk_btcoex: rtk_vendor_cmd_to_fw: opcode 0xfc1b
+<6>[    9.321041] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/sfc@2902000
+<7>[    9.324643] rtk_btcoex: BTCOEX hci_rev 0xefd6
+<7>[    9.324828] rtk_btcoex: BTCOEX lmp_subver 0xd8d7
+<6>[    9.326117] /bus@0/aconnect@2900000/ahub@2900800/sfc@2902000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.339546] rtl88x2ce 0001:01:00.0 wlP1p1s0: renamed from wlan0
+<7>[    9.354651] rtk_btusb: btusb_notify: hci0 evt 3
+<6>[    9.356286] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/sfc@2902200
+<6>[    9.368947] /bus@0/aconnect@2900000/ahub@2900800/sfc@2902200: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.415551] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/sfc@2902400
+<6>[    9.415621] /bus@0/aconnect@2900000/ahub@2900800/sfc@2902400: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.417534] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/sfc@2902600
+<6>[    9.417594] /bus@0/aconnect@2900000/ahub@2900800/sfc@2902600: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.418705] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/amx@2903000
+<6>[    9.418741] /bus@0/aconnect@2900000/ahub@2900800/amx@2903000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.428506] tegra-adma 2930000.dma-controller: Tegra210 ADMA driver registered 32 channels
+<6>[    9.429525] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/amx@2903100
+<6>[    9.429601] /bus@0/aconnect@2900000/ahub@2900800/amx@2903100: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.433968] r8168 0008:01:00.0: Adding to iommu group 33
+<6>[    9.434083] r8168 Gigabit Ethernet driver 8.053.00-NAPI loaded
+<6>[    9.434135] r8168 0008:01:00.0: enabling device (0000 -> 0003)
+<6>[    9.434714] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/amx@2903200
+<6>[    9.434778] /bus@0/aconnect@2900000/ahub@2900800/amx@2903200: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<14>[    9.436776] nv_nvsciipc_init.sh[834]: found /dev/nvsciipc
+<6>[    9.451474] r8168: This product is covered by one or more of the following patents: US6,570,884, US6,115,776, and US6,327,625.
+<6>[    9.455441] nvsciipc: nvsciipc_uid is set as 2000
+<14>[    9.455489] nv_nvsciipc_init.sh[834]: set 2000 to /sys/devices/platform/nvsciipc/nvsciipc_uid
+<6>[    9.456219] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/amx@2903300
+<6>[    9.456298] /bus@0/aconnect@2900000/ahub@2900800/amx@2903300: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.493800] r8168  Copyright (C) 2024 Realtek NIC software team <nicfae@realtek.com> 
+<6>[    9.493800]  This program comes with ABSOLUTELY NO WARRANTY; for details, please see <http://www.gnu.org/licenses/>. 
+<6>[    9.493800]  This is free software, and you are welcome to redistribute it under certain conditions; see <http://www.gnu.org/licenses/>. 
+<6>[    9.495938] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/adx@2903800
+<6>[    9.527739] /bus@0/aconnect@2900000/ahub@2900800/adx@2903800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.582846] nvgpu: 17000000.gpu              nvgpu_get_nvhost_dev:114  [INFO]  host1x device found at iteration 0
+<6>[    9.582846] 
+<6>[    9.582866] nvgpu: 17000000.gpu          nvgpu_nvhost_syncpt_init:156  [INFO]  syncpt_unit_base 60000000 syncpt_unit_size 4000000 size 10000 number of syncpoints 200
+<6>[    9.582866] 
+<6>[    9.585126] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/adx@2903900
+<6>[    9.660900] /bus@0/aconnect@2900000/ahub@2900800/adx@2903900: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.663489] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/adx@2903a00
+<6>[    9.663586] /bus@0/aconnect@2900000/ahub@2900800/adx@2903a00: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.665862] r8168 0008:01:00.0 enP8p1s0: renamed from eth0
+<6>[    9.671598] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/adx@2903b00
+<6>[    9.671742] /bus@0/aconnect@2900000/ahub@2900800/adx@2903b00: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.674973] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/processing-engine@2908000
+<6>[    9.675966] /bus@0/aconnect@2900000/ahub@2900800/processing-engine@2908000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.676181] tegra-xudc 3550000.usb: EP 0 (type: ctrl, dir: out) enabled
+<6>[    9.734429] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/mvc@290a000
+<6>[    9.783704] /bus@0/aconnect@2900000/ahub@2900800/mvc@290a000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.817817] nv_platform 13800000.display: Adding to iommu group 39
+<4>[    9.818069] iommu smmu.0x0000000010000000: IOMMU driver was not able to establish FW requested direct mapping.
+<6>[    9.933912] platform 13800000.display:nvdisplay-niso: Adding to iommu group 40
+<6>[    9.934107] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/mvc@290a200
+<6>[    9.935834] /bus@0/aconnect@2900000/ahub@2900800/mvc@290a200: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.941268] NVRM: loading NVIDIA UNIX Open Kernel Module for aarch64  TempVersion  Release Build  (r595_00)  (buildbrain@03d5624e-58e4-4d2e-841c-817f5277e6d6-bv5r-zgps2)  Mon Jun  1 01:50:50 PM PDT 2026
+<6>[    9.941779] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/amixer@290bb00
+<6>[    9.941840] /bus@0/aconnect@2900000/ahub@2900800/amixer@290bb00: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.949598] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/admaif@290f000
+<6>[    9.949657] /bus@0/aconnect@2900000/ahub@2900800/admaif@290f000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[    9.954809] /bus@0/aconnect@2900000/ahub@2900800: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800/asrc@2910000
+<6>[    9.954862] /bus@0/aconnect@2900000/ahub@2900800/asrc@2910000: Fixed dependency cycle(s) with /bus@0/aconnect@2900000/ahub@2900800
+<6>[   10.059284] nvgpu: 17000000.gpu                    ga10b_init_hal:2237 [INFO]  Semaphore-based GP_GET tracking is not intended for GA10B production drivers
+<6>[   10.059284] 
+<6>[   10.093782] nvidia-modeset: Loading NVIDIA UNIX Open Kernel Mode Setting Driver for aarch64  TempVersion  Release Build  (r595_00)  (buildbrain@03d5624e-58e4-4d2e-841c-817f5277e6d6-bv5r-zgps2)  Mon Jun  1 01:50:53 PM PDT 2026
+<6>[   10.102874] [drm] [nvidia-drm] [GPU ID 0xfffffffe] Loading driver
+<6>[   10.203834] nvgpu: 17000000.gpu                  gk20a_scale_init:648  [INFO]  No specific device tree OPP table, using default frequency table
+<6>[   10.205310] nvgpu: 17000000.gpu                  gk20a_scale_init:680  [INFO]  enabled scaling for GPU
+<6>[   10.205310] 
+<6>[   10.207224] nvgpu: 17000000.gpu                  gk20a_scale_init:694  [INFO]  DevFreq cooling device registered successfully
+<6>[   10.377355] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.411911] tegra210-admaif 290f000.admaif: Adding to iommu group 41
+<6>[   10.414473] nvgpu: 17000000.gpu                 fbp_pg_mask_store:2151 [INFO]  no value change, same mask already set
+<6>[   10.414496] nvgpu: 17000000.gpu                 tpc_pg_mask_store:2240 [INFO]  no value change, same mask already set
+<6>[   10.508451] tegra-audio-graph-card sound: Registered APE graph sound card with DPCM links for AHUB
+<6>[   10.522717] nvsciipc: Failed to find nvsciipc node
+<6>[   10.527811] nvsciipc: set_db start
+<6>[   10.527856] nvsciipc: set_db done
+<6>[   10.530790] Consider using thermal netlink events interface
+<6>[   10.580897] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+<6>[   10.580914] Bluetooth: BNEP filters: protocol multicast
+<6>[   10.580926] Bluetooth: BNEP socket layer initialized
+<6>[   10.584172] tegra-mixer-controls sound:mixer-controls: Begin probe of override control device
+<6>[   10.587268] NET: Registered PF_QIPCRTR protocol family
+<6>[   10.589483] Bluetooth: MGMT ver 1.22
+<6>[   10.595263] NET: Registered PF_ALG protocol family
+<6>[   10.631545] tegra-mixer-controls sound:mixer-controls: Registered override controls for APE sound card
+<6>[   10.633550] [drm] Initialized nvidia-drm 0.0.0 20160202 for 13800000.display on minor 2
+<6>[   10.649136] Console: switching to colour dummy device 80x25
+<6>[   10.874442] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.874685] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.874884] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.875067] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.875244] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.875418] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.875596] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.875772] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.875948] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.876124] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.876308] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.876484] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.876662] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.876899] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.877090] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.877279] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.877464] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.877647] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.877827] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.878006] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.878184] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.878363] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.878540] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.878717] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.878896] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.879070] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.879249] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.879420] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.879595] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.879770] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.879948] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.880123] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.880295] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.880469] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.880645] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.880839] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.881042] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.881228] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.881412] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.881604] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.884857] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.885071] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.885261] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.885446] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.885621] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.885794] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.885969] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.886143] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.886320] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.886494] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.886666] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.886842] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.887017] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.887190] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.887370] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.887544] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.887719] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.887894] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.888070] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.888247] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.888447] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.888619] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.888795] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.888971] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.889160] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.889342] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.889523] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.889698] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.889880] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.890058] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.890237] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.890417] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.890594] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.890772] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.890945] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.891117] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.891306] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.891524] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.891714] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   10.891904] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   11.006830] Console: switching to colour frame buffer device 240x75
+<6>[   11.077684] nv_platform 13800000.display: [drm] fb0: nvidia-drmdrmfb frame buffer device
+<6>[   11.905640] enP8p1s0: 0xffff800080a9d000, 3c:6d:66:be:a2:7f, IRQ 251
+<6>[   12.030605] loop10: detected capacity change from 0 to 8
+<6>[   12.494822] nvgpu: 17000000.gpu                 fbp_pg_mask_store:2151 [INFO]  no value change, same mask already set
+<6>[   12.494856] nvgpu: 17000000.gpu                 tpc_pg_mask_store:2240 [INFO]  no value change, same mask already set
+<6>[   13.560779] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.561131] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.561380] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.561601] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.561818] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.562024] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.562224] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.562438] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.562644] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.562856] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.563058] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.563248] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.563436] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.563618] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.563802] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.563986] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.564167] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.564347] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.564526] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.564702] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.564921] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.565112] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.565299] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.565489] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.565680] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.565868] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.566066] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.566251] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.566433] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.566618] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.566799] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.566987] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.567172] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.567357] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.567536] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.567716] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.567896] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.568076] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.568257] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.568437] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.568616] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.852281] Bluetooth: RFCOMM TTY layer initialized
+<6>[   13.852306] Bluetooth: RFCOMM socket layer initialized
+<6>[   13.852319] Bluetooth: RFCOMM ver 1.11
+<6>[   13.950719] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.950949] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.951157] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.951386] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.951605] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.951815] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.952015] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.952203] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.952393] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.952581] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.952786] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.953035] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.953252] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.953455] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.953654] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.953847] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.954033] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.954217] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.954402] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.954584] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.954765] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.954945] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.955126] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.955311] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.955493] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.955676] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.955863] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.956047] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.956232] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.956416] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.956596] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.956788] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.957001] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.957192] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.957378] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.957568] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.957758] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.957943] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.958133] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[   13.958314] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<4>[   16.370205] rtl8822ce_interrupt: 89 callbacks suppressed
+<7>[   17.139722] rfkill: input handler disabled
+<46>[   19.100627] systemd-journald[222]: Time jumped backwards, rotating.
+<6>[   20.704931] tegra186-emc 2c60000.external-memory-controller: sync_state() pending due to 15820000.crypto
+<6>[   20.704952] tegra-mc 2c00000.memory-controller: sync_state() pending due to 15820000.crypto
+<6>[   20.704958] tegra186-emc 2c60000.external-memory-controller: sync_state() pending due to 15840000.crypto
+<6>[   20.704964] tegra-mc 2c00000.memory-controller: sync_state() pending due to 15840000.crypto
+<6>[   20.704972] tegra186-emc 2c60000.external-memory-controller: sync_state() pending due to 13e00000.host1x:vi0-thi@15f00000
+<6>[   20.704978] tegra-mc 2c00000.memory-controller: sync_state() pending due to 13e00000.host1x:vi0-thi@15f00000
+<6>[   20.704984] tegra186-emc 2c60000.external-memory-controller: sync_state() pending due to 13e00000.host1x:vi1-thi@14f00000
+<6>[   20.704990] tegra-mc 2c00000.memory-controller: sync_state() pending due to 13e00000.host1x:vi1-thi@14f00000
+<6>[   80.578486] fusb301 1-0025: fusb301_work_handler: int_sts[0x01]
+<6>[   80.579070] fusb301 1-0025: sts[0x21], type[0x10]
+<6>[   80.579410] fusb301 1-0025: fusb301_set_mode: mode (4)(4)
+<6>[   80.579747] fusb301 1-0025: fusb_update_state: a
+<6>[   80.846270] fusb301 1-0025: fusb301_work_handler: int_sts[0x05]
+<6>[   80.846854] fusb301 1-0025: sts[0x2d], type[0x08]
+<6>[   80.846865] fusb301 1-0025: fusb_update_state: 6
+<6>[  521.999452] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  521.999819] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.000055] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.000262] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.000467] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.000657] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.000844] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.001030] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.001221] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.001409] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.001595] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.001782] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.001969] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.002155] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.002340] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.002518] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.002707] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.002897] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.003084] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.003271] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.003458] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.003644] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.003838] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.004027] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.004222] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.004417] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.004605] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.004793] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.004989] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.005176] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.005359] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.005545] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.005727] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.005914] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.006099] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.006288] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.006472] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.006648] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.006832] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.007019] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  522.007205] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.412934] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.413181] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.413392] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.413597] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.413797] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.413996] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.414196] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.414391] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.414589] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.414786] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.414984] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.415178] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.415373] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.415562] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.415757] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.415949] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.416140] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.416334] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.416527] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.416722] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.416921] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.417120] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.417315] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.417506] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.417691] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.417886] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.418078] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.418275] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.418471] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.418668] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.418863] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.419063] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.419253] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.419447] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.419643] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.419840] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.420036] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.420233] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.420432] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  532.420628] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.379781] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.380171] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.380415] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.380630] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.380826] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.381016] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.381213] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.381411] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.381604] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.381799] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.381991] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.382184] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.382377] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.382594] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.382783] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.382971] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.383162] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.383347] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.383537] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.383723] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.383921] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.384118] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.384313] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.384507] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.384700] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.384892] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.385088] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.385283] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.385472] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.385672] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.385864] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.386060] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.386254] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.386451] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.386640] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.386850] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.387040] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.387231] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.387420] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.387610] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  563.387804] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.270928] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.271184] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.271407] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.271643] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.271913] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.272149] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.272371] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.272591] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.272789] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.272985] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.273178] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.273372] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.273573] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.273770] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.273966] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.274160] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.274353] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.274550] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.274741] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.274934] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.275127] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.275320] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.275510] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.275712] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.275909] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.276101] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.276295] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.276486] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.276687] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.276882] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.277083] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.277282] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.277473] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.277666] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.277864] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.278063] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.278254] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.278451] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.278644] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  587.278837] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.641183] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.641560] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.641797] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.642006] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.642201] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.642395] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.642588] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.642781] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.642971] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.643158] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.643348] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.643535] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.643722] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.643907] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.644102] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.644290] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.644476] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.644664] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.644856] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.645059] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.645249] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.645436] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.645617] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.645797] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.645982] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.646165] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.646356] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.646545] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.646727] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.646919] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.647107] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.647296] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.647483] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.647675] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.647861] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.648049] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.648237] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.648424] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.648617] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.648799] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  621.648990] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.654168] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.654415] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.654627] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.654826] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.655030] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.655227] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.655417] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.655611] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.655809] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.656006] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.656199] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.656391] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.656584] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.656784] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.656984] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.657177] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.657374] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.657568] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.657758] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.657952] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.658144] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.658334] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.658523] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.658716] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.658913] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.659112] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.659305] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.659501] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.659692] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.659885] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.660081] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.660275] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.660469] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.660662] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.660855] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.661049] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.661245] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.661437] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.661629] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  628.661819] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.730830] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.731201] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.731433] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.731630] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.731901] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.732131] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.732324] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.732537] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.732743] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.732950] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.733149] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.733348] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.733532] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.733711] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.733893] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.734073] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.734252] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.734443] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.734653] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.734854] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.735050] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.735235] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.735424] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.735608] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.735785] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.735975] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.736188] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.736389] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.736598] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.736802] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.736993] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.737178] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.737363] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.737546] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.737727] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.737920] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.738137] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.738478] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.738690] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.738892] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  651.739081] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<7>[  651.780757] rfkill: input handler enabled
+<6>[  652.197716] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.197930] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.198115] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.198298] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.198499] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.198705] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.198898] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.199081] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.199257] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.199436] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.199610] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.199786] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.199959] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.200140] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.200317] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.200501] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.200680] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.200866] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.201070] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.201289] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.201491] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.201689] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.201888] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.202085] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.202271] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.202457] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.202641] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.202823] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.203006] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.203185] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.203362] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.203538] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.203731] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.203952] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.204166] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.204370] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.204581] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.204794] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.204997] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<6>[  652.205191] NVRM: GPU0 rpcRmApiControl_dce: NVRM_RPC_DCE: Failed RM ctrl call cmd:0x731341 result 0xffff: Failure: Generic Error [NV_ERR_GENERIC]
+<7>[  656.136016] rfkill: input handler disabled
+<6>[ 1591.763735] fusb301 1-0025: fusb301_work_handler: int_sts[0x04]
+<6>[ 1591.770234] fusb301 1-0025: fusb301_work_handler: int_sts[0x02]
+<6>[ 1591.770252] fusb301 1-0025: fusb301_detach: type[0x08] chipstate[0x06]
+<6>[ 1591.770773] fusb301 1-0025: fusb301_set_mode: mode (32)(32)
+<6>[ 1591.771120] fusb301 1-0025: fusb_update_state: 1
+<6>[ 2190.353601] fusb301 1-0025: fusb301_work_handler: int_sts[0x05]
+<6>[ 2190.354191] fusb301 1-0025: sts[0x2d], type[0x08]
+<6>[ 2190.354199] fusb301 1-0025: fusb_update_state: 6
+<6>[ 2380.520539] fusb301 1-0025: fusb301_work_handler: int_sts[0x04]
+<6>[ 2380.535057] fusb301 1-0025: fusb301_work_handler: int_sts[0x02]
+<6>[ 2380.535079] fusb301 1-0025: fusb301_detach: type[0x08] chipstate[0x06]
+<6>[ 2380.535154] fusb301 1-0025: fusb_update_state: 1
+<6>[ 2416.204660] tegra-xudc 3550000.usb: ep 0 disabled
+<6>[ 2416.209240] tegra-xudc 3550000.usb: EP 0 (type: ctrl, dir: out) enabled
+<6>[ 2448.152800] fusb301 1-0025: fusb301_work_handler: int_sts[0x05]
+<6>[ 2448.153393] fusb301 1-0025: sts[0x2d], type[0x08]
+<6>[ 2448.153401] fusb301 1-0025: fusb_update_state: 6
+<6>[ 2534.512790] fusb301 1-0025: fusb301_work_handler: int_sts[0x04]
+<6>[ 2534.527369] fusb301 1-0025: fusb301_work_handler: int_sts[0x02]
+<6>[ 2534.527391] fusb301 1-0025: fusb301_detach: type[0x08] chipstate[0x06]
+<6>[ 2534.527459] fusb301 1-0025: fusb_update_state: 1
+<6>[ 2633.545893] fusb301 1-0025: fusb301_work_handler: int_sts[0x05]
+<6>[ 2633.546486] fusb301 1-0025: sts[0x2d], type[0x08]
+<6>[ 2633.546494] fusb301 1-0025: fusb_update_state: 6
+<6>[ 2709.715475] fusb301 1-0025: fusb301_work_handler: int_sts[0x04]
+<6>[ 2709.730044] fusb301 1-0025: fusb301_work_handler: int_sts[0x02]
+<6>[ 2709.730060] fusb301 1-0025: fusb301_detach: type[0x08] chipstate[0x06]
+<6>[ 2709.730117] fusb301 1-0025: fusb_update_state: 1
+<6>[ 2721.562514] fusb301 1-0025: fusb301_work_handler: int_sts[0x05]
+<6>[ 2721.563324] fusb301 1-0025: sts[0x2d], type[0x08]
+<6>[ 2721.563341] fusb301 1-0025: fusb_update_state: 6
+<4>[ 2829.727651] nvme nvme0: I/O tag 223 (90df) QID 5 timeout, completion polled
+<6>[ 3299.505474] fusb301 1-0025: fusb301_work_handler: int_sts[0x04]
+<6>[ 3299.518862] fusb301 1-0025: fusb301_work_handler: int_sts[0x02]
+<6>[ 3299.518875] fusb301 1-0025: fusb301_detach: type[0x08] chipstate[0x06]
+<6>[ 3299.518944] fusb301 1-0025: fusb_update_state: 1
+<6>[ 3332.545553] tegra-xudc 3550000.usb: ep 0 disabled
+<6>[ 3332.549969] tegra-xudc 3550000.usb: EP 0 (type: ctrl, dir: out) enabled
+<6>[ 3373.822586] fusb301 1-0025: fusb301_work_handler: int_sts[0x05]
+<6>[ 3373.823181] fusb301 1-0025: sts[0x2d], type[0x08]
+<6>[ 3373.823190] fusb301 1-0025: fusb_update_state: 6
+<6>[ 3374.112944] tegra-xudc 3550000.usb: EP 3 (type: intr, dir: in) enabled
+<6>[ 3374.963385] tegra-xudc 3550000.usb: EP 2 (type: isoc, dir: out) enabled
+<6>[ 3374.963450] tegra-xudc 3550000.usb: EP 5 (type: isoc, dir: in) enabled
+<6>[ 3374.963924] tegra-xudc 3550000.usb: ep 5 disabled
+<6>[ 3374.963984] tegra-xudc 3550000.usb: ep 2 disabled
+<6>[ 3374.973735] tegra-xudc 3550000.usb: EP 2 (type: isoc, dir: out) enabled
+<6>[ 3374.973763] tegra-xudc 3550000.usb: EP 5 (type: isoc, dir: in) enabled
+<6>[ 3374.974398] tegra-xudc 3550000.usb: ep 5 disabled
+<6>[ 3374.974454] tegra-xudc 3550000.usb: ep 2 disabled
+<6>[ 3375.015633] tegra-xudc 3550000.usb: EP 7 (type: isoc, dir: in) enabled
+<6>[ 3375.016168] tegra-xudc 3550000.usb: ep 7 disabled
+<6>[ 3375.017921] tegra-xudc 3550000.usb: EP 7 (type: isoc, dir: in) enabled
+<6>[ 3375.018569] tegra-xudc 3550000.usb: ep 7 disabled
+<6>[ 3375.133265] tegra-xudc 3550000.usb: EP 2 (type: isoc, dir: out) enabled
+<6>[ 3375.133331] tegra-xudc 3550000.usb: EP 5 (type: isoc, dir: in) enabled
+<6>[ 3375.133741] tegra-xudc 3550000.usb: ep 5 disabled
+<6>[ 3375.133807] tegra-xudc 3550000.usb: ep 2 disabled
+<6>[ 3375.135041] tegra-xudc 3550000.usb: EP 2 (type: isoc, dir: out) enabled
+<6>[ 3375.135072] tegra-xudc 3550000.usb: EP 5 (type: isoc, dir: in) enabled
+<3>[ 3375.136936] tegra-xudc 3550000.usb: completion error 0xe on EP 5
+<3>[ 3375.138936] tegra-xudc 3550000.usb: completion error 0xf on EP 2
+<6>[ 3375.140914] ------------[ cut here ]------------
+<2>[ 3375.140918] kernel BUG at mm/slub.c:553!
+<0>[ 3375.141033] Internal error: Oops - BUG: 00000000f2000800 [#1] PREEMPT SMP
+<6>[ 3375.141040] Modules linked in: rfcomm xt_conntrack xt_MASQUERADE xt_set ip_set nft_chain_nat nf_nat nf_conntrack nf_defrag_ipv6 nf_defrag_ipv4 xt_addrtype nft_compat nf_tables libcrc32c vxlan ip6_udp_tunnel udp_tunnel algif_hash algif_skcipher af_alg qrtr snd_soc_tegra_controls(O) bnep snd_soc_tegra_utils(O) snd_soc_tegra210_admaif snd_soc_tegra186_asrc snd_soc_tegra_pcm snd_soc_tegra210_mixer snd_soc_tegra210_ope nvidia_drm(O) snd_soc_tegra210_mvc snd_soc_tegra210_adx snd_soc_tegra210_amx snd_soc_tegra210_i2s snd_soc_tegra210_sfc nvidia_modeset(O) governor_pod_scaling(O) nvidia(O) nvgpu(O) r8168(O) f_uac2(OE) u_audio(OE) tegra210_adma libcomposite snd_soc_tegra210_ahub spidev nvvrs_pseq_rtc(O) nvhost_nvcsi(O) nvhost_vi5(O) nvmap(O) rtk_btusb(O) btrtl snd_soc_tegra_audio_graph_card btintel nvsciipc(O) btmtk btbcm bluetooth ivc_cdev(O) ecdh_generic tegra234_oc_event(O) crct10dif_ce snd_soc_audio_graph_card snd_soc_simple_card_utils ecc ina3221 fusb301(O) nvpmodel_clk_cap(O) arm_dsu_pmu mttcan(O) tegra_bpmp_bwmgr(O)
+<6>[ 3375.141185]  tegra234_aon(O) tegra_cactmon_mc_all(O) nvpps(O) tegra_dce(O) can_dev thermal_trip_event(O) snd_hda_codec_hdmi tegra_aconnect snd_hda_tegra snd_hda_codec snd_hda_core nvidia_vrs_pseq(O) rtl8822ce(O) pwm_tegra_tachometer(O) cfg80211 spi_tegra114 optee_rng rfkill ramoops rng_core reed_solomon at24 mc_hwpm(O) host1x_fence(O) tpm_ftpm_tee camera_diagnostics(O) nvhost_isp5(O) tegra_capture_isp(O) tegra_camera(O) v4l2_dv_timings host1x_nvhost(O) tegra_drm(O) tegra_wmark(O) nvhwpm(O) drm_display_helper drm_dp_aux_bus cec host1x(O) tegra_camera_platform(O) mc_utils(O) capture_ivc(O) v4l2_fwnode v4l2_async videobuf2_dma_contig videobuf2_memops videobuf2_v4l2 videodev videobuf2_common mc camchar(O) rtcpu_debug(O) tegra_camera_rtcpu(O) ivc_bus(O) hsp_mailbox_client(O) br_netfilter bridge stp llc nvme_fabrics fuse nfnetlink ip_tables x_tables ipv6 pwm_fan pwm_tegra tegra_bpmp_thermal tegra_xudc(OE) uas ucsi_ccg typec_ucsi typec nvme nvme_core phy_tegra194_p2u pcie_tegra194
+<6>[ 3375.141338] CPU: 0 PID: 0 Comm: swapper/0 Tainted: G           OE      6.8.12-1021-tegra #1
+<6>[ 3375.141345] Hardware name: NVIDIA NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super/Jetson, BIOS 39.2.0-gcid-45755727 06/01/2026
+<6>[ 3375.141349] pstate: 604000c9 (nZCv daIF +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+<6>[ 3375.141356] pc : kfree+0x25c/0x2f4
+<6>[ 3375.141373] lr : u_audio_iso_fback_complete+0xe4/0x100 [u_audio]
+<6>[ 3375.141386] sp : ffff800080003ba0
+<6>[ 3375.141388] x29: ffff800080003bb0 x28: ffff000085654080 x27: ffffba7b1d7d3ad0
+<6>[ 3375.141396] x26: 0000000000000000 x25: 0000000000000000 x24: ffff00016bd5ca00
+<6>[ 3375.141402] x23: ffff000085654098 x22: ffffba7aeca147e0 x21: ffff000080001200
+<6>[ 3375.141408] x20: ffff0000869f9100 x19: fffffc00021a7e40 x18: 0000000000000009
+<6>[ 3375.141414] x17: 0000000000000001 x16: ffffba7b1ada3468 x15: 0000000080000000
+<6>[ 3375.141420] x14: 0000000000000004 x13: 0000000000000001 x12: 0000000000000008
+<6>[ 3375.141426] x11: ffff000085be6ea0 x10: 0000000085be6000 x9 : 00000000fffd4000
+<6>[ 3375.141432] x8 : 0000000000000001 x7 : ffff800080003ad0 x6 : 00000000000fffff
+<6>[ 3375.141438] x5 : 0000000000000000 x4 : ffffba7b1ce8acf0 x3 : 0000000000369800
+<6>[ 3375.141444] x2 : ffff00016bd5ca88 x1 : ffff0000869f9100 x0 : ffff0000869f9100
+<6>[ 3375.141451] Call trace:
+<6>[ 3375.141455]  kfree+0x25c/0x2f4
+<6>[ 3375.141461]  u_audio_iso_fback_complete+0xe4/0x100 [u_audio]
+<6>[ 3375.141467]  usb_gadget_giveback_request+0x2c/0xd0
+<6>[ 3375.141483]  tegra_xudc_req_done+0x88/0xbc [tegra_xudc]
+<6>[ 3375.141494]  __tegra_xudc_ep_disable+0x68/0x1ec [tegra_xudc]
+<6>[ 3375.141499]  tegra_xudc_ep_disable+0x4c/0x80 [tegra_xudc]
+<6>[ 3375.141504]  usb_ep_disable+0x2c/0xf8
+<6>[ 3375.141508]  u_audio_stop_capture+0x9c/0x1c4 [u_audio]
+<6>[ 3375.141513]  afunc_set_alt+0xd4/0x154 [f_uac2]
+<6>[ 3375.141525]  composite_setup+0x568/0x1acc [libcomposite]
+<6>[ 3375.141536]  usb_get_function_instance+0x1734/0x2a60 [libcomposite]
+<6>[ 3375.141543]  tegra_xudc_handle_ep0_setup_packet+0x180/0x62c [tegra_xudc]
+<6>[ 3375.141549]  tegra_xudc_irq+0x87c/0xe88 [tegra_xudc]
+<6>[ 3375.141554]  __handle_irq_event_percpu+0x5c/0x244
+<6>[ 3375.141566]  handle_irq_event+0x4c/0xb8
+<6>[ 3375.141574]  handle_fasteoi_irq+0xa4/0x1c4
+<6>[ 3375.141579]  handle_irq_desc+0x48/0x80
+<6>[ 3375.141586]  generic_handle_domain_irq+0x1c/0x30
+<6>[ 3375.141593]  gic_handle_irq+0x4c/0x12c
+<6>[ 3375.141599]  call_on_irq_stack+0x30/0x48
+<6>[ 3375.141606]  do_interrupt_handler+0x88/0x9c
+<6>[ 3375.141614]  el1_interrupt+0x34/0x70
+<6>[ 3375.141621]  el1h_64_irq_handler+0x18/0x2c
+<6>[ 3375.141625]  el1h_64_irq+0x68/0x6c
+<6>[ 3375.141629]  cpuidle_enter_state+0xc0/0x4c4
+<6>[ 3375.141635]  cpuidle_enter+0x38/0x58
+<6>[ 3375.141644]  do_idle+0x1fc/0x278
+<6>[ 3375.141651]  cpu_startup_entry+0x38/0x3c
+<6>[ 3375.141657]  kernel_init+0x0/0x1ec
+<6>[ 3375.141663]  arch_post_acpi_subsys_init+0x0/0x18
+<6>[ 3375.141673]  start_kernel+0x54c/0x6f4
+<6>[ 3375.141680]  __primary_switched+0xb8/0xc0
+<0>[ 3375.141689] Code: 97fffe98 17ffffa6 a90463f7 f9002bf9 (d4210000) 
+<4>[ 3375.509111] ---[ end trace 0000000000000000 ]---
