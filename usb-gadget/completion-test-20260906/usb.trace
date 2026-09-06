@@ -1,0 +1,452 @@
+           <...>-5640    [004] .....   231.167615: tracing_mark_write: Completion candidate tracing armed before gadget bind
+            bash-5663    [000] dN.1.   231.208535: usb_gadget_set_state: speed 0/5 state 5 0mA [bus-powered:activated:disconnected] --> 0
+          <idle>-0       [000] dNh2.   314.752342: usb_gadget_set_state: speed 0/5 state 5 0mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh1.   314.752366: usb_gadget_set_state: speed 0/5 state 5 100mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh2.   314.752368: usb_gadget_set_state: speed 3/5 state 5 100mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh2.   314.752380: usb_gadget_set_state: speed 3/5 state 5 100mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] d.h2.   314.785382: usb_ep_queue: ep: req 00000000d5b63434 length 0/18 sgs 0/0 stream 0 ZsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.785427: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 18/18 sgs 0/0 stream 0 ZsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.785768: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.785811: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   314.785823: usb_gadget_set_state: speed 3/5 state 6 100mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh2.   314.796341: usb_ep_queue: ep: req 00000000d5b63434 length 0/18 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] dNh1.   314.796372: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 18/18 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.796402: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.808301: usb_ep_queue: ep: req 00000000d5b63434 length 0/255 sgs 0/0 stream 0 zsI status -115 --> 0
+             cat-5658    [000] d.h..   314.808348: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 255/255 sgs 0/0 stream 0 zsI status 0 --> 0
+             cat-5658    [000] d.h..   314.808365: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+             cat-5658    [000] d.h1.   314.808434: usb_ep_queue: ep: req 00000000d5b63434 length 0/269 sgs 0/0 stream 0 zsI status -115 --> 0
+             cat-5658    [000] d.h..   314.808465: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 269/269 sgs 0/0 stream 0 zsI status 0 --> 0
+             cat-5658    [000] d.h..   314.808486: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+             cat-5658    [000] d.h1.   314.808543: usb_ep_queue: ep: req 00000000d5b63434 length 0/15 sgs 0/0 stream 0 ZsI status -115 --> 0
+             cat-5658    [000] d.h..   314.808564: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 15/15 sgs 0/0 stream 0 ZsI status 0 --> 0
+             cat-5658    [000] d.h..   314.808586: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h2.   314.808681: usb_ep_queue: ep: req 00000000d5b63434 length 0/22 sgs 0/0 stream 0 ZsI status -115 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.808703: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 22/22 sgs 0/0 stream 0 ZsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.808725: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h1.   314.808776: usb_ep_queue: ep: req 00000000d5b63434 length 0/4 sgs 0/0 stream 0 ZsI status -115 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.808797: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 4/4 sgs 0/0 stream 0 ZsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.808819: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.808881: usb_ep_queue: ep: req 00000000d5b63434 length 0/42 sgs 0/0 stream 0 ZsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.808904: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 42/42 sgs 0/0 stream 0 ZsI status 0 --> 0
+          <idle>-0       [000] dNh1.   314.808929: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh3.   314.823414: usb_gadget_set_state: speed 3/5 state 7 100mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh3.   314.823421: usb_ep_disable: ep1in: mps 1024/1024 streams 16 mult 0 burst 0 addr 81 released:disabled --> 1
+          <idle>-0       [000] dNh4.   314.823428: usb_gadget_set_state: speed 3/5 state 7 100mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh3.   314.823471: usb_ep_enable: ep1in: mps 6/1024 streams 16 mult 1 burst 0 addr 81 released:enabled --> 1
+          <idle>-0       [000] dNh3.   314.823473: usb_ep_disable: ep2in: mps 1024/1024 streams 16 mult 0 burst 0 addr 82 released:disabled --> 1
+          <idle>-0       [000] dNh3.   314.823474: usb_ep_disable: ep1out: mps 1024/1024 streams 16 mult 0 burst 0 addr 01 released:disabled --> 1
+          <idle>-0       [000] dNh3.   314.823476: usb_ep_disable: ep3in: mps 1024/1024 streams 16 mult 0 burst 0 addr 83 released:disabled --> 1
+          <idle>-0       [000] dNh2.   314.823479: usb_ep_queue: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] dNh1.   314.823500: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+     kworker/0:0-8       [000] d.h2.   314.823523: usb_ep_disable: ep2in: mps 1024/1024 streams 16 mult 0 burst 0 addr 82 released:disabled --> 1
+     kworker/0:0-8       [000] d.h2.   314.823524: usb_ep_disable: ep1out: mps 1024/1024 streams 16 mult 0 burst 0 addr 01 released:disabled --> 1
+     kworker/0:0-8       [000] d.h1.   314.823525: usb_ep_queue: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.823547: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h3.   314.823561: usb_ep_disable: ep3in: mps 1024/1024 streams 16 mult 0 burst 0 addr 83 released:disabled --> 1
+          <idle>-0       [000] d.h2.   314.823562: usb_ep_queue: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.823584: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.825077: usb_ep_queue: ep: req 00000000d5b63434 length 0/4 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.825097: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 4/4 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.825120: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.825551: usb_ep_queue: ep: req 00000000d5b63434 length 0/24 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.825573: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 24/24 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.825593: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.834661: usb_gadget_giveback_request: ep: req 00000000c467f79b length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.834682: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.834990: usb_ep_queue: ep: req 00000000d5b63434 length 0/4 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.835012: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 4/4 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.835035: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.835273: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.835294: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.835316: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.835380: usb_ep_queue: ep: req 00000000d5b63434 length 0/24 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.835404: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 24/24 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.835426: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.836057: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.836079: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   314.836101: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.836172: usb_ep_queue: ep: req 00000000d5b63434 length 0/34 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.836197: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 34/34 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.836219: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.836324: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.836347: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.836369: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.836460: usb_ep_queue: ep: req 00000000d5b63434 length 0/16 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.836484: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 16/16 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.836507: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.836608: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.836631: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.836654: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.836725: usb_ep_queue: ep: req 00000000d5b63434 length 0/30 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.836756: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 30/30 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.836778: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.836896: usb_ep_queue: ep: req 00000000d5b63434 length 0/8 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.836918: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 8/8 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.836940: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.837024: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.837047: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h1.   314.837070: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.837157: usb_ep_queue: ep: req 00000000d5b63434 length 0/18 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.837181: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 18/18 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.837203: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.837365: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] dNh1.   314.837752: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.837791: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h1.   314.837880: usb_ep_queue: ep: req 00000000d5b63434 length 0/16 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.837917: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 16/16 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   314.837932: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.838027: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.838051: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   314.838073: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.838148: usb_ep_queue: ep: req 00000000d5b63434 length 0/32 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.838172: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 32/32 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.838194: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.838287: usb_ep_queue: ep: req 00000000d5b63434 length 0/8 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.838308: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 8/8 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h1.   314.838330: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.838402: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.838425: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.838447: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.838516: usb_ep_queue: ep: req 00000000d5b63434 length 0/18 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.838540: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 18/18 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.838562: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.838686: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.838713: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.838734: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.838806: usb_ep_queue: ep: req 00000000d5b63434 length 0/26 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.838830: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 26/26 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.838852: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839014: usb_ep_queue: ep: req 00000000d5b63434 length 0/14 sgs 0/0 stream 0 ZsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.839038: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 14/14 sgs 0/0 stream 0 ZsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.839061: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839152: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.839176: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.839199: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839276: usb_ep_queue: ep: req 00000000d5b63434 length 0/24 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.839301: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 24/24 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.839323: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839411: usb_ep_queue: ep: req 00000000d5b63434 length 0/14 sgs 0/0 stream 0 ZsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.839436: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 14/14 sgs 0/0 stream 0 ZsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.839458: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839565: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.839588: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.839612: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839677: usb_ep_queue: ep: req 00000000d5b63434 length 0/36 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.839702: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 36/36 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.839724: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839806: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.839829: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.839852: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.839915: usb_ep_queue: ep: req 00000000d5b63434 length 0/32 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] dNh1.   314.840286: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 32/32 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.840323: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h1.   314.840423: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.840457: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.840478: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.840561: usb_ep_queue: ep: req 00000000d5b63434 length 0/34 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.840585: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 34/34 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.840608: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.840689: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.840713: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.840737: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.840808: usb_ep_queue: ep: req 00000000d5b63434 length 0/30 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.840832: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 30/30 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.840855: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.842966: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.905586: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.905603: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.905624: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.908686: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.908708: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   314.908730: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.911199: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.911223: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   314.911248: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   314.911817: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   314.911840: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   314.911863: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.593780: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.593806: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.593822: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.594149: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.594173: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.594195: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.594629: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.594652: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.594680: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.595252: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.595277: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.595299: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.625325: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.625354: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.625372: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.626037: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.626061: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.626083: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.627033: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.627059: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.627082: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.628469: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.628488: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.628503: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.639329: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.639352: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.639375: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.641390: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.641414: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.641441: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.641706: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.641731: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.641753: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.644998: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.645034: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.645046: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.647698: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.647736: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.647768: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.648178: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.648210: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.648225: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.648741: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.648763: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.648823: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.650581: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.650605: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.650626: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.650942: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.650972: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.650994: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.652268: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.652293: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.652315: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.653671: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.653695: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   315.653721: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.653935: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.653961: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   315.653981: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.670365: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.670389: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   315.670412: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.670736: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.670842: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   315.670864: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.671160: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.671183: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   315.671212: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   315.671739: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   315.671763: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   315.671785: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.523729: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   353.523755: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   353.523767: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.523938: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+ notify-rs inoti-3803    [000] d.h1.   353.523966: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   353.523984: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.524172: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   353.524199: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   353.524221: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.524565: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   353.524596: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   353.524950: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.527921: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   353.527957: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   353.527975: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.528250: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   353.528273: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   353.528299: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.528451: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   353.528474: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   353.528496: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   353.528626: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   353.528651: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   353.528673: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.502737: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.502761: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   357.502776: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.503211: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.503232: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   357.503254: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.503723: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.503798: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   357.503821: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.504138: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.504161: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h1.   357.504184: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.505644: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.505672: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.505696: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.506036: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.506060: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.506085: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.506561: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.506583: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.506606: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.507348: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.507372: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.507395: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.509180: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.509204: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h1.   357.509227: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.509379: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.509403: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.509425: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.510051: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.510075: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.510098: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.510264: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.510288: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.510317: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.510968: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.510991: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.511016: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.511212: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.511299: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   357.511658: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.512032: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.512066: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh1.   357.512082: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.512243: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.512266: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.512296: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.525781: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.525805: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   357.525827: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.526246: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.526303: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.526327: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.526711: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.526734: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   357.526802: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   357.527189: usb_ep_queue: ep: req 00000000d5b63434 length 0/1 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   357.527213: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 1/1 sgs 0/0 stream 0 zsI status 0 --> 0
+ notify-rs inoti-3803    [000] d.h..   357.527236: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h3.   357.544330: usb_ep_disable: ep3in: mps 1024/1024 streams 16 mult 0 burst 0 addr 83 released:disabled --> 1
+          <idle>-0       [000] d.h3.   357.544383: usb_ep_enable: ep3in: mps 196/1024 streams 16 mult 1 burst 0 addr 83 released:enabled --> 1
+          <idle>-0       [000] d.h3.   357.544391: usb_ep_queue: ep3in: req 000000000422bd1f length 0/192 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h3.   357.544399: usb_ep_queue: ep3in: req 0000000036c5954d length 0/192 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h2.   357.544414: usb_ep_queue: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] dNh1.   357.544444: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+ systemd-journal-216     [000] d.h3.   357.544899: usb_gadget_giveback_request: ep3in: req 000000000422bd1f length 0/192 sgs 0/0 stream 0 zsI status -108 --> 0
+ systemd-journal-216     [000] d.h3.   357.544906: usb_gadget_giveback_request: ep3in: req 0000000036c5954d length 0/192 sgs 0/0 stream 0 zsI status -108 --> 0
+ systemd-journal-216     [000] d.h3.   357.544929: usb_ep_disable: ep3in: mps 196/1024 streams 16 mult 1 burst 0 addr 83 released:disabled --> 1
+ systemd-journal-216     [000] d.h2.   357.544932: usb_ep_queue: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status -115 --> 0
+ systemd-journal-216     [000] d.h..   357.544960: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+ systemd-journal-216     [000] d.h1.   357.545323: usb_ep_queue: ep: req 00000000d5b63434 length 0/4 sgs 0/0 stream 0 zsI status -115 --> 0
+ systemd-journal-216     [000] d.h..   357.545346: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 4/4 sgs 0/0 stream 0 zsI status 0 --> 0
+ systemd-journal-216     [000] d.h..   357.545366: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+ systemd-journal-216     [000] d.h2.   357.545711: usb_ep_disable: ep3in: mps 196/1024 streams 16 mult 1 burst 0 addr 83 released:disabled --> 1
+ systemd-journal-216     [000] d.h2.   357.545740: usb_ep_enable: ep3in: mps 196/1024 streams 16 mult 1 burst 0 addr 83 released:enabled --> 1
+ systemd-journal-216     [000] d.h2.   357.545746: usb_ep_queue: ep3in: req 000000000422bd1f length 0/192 sgs 0/0 stream 0 zsI status -115 --> 0
+ systemd-journal-216     [000] d.h2.   357.545750: usb_ep_queue: ep3in: req 0000000085d12fc3 length 0/192 sgs 0/0 stream 0 zsI status -115 --> 0
+ systemd-journal-216     [000] d.h1.   357.545761: usb_ep_queue: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status -115 --> 0
+ systemd-journal-216     [000] d.h..   357.545779: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.255114: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.255149: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.255165: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.758403: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.758432: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.758467: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.790617: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.790636: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.790652: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.822826: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.822856: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.822886: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.853108: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.853132: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.853173: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.885186: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.885210: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.885232: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.919217: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.919244: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.919265: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.948678: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.948705: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.949140: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   358.979842: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   358.979873: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   358.980232: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   359.010369: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   359.010402: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   359.010760: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   359.043363: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   359.043393: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   359.043427: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   359.074108: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   359.074127: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   359.074144: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   359.106297: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   359.106327: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   359.106356: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   359.135266: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   359.135291: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   359.135313: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   359.165171: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   359.165197: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   359.165218: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   359.195493: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   359.195519: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   359.195541: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   360.208213: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   360.208248: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   360.208279: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   361.286611: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   361.286643: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   361.286679: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   361.478392: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   361.478423: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   361.478450: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   361.580625: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   361.580654: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   361.581016: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   361.678506: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   361.678536: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   361.678567: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   361.777791: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   361.777818: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   361.777842: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   361.877167: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   361.877194: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   361.877230: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   361.976498: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   361.976527: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   361.976558: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.290694: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.290715: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   362.290750: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.493610: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.493625: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   362.493667: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.591182: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.591210: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   362.591587: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.690571: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.690599: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+      HeapHelper-3674    [000] d.h1.   362.690633: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.789407: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.789433: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   362.789457: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.891270: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.891289: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   362.891306: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.988996: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.989035: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   362.989069: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   362.989572: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   362.989598: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   362.989620: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h2.   364.002640: usb_ep_queue: ep: req 00000000d5b63434 length 0/2 sgs 0/0 stream 0 zsI status -115 --> 0
+          <idle>-0       [000] d.h1.   364.002667: usb_gadget_giveback_request: ep: req 00000000d5b63434 length 2/2 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] d.h1.   364.002700: usb_gadget_giveback_request: ep: req 00000000c467f79b length 0/0 sgs 0/0 stream 0 zsI status 0 --> 0
+          <idle>-0       [000] dNh2.   408.355133: usb_gadget_set_state: speed 3/5 state 8 120mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh2.   408.371184: usb_gadget_set_state: speed 3/5 state 5 2mA [bus-powered:activated:connected] --> 0
+          <idle>-0       [000] dNh1.   408.371211: usb_gadget_giveback_request: ep3in: req 000000000422bd1f length 0/192 sgs 0/0 stream 0 zsI status -108 --> 0
+          <idle>-0       [000] dNh1.   408.371472: usb_gadget_giveback_request: ep3in: req 0000000085d12fc3 length 0/192 sgs 0/0 stream 0 zsI status -108 --> 0
+          <idle>-0       [000] dNh3.   408.371716: usb_ep_disable: ep2in: mps 1024/1024 streams 16 mult 0 burst 0 addr 82 released:disabled --> 1
+          <idle>-0       [000] dNh3.   408.371717: usb_ep_disable: ep1out: mps 1024/1024 streams 16 mult 0 burst 0 addr 01 released:disabled --> 1
+          <idle>-0       [000] dNh3.   408.371741: usb_ep_disable: ep3in: mps 196/1024 streams 16 mult 1 burst 0 addr 83 released:disabled --> 1
+          <idle>-0       [000] dNh3.   408.371764: usb_ep_disable: ep1in: mps 6/1024 streams 16 mult 1 burst 0 addr 81 released:disabled --> 1
+          <idle>-0       [000] dNh2.   408.371768: usb_gadget_set_state: speed 3/5 state 0 0mA [bus-powered:activated:connected] --> 0

@@ -77,3 +77,21 @@ cmake-build-*/
 
 # node_dependencies
 node_modules/
+
+# USB gadget experiment artifacts (evidence in ~/mozart-archive)
+build-gpu/
+
+# USB gadget experiment artifacts (evidence docs kept, binaries ignored)
+build-gpu/
+usb-gadget/**/*.tbz2
+usb-gadget/**/*.ko
+usb-gadget/**/*.o
+usb-gadget/**/*.o.d
+usb-gadget/**/*.cmd
+usb-gadget/**/*.mod
+usb-gadget/**/*.mod.c
+usb-gadget/**/Module.symvers
+usb-gadget/**/modules.order
+usb-gadget/**/.tmp_versions/
+usb-gadget/scratch-*.c
+usb-gadget/tests/__pycache__/
