@@ -63,6 +63,7 @@ public:
         std::atomic<uint64_t> input_overruns{0};    // 输入环溢出丢样本
         std::atomic<uint64_t> output_overruns{0};   // 输出环满丢样本（消费端太慢）
         std::atomic<uint64_t> inference_errors{0};  // 推理异常次数
+        std::atomic<uint64_t> history_resets{0};    // full-history 超容重新锚定次数
     };
 
     explicit StreamingRvc(Config config);
@@ -128,6 +129,7 @@ private:
     bool tail_valid_ = false;    // false = 下一块直接输出不混合
 
     void handle_discontinuity();
+    void reset_full_history_locked();   // 需持 cv_mutex_
     void read_last_window(size_t count, std::vector<float>& dst);
     bool read_prefix(size_t count, std::vector<float>& dst);
     void push_output(const float* data, size_t n);
