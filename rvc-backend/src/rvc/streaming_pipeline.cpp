@@ -75,6 +75,34 @@ void StreamingRvc::handle_discontinuity()
     }
 }
 
+void StreamingRvc::reset_full_history_locked()
+{
+    // 调用者持 cv_mutex_。full-history 窗口超出输入环容量时丢弃旧前缀并
+    // 从当前位置重新锚定；否则 read_prefix 将永久失败、流永久停摆。
+    {
+        std::lock_guard<std::mutex> ring_lk(ring_mutex_);
+        ring_head_ = ring_size_ = 0;
+    }
+    pushed_total_ = 0;
+    owned_ = 0;
+    next_window_start_ = 0;
+    have_window_base_ = false;
+    window_voiced_ = false;
+    std::fill(tail_.begin(), tail_.end(), 0.0f);
+    tail_valid_ = false;
+    {
+        std::lock_guard<std::mutex> out_lk(out_mutex_);
+        out_head_ = out_size_ = 0;
+        output_started_ = false;
+    }
+    ++reset_gen_;
+    stats_.history_resets.fetch_add(1, std::memory_order_relaxed);
+    static std::atomic<uint64_t> logged{0};
+    if (logged.fetch_add(1) < 3) {
+        spdlog::warn("[stream] full-history capacity exceeded; re-anchoring stream");
+    }
+}
+
 void StreamingRvc::push(const mozart_input_frame_t& frame)
 {
     // ---- 不连续检测（push 侧独占状态）----
@@ -149,15 +177,22 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
     bool voiced = false;
     uint64_t pushed_at_window = 0;
     uint64_t window_start = 0;
+    uint64_t window_gen = 0;
 
     {
         std::unique_lock<std::mutex> lk(cv_mutex_);
+        window_gen = reset_gen_.load(std::memory_order_relaxed);
 
         // 等待窗口就绪（try_process_one 语义：不等待，仅检查）
         if (cfg_.full_history) {
             const uint64_t required = next_window_start_ + cfg_.window_samples
                 + cfg_.right_context_samples + cfg_.guard_samples;
-            if (required > cfg_.max_history_samples || pushed_total_ < required) {
+            // 先处理超容：历史前缀已被环丢弃时永远等不到 read_prefix。
+            if (required > cfg_.max_history_samples) {
+                reset_full_history_locked();
+                return false;
+            }
+            if (pushed_total_ < required) {
                 return false;
             }
         } else if (have_window_base_) {
@@ -180,7 +215,11 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
             const size_t inference_end = static_cast<size_t>(window_start)
                 + cfg_.window_samples + cfg_.right_context_samples
                 + cfg_.guard_samples;
-            if (!read_prefix(inference_end, window)) return false;
+            if (!read_prefix(inference_end, window)) {
+                // 环已回绕、前缀被丢弃：重新锚定而不是永久失败
+                reset_full_history_locked();
+                return false;
+            }
             next_window_start_ += hop_in_;
         } else {
             read_last_window(analysis_samples_, window);
@@ -259,6 +298,14 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         tail_valid_ = false;
         push_output_zeros(emit_out_);
         return true;
+    }
+
+    // 推理期间发生不连续重置：本块属于旧流，丢弃（重置路径已清空输出环）
+    {
+        std::lock_guard<std::mutex> lk(cv_mutex_);
+        if (reset_gen_.load(std::memory_order_relaxed) != window_gen) {
+            return true;
+        }
     }
 
     // ---- 块间对齐和拼接 ----
@@ -378,8 +425,10 @@ void StreamingRvc::inference_loop(RVCPipelineBase& pipeline,
             }
             const uint64_t required = next_window_start_ + cfg_.window_samples
                 + cfg_.right_context_samples + cfg_.guard_samples;
+            // full-history 超容不再让 readiness 永久为假：try_process_one
+            // 会在超容时重新锚定并继续出块。
             const bool ready = cfg_.full_history
-                ? required <= cfg_.max_history_samples && pushed_total_ >= required
+                ? pushed_total_ >= required
                 : (have_window_base_
                     ? pushed_total_ - owned_ >= hop_in_
                     : pushed_total_ >= (cfg_.upstream_realtime

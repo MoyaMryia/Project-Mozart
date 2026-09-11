@@ -58,6 +58,7 @@ public:
         uint64_t input_overruns = 0;
         uint64_t output_overruns = 0;
         uint64_t inference_errors = 0;
+        uint64_t history_resets = 0;
         uint64_t output_underruns = 0;
         uint64_t startup_output_underruns = 0;
     };

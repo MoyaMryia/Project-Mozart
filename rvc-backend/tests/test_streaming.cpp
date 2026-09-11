@@ -299,6 +299,33 @@ int main()
               "rolling realtime history is pruned without overrun");
     }
 
+    // ---- 用例 8：full-history 超过历史容量后不永久停摆 ----
+    printf("test_full_history_capacity_reanchor\n");
+    {
+        StreamingRvc::Config cfg;
+        cfg.skip_silence = false;
+        cfg.full_history = true;
+        cfg.window_samples = 32000;
+        cfg.crossfade_out = 2880;
+        cfg.right_context_samples = 0;
+        cfg.guard_samples = 0;
+        cfg.max_history_samples = 96000; // 允许 3 块后超容一次
+        StreamingRvc s(cfg);
+        Upsample3Pipeline pipe;
+
+        uint32_t idx = 1;
+        for (size_t frame = 0; frame < 400; ++frame) {
+            s.push(make_frame(idx++, 1, 0.1f));
+            while (s.try_process_one(pipe)) {}
+        }
+        CHECK(s.stats().blocks.load() >= 3,
+              "stream keeps producing after history capacity is exceeded");
+        CHECK(s.stats().history_resets.load() >= 1,
+              "history capacity triggers a re-anchor");
+        const auto out = drain(s);
+        CHECK(!out.empty(), "post-reanchor output present");
+    }
+
     if (g_fail) {
         printf("\n%d test(s) FAILED\n", g_fail);
         return 1;
