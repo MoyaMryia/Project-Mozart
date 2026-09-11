@@ -16,7 +16,8 @@ namespace {
 std::atomic<bool> shutdown_requested{false};
 
 void signal_handler(int signal) {
-    spdlog::info("Received signal {}, shutting down state manager", signal);
+    (void)signal;
+    // 信号处理器内只置位：spdlog 会加锁/分配，不是 async-signal-safe。
     shutdown_requested.store(true);
 }
 
@@ -40,7 +41,18 @@ int main(int argc, char* argv[]) {
     mozart::StateManagerDaemon daemon(std::move(config));
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
-    if (!daemon.start()) {
+#ifndef _WIN32
+    // 客户端中断下载不应让进程收到 SIGPIPE。
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
+    bool started = false;
+    try {
+        started = daemon.start();
+    } catch (const std::exception& error) {
+        spdlog::error("State manager failed to start: {}", error.what());
+        return 1;
+    }
+    if (!started) {
         spdlog::error("State manager could not start its HTTP control plane");
         return 1;
     }

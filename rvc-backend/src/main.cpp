@@ -16,7 +16,8 @@ using namespace rvc;
 std::atomic<bool> g_shutdown{false};
 
 void signal_handler(int signum) {
-    spdlog::info("Received signal {}, shutting down...", signum);
+    (void)signum;
+    // 信号处理器内只置位：spdlog 不是 async-signal-safe。
     g_shutdown.store(true);
 }
 
@@ -123,6 +124,10 @@ int main(int argc, char* argv[]) {
     // Signal handling
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
+#ifndef _WIN32
+    // 客户端中断下载不应让进程收到 SIGPIPE。
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
 
     // Start servers
     try {
