@@ -39,22 +39,34 @@ bool IndexSearch::parse_ivf_index(const std::filesystem::path& path) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return false;
 
+    const auto truncated = [&](const char* what) {
+        spdlog::error("FAISS IVF index is truncated or corrupt at {}", what);
+        return false;
+    };
+
     char magic[4];
-    f.read(magic, 4);
-    if (std::memcmp(magic, "IwFl", 4) != 0) {
+    if (!f.read(magic, 4) || std::memcmp(magic, "IwFl", 4) != 0) {
         spdlog::error("Not a FAISS IVF index (bad magic)");
         return false;
     }
 
-    uint32_t d, nlist_32;
-    f.read(reinterpret_cast<char*>(&d), 4);
-    f.read(reinterpret_cast<char*>(&nlist_32), 4);
+    uint32_t d = 0, nlist_32 = 0;
+    if (!f.read(reinterpret_cast<char*>(&d), 4)
+        || !f.read(reinterpret_cast<char*>(&nlist_32), 4)) {
+        return truncated("header");
+    }
+    if (d == 0 || d > 65536 || nlist_32 == 0 || nlist_32 > 1000000) {
+        spdlog::error("FAISS IVF index has invalid header: d={}, nlist={}", d, nlist_32);
+        return false;
+    }
     nlist_ = nlist_32;
 
-    spdlog::info("FAISS IVF index: d={}, nlist={}", d, nlist_);
+    int64_t code_size = 0;
+    if (!f.read(reinterpret_cast<char*>(&code_size), 8) || code_size < 0) {
+        return truncated("code_size");
+    }
 
-    int64_t code_size;
-    f.read(reinterpret_cast<char*>(&code_size), 8);
+    spdlog::info("FAISS IVF index: d={}, nlist={}", d, nlist_);
 
     if (d != feature_dim_) {
         spdlog::warn("Index dim {} != expected {}, adjusting", d, feature_dim_);
@@ -64,23 +76,37 @@ bool IndexSearch::parse_ivf_index(const std::filesystem::path& path) {
     centroids_.resize(nlist_);
     for (uint32_t i = 0; i < nlist_; ++i) {
         centroids_[i].resize(feature_dim_);
-        f.read(reinterpret_cast<char*>(centroids_[i].data()),
-               feature_dim_ * sizeof(float));
+        if (!f.read(reinterpret_cast<char*>(centroids_[i].data()),
+                    static_cast<std::streamsize>(feature_dim_ * sizeof(float)))) {
+            return truncated("centroids");
+        }
     }
 
     inverted_lists_.resize(nlist_);
     for (uint32_t i = 0; i < nlist_; ++i) {
-        uint64_t list_size;
-        f.read(reinterpret_cast<char*>(&list_size), 8);
-
-        uint64_t num_vectors;
-        f.read(reinterpret_cast<char*>(&num_vectors), 8);
+        uint64_t list_size = 0;
+        uint64_t num_vectors = 0;
+        if (!f.read(reinterpret_cast<char*>(&list_size), 8)
+            || !f.read(reinterpret_cast<char*>(&num_vectors), 8)) {
+            return truncated("inverted list header");
+        }
+        // 每个向量的数据量必须放得进 list_size 且总量有界，避免坏文件
+        // 触发超大分配。
+        const uint64_t bytes_per_vector = sizeof(uint32_t) + feature_dim_ * sizeof(float);
+        if (num_vectors > 200000000ull
+            || num_vectors * bytes_per_vector > list_size + bytes_per_vector) {
+            spdlog::error("FAISS IVF index list {} has invalid size {} / {} vectors",
+                          i, list_size, num_vectors);
+            return false;
+        }
 
         inverted_lists_[i].resize(num_vectors);
         for (uint64_t j = 0; j < num_vectors; ++j) {
             inverted_lists_[i][j].resize(feature_dim_);
-            f.read(reinterpret_cast<char*>(inverted_lists_[i][j].data()),
-                   feature_dim_ * sizeof(float));
+            if (!f.read(reinterpret_cast<char*>(inverted_lists_[i][j].data()),
+                        static_cast<std::streamsize>(feature_dim_ * sizeof(float)))) {
+                return truncated("inverted list vectors");
+            }
         }
     }
 

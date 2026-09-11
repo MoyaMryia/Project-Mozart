@@ -17,7 +17,9 @@ std::string quote_path(const std::filesystem::path& path) {
 std::vector<float> read_f32le(const std::filesystem::path& path) {
     std::ifstream input(path, std::ios::binary | std::ios::ate);
     if (!input) return {};
-    const auto bytes = static_cast<size_t>(input.tellg());
+    const auto end_position = input.tellg();
+    if (end_position <= 0) return {};
+    const auto bytes = static_cast<size_t>(end_position);
     input.seekg(0);
     std::vector<float> samples(bytes / sizeof(float));
     input.read(reinterpret_cast<char*>(samples.data()),
@@ -173,6 +175,9 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
             cleanup();
             return false;
         }
+        // 与 RNNoise 分支一致：裁到输入时长对应的输出样本数，避免块边界漂移。
+        const size_t expected_output = audio_16k.size() * config_.output_sample_rate / 16000;
+        if (converted.size() > expected_output) converted.resize(expected_output);
         if (converted.empty()) {
             error = "RVC inference returned no audio";
             cleanup();
