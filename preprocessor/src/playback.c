@@ -47,9 +47,9 @@ mozart_playback_t *mozart_playback_open(const mozart_playback_config_t *cfg)
     snd_pcm_hw_params_alloca(&hw);
     snd_pcm_hw_params_any(pcm, hw);
 
-    err = snd_pcm_hw_params_set_access(pcm, hw, SND_PCM_ACCESS_RW_INTERLEAVED)
-       || snd_pcm_hw_params_set_format(pcm, hw, SND_PCM_FORMAT_S16_LE)
-       || snd_pcm_hw_params_set_channels(pcm, hw, p->channels);
+    err = snd_pcm_hw_params_set_access(pcm, hw, SND_PCM_ACCESS_RW_INTERLEAVED);
+    if (err >= 0) err = snd_pcm_hw_params_set_format(pcm, hw, SND_PCM_FORMAT_S16_LE);
+    if (err >= 0) err = snd_pcm_hw_params_set_channels(pcm, hw, p->channels);
     if (err == 0) {
         unsigned rate = cfg->rate;
         err = snd_pcm_hw_params_set_rate_near(pcm, hw, &rate, &dir);
@@ -115,12 +115,19 @@ int mozart_playback_write(mozart_playback_t *p, const float *pcm, size_t nframes
 {
     if (!p || !pcm || nframes != p->period_frames) return -1;
 
-    int16_t buf[MOZART_OUTPUT_SAMPLES * 2];
+    // period_frames 可配置；超过契约帧长时不能在栈上定长转换。
+    int16_t stack_buf[MOZART_OUTPUT_SAMPLES * 2];
+    int16_t *buf = stack_buf;
+    if (nframes > MOZART_OUTPUT_SAMPLES) {
+        buf = malloc(nframes * sizeof(int16_t) * 2);
+        if (!buf) return -1;
+    }
     float_to_s16_stereo(pcm, buf, nframes);
 
     snd_pcm_uframes_t frames = nframes;
     int16_t *ptr = buf;
     int consecutive_errors = 0;
+    int result = 0;
 
     while (frames > 0) {
         snd_pcm_sframes_t n = snd_pcm_writei(p->pcm, ptr, frames);
@@ -133,22 +140,24 @@ int mozart_playback_write(mozart_playback_t *p, const float *pcm, size_t nframes
         if (n == -EAGAIN) { sched_yield(); continue; }
         if (n == -EPIPE) {           // underrun
             p->underruns++;
-            if (snd_pcm_prepare(p->pcm) < 0) return -2;
+            if (snd_pcm_prepare(p->pcm) < 0) { result = -2; break; }
             continue;
         }
         if (n == -ESTRPIPE) {        // 挂起，等待恢复
             while ((n = snd_pcm_resume(p->pcm)) == -EAGAIN)
                 msleep(10);
-            if (n < 0 && snd_pcm_prepare(p->pcm) < 0) return -3;
+            if (n < 0 && snd_pcm_prepare(p->pcm) < 0) { result = -3; break; }
             continue;
         }
         if (++consecutive_errors > PLAYBACK_MAX_CONSECUTIVE_ERRORS) {
             fprintf(stderr, "[playback] giving up: %s\n", snd_strerror((int)n));
-            return -4;
+            result = -4;
+            break;
         }
         msleep(1);
     }
-    return 0;
+    if (buf != stack_buf) free(buf);
+    return result;
 }
 
 long mozart_playback_underruns(const mozart_playback_t *p)
