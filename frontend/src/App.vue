@@ -589,7 +589,7 @@ onUnmounted(() => {
           <span :class="['text-[9px] font-mono font-bold', subtitleState === 'online' ? 'text-emerald-600' : subtitleState === 'offline' ? 'text-red-500' : 'text-gray-400']">{{ subtitleState.toUpperCase() }}</span>
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音…（mozart-pre -b 127.0.0.1 18100 双发开启字幕路）' }}</div>
+          <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音…（mozart-pre -b 127.0.0.1:18100 双发开启字幕路）' }}</div>
           <div class="text-[11px] text-gray-500 leading-4 truncate">{{ latestSubtitle?.en || '' }}</div>
         </div>
         <span v-if="latestSubtitle" class="shrink-0 font-mono text-[9px] text-gray-400 tabular-nums self-center">{{ latestSubtitle.translate_ms }}ms</span>
