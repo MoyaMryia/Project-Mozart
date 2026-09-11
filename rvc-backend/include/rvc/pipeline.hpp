@@ -4,6 +4,7 @@
 #include <memory>
 #include <cstdint>
 #include <filesystem>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <map>
@@ -101,7 +102,7 @@ public:
     std::string current_model_id() const override;
     bool is_mock() const override { return false; }
     std::map<std::string, std::string> model_info() const override;
-    RvcParameters parameters() const override { return parameters_; }
+    RvcParameters parameters() const override;
     bool set_parameters(const RvcParameters& parameters) override;
     bool supports_quality_streaming() const override;
     bool supports_realtime_streaming() const override;
@@ -120,7 +121,12 @@ private:
     RvcMockConfig mock_;
     RvcParameters parameters_;
 
-    void rebuild_inferencer();
+    // 保护 inferencer_ / parameters_ 的换入换出：实时推理线程会同时
+    // 调用 process_realtime()，模型或参数切换必须原子替换 shared_ptr。
+    mutable std::mutex mutex_;
+
+    void rebuild_inferencer_locked();
+    std::shared_ptr<RVCInferencer> current_inferencer() const;
 };
 
 class RVCPipelineFactory {
