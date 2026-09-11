@@ -92,7 +92,11 @@ class Speaker:
             i += 1
             path = f"/tmp/opencode/bridge_tts_{i:04d}.wav"
             sf.write(path, audio.samples, self.sr)
-            os.system(f"aplay -q -D plughw:1,3 {path} 2>/dev/null")
+            subprocess.run(
+                ["aplay", "-q", "-D", "plughw:1,3", path],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                check=False,
+            )
             print(f"[speak] {time.monotonic()-t0:.2f}s <- {text[:40]}",
                   file=sys.stderr, flush=True)
 
