@@ -95,6 +95,7 @@ private:
     bool shutting_down_ = false;
     std::string mode_ = "idle";
     std::string pending_mode_;
+    std::string pending_model_id_;
     std::string last_error_;
     bool file_queue_paused_ = false;
 
@@ -106,12 +107,14 @@ private:
     void evict_cache();
     static bool supported_mode(const std::string& mode);
     static bool unavailable_mode(const std::string& mode);
+    static bool job_active(const Job& job);
     static std::string make_job_id();
     static std::string sanitize_extension(const std::string& name);
     nlohmann::json job_json(const Job& job) const;
     static nlohmann::json parameters_json(const RvcParameters& parameters);
     bool save_presets_locked(const nlohmann::json& presets) const;
     nlohmann::json read_presets_locked() const;
+    nlohmann::json list_models_locked() const;
 };
 
 } // namespace rvc
