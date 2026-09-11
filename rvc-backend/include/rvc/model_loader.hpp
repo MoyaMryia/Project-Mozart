@@ -6,6 +6,7 @@
 #include <memory>
 #include <map>
 #include <filesystem>
+#include <mutex>
 #include <optional>
 
 #include "rvc/onnx_engine.hpp"
@@ -82,9 +83,12 @@ public:
     std::shared_ptr<RVCModel> current_model() const;
 
 private:
+    std::shared_ptr<RVCModel> get_model_locked(const std::string& model_id);
+
     std::filesystem::path models_dir_;
     std::string device_;
     bool half_;
+    mutable std::mutex mutex_;
     std::string current_model_id_;
     std::map<std::string, std::shared_ptr<RVCModel>> models_;
 };
