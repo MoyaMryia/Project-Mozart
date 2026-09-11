@@ -52,7 +52,13 @@ public:
     OnnxEngine() = default;
 
     bool load(const std::filesystem::path& model_path);
-    bool loaded() const { return session_ != nullptr; }
+    bool loaded() const {
+#ifdef USE_ONNX
+        return session_ != nullptr;
+#else
+        return loaded_;
+#endif
+    }
     std::optional<OnnxInput::Type> input_type(const std::string& name) const;
     std::vector<int64_t> input_shape(const std::string& name) const override;
 
@@ -81,6 +87,8 @@ private:
     std::unique_ptr<Ort::SessionOptions> session_opts_;
     std::unique_ptr<Ort::Session> session_;
     Ort::MemoryInfo mem_info_{nullptr};
+#else
+    bool loaded_ = false;
 #endif
     bool cuda_attached_ = false;
     std::filesystem::path model_path_;
