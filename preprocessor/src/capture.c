@@ -53,9 +53,9 @@ mozart_capture_t *mozart_capture_open(const mozart_capture_config_t *cfg)
     snd_pcm_hw_params_alloca(&hw);
     snd_pcm_hw_params_any(pcm, hw);
 
-    err = snd_pcm_hw_params_set_access(pcm, hw, SND_PCM_ACCESS_RW_INTERLEAVED)
-       || snd_pcm_hw_params_set_format(pcm, hw, SND_PCM_FORMAT_S16_LE)
-       || snd_pcm_hw_params_set_channels(pcm, hw, c->channels);
+    err = snd_pcm_hw_params_set_access(pcm, hw, SND_PCM_ACCESS_RW_INTERLEAVED);
+    if (err >= 0) err = snd_pcm_hw_params_set_format(pcm, hw, SND_PCM_FORMAT_S16_LE);
+    if (err >= 0) err = snd_pcm_hw_params_set_channels(pcm, hw, c->channels);
     if (err == 0) {
         unsigned rate = cfg->rate;
         err = snd_pcm_hw_params_set_rate_near(pcm, hw, &rate, &dir);
