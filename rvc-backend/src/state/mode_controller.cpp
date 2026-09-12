@@ -84,7 +84,9 @@ nlohmann::json ModeController::transition_locked(const std::string& mode,
     const std::string previous_mode = mode_;
     stop_realtime_locked();
     const bool switch_model = !model_id.empty() && model_id != pipeline_.current_model_id();
-    if (switch_model && !pipeline_.is_mock() && !pipeline_.switch_model(model_id)) {
+    // 工厂只产出 RealRVCPipeline（见 RVCPipelineFactory::create），is_mock 恒 false，
+    // 此处无需 mock 门卫；模型加载失败时恢复先前的实时模式。
+    if (switch_model && !pipeline_.switch_model(model_id)) {
         if (previous_mode == "rt_rvc") {
             try {
                 start_realtime_locked();
@@ -150,10 +152,10 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
     if (jobs_.size() >= config_.max_queue_depth) {
         return {{"status", "rejected"}, {"error", "file queue is full"}};
     }
-    if (!pipeline_.is_mock() && model_id.empty() && pipeline_.current_model_id().empty()) {
+    if (model_id.empty() && pipeline_.current_model_id().empty()) {
         return {{"status", "rejected"}, {"error", "an RVC model must be selected"}};
     }
-    if (!pipeline_.is_mock() && !model_id.empty() && model_id != pipeline_.current_model_id()) {
+    if (!model_id.empty() && model_id != pipeline_.current_model_id()) {
         const auto models = list_models();
         const auto model = std::find_if(models["models"].begin(), models["models"].end(), [&](const auto& item) {
             return item.value("id", "") == model_id && item.value("exists", false);
@@ -274,7 +276,6 @@ nlohmann::json ModeController::status() const {
         {"mode", mode_}, {"pending_target_mode", pending_mode_.empty() ? nlohmann::json(nullptr) : nlohmann::json(pending_mode_)},
         {"worker_running", realtime_worker_ && realtime_worker_->running()},
         {"stream_mode", realtime_worker_ && realtime_worker_->is_stream_mode()},
-        {"pipeline_mode", pipeline_.is_mock() ? "mock" : "real"},
         {"active_model_id", pipeline_.current_model_id()}, {"model", model},
         {"vad", {{"available", realtime_worker_ && realtime_worker_->running()}, {"frame_count", vad.frame_count},
                  {"voiced_percent", vad.frame_count == 0 ? 0.0 : 100.0 * vad.voiced_frame_count / vad.frame_count},
