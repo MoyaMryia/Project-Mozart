@@ -3,7 +3,7 @@
 // Capture: 从 WAV 文件加载全量 PCM，按 20ms 帧切片循环填充契约帧
 // Playback: 写入帧 PCM 丢弃并计数
 // 用于 CTest 闭环测试，无物理设备/网络依赖。
-#include "mozart/mock_stream.hpp"
+#include "mock_stream.hpp"
 #include "mozart/frame_meta.h"
 
 #include <spdlog/spdlog.h>

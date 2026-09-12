@@ -1,10 +1,9 @@
 // audio_stream.cpp — C-ABI 流工厂分发与生命周期桥接
 // ============================================================================
 // 实现 audio_io.h 的 mozart_io_create_*_stream / destroy / read_frame /
-// write_frame / get_underlying_latency_ns。具体驱动实现见各自 cpp。
+// write_frame。具体驱动实现见各自 cpp。
 #include "mozart/audio_io.h"
 #include "mozart/audio_stream.hpp"
-#include "mozart/pipewire_stream.hpp"
 #ifdef MOZART_IO_ENABLE_UDP
 #include "mozart/udp_stream.hpp"
 #endif
@@ -50,15 +49,17 @@ void cabi_guard_void(Function&& function) noexcept {
 
 extern "C" {
 
-MOZART_API mozart_stream_handle_t mozart_io_create_pipewire_stream(const char* device_name,
-                                                                   int direction) {
-    if (!valid_direction(direction)) return nullptr;
-    return cabi_guard<mozart_stream_handle_t>(nullptr, [&] {
-        auto* s = new mozart::PipeWireStream(
-            device_name ? device_name : "", to_dir(direction));
-        return static_cast<mozart_stream_handle_t>(s);
-    });
-}
+// TODO(pipewire): PipeWire 物理声卡是 TODO.md 待办；真实驱动落地前 stub 不参与
+// 编译（见 pipewire_stream.cpp / pipewire_stream.hpp 的 #if 0 块）。
+// MOZART_API mozart_stream_handle_t mozart_io_create_pipewire_stream(const char* device_name,
+//                                                                    int direction) {
+//     if (!valid_direction(direction)) return nullptr;
+//     return cabi_guard<mozart_stream_handle_t>(nullptr, [&] {
+//         auto* s = new mozart::PipeWireStream(
+//             device_name ? device_name : "", to_dir(direction));
+//         return static_cast<mozart_stream_handle_t>(s);
+//     });
+// }
 
 MOZART_API mozart_stream_handle_t mozart_io_create_udp_stream(const char* host,
                                                               uint16_t port,
@@ -123,13 +124,6 @@ MOZART_API bool mozart_io_write_frame(mozart_stream_handle_t handle,
     if (!handle || !in_frame_buf) return false;
     return cabi_guard(false, [&] {
         return to_rt(handle)->WriteFrame(in_frame_buf, buf_size);
-    });
-}
-
-MOZART_API uint64_t mozart_io_get_underlying_latency_ns(mozart_stream_handle_t handle) {
-    if (!handle) return 0;
-    return cabi_guard<uint64_t>(0, [&] {
-        return to_rt(handle)->GetUnderlyingLatencyNs();
     });
 }
 

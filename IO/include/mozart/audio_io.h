@@ -1,12 +1,13 @@
 // audio_io.h — Project Mozart IO 子系统统一 C-ABI 接口
 // ============================================================================
 // 暴露两类能力：
-//   1. 音频流生命周期（物理 PipeWire / 网络 UDP / 文件 WAV / Mock）
-//   2. SPSC 无锁环形队列（预分配、固定尺寸有界拷贝）
+//   1. 音频流生命周期（网络 UDP；PipeWire 物理流为 TODO 待办，见下方注释）
+//   2. C++ SPSC 无锁环形队列（mozart/ring_buffer.hpp，IO 内部与测试使用）
 //
-// 设计目标：preprocessor (C11) 与 rvc-backend (C++17) 均通过本头文件 +
-// libmozart_io 链接，把所有 IO 收敛到 IO 模块；status_manager 编排模式
-// 切换时只对本接口下命令，不再穿透两个业务模块。
+// 实际消费情况（2026-09 现状）：
+//   - rvc-backend 的实时数据面通过 mozart_io_create_udp_stream + read/write_frame
+//     使用本 C-ABI（唯一生产消费者）；
+//   - preprocessor (C11) 未链接本库，采集/播放走自带 ALSA（capture.c/playback.c）。
 //
 #ifndef MOZART_AUDIO_IO_H
 #define MOZART_AUDIO_IO_H
@@ -43,18 +44,15 @@ extern "C" {
 
 // ---- 不透明句柄 --------------------------------------------------------------
 typedef void* mozart_stream_handle_t;
-typedef void* mozart_ring_handle_t;
 
 // =============================================================================
 // 1. 音频流工厂与生命周期
 // =============================================================================
 
-// 物理硬件实时流 (PipeWire 麦克风采集或虚拟源输出)
-//   device_name: 设备标识 (如 "default", "mozart_mic")；NULL = 默认设备
-//   direction:   MOZART_IO_DIR_CAPTURE = 采集 (ReadFrame 期望 mozart_raw_frame_t / 3856B)
-//                MOZART_IO_DIR_PLAYBACK = 播放 (WriteFrame 期望 mozart_output_frame_t / 3856B)
-MOZART_API mozart_stream_handle_t mozart_io_create_pipewire_stream(const char* device_name,
-                                                                   int direction);
+// TODO(pipewire): 物理硬件实时流（PipeWire 麦克风采集或虚拟源输出）为 TODO.md
+// 待办，stub 已停用；真实驱动落地时恢复本声明与 audio_stream.cpp 中的工厂。
+// MOZART_API mozart_stream_handle_t mozart_io_create_pipewire_stream(const char* device_name,
+//                                                                    int direction);
 
 // 实时网络 UDP 流 (定长 MZRT 契约包收发)
 //   host:      本地绑定地址 (Capture) 或对端地址 (Playback)
@@ -87,32 +85,10 @@ MOZART_API bool mozart_io_write_frame(mozart_stream_handle_t handle,
                                       const void* in_frame_buf,
                                       uint32_t    buf_size);
 
-// 查询流底层延迟（纳秒）；不支持时返回 0
-MOZART_API uint64_t mozart_io_get_underlying_latency_ns(mozart_stream_handle_t handle);
-
-// =============================================================================
-// 2. SPSC 无锁环形队列（预分配、固定尺寸有界拷贝）
-// =============================================================================
-
-// 创建无锁单写单读环形队列
-//   capacity: 可容纳的最大帧数（建议 2 的幂，本实现内部向上取整到 2 的幂）
-//   item_size: 每帧字节数
-MOZART_API mozart_ring_handle_t mozart_ring_create(uint32_t capacity, uint32_t item_size);
-
-// 销毁队列并释放内存
-MOZART_API void mozart_ring_destroy(mozart_ring_handle_t ring);
-
-// 生产者线程写入一帧（队满返回 false，不覆盖）
-MOZART_API bool mozart_ring_push(mozart_ring_handle_t ring, const void* data);
-
-// 消费者线程读出一帧（队空返回 false）
-MOZART_API bool mozart_ring_pop(mozart_ring_handle_t ring, void* out_data);
-
-// 当前可读帧数（消费者侧观察值，用于丢帧追赶判定）
-MOZART_API uint32_t mozart_ring_get_readable_count(mozart_ring_handle_t ring);
-
-// 队列容量
-MOZART_API uint32_t mozart_ring_capacity(mozart_ring_handle_t ring);
+// 注释掉的 mozart_ring_* C-ABI（原 audio_io.h §2）：全仓库零调用者——
+// udp_stream 内部直接用 C++ SpscRing，preprocessor 亦未接入。若未来
+// preprocessor 需要跨 C 边界共享环形队列，从 git 历史恢复本段与
+// ring_buffer.cpp 的桥接块。
 
 #ifdef __cplusplus
 }

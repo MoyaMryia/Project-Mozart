@@ -100,35 +100,13 @@ static void test_spsc_concurrent() {
     std::printf("[OK] test_spsc_concurrent (%d frames)\n", N);
 }
 
-static void test_cabi() {
-    mozart_ring_handle_t ring = mozart_ring_create(4, sizeof(mozart_input_frame_t));
-    CHECK(ring != nullptr);
-
-    mozart_input_frame_t in{};
-    in.meta.frame_idx = 42;
-    in.pcm[0] = 0.5f;
-    CHECK(mozart_ring_push(ring, &in));
-
-    mozart_input_frame_t out{};
-    CHECK(mozart_ring_pop(ring, &out));
-    CHECK(out.meta.frame_idx == 42);
-    CHECK(out.pcm[0] == 0.5f);
-
-    CHECK(mozart_ring_get_readable_count(ring) == 0);
-    CHECK(mozart_ring_capacity(ring) >= 4);
-
-    mozart_ring_destroy(ring);
-
-    CHECK(mozart_ring_create(std::numeric_limits<uint32_t>::max(), 1) == nullptr);
-    CHECK(mozart_ring_create(4, 0) == nullptr);
-    std::printf("[OK] test_capi\n");
-}
+// ---- mozart_ring_* C-ABI 用例已停用（C-ABI 全仓库零调用者，桥接块已 #if 0）----
+// （原 test_cabi 见 git 历史；恢复 C-ABI 桥接时一并恢复）
 
 int main() {
     test_basic_push_pop();
     test_wraparound();
     test_spsc_concurrent();
-    test_cabi();
 
     if (g_failures == 0) {
         std::printf("\nAll ring_buffer tests passed.\n");

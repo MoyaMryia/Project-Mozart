@@ -78,8 +78,12 @@ uint32_t SpscRing::readable_count() const noexcept {
 } // namespace mozart
 
 // =============================================================================
-// C-ABI 桥接（audio_io.h 的 mozart_ring_*）
+// C-ABI 桥接（audio_io.h 的 mozart_ring_*）—— 已停用
 // =============================================================================
+// 全仓库零调用者：udp_stream 内部直接用 C++ SpscRing，preprocessor 未接入本库，
+// 对应声明已从 audio_io.h 注释掉。若未来需要跨 C 边界共享环形队列，
+// 从 git 历史恢复本块与头文件声明。
+#if 0
 extern "C" {
 
 MOZART_API mozart_ring_handle_t mozart_ring_create(uint32_t capacity, uint32_t item_size) {
@@ -118,3 +122,4 @@ MOZART_API uint32_t mozart_ring_capacity(mozart_ring_handle_t ring) {
 }
 
 } // extern "C"
+#endif // 停用：mozart_ring_* C-ABI
