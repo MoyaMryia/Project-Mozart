@@ -1,0 +1,48 @@
+# 全栈演示配置：与 backend.yaml 同一套 qiqi realtime 资产，
+# 但监听前端/标准端口（UDP 18000 + HTTP 18080），供 vite 前端和 mozart-pre 默认目标使用。
+# 掉电/重启后全栈拉起顺序：
+#   1. build-gpu/state/mozart_stated  <本文件>
+#   2. .venv/bin/python tools/subtitle_bridge.py --stt-model ~/models/sherpa-onnx/zipformer-zh-14M --stt-port 18100 --llama-url http://127.0.0.1:18200 --jsonl /tmp/opencode/subtitles.jsonl
+#   3. LD_LIBRARY_PATH=~/mozart-archive/qwen35/llama.cpp/build-cuda-bin ~/mozart-archive/qwen35/llama.cpp/build-cuda-bin/llama-server -m ~/mozart-archive/qwen35/gguf/qwen35-0.8b-text-Q4_K_M.gguf -c 2048 -ngl 99 --port 18200 --host 127.0.0.1
+#   4. build-gpu/preprocessor/mozart-pre -d plughw:0,0 -a 127.0.0.1 -p 18000 -b 127.0.0.1:18100 -o plughw:0,0   # 对录线形态：采集+播放都走 USB 小尾巴
+#   5. cd frontend && npm run dev   # http://<board-ip>:5173
+#   （网页上拨 RT_RVC 开关后才打开 UDP 18000，mozart-pre 的 Connection refused 会自行恢复）
+input:
+  contract:
+    sample_rate: 16000
+  meta:
+    vad_enabled: false
+output:
+  sample_rate: 48000
+network:
+  audio:
+    host: 127.0.0.1
+    port: 18000
+    frame_duration_ms: 20
+  control:
+    host: 127.0.0.1
+    port: 18080
+rvc:
+  models_dir: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run
+  hubert_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx
+  rmvpe_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx
+  realtime_hubert_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.onnx
+  realtime_rmvpe_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.onnx
+  f0_method: rmvpe
+  pitch_shift: 0
+  index_rate: 0.0
+  filter_radius: 3
+  rms_mix_rate: 1.0
+  protect: 0.33
+  device: cuda
+  half: false
+  mock:
+    generator: false
+    hubert: false
+    rmvpe: false
+storage:
+  temp_dir: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/temp
+  presets_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/presets.json
+  ffmpeg_path: ffmpeg
+  file_rnnoise: false
+  max_queue_depth: 5
