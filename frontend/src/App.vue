@@ -10,7 +10,14 @@ import {
 } from './api';
 
 // ---- 类型/常量 ----
-const MODES: ActiveMode[] = ['rt_rvc', 'file_rvc', 'rt_zero_shot', 'file_zero_shot'];
+// zero-shot 两个模式是后端 501 桩（seed-VC 为 TODO.md P2 路线），落地前不在
+// 界面提供入口；后端 Mode 枚举与 capabilities 位保持不变以稳定 API 契约。
+const MODES: ActiveMode[] = [
+  'rt_rvc',
+  'file_rvc',
+  // 'rt_zero_shot',   // TODO(seed-vc): 实现后恢复
+  // 'file_zero_shot', // TODO(seed-vc): 实现后恢复
+];
 const isFileMode = (mode: string) => mode === 'file_rvc';
 
 // ---- 响应式状态 ----
@@ -599,8 +606,10 @@ onUnmounted(() => {
               <option value="all" data-i18n="logFilterAll">全部模式</option>
               <option value="rt_rvc" translate="no">RT_RVC</option>
               <option value="file_rvc" translate="no">FILE_RVC</option>
+              <!-- zero-shot 模式为 501 桩，不会产生日志；实现后恢复
               <option value="rt_zero_shot" translate="no">RT_ZERO_SHOT</option>
               <option value="file_zero_shot" translate="no">FILE_ZERO_SHOT</option>
+              -->
             </select>
             <button type="button" class="text-[11px] font-extrabold text-[#052E16] hover:text-black px-1.5 py-1 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#052E16] shrink-0" @click="void api('/api/logs', { method: 'DELETE' }).then(refreshLogs).catch(showError)">清空日志</button>
           </div>
