@@ -200,33 +200,38 @@ input (16kHz)
 | mel 谱图 | ✅ | `rvc-backend/src/rvc/feature_extractor.cpp` 已实现 radix-2 FFT + HTK mel 滤波器组 + Slaney 归一化，匹配 librosa `htk=True`；RMVPE 输入为真实 mel |
 | F0 方法 | ⚠️ 部分 | 仅 `rmvpe`(onnx) 可用；harvest/pm 返回全零 |
 | TensorRT / GPU 推理 | ✅/⚠️ | qiqi realtime 的固定形状特征与 split Generator 已在 TensorRT 直载下验收；普通动态 ONNX 的 GPU Execution Provider 仍需在目标 Jetson 上单独确认 |
-| `.pth` 加载 | ❌ | 需 `-DUSE_LIBTORCH=ON` 且未实现；路线统一走 ONNX，**不做** |
-| HTTP `/models/upload` | ❌ | 死代码未挂路由；路线第 3 步（网页上传）时实现 |
+| `.pth` 加载 | ❌ | 路线统一走 ONNX，**不做**（libtorch 编译支架已移除） |
+| HTTP `/api/file/upload` | ✅ | FILE_RVC 上传入口已挂路由并完成 HTTP 全链验证 |
 | Jetson 实机压测 | ✅ | qiqi realtime profile：首帧约 320 ms，稳态 pipeline median 88 ms，p95 93 ms |
-| `config.yaml` 部分字段 | ⚠️ | `f0_method`/`pitch_shift`/`index_rate` 等已定义但由 inferencer 构造默认值消费，main 未透传 |
+| `config.yaml` 单一读集 | ✅ | 唯一读者为 `state/src/daemon.cpp`，死键已清理（2026-09） |
 
 ### 5.5 HTTP API（端口 18080，原生 socket，零依赖）
 
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/health` | GET | `{"status":"ok"}` |
-| `/status` | GET | 模式（mock/real）、当前模型信息、延迟统计、bypass 计数、契约配置 |
+| `/status` | GET | 当前模式、模型信息、VAD/延迟/流统计、契约配置 |
 | `/models` | GET | 扫描 models 目录（exists / current） |
 | `/models/{id}/activate` | POST | 实际调用 `switch_model` 热切换音色，返回 activated/failed |
 
-### 5.6 配置（`config.yaml`）
+### 5.6 配置（`config.yaml`，唯一读者 `state/src/daemon.cpp`）
 
 | 键 | 默认 | 说明 |
 |----|------|------|
-| `rvc.mock_mode` | false | true=Mock 直通，false=真实 ONNX 推理 |
+| `rvc.models_dir` | `./models` | 音色目录（`<id>/<id>.onnx` + `config.json`） |
 | `rvc.hubert_path` / `rvc.rmvpe_path` | `./assets/...onnx` | 特征提取模型路径 |
-| `rvc.realtime_hubert_path` / `rvc.realtime_rmvpe_path` | 空 | 可选的单个低延迟 realtime 音色固定形状 TensorRT 特征资产 |
+| `rvc.realtime_hubert_path` / `rvc.realtime_rmvpe_path` | 空 | 可选的低延迟 realtime 音色固定形状 TensorRT 特征资产 |
+| `rvc.f0_method` / `pitch_shift` / `index_rate` / `filter_radius` / `rms_mix_rate` / `protect` | rmvpe / 0 / 0.0 / 3 / 1.0 / 0.33 | 变声参数 |
 | `rvc.device` / `rvc.half` | cuda / false | 推理设备与 FP16（共享内存有限，谨慎开启） |
-| `rvc.pitch_shift` / `index_rate` / `protect` | 0 / 0.75 / 0.33 | 变声参数 |
-| `network.audio.port` | 18000 | UDP 音频契约流 |
+| `rvc.mock.generator/hubert/rmvpe` | false | 诊断用组件级 mock；生产必须全 false |
+| `network.audio.port` / `frame_duration_ms` | 18000 / 20 | UDP 音频契约流 |
 | `network.control.port` | 18080 | HTTP 管理 |
-| `input.meta.vad_enabled` | true | 静音帧 bypass 开关 |
-| `logging.print_latency_stats` | true | 周期打印延迟统计 |
+| `input.contract.sample_rate` / `input.meta.vad_enabled` | 16000 / true | 输入契约采样率；静音帧 bypass 开关 |
+| `output.sample_rate` | 48000 | 输出采样率 |
+| `storage.temp_dir` / `presets_path` / `ffmpeg_path` / `max_queue_depth` / `max_cache_size_mb` | 见 config.yaml | 文件转换队列与存储 |
+
+> 帧格式（16kHz INPUT / 48kHz OUTPUT / 20ms / f32 / 16B meta）是编译期契约，
+> 由 `IO/include/mozart/frame_meta.h` 固定，不提供运行时开关。
 
 ### 5.7 构建
 
