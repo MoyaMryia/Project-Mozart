@@ -31,11 +31,6 @@ inline uint32_t read_u32_le(const uint8_t* p) {
          | (static_cast<uint32_t>(p[3]) << 24);
 }
 
-inline uint64_t read_u64_le(const uint8_t* p) {
-    return static_cast<uint64_t>(read_u32_le(p))
-         | (static_cast<uint64_t>(read_u32_le(p + 4)) << 32);
-}
-
 inline void write_u32_le(uint8_t* p, uint32_t v) {
     p[0] = static_cast<uint8_t>(v);
     p[1] = static_cast<uint8_t>(v >> 8);
@@ -51,17 +46,6 @@ inline void write_u64_le(uint8_t* p, uint64_t v) {
 // ──────────────────────────────────────────────────────────
 // Socket helpers
 // ──────────────────────────────────────────────────────────
-inline bool set_socket_nonblocking(int fd) {
-#ifdef _WIN32
-    u_long mode = 1;
-    return ioctlsocket(fd, FIONBIO, &mode) == 0;
-#else
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0) return false;
-    return fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0;
-#endif
-}
-
 inline void socket_close(int fd) {
 #ifdef _WIN32
     closesocket(fd);

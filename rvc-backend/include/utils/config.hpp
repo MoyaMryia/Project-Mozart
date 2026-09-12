@@ -23,9 +23,6 @@ public:
     // Access via dot notation: e.g. "input.contract.sample_rate"
     YAML::Node get(const std::string& key) const;
 
-    // Get a section as a map (for iterating)
-    YAML::Node section(const std::string& key) const;
-
     // Typed getters with defaults
     template<typename T>
     T get_or(const std::string& key, T default_val) const;
@@ -36,8 +33,6 @@ public:
     std::string get_string(const std::string& key, const std::string& default_val) const;
     std::filesystem::path resolve_file_path(const std::string& key,
                                             const std::string& default_val) const;
-
-    const YAML::Node& root() const { return root_; }
 
 private:
     YAML::Node root_;
