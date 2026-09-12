@@ -23,9 +23,8 @@ const isFileMode = (mode: string) => mode === 'file_rvc';
 // ---- 响应式状态 ----
 const status = ref<Status | null>(null);
 const apiOnline = ref(true);
+const switching = ref(false);                         // 模式切换请求进行中
 const selectedMode = ref<ActiveMode>('rt_rvc');       // UI 选中的行
-const enabledMode = ref<ActiveMode | null>(           // 开关 + localStorage
-  localStorage.getItem('mozart-enabled-mode') as ActiveMode | null);
 const uploadFile = ref<File | null>(null);
 const uploadFileName = ref('');
 const uploadInputValue = ref('');                     // 清空 input[type=file] 用
@@ -62,7 +61,6 @@ const activeJob = computed<Job | null>(() =>
 const queuePaused = computed(() => status.value?.file_queue_paused ?? false);
 const canSubmitFile = computed(() =>
   selectedMode.value === 'file_rvc'
-  && enabledMode.value === 'file_rvc'
   && status.value?.mode === 'file_rvc'
   && Boolean(uploadFile.value)
   && apiOnline.value);
@@ -136,9 +134,18 @@ const refreshStatus = async () => {
   }
 };
 
+const isModeOn = (mode: ActiveMode) =>
+  !!status.value && (status.value.mode === mode || status.value.pending_target_mode === mode);
+
 const switchMode = async (mode: Mode): Promise<boolean> => {
+  if (switching.value) return false;
   try {
-    if (mode !== 'idle' && !selectedModel.value) throw new Error('请先选择可用模型');
+    switching.value = true;
+    if (mode !== 'idle') {
+      if (status.value?.capabilities[mode] !== true) throw new Error('此模式尚未实现');
+      if (!selectedModel.value) throw new Error('请先选择可用模型');
+      localStorage.setItem('mozart-enabled-mode', mode);
+    }
     await api('/api/mode/switch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -147,6 +154,7 @@ const switchMode = async (mode: Mode): Promise<boolean> => {
     await refreshStatus();
     return true;
   } catch (error) { showError(error); return false; }
+  finally { switching.value = false; }
 };
 
 const refreshModels = async () => {
@@ -248,7 +256,6 @@ const refreshMonitor = async () => {
 const submitFile = async () => {
   if (!uploadFile.value) return showError(new Error('请先选择音频文件'));
   if (selectedMode.value !== 'file_rvc') return showError(new Error('请先选择 FILE_RVC 模式'));
-  if (enabledMode.value !== 'file_rvc') return showError(new Error('请先打开 FILE_RVC 开关并点击全局启动'));
   try {
     if (status.value?.mode !== 'file_rvc') return showError(new Error('FILE_RVC 尚未启动'));
     const data = new FormData();
@@ -290,9 +297,7 @@ const togglePause = async () => {
   } catch (error) { showError(error); }
 };
 const globalRun = async () => {
-  if (!enabledMode.value) return showError(new Error('请先打开一个已实现模式的开关'));
-  selectedMode.value = enabledMode.value;
-  await switchMode(enabledMode.value);
+  await switchMode(selectedMode.value);
 };
 const globalStop = async () => { await switchMode('idle'); };
 
@@ -304,15 +309,12 @@ const pickMode = (mode: ActiveMode) => {
   }
   selectedMode.value = mode;
 };
+// 开关直接驱动后端：打开=切换到该模式，关闭=回 idle。
+// 勾选态由后端 status 派生（见 isModeOn），本地不再另立状态。
 const onToggle = (mode: ActiveMode, checked: boolean | null) => {
-  if (checked) {
-    enabledMode.value = mode;
-    localStorage.setItem('mozart-enabled-mode', mode);
-    selectedMode.value = mode;
-  } else if (enabledMode.value === mode) {
-    enabledMode.value = null;
-    localStorage.removeItem('mozart-enabled-mode');
-  }
+  if (switching.value) return;
+  selectedMode.value = mode;
+  void (checked ? switchMode(mode) : switchMode('idle'));
 };
 
 // ---- 字幕 SSE ----
@@ -339,7 +341,9 @@ watch(() => status.value?.model.has_index, () => { void refreshParameters(); });
 // ---- 生命周期 ----
 const timers: number[] = [];
 onMounted(() => {
-  selectedMode.value = enabledMode.value || 'rt_rvc';
+  // 恢复上次使用的模式；localStorage 里的旧值可能指向已停用的桩模式
+  const stored = localStorage.getItem('mozart-enabled-mode') as ActiveMode | null;
+  selectedMode.value = stored && MODES.includes(stored) ? stored : 'rt_rvc';
   void refreshStatus();
   void refreshModels();
   void refreshLogs();
@@ -430,7 +434,7 @@ onUnmounted(() => {
             <button type="button" data-state="paused" class="transport-button" aria-label="暂停文件队列" :title="queuePaused ? '恢复文件队列' : '暂停队列（当前任务会完成）'" :aria-pressed="queuePaused" :class="{ 'is-active': queuePaused }" :disabled="status?.mode !== 'file_rvc'" @click.prevent="togglePause">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h4v14H6V5Zm8 0h4v14h-4V5Z"/></svg>
             </button>
-            <button type="button" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" :aria-pressed="!!status && status.mode !== 'idle'" :class="{ 'is-active': !!status && status.mode !== 'idle' }" :disabled="!enabledMode || status?.capabilities[enabledMode] !== true" @click.prevent="globalRun">
+            <button type="button" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" :aria-pressed="!!status && status.mode !== 'idle'" :class="{ 'is-active': !!status && status.mode !== 'idle' }" :disabled="switching || status?.capabilities[selectedMode] !== true" @click.prevent="globalRun">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
             </button>
             <button type="button" data-state="stopped" class="transport-button" aria-label="停止当前模式" title="停止当前模式（当前文件任务会完成）" :aria-pressed="status?.mode === 'idle'" :class="{ 'is-active': !status || status.mode === 'idle' }" @click.prevent="globalStop">
@@ -454,7 +458,7 @@ onUnmounted(() => {
               <div class="w-px bg-gray-300/50"></div>
               <div class="w-14 flex items-center justify-center p-2 shrink-0 bg-white/40">
                 <div class="relative inline-block w-9 h-5 align-middle select-none">
-                  <input type="checkbox" :id="`toggle-${mode}`" :checked="enabledMode === mode" :disabled="status?.capabilities[mode] !== true" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-[left,right,border-color] duration-150 ease-in-out top-0.5 left-0.5 checked:left-auto checked:right-0.5 checked:border-gray-900" :aria-label="`Toggle ${mode.toUpperCase()}`" @change="onToggle(mode, ($event.target as HTMLInputElement).checked)">
+                  <input type="checkbox" :id="`toggle-${mode}`" :checked="isModeOn(mode)" :disabled="switching || status?.capabilities[mode] !== true" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-[left,right,border-color] duration-150 ease-in-out top-0.5 left-0.5 checked:left-auto checked:right-0.5 checked:border-gray-900" :aria-label="`Toggle ${mode.toUpperCase()}`" @change="onToggle(mode, ($event.target as HTMLInputElement).checked)">
                   <label :for="`toggle-${mode}`" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-150 ease-in-out"></label>
                 </div>
               </div>
