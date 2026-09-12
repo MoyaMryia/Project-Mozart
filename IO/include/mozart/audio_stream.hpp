@@ -1,9 +1,8 @@
 // audio_stream.hpp — C++ 音频流抽象层
 // ============================================================================
 // 对应 README §3 的设计：
-//   AudioStream            — 顶层抽象（Open/Close/GetType/GetDirection/IsOpen）
+//   AudioStream            — 顶层抽象（Open/Close/GetDirection/IsOpen）
 //   RealTimeAudioStream    — 实时帧驱动（PipeWire / UDP）
-//   OfflineAudioStream     — 离线块驱动（WAV 文件 / WebSocket）
 //
 // C-ABI（audio_io.h）的 mozart_io_create_*_stream 工厂在内部构造具体子类
 // 并返回不透明句柄；C++ 使用者可直接持有具体子类指针。
@@ -21,11 +20,6 @@
 #include "mozart/frame_meta.h"
 
 namespace mozart {
-
-enum class StreamType : int {
-    RealTime = 0,
-    Offline   = 1
-};
 
 enum class StreamDirection : int {
     Capture  = 0,
@@ -45,7 +39,6 @@ class AudioStream {
 public:
     virtual ~AudioStream() = default;
 
-    virtual StreamType      GetType()      const noexcept = 0;
     virtual StreamDirection GetDirection() const noexcept = 0;
     virtual bool IsOpen()   const noexcept = 0;
 
@@ -57,26 +50,12 @@ public:
 // ---- 实时帧驱动流 ------------------------------------------------------------
 class RealTimeAudioStream : public AudioStream {
 public:
-    StreamType GetType() const noexcept override { return StreamType::RealTime; }
-
     // 阻塞式读/写单帧；buf_size 必须与具体子类期望的帧大小一致
     virtual bool ReadFrame (void* out_frame_buf, uint32_t buf_size) = 0;
     virtual bool WriteFrame(const void* in_frame_buf, uint32_t buf_size) = 0;
 
     // 底层设备/协议延迟（纳秒），不支持时返回 0
     virtual uint64_t GetUnderlyingLatencyNs() const noexcept = 0;
-};
-
-// ---- 离线块驱动流 ------------------------------------------------------------
-class OfflineAudioStream : public AudioStream {
-public:
-    StreamType GetType() const noexcept override { return StreamType::Offline; }
-
-    // 一次性读/写整块不规则音频 buffer
-    virtual size_t ReadChunk (float* out_pcm, size_t max_samples,
-                              mozart_frame_meta_t& out_meta) = 0;
-    virtual size_t WriteChunk(const float* in_pcm, size_t samples,
-                              const mozart_frame_meta_t& meta) = 0;
 };
 
 } // namespace mozart

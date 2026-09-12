@@ -60,8 +60,6 @@ public:
 
     // Capture 流：首个合法发送方地址（供配对 Playback 流使用）
     bool client_known() const noexcept { return client_known_.load(); }
-    std::string client_host() const;
-    uint16_t    client_port() const;
 
     // 统计观测口
     uint64_t packets_received() const noexcept { return packets_received_.load(); }

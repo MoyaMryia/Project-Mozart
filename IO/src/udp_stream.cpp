@@ -429,24 +429,4 @@ bool UdpStream::send_to_client(const void* data, size_t len) {
     return true;
 }
 
-std::string UdpStream::client_host() const {
-    std::lock_guard<std::mutex> lk(client_mutex_);
-    if (client_addr_.ss_family == AF_INET) {
-        char buf[INET_ADDRSTRLEN] = {0};
-        auto* a = reinterpret_cast<const sockaddr_in*>(&client_addr_);
-        ::inet_ntop(AF_INET, &a->sin_addr, buf, sizeof(buf));
-        return std::string(buf);
-    }
-    return {};
-}
-
-uint16_t UdpStream::client_port() const {
-    std::lock_guard<std::mutex> lk(client_mutex_);
-    if (client_addr_.ss_family == AF_INET) {
-        auto* a = reinterpret_cast<const sockaddr_in*>(&client_addr_);
-        return ntohs(a->sin_port);
-    }
-    return 0;
-}
-
 } // namespace mozart
