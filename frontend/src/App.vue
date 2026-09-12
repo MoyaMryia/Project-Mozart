@@ -317,6 +317,24 @@ const onToggle = (mode: ActiveMode, checked: boolean | null) => {
   void (checked ? switchMode(mode) : switchMode('idle'));
 };
 
+// ---- 实时快捷控制（静音 / 干声直通，仅 RT_RVC 运行时可用）----
+const realtimeAvailable = computed(() =>
+  !!status.value && status.value.mode === 'rt_rvc' && (status.value.realtime?.available ?? false));
+const micMuted = computed(() => status.value?.realtime?.mic_muted ?? false);
+const bypassOn = computed(() => status.value?.realtime?.bypass ?? false);
+const setRouting = async (patch: Record<string, boolean>) => {
+  try {
+    await api('/api/realtime/routing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    await refreshStatus();
+  } catch (error) { showError(error); }
+};
+const toggleMicMute = () => void setRouting({ mic_muted: !micMuted.value });
+const toggleBypass = () => void setRouting({ bypass: !bypassOn.value });
+
 // ---- 字幕 SSE ----
 let eventSource: EventSource | null = null;
 const connectSubtitles = () => {
@@ -721,14 +739,14 @@ onUnmounted(() => {
 
       <!-- 实时音频快捷控制固定在整个右栏底部 -->
       <div :class="['grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-200', isFileMode(selectedMode) && 'hidden']">
-        <button type="button" class="relative bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed" aria-pressed="false" disabled>
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-emerald-600 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+        <button type="button" :class="['relative text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40', micMuted ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-100 text-gray-900']" :aria-pressed="micMuted" :disabled="!realtimeAvailable || switching" :title="realtimeAvailable ? '变声输出静音，不影响采集' : '仅在 RT_RVC 运行时可用'" @click.prevent="toggleMicMute">
+          <svg :class="['absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', micMuted ? 'text-white' : 'text-emerald-600']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4Zm-6 9H4v1a8 8 0 0 0 7 7.94V22H8v2h8v-2h-3v-2.06A8 8 0 0 0 20 12v-1h-2v1a6 6 0 0 1-12 0v-1Z"/>
           </svg>
-          <span class="w-full pl-8 text-left" data-i18n="btnMute">静音麦克风</span>
+          <span class="w-full pl-8 text-left" data-i18n="btnMute">{{ micMuted ? '取消静音' : '静音麦克风' }}</span>
         </button>
-        <button type="button" class="relative bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed" aria-pressed="false" disabled>
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+        <button type="button" :class="['relative text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40', bypassOn ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-100 text-gray-900']" :aria-pressed="bypassOn" :disabled="!realtimeAvailable || switching" :title="realtimeAvailable ? '输出原始人声（不推理）' : '仅在 RT_RVC 运行时可用'" @click.prevent="toggleBypass">
+          <svg :class="['absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', bypassOn ? 'text-white' : 'text-gray-400']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="m13.6 2-8.2 10.5a1 1 0 0 0 .8 1.6h4.5l-.7 7.9a1 1 0 0 0 1.8.6L19 11.5a1 1 0 0 0-.8-1.6h-4.5L14.6 3a1 1 0 0 0-1-1Z"/>
           </svg>
           <span class="w-full pl-8 text-left" data-i18n="btnBypass">旁路直通</span>

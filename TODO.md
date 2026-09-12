@@ -91,7 +91,7 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
   - [x] 字幕 SSE 输出壳 ✅ 2026-08-30：后端 `GET /api/subtitles` 已实现 SSE tail（读取外部字幕 JSONL 文件）；前端 Vue 3 已新增 SUB 字幕条组件。
   - [ ] **文字路接入生产守护进程**：当前 STT/翻译/TTS 由外部 Python 工具（`tools/stt_service.py`、`tools/subtitle_bridge.py`）独立运行并写 `/tmp/opencode/subtitles.jsonl`，未由 `mozart_stated` 统一拉起与守护。
   - [x] 前端技术栈升级（2026-08-31）：vanilla DOM → **Vue 3 + Vite SFC**；生产 dist 构建通过（gzip 38KB）
-  - [ ] **前端实时面板接线**：`frontend/src/App.vue` 中 `showLive` 恒为 `false`，两个 canvas 波形未接数据；"静音麦克风 / 旁路直通"按钮、`音色管理库` 按钮未实现。
+  - [ ] **前端实时面板接线**：`frontend/src/App.vue` 中 `showLive` 恒为 `false`，两个 canvas 波形未接数据；"静音麦克风 / 旁路直通"按钮 ✅ 2026-09-12 已实现（`POST /api/realtime/routing`，静音=输出静音帧不推理、直通=16k 干声升采样直出，状态在 `status.realtime`，跨模式切换保持）；`音色管理库` 按钮未实现。
   - [ ] 并发验证 ASR+LLM+TTS 加入后的共存（当前实测：ASR ~0.3GB CPU + LLM ~1.2GB GPU + TTS 按需，余量足；待与 RVC 三方压测）
 - [x] **TTS 小型部署（2026-08-30 实测）**：`tools/tts_service.py`（sherpa-onnx 三引擎）。**Matcha zh-baker 为推荐引擎：RTF ~0.2（5 倍实时，4 线程 CPU），共 90MB**；melo/kokoro int8 也能跑但 RTF 1.6-3 不实时（留存参考）。HDMI 播放（plughw:1,3）已验证。原来"TTS 不做"的决策更新为：**demo 可选"读出来"开关**，句子级延迟完全够
 - [x] **TTS 接线 + 全链演示（2026-08-31）**：`tools/demo_fullchain.py` 串起 **语音→ASR→LLM翻译→TTS→RVC变声→HDMI播放** 全链闭环（file 模式稳出声）。实测单句：ASR 0.7s / LLM 0.9s / TTS 13.5s（5s 音频，CPU 挤）/ RVC 27s（CPU RTF≈5）。关键坑：Matcha 纯中文词库读不了英文（换 melo 中英混读）；melo 输出安静 + rms_mix_rate 会把安静包络带进变声输出（发送前峰值归一化 0.9）；后端构建的 RNNoise blob 路径指向 rvc-backend/assets（已拷贝）。`tools/tts2rvc.py` 为 UDP 实时变声通路（P1 GPU 化后启用）
