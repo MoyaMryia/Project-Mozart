@@ -12,6 +12,4 @@
 #include "mozart/playback.h"
 #include "mozart/wav.h"
 
-#define MOZART_PRE_VERSION "0.2.0"
-
 #endif /* MOZART_H */
