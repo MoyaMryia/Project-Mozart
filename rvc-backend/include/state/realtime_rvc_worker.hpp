@@ -37,6 +37,10 @@ public:
     AudioWorker::BypassStats bypass_stats() const;
     AudioWorker::StreamStats stream_stats() const;
     bool is_stream_mode() const noexcept;
+    void set_mic_muted(bool muted);
+    void set_bypass(bool on);
+    bool mic_muted() const noexcept;
+    bool bypass() const noexcept;
 
 private:
     RVCPipelineBase& pipeline_;

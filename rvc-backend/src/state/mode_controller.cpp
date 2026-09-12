@@ -69,6 +69,10 @@ void ModeController::start_realtime_locked() {
     worker_config.skip_silence = config_.skip_silence;
     realtime_worker_ = std::make_unique<RealtimeRvcWorker>(pipeline_, std::move(worker_config));
     realtime_worker_->start();
+    // 路由状态（静音/直通）归 ModeController 持有：worker 在每次模式切换时
+    // 都会销毁重建，状态必须在重建后恢复，否则开关状态悄悄丢失。
+    realtime_worker_->set_mic_muted(realtime_mic_muted_);
+    realtime_worker_->set_bypass(realtime_bypass_);
 }
 
 void ModeController::stop_realtime_locked() {
@@ -119,6 +123,24 @@ nlohmann::json ModeController::transition_locked(const std::string& mode,
                      switch_model ? " after model switch" : "");
     }
     return {{"status", "active"}, {"mode", mode_}, {"model_id", pipeline_.current_model_id()}};
+}
+
+nlohmann::json ModeController::set_realtime_routing(const nlohmann::json& request) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    // 先落成员（跨模式切换的持久状态），再同步到存活的 worker
+    if (request.contains("mic_muted")) {
+        realtime_mic_muted_ = request.value("mic_muted", false);
+    }
+    if (request.contains("bypass")) {
+        realtime_bypass_ = request.value("bypass", false);
+    }
+    if (realtime_worker_) {
+        realtime_worker_->set_mic_muted(realtime_mic_muted_);
+        realtime_worker_->set_bypass(realtime_bypass_);
+    }
+    return {{"status", "ok"},
+            {"mic_muted", realtime_mic_muted_},
+            {"bypass", realtime_bypass_}};
 }
 
 nlohmann::json ModeController::request_mode(const std::string& mode, const std::string& model_id) {
@@ -283,6 +305,9 @@ nlohmann::json ModeController::status() const {
         {"latency", {{"available", realtime_worker_ && realtime_worker_->running()}, {"count", latency.count},
                      {"avg_ms", latency.avg_ms}, {"max_ms", latency.max_ms}}},
         {"bypass", {{"inference_count", bypass.inference_count}, {"bypass_count", bypass.bypass_count}}},
+        {"realtime", {{"available", realtime_worker_ && realtime_worker_->running()},
+                      {"mic_muted", realtime_mic_muted_},
+                      {"bypass", realtime_bypass_}}},
         {"stream", {{"blocks", stream.blocks}, {"skipped_blocks", stream.skipped_blocks},
                     {"resets", stream.resets}, {"late_blocks", stream.late_blocks},
                     {"input_overruns", stream.input_overruns}, {"output_overruns", stream.output_overruns},
