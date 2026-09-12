@@ -112,6 +112,7 @@ def main():
     args = ap.parse_args()
 
     speaker = Speaker(args.tts_model) if args.speak else None
+    os.makedirs(os.path.dirname(args.jsonl) or ".", exist_ok=True)
     jsonl = open(args.jsonl, "a", encoding="utf-8")
 
     cmd = [os.path.join(SCRIPT_DIR, "stt_service.py"),
