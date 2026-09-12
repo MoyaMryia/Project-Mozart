@@ -5,9 +5,8 @@ find_package(Threads REQUIRED)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(spdlog REQUIRED)
 
-option(MOZART_BUILD_TESTS "Build Project Mozart tests" ON)
-option(USE_ONNX "Enable ONNX Runtime for RVC inference" ON)
-
+# 组件测试由各自独立构建树控制（如 preprocessor/build）；根构建是纯运行时
+# 构建，强制关闭组件测试。
 set(MOZART_IO_BUILD_TESTS OFF CACHE BOOL "Build IO tests" FORCE)
 set(MOZART_BUILD_TESTS OFF CACHE BOOL "Build preprocessor tests" FORCE)
 
