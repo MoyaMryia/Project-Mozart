@@ -50,6 +50,7 @@ public:
 
     nlohmann::json request_mode(const std::string& mode,
                                 const std::string& model_id = "") override;
+    nlohmann::json set_realtime_routing(const nlohmann::json& request) override;
     nlohmann::json enqueue_file(std::filesystem::path source_file,
                                 const std::string& original_name,
                                 const std::string& model_id) override;
@@ -90,6 +91,8 @@ private:
     std::condition_variable jobs_changed_;
     std::deque<Job> jobs_;
     std::unique_ptr<RealtimeRvcWorker> realtime_worker_;
+    bool realtime_mic_muted_ = false;   // 路由状态跨 worker 重建保持（set_realtime_routing）
+    bool realtime_bypass_ = false;
     std::unique_ptr<FileRvcWorker> file_worker_;
     std::thread file_thread_;
     bool shutting_down_ = false;

@@ -77,4 +77,20 @@ bool RealtimeRvcWorker::is_stream_mode() const noexcept {
     return worker_ && worker_->is_stream_mode();
 }
 
+void RealtimeRvcWorker::set_mic_muted(bool muted) {
+    if (worker_) worker_->set_mic_muted(muted);
+}
+
+void RealtimeRvcWorker::set_bypass(bool on) {
+    if (worker_) worker_->set_bypass(on);
+}
+
+bool RealtimeRvcWorker::mic_muted() const noexcept {
+    return worker_ && worker_->mic_muted();
+}
+
+bool RealtimeRvcWorker::bypass() const noexcept {
+    return worker_ && worker_->bypass();
+}
+
 } // namespace rvc

@@ -37,8 +37,9 @@ not considered deployed when validation fails.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /api/status` | Authoritative mode, pending transition, queue, selected model, capabilities, plus `latency` (avg/max ms), `stream` (blocks/resets/overruns), `bypass` (inference/bypass counts), and `vad` stats from the active real-time worker. |
+| `GET /api/status` | Authoritative mode, pending transition, queue, selected model, capabilities, plus `latency` (avg/max ms), `stream` (blocks/resets/overruns), `bypass` (inference/bypass counts), and `vad` stats from the active real-time worker. Also carries `realtime` routing state (`mic_muted` / `bypass`). |
 | `POST /api/mode/switch` | JSON `{ "mode": "file_rvc", "speaker_id": "model_id" }`. A switch away from an active file job is deferred. |
+| `POST /api/realtime/routing` | JSON `{ "mic_muted": bool, "bypass": bool }`. Mute outputs silent frames (no inference); bypass plays the raw 16 kHz input upsampled to 48 kHz (no inference). Routing state survives mode switches and is reported in `status.realtime`. Requires a running RT_RVC worker. |
 | `POST /api/file/convert` | Multipart `audio_file` and optional `speaker_id`; stores the upload and returns a queued job ID. |
 | `GET /api/file/status?job_id=...` | Job state, progress, error, and completed download URL. |
 | `DELETE /api/file/cancel?job_id=...` | Removes queued work or requests processing cancellation at the next frame boundary. |

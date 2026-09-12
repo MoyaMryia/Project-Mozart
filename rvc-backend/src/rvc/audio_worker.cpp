@@ -13,6 +13,17 @@ namespace rvc {
 namespace {
 // pts 可信（非离线合成 0 值）时用于端到端延迟统计
 constexpr uint64_t kMinPlausiblePtsNs = 1000000000ull; // >1s 说明是真时钟
+
+// 16k → 48k 线性插值升采样（960 = 3 × 320）：干声直通/监听用
+void upsample_16k_to_48k(const float* in, float* out) {
+    for (uint32_t j = 0; j < MOZART_OUTPUT_SAMPLES; ++j) {
+        const uint32_t i = j / 3;
+        const float frac = static_cast<float>(j % 3) / 3.0f;
+        const float s0 = in[i];
+        const float s1 = (i + 1 < MOZART_INPUT_SAMPLES) ? in[i + 1] : s0;
+        out[j] = s0 + (s1 - s0) * frac;
+    }
+}
 } // namespace
 
 AudioWorker::AudioWorker(mozart_stream_handle_t stream,
@@ -110,18 +121,26 @@ void AudioWorker::process_loop() {
         mozart_output_frame_t output{};
         if (stream_mode_) {
             output.meta = input.meta;
-            streaming_->push(input);
-            const size_t got = streaming_->pop_output(
-                output.pcm, MOZART_OUTPUT_SAMPLES);
-            if (got < MOZART_OUTPUT_SAMPLES) {
-                std::fill(output.pcm + got, output.pcm + MOZART_OUTPUT_SAMPLES, 0.0f);
+            if (mic_muted_.load(std::memory_order_relaxed)) {
+                // 静音：不推理，直接输出全零帧（HDMI 立即安静）
+                std::fill(output.pcm, output.pcm + MOZART_OUTPUT_SAMPLES, 0.0f);
+            } else if (bypass_.load(std::memory_order_relaxed)) {
+                // 干声直通：原始 16k 输入升采样后直接播出，不推理
+                upsample_16k_to_48k(input.pcm, output.pcm);
+            } else {
+                streaming_->push(input);
+                const size_t got = streaming_->pop_output(
+                    output.pcm, MOZART_OUTPUT_SAMPLES);
+                if (got < MOZART_OUTPUT_SAMPLES) {
+                    std::fill(output.pcm + got, output.pcm + MOZART_OUTPUT_SAMPLES, 0.0f);
+                }
+                std::lock_guard<std::mutex> lock(stats_mutex_);
+                if (got < MOZART_OUTPUT_SAMPLES) {
+                    ++underrun_count_;
+                    if (!stream_output_started_) ++startup_underrun_count_;
+                }
+                if (got > 0) stream_output_started_ = true;
             }
-            std::lock_guard<std::mutex> lock(stats_mutex_);
-            if (got < MOZART_OUTPUT_SAMPLES) {
-                ++underrun_count_;
-                if (!stream_output_started_) ++startup_underrun_count_;
-            }
-            if (got > 0) stream_output_started_ = true;
         } else {
             process_frame(input, output);
         }
