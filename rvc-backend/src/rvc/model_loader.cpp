@@ -131,9 +131,14 @@ bool RVCModel::load(const std::string& device, bool half) {
             return false;
         }
 
-        if (std::filesystem::exists(index_path_)) {
-            load_index();
-        }
+        // NOTE(index): 检索链路尚未验证（TODO.md P3），且所有已验证配置
+        // index_rate=0.0——预加载 .index 会让每个模型常驻 ~115MB 却从不参与
+        // 推理，故停用。inferencer 消费端有 index().loaded() 门，未加载时
+        // 检索自动跳过、行为等同 index_rate=0。启用检索时恢复本调用，
+        // 并先完成 TODO.md P3 的输出一致性验证。
+        // if (std::filesystem::exists(index_path_)) {
+        //     load_index();
+        // }
 
         loaded_ = true;
         spdlog::info(
