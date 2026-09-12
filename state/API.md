@@ -14,8 +14,8 @@ HTTP API -> StateManagerDaemon -> ModeController
                                   -> FileRvcWorker -> FFmpeg -> preprocessor -> RVC pipeline
 ```
 
-`rvc_backend` remains a compatibility executable. Deploy `mozart_stated`
-from the root `build/` tree for the full daemon architecture.
+`mozart_stated` is the only backend entry point. Deploy it from the root
+`build/` tree for the full daemon architecture.
 
 ## Supported Modes
 

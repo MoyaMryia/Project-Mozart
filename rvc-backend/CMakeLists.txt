@@ -200,19 +200,11 @@ if(USE_ONNX AND ONNX_RUNTIME_LIB)
     target_link_libraries(mozart_rvc_runtime PUBLIC ${ONNX_RUNTIME_LIB})
 endif()
 
-# Compatibility executable for current deployment scripts. New deployments
-# should run mozart_stated, which is defined in state/.
-add_executable(rvc_backend src/main.cpp)
-target_link_libraries(rvc_backend PRIVATE mozart_rvc_runtime mozart_api)
-
 # ══════════════════════════════════════════════════════════
 # Compiler flags
 # ══════════════════════════════════════════════════════════
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(mozart_rvc_runtime PRIVATE -Wall -Wextra -Wpedantic -O2)
-    target_compile_options(rvc_backend PRIVATE -Wall -Wextra -Wpedantic -O2)
-elseif(MSVC)
-    target_compile_options(rvc_backend PRIVATE /W4 /O2)
 endif()
 
 # ══════════════════════════════════════════════════════════
