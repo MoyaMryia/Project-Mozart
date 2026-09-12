@@ -22,6 +22,7 @@ export interface Status {
   capabilities: Partial<Record<ActiveMode, boolean>>;
   file_queue_paused: boolean;
   model: { has_index?: string };
+  realtime?: { available: boolean; mic_muted: boolean; bypass: boolean };
 }
 
 export interface ModelList {
