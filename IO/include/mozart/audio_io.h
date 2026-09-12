@@ -17,22 +17,8 @@
 #include "mozart/frame_meta.h"
 
 // ---- 符号导出宏 --------------------------------------------------------------
-#if defined(MOZART_IO_STATIC)
-    // 静态库或头文件包含场景：无需 dllexport
-    #define MOZART_API
-#elif defined(_WIN32)
-    #if defined(MOZART_IO_EXPORTS)
-        #define MOZART_API __declspec(dllexport)
-    #else
-        #define MOZART_API __declspec(dllimport)
-    #endif
-#else
-    #if defined(MOZART_IO_EXPORTS)
-        #define MOZART_API __attribute__((visibility("default")))
-    #else
-        #define MOZART_API
-    #endif
-#endif
+// Jetson-only 静态链接（见 IO/CMakeLists.txt），无 dllexport/visibility 需求。
+#define MOZART_API
 
 #ifdef __cplusplus
 extern "C" {
