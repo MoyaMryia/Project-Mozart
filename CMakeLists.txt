@@ -7,7 +7,6 @@ find_package(spdlog REQUIRED)
 
 option(MOZART_BUILD_TESTS "Build Project Mozart tests" ON)
 option(USE_ONNX "Enable ONNX Runtime for RVC inference" ON)
-option(USE_LIBTORCH "Enable libtorch for real RVC inference" OFF)
 
 set(MOZART_IO_BUILD_TESTS OFF CACHE BOOL "Build IO tests" FORCE)
 set(MOZART_BUILD_TESTS OFF CACHE BOOL "Build preprocessor tests" FORCE)
