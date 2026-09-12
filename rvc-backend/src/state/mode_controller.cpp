@@ -428,8 +428,13 @@ nlohmann::json ModeController::list_models() const {
         const std::string id = entry.path().filename().string();
         const bool has_config = std::filesystem::exists(entry.path() / "config.json");
         const bool has_onnx = std::filesystem::exists(entry.path() / (id + ".onnx"));
+        // realtime split 资产（<id>-front/-decoder.onnx）没有单体 generator，
+        // 但 switch_model 可加载——它们同样是可用的模型（低延迟 profile 用）。
+        const bool has_realtime_split =
+            std::filesystem::exists(entry.path() / (id + "-front.onnx"))
+            && std::filesystem::exists(entry.path() / (id + "-decoder.onnx"));
         result["models"].push_back({
-            {"id", id}, {"exists", has_config && has_onnx},
+            {"id", id}, {"exists", has_config && (has_onnx || has_realtime_split)},
             {"loaded", pipeline_.current_model_id() == id},
             {"current", pipeline_.current_model_id() == id}
         });
