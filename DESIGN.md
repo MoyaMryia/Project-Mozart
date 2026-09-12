@@ -309,7 +309,6 @@ Jetson:
 ```
 
 - 导出脚本：`tools/export_hubert_onnx.py`、`tools/export_rmvpe_onnx.py`、`tools/export_generator_onnx.py <model.pth> [--all]`。
-- `rvc_post_bridge.py`：PC 端验证桥（本地 Python RVC 服务接入 Mozart 契约流），用于在 Jetson 模型就绪前验证全链路，**非产品路径**。
 - PC 端 RVC 环境搭建（Windows + CUDA + fairseq/pyworld + 模型下载）见 git 历史 `docs/LOCAL_RVC_SETUP.md`（已并入本文档体系，不再单独维护）。
 
 ## 8. 实现路线与当前状态
