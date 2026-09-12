@@ -7,8 +7,7 @@ Browser -> Vite frontend -> /api proxy -> mozart_stated -> FILE_RVC worker
         -> FFmpeg -> preprocessor -> HuBERT / RMVPE / RVC Generator ONNX
 ```
 
-The recommended backend entry point is `mozart_stated`. Do not use the legacy
-`rvc_backend` executable for normal deployment.
+The only backend entry point is `mozart_stated`.
 
 ## Prerequisites
 

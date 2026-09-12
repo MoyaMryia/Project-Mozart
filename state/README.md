@@ -2,7 +2,7 @@
 
 `state` 模块负责 Project Mozart 后端的全局生命周期管理、I/O 设备重定向、显存/模型智能置换以及多线程算力调度编排。
 
-当前可执行入口为根目录构建产物 `build/state/mozart_stated`。它是唯一的进程组合根：创建 API 控制面、RVC runtime、实时 worker、文件 worker 与任务队列；`rvc_backend` 保留为兼容旧部署脚本的入口。
+当前可执行入口为根目录构建产物 `build/state/mozart_stated`。它是唯一的进程组合根：创建 API 控制面、RVC runtime、实时 worker、文件 worker 与任务队列。
 
 其核心设计目标是在 NVIDIA Jetson Orin Nano (8GB VRAM) 共享内存架构下实现**极高吞吐、极低延迟以及不爆音 (Fail-safe) 的强互斥系统稳定性**。
 

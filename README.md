@@ -92,17 +92,17 @@ cd preprocessor && make -j6
 ```bash
 cd rvc-backend && mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON && make -j6
-./rvc_backend ../config.yaml
 ```
 
 **GPU 推理（TensorRT 直载）**：将 `.engine` 文件放到同名 `.onnx` 旁即可自动加载。确认日志出现 `Engine backend: TensorRT (GPU)`。若 TRT 失败回退 ONNX，需源码编译 CUDA 版 ONNX Runtime 后加 `-DUSE_CUDA_EP=ON` 重新构建。
 
-### 4. 运行生产守护进程（推荐）
+### 4. 运行生产守护进程
+
+唯一的后端入口是 `mozart_stated`（state 组件没有独立 project()，需从根构建树或全组件构建取产物）：
 
 ```bash
-cd state && mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release && make -j6
-./mozart_stated ../config.yaml
+cmake -S . -B build-gpu && cmake --build build-gpu -j6
+./build-gpu/state/mozart_stated rvc-backend/config.yaml
 ```
 
 ### 第一次部署：先跑通普通模型，再启用一个低延迟音色

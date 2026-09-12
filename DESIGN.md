@@ -233,7 +233,7 @@ input (16kHz)
 ```bash
 cd rvc-backend && mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON && make -j6
-./rvc_backend ../config.yaml
+# 运行入口为 mozart_stated（state/ 组件，从根构建树取 build-gpu/state/mozart_stated）
 # 测试：./test_udp_loopback（IO + AudioWorker + Mock 闭环）
 #       ./test_feature_extractor / ./test_inferencer
 ```
