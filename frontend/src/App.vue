@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // App.vue — 控制中心主应用。
-// UI 模板从原 vanilla index.html 1:1 平移（class/结构未动），逻辑从
-// main.ts / monitor.ts 移植为组合式状态。新增：SUB 字幕条（SSE 订阅）。
+// UI 模板从原 vanilla 控制中心 1:1 平移（class/结构未动），逻辑从原 vanilla
+// main.ts 移植为组合式状态。新增：SUB 字幕条（SSE 订阅）。
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
@@ -19,7 +19,6 @@ const apiOnline = ref(true);
 const selectedMode = ref<ActiveMode>('rt_rvc');       // UI 选中的行
 const enabledMode = ref<ActiveMode | null>(           // 开关 + localStorage
   localStorage.getItem('mozart-enabled-mode') as ActiveMode | null);
-const modeSelectedByUser = ref(false);
 const uploadFile = ref<File | null>(null);
 const uploadFileName = ref('');
 const uploadInputValue = ref('');                     // 清空 input[type=file] 用
@@ -296,12 +295,10 @@ const pickMode = (mode: ActiveMode) => {
     showError(new Error('此模式尚未实现'));
     return;
   }
-  modeSelectedByUser.value = true;
   selectedMode.value = mode;
 };
 const onToggle = (mode: ActiveMode, checked: boolean | null) => {
   if (checked) {
-    modeSelectedByUser.value = true;
     enabledMode.value = mode;
     localStorage.setItem('mozart-enabled-mode', mode);
     selectedMode.value = mode;
@@ -416,7 +413,6 @@ onUnmounted(() => {
           <div class="flex items-center gap-2 min-h-[24px] mb-2" aria-live="polite">
             <div class="relative w-5 h-5 flex items-center justify-center" aria-hidden="true">
               <svg :class="['system-state-icon', status?.mode !== 'idle' ? 'text-emerald-600' : 'hidden']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="m20 15 14 9-14 9V15Z"/></svg>
-              <svg :class="['system-state-icon', 'hidden', 'text-gray-500']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="M17 15h5v18h-5V15Zm9 0h5v18h-5V15Z"/></svg>
               <svg :class="['system-state-icon', status?.mode === 'idle' ? 'text-red-600' : 'hidden']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="M16 16h16v16H16V16Z"/></svg>
             </div>
             <div class="min-w-0">
@@ -447,7 +443,6 @@ onUnmounted(() => {
             <div v-for="mode in MODES" :key="mode" :class="['mode-row w-full rounded-md transition-colors duration-150 hover:bg-gray-100 border border-transparent group flex items-stretch overflow-hidden', selectedMode === mode && 'is-selected']" :data-mode="mode">
               <button type="button" class="flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900" :data-mode="mode" :aria-pressed="selectedMode === mode" @click="pickMode(mode)">
                 <span class="mode-name block font-mono text-sm text-gray-700" translate="no">{{ mode.toUpperCase().replace('_', '_') }}</span>
-                <span class="mode-desc hidden block text-[11px] font-bold text-gray-500 mt-1 truncate" aria-live="polite"></span>
               </button>
               <div class="w-px bg-gray-300/50"></div>
               <div class="w-14 flex items-center justify-center p-2 shrink-0 bg-white/40">
