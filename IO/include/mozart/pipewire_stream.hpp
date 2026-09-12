@@ -1,4 +1,7 @@
-// pipewire_stream.hpp — PipeWire 本地物理设备驱动
+// pipewire_stream.hpp — PipeWire 本地物理设备驱动（stub，已停用）
+// ============================================================================
+// TODO(pipewire): 真实驱动落地前整体停出编译（见 pipewire_stream.cpp）。
+#if 0
 // ============================================================================
 // 从 preprocessor/pipewire.{c,h} 抽出的设备 IO，迁入 IO 模块统一管理。
 // 实现 RealTimeAudioStream：
@@ -52,3 +55,5 @@ private:
 } // namespace mozart
 
 #endif // MOZART_PIPEWIRE_STREAM_HPP
+
+#endif // 停用：PipeWire stub（TODO 待办）

@@ -53,9 +53,6 @@ public:
     // 阻塞式读/写单帧；buf_size 必须与具体子类期望的帧大小一致
     virtual bool ReadFrame (void* out_frame_buf, uint32_t buf_size) = 0;
     virtual bool WriteFrame(const void* in_frame_buf, uint32_t buf_size) = 0;
-
-    // 底层设备/协议延迟（纳秒），不支持时返回 0
-    virtual uint64_t GetUnderlyingLatencyNs() const noexcept = 0;
 };
 
 } // namespace mozart

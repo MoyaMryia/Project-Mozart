@@ -56,8 +56,6 @@ public:
     bool ReadFrame (void* out_frame_buf, uint32_t buf_size) override;
     bool WriteFrame(const void* in_frame_buf, uint32_t buf_size) override;
 
-    uint64_t GetUnderlyingLatencyNs() const noexcept override { return 0; }
-
     // Capture 流：首个合法发送方地址（供配对 Playback 流使用）
     bool client_known() const noexcept { return client_known_.load(); }
 

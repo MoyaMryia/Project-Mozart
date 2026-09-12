@@ -34,8 +34,6 @@ public:
     bool ReadFrame (void* out_frame_buf, uint32_t buf_size) override;
     bool WriteFrame(const void* in_frame_buf, uint32_t buf_size) override;
 
-    uint64_t GetUnderlyingLatencyNs() const noexcept override { return 0; }
-
     // 测试观测口
     uint64_t frames_read()  const noexcept { return frames_read_.load(); }
 

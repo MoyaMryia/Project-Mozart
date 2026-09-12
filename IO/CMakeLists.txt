@@ -36,13 +36,12 @@ if(TARGET spdlog)
 endif()
 
 # ---- Sources -----------------------------------------------------------------
-# pipewire_stream.cpp 默认编译为 stub（不依赖 libpipewire）；
-# MOZART_IO_ENABLE_PIPEWIRE=ON 时链接 libpipewire，后续在源码内用该宏切换真实实现。
+# 生产库只保留实际有消费者的路径：UDP 契约流 + C-ABI 工厂 + SpscRing。
+# mock_stream.{cpp,hpp} 移入 tests/（仅测试消费）；
+# pipewire_stream.{cpp,hpp} 整体 #if 0（TODO(pipewire) 待办，见源文件）。
 set(IO_SOURCES
     src/audio_stream.cpp
     src/ring_buffer.cpp
-    src/mock_stream.cpp
-    src/pipewire_stream.cpp
 )
 
 set(IO_HEADERS
@@ -50,8 +49,6 @@ set(IO_HEADERS
     include/mozart/audio_io.h
     include/mozart/audio_stream.hpp
     include/mozart/ring_buffer.hpp
-    include/mozart/mock_stream.hpp
-    include/mozart/pipewire_stream.hpp
 )
 
 if(MOZART_IO_ENABLE_UDP)

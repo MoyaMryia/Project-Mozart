@@ -1,4 +1,9 @@
-// pipewire_stream.cpp — PipeWire 物理设备驱动（stub 实现）
+// pipewire_stream.cpp — PipeWire 物理设备驱动（stub 实现，已停用）
+// ============================================================================
+// TODO(pipewire): PipeWire 物理声卡是 TODO.md 待办。当前 stub 只会填静音/丢帧，
+// 且全仓库无生产调用者，故整体停出编译；真实 libpipewire 集成时恢复本文件、
+// pipewire_stream.hpp 与 audio_stream.cpp / audio_io.h 中的工厂声明。
+#if 0
 // ============================================================================
 // 从 preprocessor/pipewire.c 迁移的设备 IO，当前为 stub（与原现状一致）：
 //   Capture: ReadFrame 填充静音 PCM + 递增 frame_idx
@@ -82,3 +87,4 @@ bool PipeWireStream::WriteFrame(const void* in_frame_buf, uint32_t buf_size) {
 }
 
 } // namespace mozart
+#endif // 停用：PipeWire stub（TODO 待办）
