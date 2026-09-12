@@ -72,6 +72,7 @@ rvc-golden/input/
 # captured tensors and temp files stay out of git, only the run configs track
 rvc-golden/qiqi-zh-run/**
 !rvc-golden/qiqi-zh-run/backend.yaml
+!rvc-golden/qiqi-zh-run/backend-ui.yaml
 !rvc-golden/qiqi-zh-run/config.json
 !rvc-golden/qiqi-zh-run/presets.json
 
