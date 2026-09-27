@@ -1,0 +1,40 @@
+name: Native regression tests
+
+on:
+  push:
+    branches: [main, 'fix/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpu-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build g++ libasound2-dev libspdlog-dev \
+            libyaml-cpp-dev nlohmann-json3-dev ffmpeg
+      - name: Configure without GPU or model assets
+        run: >-
+          cmake -S rvc-backend -B build/host -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON
+      - name: Build native targets
+        run: cmake --build build/host -j2
+      - name: Run native regression tests
+        run: ctest --test-dir build/host --output-on-failure
+      - name: Repeat queue lifecycle tests
+        run: ctest --test-dir build/host -R '^state_' --repeat until-fail:10 --output-on-failure
