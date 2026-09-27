@@ -10,6 +10,7 @@
 #   然后往 stdin 敲句子，回车合成；Ctrl-C 退出。
 import argparse
 import os
+import subprocess
 import sys
 import time
 
@@ -99,7 +100,11 @@ def main():
         print(f"[tts#{n}] {dur:.1f}s 音频 / {elapsed:.2f}s 合成 (RTF {rtf:.2f}) -> {path}",
               flush=True)
         if args.play:
-            os.system(f"aplay -q {path} &")
+            # argv 直传，避免 --out-dir 中的 shell 元字符注入。
+            try:
+                subprocess.Popen(["aplay", "-q", path])
+            except OSError as exc:
+                print(f"[tts] aplay failed: {exc}", file=sys.stderr, flush=True)
 
 
 if __name__ == "__main__":

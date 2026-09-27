@@ -234,7 +234,8 @@ void OnnxEngine::unload() {
 bool OnnxEngine::load(const std::filesystem::path& model_path) {
     spdlog::warn("ONNX Runtime not compiled in (USE_ONNX=OFF); stub load: {}",
                  model_path.string());
-    return std::filesystem::exists(model_path);
+    loaded_ = std::filesystem::exists(model_path);
+    return loaded_;
 }
 
 std::optional<OnnxInput::Type> OnnxEngine::input_type(const std::string&) const {
@@ -259,8 +260,7 @@ std::vector<float> OnnxEngine::run(const std::vector<OnnxInput>&,
     throw std::runtime_error("ONNX Runtime not available (USE_ONNX=OFF)");
 }
 
-void OnnxEngine::unload() {}
+void OnnxEngine::unload() { loaded_ = false; }
 
 #endif
-
 } // namespace rvc

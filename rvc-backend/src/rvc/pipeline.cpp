@@ -70,10 +70,10 @@ RealRVCPipeline::RealRVCPipeline(
         hubert_path, rmvpe_path, device, half, mock_.hubert, mock_.rmvpe,
         realtime_hubert_path, realtime_rmvpe_path
     );
-    rebuild_inferencer();
+    rebuild_inferencer_locked();
 }
 
-void RealRVCPipeline::rebuild_inferencer() {
+void RealRVCPipeline::rebuild_inferencer_locked() {
     auto model = model_manager_->current_model();
     if (!model || !model->loaded()) {
         inferencer_.reset();
@@ -88,6 +88,11 @@ void RealRVCPipeline::rebuild_inferencer() {
     spdlog::info("RVC inferencer rebuilt for model '{}'", model->id());
 }
 
+std::shared_ptr<RVCInferencer> RealRVCPipeline::current_inferencer() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return inferencer_;
+}
+
 bool RealRVCPipeline::set_parameters(const RvcParameters& parameters) {
     if (parameters.f0_method != "rmvpe" && parameters.f0_method != "harvest" && parameters.f0_method != "pm") return false;
     if (parameters.pitch_shift < -12 || parameters.pitch_shift > 12) return false;
@@ -95,15 +100,19 @@ bool RealRVCPipeline::set_parameters(const RvcParameters& parameters) {
     if (parameters.filter_radius < 0 || parameters.filter_radius > 7) return false;
     if (parameters.rms_mix_rate < 0.0f || parameters.rms_mix_rate > 1.0f) return false;
     if (parameters.protect < 0.0f || parameters.protect > 0.5f) return false;
+    std::lock_guard<std::mutex> lock(mutex_);
     parameters_ = parameters;
-    rebuild_inferencer();
+    rebuild_inferencer_locked();
     return true;
 }
 
 bool RealRVCPipeline::switch_model(const std::string& model_id) {
-    bool success = model_manager_->load_model(model_id);
+    // 先在 ModelManager 校验并加载（其内部有锁），再在锁内原子替换
+    // inferencer_；正在执行的推理持有旧 shared_ptr，不会被提前销毁。
+    const bool success = model_manager_->load_model(model_id);
     if (success) {
-        rebuild_inferencer();
+        std::lock_guard<std::mutex> lock(mutex_);
+        rebuild_inferencer_locked();
     }
     return success;
 }
@@ -140,6 +149,11 @@ bool RealRVCPipeline::supports_quality_streaming() const {
 }
 
 bool RealRVCPipeline::supports_realtime_streaming() const {
+    RvcParameters parameters;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        parameters = parameters_;
+    }
     const auto model = model_manager_->current_model();
     if (!model || !model->loaded() || !model->has_realtime_generator()
         || model->config().sample_rate != output_sample_rate_
@@ -147,7 +161,7 @@ bool RealRVCPipeline::supports_realtime_streaming() const {
         || !feature_extractor_->supports_realtime_hubert_samples(44800)) {
         return false;
     }
-    if (parameters_.f0_method == "rmvpe"
+    if (parameters.f0_method == "rmvpe"
         && !feature_extractor_->supports_realtime_rmvpe_frames(32)) {
         return false;
     }
@@ -163,11 +177,13 @@ std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
         MockRVCPipeline mock(input_sample_rate_, output_sample_rate_);
         return mock.process(audio);
     }
-    if (!inferencer_) {
+    // 复制 shared_ptr：切换参数/模型时旧 inferencer 保持存活到调用结束。
+    const auto inferencer = current_inferencer();
+    if (!inferencer) {
         throw std::runtime_error("RVC generator is unavailable and rvc.mock.generator is false");
     }
 
-    return inferencer_->infer(audio);
+    return inferencer->infer(audio);
 }
 
 std::vector<float> RealRVCPipeline::process_realtime(
@@ -177,14 +193,21 @@ std::vector<float> RealRVCPipeline::process_realtime(
     if (mock_.generator) {
         return RVCPipelineBase::process_realtime(audio, request);
     }
-    if (!inferencer_) {
+    const auto inferencer = current_inferencer();
+    if (!inferencer) {
         throw std::runtime_error("RVC realtime Generator is unavailable");
     }
-    return inferencer_->infer_realtime(audio, request);
+    return inferencer->infer_realtime(audio, request);
 }
 
 void RealRVCPipeline::reset_realtime() {
-    if (inferencer_) inferencer_->reset_realtime();
+    const auto inferencer = current_inferencer();
+    if (inferencer) inferencer->reset_realtime();
+}
+
+RvcParameters RealRVCPipeline::parameters() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return parameters_;
 }
 
 std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(

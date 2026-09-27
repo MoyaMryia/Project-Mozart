@@ -10,8 +10,15 @@
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
+#include <limits>
+#include <system_error>
 #include <thread>
 #include <unistd.h>
+
+// 写已断开的 socket 不应让进程收到 SIGPIPE（Linux）。没有该标志时退化为 0。
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
 
 namespace rvc {
 
@@ -53,12 +60,18 @@ static std::string parse_request_method(const std::string& req) {
 static std::string query_value(const std::string& path, const std::string& key) {
     const auto start = path.find('?');
     if (start == std::string::npos) return "";
-    const std::string query = path.substr(start + 1);
     const std::string prefix = key + "=";
-    const auto value_start = query.find(prefix);
-    if (value_start == std::string::npos) return "";
-    const auto value_end = query.find('&', value_start);
-    return query.substr(value_start + prefix.size(), value_end - value_start - prefix.size());
+    size_t position = start + 1;
+    while (position < path.size()) {
+        const auto next = path.find('&', position);
+        const size_t end = next == std::string::npos ? path.size() : next;
+        if (path.compare(position, prefix.size(), prefix) == 0) {
+            return path.substr(position + prefix.size(), end - position - prefix.size());
+        }
+        if (next == std::string::npos) break;
+        position = next + 1;
+    }
+    return "";
 }
 
 static size_t content_length(const std::string& header) {
@@ -66,13 +79,34 @@ static size_t content_length(const std::string& header) {
     std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char character) {
         return static_cast<char>(std::tolower(character));
     });
-    const std::string marker = "content-length:";
+    const std::string marker = "\r\ncontent-length:";
     const auto position = normalized.find(marker);
     if (position == std::string::npos) return 0;
-    const auto value_start = header.find_first_not_of(' ', position + marker.size());
-    const auto value_end = header.find("\r\n", value_start);
-    try { return std::stoull(header.substr(value_start, value_end - value_start)); }
-    catch (...) { return 0; }
+    size_t index = position + marker.size();
+    const auto value_end = header.find("\r\n", index);
+    if (value_end == std::string::npos) return 0;
+    while (index < value_end && (header[index] == ' ' || header[index] == '\t')) ++index;
+    if (index == value_end) return 0;
+    size_t value = 0;
+    for (; index < value_end; ++index) {
+        const unsigned char character = static_cast<unsigned char>(header[index]);
+        if (!std::isdigit(character)) return 0;
+        if (value > (std::numeric_limits<size_t>::max() - 9) / 10) return 0;
+        value = value * 10 + static_cast<size_t>(character - '0');
+    }
+    return value;
+}
+
+// 音色 ID 只允许单层目录名，阻止 ../ 或绝对路径穿透 models_dir。
+static bool valid_model_id(const std::string& model_id) {
+    if (model_id.empty() || model_id.size() > 128) return false;
+    if (model_id == "." || model_id == "..") return false;
+    for (const unsigned char character : model_id) {
+        if (!(std::isalnum(character) || character == '_' || character == '-' || character == '.')) {
+            return false;
+        }
+    }
+    return model_id.find("..") == std::string::npos;
 }
 
 static std::string multipart_value(const std::string& body, const std::string& boundary,
@@ -101,6 +135,8 @@ HttpApiServer::~HttpApiServer() {
 }
 
 bool HttpApiServer::start() {
+    if (running_.load()) return false;
+
     server_fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd_ < 0) {
         spdlog::error("Failed to create HTTP socket");
@@ -108,13 +144,19 @@ bool HttpApiServer::start() {
     }
 
     int opt = 1;
-    setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR,
+               reinterpret_cast<const char*>(&opt), sizeof(opt));
 
     struct sockaddr_in addr;
     std::memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port_);
-    inet_pton(AF_INET, host_.c_str(), &addr.sin_addr);
+    if (inet_pton(AF_INET, host_.c_str(), &addr.sin_addr) != 1) {
+        spdlog::error("Invalid HTTP bind address: {}", host_);
+        socket_close(server_fd_);
+        server_fd_ = -1;
+        return false;
+    }
 
     if (bind(server_fd_, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) < 0) {
         spdlog::error("Failed to bind HTTP socket to {}:{}", host_, port_);
@@ -149,6 +191,26 @@ void HttpApiServer::stop() {
     if (server_thread_.joinable()) {
         server_thread_.join();
     }
+    std::vector<SseWorker> workers;
+    {
+        std::lock_guard<std::mutex> lock(sse_mutex_);
+        workers.swap(sse_workers_);
+    }
+    for (auto& worker : workers) {
+        if (worker.thread.joinable()) worker.thread.join();
+    }
+}
+
+void HttpApiServer::reap_finished_sse_locked() {
+    auto worker = sse_workers_.begin();
+    while (worker != sse_workers_.end()) {
+        if (worker->done->load()) {
+            if (worker->thread.joinable()) worker->thread.join();
+            worker = sse_workers_.erase(worker);
+        } else {
+            ++worker;
+        }
+    }
 }
 
 void HttpApiServer::run_server() {
@@ -164,7 +226,13 @@ void HttpApiServer::run_server() {
             continue;
         }
 
-        handle_request(client_fd);
+        try {
+            handle_request(client_fd);
+        } catch (const std::exception& error) {
+            spdlog::error("HTTP request handling failed: {}", error.what());
+            const auto response = http_response(500, R"({"error":"internal server error"})");
+            send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+        }
         socket_close(client_fd);
     }
 }
@@ -185,7 +253,7 @@ void HttpApiServer::handle_request(int client_fd) {
                 expected_size = header_end + 4 + content_length(request.substr(0, header_end + 4));
                 if (expected_size > max_request_bytes) {
                     const auto response = http_response(413, R"({"error":"upload exceeds 100MB limit"})");
-                    send(client_fd, response.c_str(), response.size(), 0);
+                    send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
                     return;
                 }
             }
@@ -255,14 +323,37 @@ void HttpApiServer::handle_request(int client_fd) {
         if (response.empty()) return;
     }
     else if (route == "/api/subtitles" && method == "GET") {
-        // SSE 长连接：dup 出独立 fd 交给 detached 线程 tail 字幕 JSONL，
+        // SSE 长连接：dup 出独立 fd 交给受跟踪的工作线程 tail 字幕 JSONL，
         // 原连接立即返回由 run_server 关闭（dup 引用同一 TCP 连接）。
         const int sse_fd = dup(client_fd);
-        if (sse_fd >= 0) {
-            std::thread([this](int fd) {
-                handle_subtitles_stream(fd);
-                socket_close(fd);
-            }, sse_fd).detach();
+        if (sse_fd < 0) {
+            const auto response = http_response(500, R"({"error":"failed to open subtitle stream"})");
+            send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+            return;
+        }
+#ifdef _WIN32
+        const DWORD send_timeout_ms = 5000;
+        setsockopt(sse_fd, SOL_SOCKET, SO_SNDTIMEO,
+                   reinterpret_cast<const char*>(&send_timeout_ms), sizeof(send_timeout_ms));
+#else
+        struct timeval send_timeout{5, 0};
+        setsockopt(sse_fd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(send_timeout));
+#endif
+        auto done = std::make_shared<std::atomic<bool>>(false);
+        try {
+            std::thread worker([this, sse_fd, done]() {
+                handle_subtitles_stream(sse_fd);
+                socket_close(sse_fd);
+                done->store(true);
+            });
+            std::lock_guard<std::mutex> lock(sse_mutex_);
+            reap_finished_sse_locked();
+            sse_workers_.push_back({std::move(worker), done});
+        } catch (const std::system_error& error) {
+            spdlog::error("Failed to start subtitle SSE worker: {}", error.what());
+            socket_close(sse_fd);
+            const auto response = http_response(500, R"({"error":"failed to start subtitle stream"})");
+            send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
         }
         return;
     }
@@ -292,7 +383,7 @@ void HttpApiServer::handle_request(int client_fd) {
         response = http_response(404, R"({"error":"not found"})");
     }
 
-    send(client_fd, response.c_str(), response.size(), 0);
+    send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
 }
 
 std::string HttpApiServer::handle_health() {
@@ -307,7 +398,7 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
         "Connection: keep-alive\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n";
-    if (send(client_fd, kHead, std::strlen(kHead), 0) < 0) return;
+    if (send(client_fd, kHead, std::strlen(kHead), MSG_NOSIGNAL) < 0) return;
 
     const char* env = std::getenv("MOZART_SUBTITLES_JSONL");
     const std::string file_path = env && env[0] ? env : "/tmp/opencode/subtitles.jsonl";
@@ -417,8 +508,17 @@ std::string HttpApiServer::handle_list_models() {
 std::string HttpApiServer::handle_mode_switch(const std::string& body) {
     try {
         const auto request = nlohmann::json::parse(body);
-        const auto result = controller_->request_mode(request.value("mode", ""), request.value("model_id", request.value("speaker_id", "")));
-        const int code = result.value("status", "") == "unavailable" ? 501 : result.value("status", "") == "invalid" ? 422 : result.value("status", "") == "failed" ? 409 : 200;
+        const std::string mode = request.value("mode", "");
+        const std::string model_id = request.value("model_id", request.value("speaker_id", ""));
+        if (!model_id.empty() && !valid_model_id(model_id)) {
+            return http_response(422, R"({"status":"invalid","error":"invalid model_id"})");
+        }
+        const auto result = controller_->request_mode(mode, model_id);
+        const std::string status = result.value("status", "");
+        const int code = status == "unavailable" ? 501
+            : status == "invalid" ? 422
+            : (status == "failed" || status == "busy") ? 409
+            : status == "switching_deferred" ? 202 : 200;
         return http_response(code, result.dump());
     } catch (const std::exception&) {
         return http_response(400, R"({"error":"invalid JSON request"})");
@@ -459,9 +559,26 @@ std::string HttpApiServer::handle_file_upload(const std::string& header, const s
     const auto destination = controller_->upload_path(filename);
     std::ofstream uploaded(destination, std::ios::binary | std::ios::trunc);
     uploaded.write(body.data() + data_start + data_start_marker.size(), static_cast<std::streamsize>(data_end - data_start - data_start_marker.size()));
-    if (!uploaded) return reject(500, "failed to store upload");
+    uploaded.flush();
+    if (!uploaded) {
+        uploaded.close();
+        std::error_code error;
+        std::filesystem::remove(destination, error);
+        return reject(500, "failed to store upload");
+    }
+    uploaded.close();
+    if (!uploaded) {
+        std::error_code error;
+        std::filesystem::remove(destination, error);
+        return reject(500, "failed to store upload");
+    }
     std::string model_id = multipart_value(body, boundary, "model_id");
     if (model_id.empty()) model_id = multipart_value(body, boundary, "speaker_id");
+    if (!model_id.empty() && !valid_model_id(model_id)) {
+        std::error_code error;
+        std::filesystem::remove(destination, error);
+        return reject(422, "invalid model_id");
+    }
     const auto result = controller_->enqueue_file(destination, filename, model_id);
     if (result.value("status", "") == "rejected") {
         std::error_code error;
@@ -506,20 +623,32 @@ std::string HttpApiServer::handle_file_result(int client_fd, const std::string& 
     const auto output = controller_->completed_output(query_value(path, "job_id"));
     if (!output) return http_response(404, R"({"error":"completed output not found"})");
     std::ifstream stream(*output, std::ios::binary);
-    const auto size = std::filesystem::file_size(*output);
+    std::error_code error;
+    const auto size = std::filesystem::file_size(*output, error);
+    if (!stream || error) return http_response(404, R"({"error":"completed output was removed"})");
     const std::string header = "HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nContent-Length: " + std::to_string(size)
         + "\r\nContent-Disposition: attachment; filename=\"mozart_output.wav\"\r\nConnection: close\r\n\r\n";
-    send(client_fd, header.c_str(), header.size(), 0);
+    if (send(client_fd, header.c_str(), header.size(), MSG_NOSIGNAL) < 0) return "";
     char buffer[8192];
-    while (stream.read(buffer, sizeof(buffer)) || stream.gcount() > 0) send(client_fd, buffer, stream.gcount(), 0);
+    while (stream.read(buffer, sizeof(buffer)) || stream.gcount() > 0) {
+        if (send(client_fd, buffer, static_cast<size_t>(stream.gcount()), MSG_NOSIGNAL) < 0) return "";
+    }
     return "";
 }
 
 std::string HttpApiServer::handle_activate_model(const std::string& model_id) {
     spdlog::info("Activate model request: {}", model_id);
+    if (!valid_model_id(model_id)) {
+        return http_response(422, R"({"status":"invalid","error":"invalid model_id"})");
+    }
 
     const auto result = controller_->request_mode(controller_->status().value("mode", "idle"), model_id);
-    return http_response(result.value("status", "") == "failed" ? 404 : 200, result.dump());
+    const std::string status = result.value("status", "");
+    const int code = status == "failed" ? 404
+        : (status == "busy" ? 409
+        : (status == "invalid" ? 422
+        : (status == "switching_deferred" ? 202 : 200)));
+    return http_response(code, result.dump());
 }
 
 } // namespace rvc

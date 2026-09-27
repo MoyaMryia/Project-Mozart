@@ -203,6 +203,7 @@ ModelManager::ModelManager(
 }
 
 std::vector<std::map<std::string, std::string>> ModelManager::list_models() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     std::vector<std::map<std::string, std::string>> result;
     if (!std::filesystem::exists(models_dir_)) return result;
 
@@ -222,36 +223,60 @@ std::vector<std::map<std::string, std::string>> ModelManager::list_models() cons
     return result;
 }
 
-std::shared_ptr<RVCModel> ModelManager::get_model(const std::string& model_id) {
+std::shared_ptr<RVCModel> ModelManager::get_model_locked(const std::string& model_id) {
     auto it = models_.find(model_id);
     if (it != models_.end()) return it->second;
 
-    auto model_dir = models_dir_ / model_id;
-    if (!std::filesystem::exists(model_dir)) return nullptr;
+    const auto model_dir = models_dir_ / model_id;
+    std::error_code error;
+    if (!std::filesystem::is_directory(model_dir, error)) return nullptr;
+
+    // 防御路径穿越：解析后必须仍位于 models_dir_ 之下。
+    const auto root = std::filesystem::weakly_canonical(models_dir_, error);
+    if (error) return nullptr;
+    const auto resolved = std::filesystem::weakly_canonical(model_dir, error);
+    if (error) return nullptr;
+    const std::string root_text = root.generic_string();
+    const std::string resolved_text = resolved.generic_string();
+    if (resolved_text.compare(0, root_text.size(), root_text) != 0
+        || (resolved_text.size() > root_text.size()
+            && resolved_text[root_text.size()] != '/')) {
+        spdlog::warn("Rejected model id outside models directory: {}", model_id);
+        return nullptr;
+    }
 
     auto model = std::make_shared<RVCModel>(model_id, model_dir);
     models_[model_id] = model;
     return model;
 }
 
+std::shared_ptr<RVCModel> ModelManager::get_model(const std::string& model_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return get_model_locked(model_id);
+}
+
 bool ModelManager::load_model(const std::string& model_id) {
+    // 整个加载过程持锁：status()/current_model() 与模型切换互斥，
+    // 也避免同一模型被并发 load。
+    std::lock_guard<std::mutex> lock(mutex_);
     if (model_id == current_model_id_) {
-        const auto current = current_model();
-        if (current && current->loaded()) return true;
+        auto current = models_.find(current_model_id_);
+        if (current != models_.end() && current->second->loaded()) return true;
     }
-    auto model = get_model(model_id);
+    auto model = get_model_locked(model_id);
     if (!model) {
         spdlog::error("Model {} not found", model_id);
         return false;
     }
-    bool success = model->load(device_, half_);
-    if (success) {
-        current_model_id_ = model_id;
+    if (!model->load(device_, half_)) {
+        return false;
     }
-    return success;
+    current_model_id_ = model_id;
+    return true;
 }
 
 std::shared_ptr<RVCModel> ModelManager::current_model() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (current_model_id_.empty()) return nullptr;
     auto it = models_.find(current_model_id_);
     if (it != models_.end()) return it->second;

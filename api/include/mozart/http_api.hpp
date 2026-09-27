@@ -5,6 +5,8 @@
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <mutex>
+#include <vector>
 
 #include "state/control_plane.hpp"
 #include "mozart/monitor.hpp"
@@ -38,8 +40,18 @@ private:
     std::thread server_thread_;
     int server_fd_ = -1;
 
+    // SSE 连接各自一个工作线程。用 done 标记回收已结束的线程，
+    // stop() 统一 join，避免 detach 线程在对象析构后访问 this。
+    struct SseWorker {
+        std::thread thread;
+        std::shared_ptr<std::atomic<bool>> done;
+    };
+    std::mutex sse_mutex_;
+    std::vector<SseWorker> sse_workers_;
+
     void run_server();
     void handle_request(int client_fd);
+    void reap_finished_sse_locked();
 
     // Route handlers
     std::string handle_health();

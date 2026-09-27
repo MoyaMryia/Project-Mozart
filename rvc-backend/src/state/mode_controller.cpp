@@ -29,6 +29,9 @@ ModeController::~ModeController() {
         std::lock_guard<std::mutex> lock(mutex_);
         shutting_down_ = true;
         stop_realtime_locked();
+        for (auto& job : jobs_) {
+            if (job_active(job)) job.cancel_requested->store(true);
+        }
     }
     jobs_changed_.notify_all();
     if (file_thread_.joinable()) file_thread_.join();
@@ -40,6 +43,12 @@ bool ModeController::supported_mode(const std::string& mode) {
 
 bool ModeController::unavailable_mode(const std::string& mode) {
     return mode == "rt_zero_shot" || mode == "file_zero_shot";
+}
+
+bool ModeController::job_active(const Job& job) {
+    // "cancelling" 仍在占用 file worker，必须视为活跃，否则切换模型/
+    // 启停 realtime 会与正在收尾的文件任务并发使用 pipeline。
+    return job.state == "processing" || job.state == "cancelling";
 }
 
 std::string ModeController::make_job_id() {
@@ -153,10 +162,11 @@ nlohmann::json ModeController::request_mode(const std::string& mode, const std::
         return {{"status", "invalid"}, {"error", "unsupported mode"}};
     }
     const auto active = std::find_if(jobs_.begin(), jobs_.end(), [](const Job& job) {
-        return job.state == "processing";
+        return job_active(job);
     });
     if (mode_ == "file_rvc" && active != jobs_.end() && mode != "file_rvc") {
         pending_mode_ = mode;
+        pending_model_id_ = model_id;
         return {{"status", "switching_deferred"}, {"current_active_job", active->id},
                 {"target_mode", mode}};
     }
@@ -164,6 +174,8 @@ nlohmann::json ModeController::request_mode(const std::string& mode, const std::
         return {{"status", "busy"}, {"error", "model changes wait until the active file job completes"},
                 {"current_active_job", active->id}};
     }
+    pending_mode_.clear();
+    pending_model_id_.clear();
     return transition_locked(mode, model_id);
 }
 
@@ -171,14 +183,16 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
                                             const std::string& original_name,
                                             const std::string& model_id) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (jobs_.size() >= config_.max_queue_depth) {
+    const size_t active_jobs = static_cast<size_t>(std::count_if(
+        jobs_.begin(), jobs_.end(), [](const Job& job) { return job_active(job); }));
+    if (active_jobs >= config_.max_queue_depth) {
         return {{"status", "rejected"}, {"error", "file queue is full"}};
     }
     if (model_id.empty() && pipeline_.current_model_id().empty()) {
         return {{"status", "rejected"}, {"error", "an RVC model must be selected"}};
     }
     if (!model_id.empty() && model_id != pipeline_.current_model_id()) {
-        const auto models = list_models();
+        const auto models = list_models_locked();
         const auto model = std::find_if(models["models"].begin(), models["models"].end(), [&](const auto& item) {
             return item.value("id", "") == model_id && item.value("exists", false);
         });
@@ -192,7 +206,9 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
     job.output_path = config_.storage_dir / (job.id.substr(4) + "_output.wav");
     jobs_.push_back(job);
     jobs_changed_.notify_all();
-    return {{"job_id", job.id}, {"status", "queued"}, {"queue_position", jobs_.size()}};
+    const size_t queue_position = static_cast<size_t>(std::count_if(
+        jobs_.begin(), jobs_.end(), [](const Job& item) { return job_active(item); }));
+    return {{"job_id", job.id}, {"status", "queued"}, {"queue_position", queue_position}};
 }
 
 nlohmann::json ModeController::job_json(const Job& job) const {
@@ -261,7 +277,7 @@ nlohmann::json ModeController::remove_job(const std::string& job_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     const auto job = std::find_if(jobs_.begin(), jobs_.end(), [&](const Job& item) { return item.id == job_id; });
     if (job == jobs_.end()) return {{"error", "job not found"}};
-    if (job->state == "queued" || job->state == "processing") return {{"error", "cancel the job before removing it"}};
+    if (job_active(*job)) return {{"error", "cancel the job before removing it"}};
     std::error_code error;
     std::filesystem::remove(job->source_path, error);
     std::filesystem::remove(job->output_path, error);
@@ -274,7 +290,7 @@ nlohmann::json ModeController::clear_finished_jobs() {
     std::lock_guard<std::mutex> lock(mutex_);
     size_t removed = 0;
     for (auto job = jobs_.begin(); job != jobs_.end();) {
-        if (job->state == "queued" || job->state == "processing") { ++job; continue; }
+        if (job_active(*job)) { ++job; continue; }
         std::error_code error;
         std::filesystem::remove(job->source_path, error);
         std::filesystem::remove(job->output_path, error);
@@ -311,7 +327,8 @@ nlohmann::json ModeController::status() const {
         {"stream", {{"blocks", stream.blocks}, {"skipped_blocks", stream.skipped_blocks},
                     {"resets", stream.resets}, {"late_blocks", stream.late_blocks},
                     {"input_overruns", stream.input_overruns}, {"output_overruns", stream.output_overruns},
-                    {"inference_errors", stream.inference_errors}, {"output_underruns", stream.output_underruns},
+                    {"inference_errors", stream.inference_errors}, {"history_resets", stream.history_resets},
+                  {"output_underruns", stream.output_underruns},
                     {"startup_output_underruns", stream.startup_output_underruns}}},
         {"queue", queue}, {"file_queue_paused", file_queue_paused_}, {"last_error", last_error_},
         {"capabilities", { {"rt_rvc", true}, {"file_rvc", true}, {"rt_zero_shot", false}, {"file_zero_shot", false} }}
@@ -335,6 +352,7 @@ nlohmann::json ModeController::logs(size_t limit) const {
 }
 
 nlohmann::json ModeController::parameters() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return parameters_json(pipeline_.parameters());
 }
 
@@ -349,7 +367,7 @@ nlohmann::json ModeController::parameters_json(const RvcParameters& parameters) 
 nlohmann::json ModeController::set_parameters(const nlohmann::json& input) {
     std::lock_guard<std::mutex> lock(mutex_);
     const auto active = std::find_if(jobs_.begin(), jobs_.end(), [](const Job& job) {
-        return job.state == "processing";
+        return job_active(job);
     });
     if (active != jobs_.end()) {
         return {{"status", "busy"}, {"error", "parameters cannot change during an active file job"}};
@@ -367,7 +385,7 @@ nlohmann::json ModeController::set_parameters(const nlohmann::json& input) {
     spdlog::info("[rvc] parameters updated: f0={}, pitch={}, index_rate={}, filter_radius={}, rms_mix_rate={}, protect={}",
                  parameters.f0_method, parameters.pitch_shift, parameters.index_rate,
                  parameters.filter_radius, parameters.rms_mix_rate, parameters.protect);
-    return {{"status", "active"}, {"parameters", this->parameters()}};
+    return {{"status", "active"}, {"parameters", parameters_json(parameters)}};
 }
 
 nlohmann::json ModeController::reset_parameters() {
@@ -445,24 +463,35 @@ nlohmann::json ModeController::delete_preset(const std::string& preset_id) {
 }
 
 nlohmann::json ModeController::list_models() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return list_models_locked();
+}
+
+nlohmann::json ModeController::list_models_locked() const {
     nlohmann::json result;
     result["models"] = nlohmann::json::array();
-    if (!std::filesystem::exists(config_.models_dir)) return result;
-    for (const auto& entry : std::filesystem::directory_iterator(config_.models_dir)) {
-        if (!entry.is_directory()) continue;
-        const std::string id = entry.path().filename().string();
-        const bool has_config = std::filesystem::exists(entry.path() / "config.json");
-        const bool has_onnx = std::filesystem::exists(entry.path() / (id + ".onnx"));
-        // realtime split 资产（<id>-front/-decoder.onnx）没有单体 generator，
-        // 但 switch_model 可加载——它们同样是可用的模型（低延迟 profile 用）。
-        const bool has_realtime_split =
-            std::filesystem::exists(entry.path() / (id + "-front.onnx"))
-            && std::filesystem::exists(entry.path() / (id + "-decoder.onnx"));
-        result["models"].push_back({
-            {"id", id}, {"exists", has_config && (has_onnx || has_realtime_split)},
-            {"loaded", pipeline_.current_model_id() == id},
-            {"current", pipeline_.current_model_id() == id}
-        });
+    std::error_code error;
+    if (!std::filesystem::is_directory(config_.models_dir, error)) return result;
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(config_.models_dir)) {
+            if (!entry.is_directory()) continue;
+            const std::string id = entry.path().filename().string();
+            const bool has_config = std::filesystem::exists(entry.path() / "config.json");
+            const bool has_onnx = std::filesystem::exists(entry.path() / (id + ".onnx"));
+            // realtime split 资产（<id>-front/-decoder.onnx）没有单体 generator，
+            // 但 switch_model 可加载——它们同样是可用的模型（低延迟 profile 用）。
+            const bool has_realtime_split =
+                std::filesystem::exists(entry.path() / (id + "-front.onnx"))
+                && std::filesystem::exists(entry.path() / (id + "-decoder.onnx"));
+            result["models"].push_back({
+                {"id", id}, {"exists", has_config && (has_onnx || has_realtime_split)},
+                {"loaded", pipeline_.current_model_id() == id},
+                {"current", pipeline_.current_model_id() == id}
+            });
+        }
+    } catch (const std::exception& exception) {
+        spdlog::warn("Failed to enumerate models in {}: {}",
+                     config_.models_dir.string(), exception.what());
     }
     return result;
 }
@@ -488,11 +517,30 @@ void ModeController::file_loop() {
         job->progress = 1;
         const std::string job_id = job->id;
         lock.unlock();
-        process_job(job_id);
+        try {
+            process_job(job_id);
+        } catch (const std::exception& error) {
+            spdlog::error("[file_rvc] job {} crashed: {}", job_id, error.what());
+            std::lock_guard<std::mutex> result_lock(mutex_);
+            const auto failed = std::find_if(jobs_.begin(), jobs_.end(), [&](const Job& item) {
+                return item.id == job_id;
+            });
+            if (failed != jobs_.end() && job_active(*failed)) {
+                failed->state = "failed";
+                failed->error = error.what();
+            }
+        }
         lock.lock();
         if (!pending_mode_.empty()) {
             const std::string requested = std::exchange(pending_mode_, "");
-            transition_locked(requested, "");
+            const std::string requested_model = std::exchange(pending_model_id_, "");
+            try {
+                transition_locked(requested, requested_model);
+            } catch (const std::exception& error) {
+                last_error_ = error.what();
+                spdlog::error("[file_rvc] deferred mode switch to {} failed: {}",
+                              requested, error.what());
+            }
         }
     }
 }
@@ -512,15 +560,20 @@ void ModeController::process_job(const std::string& job_id) {
     request.output_path = snapshot.output_path;
     std::string processing_error;
     spdlog::info("[file_rvc] job {} started: {}", snapshot.id, snapshot.name);
-    const bool succeeded = file_worker_->process(
-        request,
-        *snapshot.cancel_requested,
-        [&](int progress) {
-            std::lock_guard<std::mutex> lock(mutex_);
-            const auto job = std::find_if(jobs_.begin(), jobs_.end(), [&](const Job& item) { return item.id == job_id; });
-            if (job != jobs_.end()) job->progress = progress;
-        },
-        processing_error);
+    bool succeeded = false;
+    try {
+        succeeded = file_worker_->process(
+            request,
+            *snapshot.cancel_requested,
+            [&](int progress) {
+                std::lock_guard<std::mutex> lock(mutex_);
+                const auto job = std::find_if(jobs_.begin(), jobs_.end(), [&](const Job& item) { return item.id == job_id; });
+                if (job != jobs_.end()) job->progress = progress;
+            },
+            processing_error);
+    } catch (const std::exception& exception) {
+        processing_error = exception.what();
+    }
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -542,20 +595,44 @@ void ModeController::process_job(const std::string& job_id) {
 }
 
 void ModeController::evict_cache() {
+    std::lock_guard<std::mutex> lock(mutex_);
     std::vector<std::filesystem::directory_entry> entries;
     uint64_t size = 0;
-    for (const auto& entry : std::filesystem::directory_iterator(config_.storage_dir)) {
+    std::error_code error;
+    std::filesystem::directory_iterator iterator(config_.storage_dir, error);
+    if (error) return;
+    for (const auto& entry : iterator) {
         if (!entry.is_regular_file()) continue;
         entries.push_back(entry);
-        std::error_code error;
         size += entry.file_size(error);
     }
     if (size <= config_.max_cache_bytes) return;
+
+    // 保护活跃任务正在使用的源文件、输出与临时文件（同名前缀）。
+    std::vector<std::filesystem::path> protected_paths;
+    std::vector<std::string> protected_prefixes;
+    for (const auto& job : jobs_) {
+        if (!job_active(job)) continue;
+        protected_paths.push_back(job.source_path);
+        protected_paths.push_back(job.output_path);
+        protected_prefixes.push_back(job.id.substr(4));
+    }
+    const auto is_protected = [&](const std::filesystem::path& path) {
+        for (const auto& protected_path : protected_paths) {
+            if (path == protected_path) return true;
+        }
+        const std::string name = path.filename().string();
+        for (const auto& prefix : protected_prefixes) {
+            if (name.compare(0, prefix.size(), prefix) == 0) return true;
+        }
+        return false;
+    };
+
     std::sort(entries.begin(), entries.end(), [](const auto& left, const auto& right) { return left.path().filename() < right.path().filename(); });
     const uint64_t target = config_.max_cache_bytes * 8 / 10;
     for (const auto& entry : entries) {
         if (size <= target) break;
-        std::error_code error;
+        if (is_protected(entry.path())) continue;
         const auto bytes = entry.file_size(error);
         std::filesystem::remove(entry.path(), error);
         if (!error) size -= bytes;
