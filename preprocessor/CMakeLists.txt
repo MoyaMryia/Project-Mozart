@@ -118,4 +118,8 @@ if(MOZART_BUILD_TESTS)
     add_executable(test_dsp tests/test_dsp.c)
     target_link_libraries(test_dsp PRIVATE mozart_pre_core)
     add_test(NAME test_dsp COMMAND test_dsp)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME test_replay COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_replay.py $<TARGET_FILE:mozart-pre>)
+    set_tests_properties(test_replay PROPERTIES TIMEOUT 20)
 endif()

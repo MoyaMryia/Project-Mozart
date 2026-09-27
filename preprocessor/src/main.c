@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 static volatile sig_atomic_t g_stop = 0;
@@ -34,13 +35,14 @@ static void usage(const char *prog)
 {
     fprintf(stderr,
         "用法: %s [-d alsa采集设备] [-o alsa播放设备] [-a 目标IP] [-p 端口] [-n 帧数] "
-        "[-i 输入.wav] [--no-rnnoise] [--model x.rnnoise]\n"
+        "[-i 输入.wav] [--pace] [--no-rnnoise] [--model x.rnnoise]\n"
         "  -d  ALSA 采集设备（默认 default；麦克风为 hw:X,0，S16_LE/2ch/48k）\n"
         "  -o  ALSA 播放设备（如 plughw:X,0；缺省则不播放，只发送）\n"
         "  -a  rvc-backend 地址（默认 127.0.0.1）\n"
         "  -p  rvc-backend 音频端口（默认 18000）\n"
         "  -n  发送帧数上限，0 = 无限（默认实时 0 / 离线循环播放）\n"
-        "  -i  离线模式：读 48k/立体声/PCM16 WAV 代替麦克风\n",
+        "  -i  离线模式：读 48k/立体声/PCM16 WAV 代替麦克风\n"
+        "  --pace  离线输入按 20ms 实时节拍发送，使用单调时钟时间戳\n",
         prog);
 }
 
@@ -72,6 +74,7 @@ static int udp_open(const char *host, uint16_t port)
 typedef struct {
     int                 fd;         // 已连接的后端 UDP socket（收发同口）
     const char         *device;     // ALSA 播放设备
+    bool                monotonic_pts; // 快速离线输入使用相对 PTS，不做往返计时
     volatile sig_atomic_t *stop;    // 共享停止标志
 } playback_args_t;
 
@@ -123,8 +126,8 @@ static void *playback_thread(void *arg)
             played++;
         }
 
-        // 端到端延迟：pts 可信（>1s）才统计
-        if (frame.meta.pts_ns > 1000000000ull) {
+        // 回包携带当前输入帧的元数据，不能代表缓冲后音频的端到端延迟。
+        if (pa->monotonic_pts && frame.meta.pts_ns > 1000000000ull) {
             const uint64_t now = mozart_now_ns();
             const double lat_ms = (double)(now - frame.meta.pts_ns) / 1e6;
             latency_sum_ms += lat_ms;
@@ -134,8 +137,8 @@ static void *playback_thread(void *arg)
 
         if (played % 250 == 0 && played > 0) {   // 每 5s 一条心跳
             fprintf(stderr,
-                "[play] played=%ld/%ld bad=%ld underruns=%ld e2e_avg=%.1fms "
-                "e2e_max=%.1fms elapsed=%.1fs\n",
+                "[play] played=%ld/%ld bad=%ld underruns=%ld packet_age_avg=%.1fms "
+                "packet_age_max=%.1fms elapsed=%.1fs\n",
                 played, received, bad_packets,
                 mozart_playback_underruns(pb),
                 latency_count ? latency_sum_ms / latency_count : 0.0,
@@ -145,7 +148,7 @@ static void *playback_thread(void *arg)
     }
 
     fprintf(stderr,
-        "[play] 结束: 播放 %ld/%ld 包, bad=%ld, underruns=%ld, e2e_avg=%.1fms, e2e_max=%.1fms\n",
+        "[play] 结束: 播放 %ld/%ld 包, bad=%ld, underruns=%ld, packet_age_avg=%.1fms, packet_age_max=%.1fms\n",
         played, received, bad_packets, mozart_playback_underruns(pb),
         latency_count ? latency_sum_ms / latency_count : 0.0, latency_max_ms);
     mozart_playback_close(pb);
@@ -161,6 +164,7 @@ int main(int argc, char **argv)
     const char *wav_path = NULL;
     const char *rn_model = NULL;
     bool use_rnnoise = true;
+    bool pace = false;
     uint16_t port = 18000;
     long max_frames = -1;   // -1 = 按模式默认
 
@@ -172,11 +176,13 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "-b") && i + 1 < argc) second_target = argv[++i];
         else if (!strcmp(argv[i], "-n") && i + 1 < argc) max_frames = atol(argv[++i]);
         else if (!strcmp(argv[i], "-i") && i + 1 < argc) wav_path = argv[++i];
+        else if (!strcmp(argv[i], "--pace")) pace = true;
         else if (!strcmp(argv[i], "--no-rnnoise")) use_rnnoise = false;
         else if (!strcmp(argv[i], "--model") && i + 1 < argc) rn_model = argv[++i];
         else { usage(argv[0]); return 1; }
     }
     bool offline = wav_path != NULL;
+    if (pace && !offline) { fprintf(stderr, "[pre] --pace requires -i\n"); return 1; }
     if (max_frames < 0) max_frames = 0; // 两种模式都无限，-n>0 截断，SIGINT 退出
 
     signal(SIGINT, on_signal);
@@ -200,7 +206,8 @@ int main(int argc, char **argv)
 
     // ---- 播放线程（可选）----
     pthread_t play_tid = 0;
-    playback_args_t play_args = { .fd = fd, .device = play_device, .stop = &g_stop };
+    playback_args_t play_args = { .fd = fd, .device = play_device,
+        .monotonic_pts = !offline || pace, .stop = &g_stop };
     if (play_device) {
         if (pthread_create(&play_tid, NULL, playback_thread, &play_args) != 0) {
             fprintf(stderr, "[pre] 播放线程创建失败，仅发送模式\n");
@@ -240,6 +247,7 @@ int main(int argc, char **argv)
     pkt[0] = 0x54; pkt[1] = 0x52; pkt[2] = 0x5A; pkt[3] = 0x4D; // 'MZRT' LE
     long sent = 0, overruns = 0, send_errors = 0;
     uint64_t t0 = mozart_now_ns();
+    int exit_code = 0;
 
     while (!g_stop && (max_frames == 0 || sent < max_frames)) {
         int n;
@@ -252,7 +260,26 @@ int main(int argc, char **argv)
                 if (m <= 0) break;
                 n += m;
             }
-            frame.meta.pts_ns = (uint64_t)sent * 20000000ull; // 20ms/帧
+            frame.meta.pts_ns = (uint64_t)sent * 20000000ull;
+            if (pace) {
+                // 绝对截止时间避免把 DSP 耗时逐帧累加到发送间隔。
+                frame.meta.pts_ns += t0;
+                const uint64_t deadline = frame.meta.pts_ns + 20000000ull;
+                const struct timespec wake = {
+                    .tv_sec = (time_t)(deadline / 1000000000ull),
+                    .tv_nsec = (long)(deadline % 1000000000ull),
+                };
+                int error;
+                do {
+                    error = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &wake, NULL);
+                } while (error == EINTR && !g_stop);
+                if (g_stop) break;
+                if (error) {
+                    fprintf(stderr, "[pre] replay clock: %s\n", strerror(error));
+                    exit_code = 1;
+                    break;
+                }
+            }
         } else {
             if (mozart_capture_read(cap, stereo) < 0) {
                 fprintf(stderr, "[pre] 采集失败，退出\n");
@@ -302,5 +329,5 @@ int main(int argc, char **argv)
     mozart_wav_close(wav);
     mozart_dsp_free(dsp);
     close(fd);
-    return 0;
+    return exit_code;
 }

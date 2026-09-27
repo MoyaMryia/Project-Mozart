@@ -36,5 +36,7 @@ jobs:
         run: cmake --build build/host -j2
       - name: Run native regression tests
         run: ctest --test-dir build/host --output-on-failure
+      - name: Test paced preprocessor replay
+        run: python3 preprocessor/tests/test_replay.py build/host/mozart_pre/mozart-pre
       - name: Repeat queue lifecycle tests
         run: ctest --test-dir build/host -R '^state_' --repeat until-fail:10 --output-on-failure
