@@ -39,6 +39,8 @@ AudioWorker::~AudioWorker() {
 void AudioWorker::start() {
     if (running_.exchange(true)) return;
     if (worker_thread_.joinable()) worker_thread_.join();
+    // 上一次的推理线程可能仍在退出过程中并引用旧 streaming_，先收尾。
+    if (inference_thread_.joinable()) inference_thread_.join();
     if (!mozart_io_is_stream_open(stream_)) {
         running_ = false;
         throw std::runtime_error("audio stream must be open before AudioWorker::start");
@@ -113,6 +115,8 @@ void AudioWorker::process_loop() {
         mozart_input_frame_t input{};
         if (!mozart_io_read_frame(stream_, &input, sizeof(input))) {
             if (!running_.load() || !mozart_io_is_stream_open(stream_)) break;
+            // 非阻塞读失败时避免空转占满 CPU。
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
         record_input_meta(input);
@@ -227,6 +231,7 @@ AudioWorker::StreamStats AudioWorker::get_stream_stats() const {
         s.input_overruns = streaming_->stats().input_overruns.load();
         s.output_overruns = streaming_->stats().output_overruns.load();
         s.inference_errors = streaming_->stats().inference_errors.load();
+        s.history_resets = streaming_->stats().history_resets.load();
     }
     std::lock_guard<std::mutex> lock(stats_mutex_);
     s.output_underruns = underrun_count_;

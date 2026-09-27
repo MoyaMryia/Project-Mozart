@@ -68,6 +68,7 @@ bool StateManagerDaemon::start() {
     controller_config.output_sample_rate = output_rate;
     controller_config.frame_duration_ms = frame_ms;
     controller_config.skip_silence = config_.get_bool("input.meta.vad_enabled", true);
+    controller_config.file_rnnoise = config_.get_bool("storage.file_rnnoise", false);
     controller_config.storage_dir = config_.resolve_file_path("storage.temp_dir", "./storage/temp");
     controller_config.ffmpeg_path = config_.get_string("storage.ffmpeg_path", "ffmpeg");
     controller_config.max_queue_depth = static_cast<size_t>(config_.get_int("storage.max_queue_depth", 50));
