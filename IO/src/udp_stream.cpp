@@ -336,13 +336,25 @@ void UdpStream::receive_loop() {
             continue;
         }
 
-        // 仅首个通过协议校验的发送方可成为回复目标。
-        if (!client_known_.load()) {
+        // 首个通过协议校验的发送方成为回复目标。若原目标已静默一段时间
+        // （例如 mozart-pre 崩溃后被看护脚本重启，换了临时端口），则把回复
+        // 目标切换到新的发送方，避免输出永远发往已关闭的端口。
+        {
             std::lock_guard<std::mutex> client_lock(client_mutex_);
+            const auto now = std::chrono::steady_clock::now();
             if (!client_known_.load()) {
                 std::memcpy(&client_addr_, &src, static_cast<size_t>(src_len));
                 client_addr_len_ = src_len;
                 client_known_.store(true);
+                last_client_rx_ = now;
+            } else if (src_len == client_addr_len_ &&
+                       std::memcmp(&client_addr_, &src, static_cast<size_t>(src_len)) == 0) {
+                last_client_rx_ = now;  // 同一发送方，刷新活跃时间
+            } else if (now - last_client_rx_ > std::chrono::milliseconds(500)) {
+                spdlog::info("UdpStream capture: reply target switched to new sender");
+                std::memcpy(&client_addr_, &src, static_cast<size_t>(src_len));
+                client_addr_len_ = src_len;
+                last_client_rx_ = now;
             }
         }
 

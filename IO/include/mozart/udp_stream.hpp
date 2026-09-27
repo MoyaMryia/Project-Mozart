@@ -22,6 +22,7 @@
 #include <string>
 #include <thread>
 #include <atomic>
+#include <chrono>
 #include <mutex>
 #include <condition_variable>
 #include <cstdint>
@@ -92,6 +93,8 @@ private:
     sockaddr_storage client_addr_{};
     socket_len_t     client_addr_len_{0};
     std::atomic<bool> client_known_{false};
+    // 当前回复目标最近一次发包时间（用于在原客户端崩溃后被新进程接管）
+    std::chrono::steady_clock::time_point last_client_rx_{};
 
     std::atomic<uint64_t> packets_received_{0};
     std::atomic<uint64_t> packets_sent_{0};

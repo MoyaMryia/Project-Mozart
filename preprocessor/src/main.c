@@ -107,7 +107,18 @@ static void *playback_thread(void *arg)
         ssize_t n = recv(pa->fd, pkt, sizeof(pkt), 0);
         if (n < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
-            if (!*pa->stop) perror("[play] recv");
+            if (*pa->stop) break;
+            /* 后端切模式/重启会关闭 socket，反向 ICMP 让已 connect 的 UDP
+             * recv 报 ECONNREFUSED；这是可恢复的一次性错误，不能退出播放线程。 */
+            if (errno == ECONNREFUSED || errno == EINTR ||
+                errno == EHOSTUNREACH || errno == ENETUNREACH) {
+                static int transient_logged = 0;
+                if (transient_logged++ < 5)
+                    fprintf(stderr, "[play] recv transient error (%s), keep listening\n",
+                            strerror(errno));
+                continue;
+            }
+            perror("[play] recv");
             break;
         }
         if (n != (ssize_t)sizeof(pkt)) {
