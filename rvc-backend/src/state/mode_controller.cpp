@@ -51,6 +51,14 @@ bool ModeController::job_active(const Job& job) {
     return job.state == "processing" || job.state == "cancelling";
 }
 
+bool ModeController::job_unfinished(const Job& job) {
+    return job.state == "queued" || job_active(job);
+}
+
+bool ModeController::job_finished(const Job& job) {
+    return job.state == "completed" || job.state == "failed" || job.state == "cancelled";
+}
+
 std::string ModeController::make_job_id() {
     const auto now = std::chrono::time_point_cast<std::chrono::microseconds>(
         std::chrono::system_clock::now()).time_since_epoch().count();
@@ -183,9 +191,9 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
                                             const std::string& original_name,
                                             const std::string& model_id) {
     std::lock_guard<std::mutex> lock(mutex_);
-    const size_t active_jobs = static_cast<size_t>(std::count_if(
-        jobs_.begin(), jobs_.end(), [](const Job& job) { return job_active(job); }));
-    if (active_jobs >= config_.max_queue_depth) {
+    const size_t unfinished_jobs = static_cast<size_t>(std::count_if(
+        jobs_.begin(), jobs_.end(), [](const Job& job) { return job_unfinished(job); }));
+    if (unfinished_jobs >= config_.max_queue_depth) {
         return {{"status", "rejected"}, {"error", "file queue is full"}};
     }
     if (model_id.empty() && pipeline_.current_model_id().empty()) {
@@ -207,7 +215,7 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
     jobs_.push_back(job);
     jobs_changed_.notify_all();
     const size_t queue_position = static_cast<size_t>(std::count_if(
-        jobs_.begin(), jobs_.end(), [](const Job& item) { return job_active(item); }));
+        jobs_.begin(), jobs_.end(), [](const Job& item) { return job_unfinished(item); }));
     return {{"job_id", job.id}, {"status", "queued"}, {"queue_position", queue_position}};
 }
 
@@ -290,7 +298,7 @@ nlohmann::json ModeController::clear_finished_jobs() {
     std::lock_guard<std::mutex> lock(mutex_);
     size_t removed = 0;
     for (auto job = jobs_.begin(); job != jobs_.end();) {
-        if (job_active(*job)) { ++job; continue; }
+        if (!job_finished(*job)) { ++job; continue; }
         std::error_code error;
         std::filesystem::remove(job->source_path, error);
         std::filesystem::remove(job->output_path, error);
@@ -608,11 +616,11 @@ void ModeController::evict_cache() {
     }
     if (size <= config_.max_cache_bytes) return;
 
-    // 保护活跃任务正在使用的源文件、输出与临时文件（同名前缀）。
+    // 排队任务也持有源文件；缓存超限时仍须保护全部未完成任务。
     std::vector<std::filesystem::path> protected_paths;
     std::vector<std::string> protected_prefixes;
     for (const auto& job : jobs_) {
-        if (!job_active(job)) continue;
+        if (!job_unfinished(job)) continue;
         protected_paths.push_back(job.source_path);
         protected_paths.push_back(job.output_path);
         protected_prefixes.push_back(job.id.substr(4));
