@@ -77,8 +77,6 @@ private:
     std::unique_ptr<IEngine> hubert_onnx_engine_;
     std::unique_ptr<IEngine> rmvpe_onnx_engine_;
 
-    std::vector<float> f0_harvest(const std::vector<float>& audio, uint32_t sample_rate);
-    std::vector<float> f0_pm(const std::vector<float>& audio, uint32_t sample_rate);
     std::vector<float> extract_f0_impl(
         const std::vector<float>& audio,
         uint32_t sample_rate,

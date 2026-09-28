@@ -66,6 +66,13 @@ RealRVCPipeline::RealRVCPipeline(
     , mock_(mock)
     , parameters_(std::move(parameters))
 {
+    // 旧配置里可能残留 harvest/pm：Coerce 到 rmvpe 并大声记录，
+    // 不让一个废弃取值在启动时炸掉已部署设备。
+    if (parameters_.f0_method != "rmvpe") {
+        spdlog::warn("[rvc] config f0_method '{}' is not supported (only rmvpe is "
+                     "implemented); forcing rmvpe", parameters_.f0_method);
+        parameters_.f0_method = "rmvpe";
+    }
     feature_extractor_ = std::make_shared<FeatureExtractor>(
         hubert_path, rmvpe_path, device, half, mock_.hubert, mock_.rmvpe,
         realtime_hubert_path, realtime_rmvpe_path
@@ -94,7 +101,8 @@ std::shared_ptr<RVCInferencer> RealRVCPipeline::current_inferencer() const {
 }
 
 bool RealRVCPipeline::set_parameters(const RvcParameters& parameters) {
-    if (parameters.f0_method != "rmvpe" && parameters.f0_method != "harvest" && parameters.f0_method != "pm") return false;
+    // harvest/pm F0 从未实现（曾静默返回全零 F0），只接受 rmvpe。
+    if (parameters.f0_method != "rmvpe") return false;
     if (parameters.pitch_shift < -12 || parameters.pitch_shift > 12) return false;
     if (parameters.index_rate < 0.0f || parameters.index_rate > 1.0f) return false;
     if (parameters.filter_radius < 0 || parameters.filter_radius > 7) return false;

@@ -55,29 +55,21 @@ void test_extract_features_stub() {
     std::cout << "  [OK]\n";
 }
 
-void test_extract_f0_stub() {
-    std::cout << "[test] extract_f0 stub fallback...\n";
+void test_extract_f0_rejects_unimplemented_methods() {
+    std::cout << "[test] extract_f0 rejects harvest/pm/unknown (no silent zero-F0)...\n";
 
     rvc::FeatureExtractor fe("nonexistent.pt", std::nullopt, "cpu", false);
     std::vector<float> audio(1024, 0.0f);
-    auto f0 = fe.extract_f0(audio, 16000, "harvest");
-
-    CHECK(f0.size() > 0);
-    for (auto v : f0) {
-        CHECK_CLOSE(v, 0.0f, 1e-6f);
+    for (const auto* method : {"harvest", "pm", "unknown_method"}) {
+        try {
+            (void)fe.extract_f0(audio, 16000, method);
+            std::cerr << "  extract_f0(method=" << method
+                      << ") unexpectedly succeeded\n";
+            CHECK(false);
+        } catch (const std::runtime_error&) {
+            // 预期：这些方法从未实现，必须显式失败而不是返回全零 F0
+        }
     }
-
-    std::cout << "  [OK]\n";
-}
-
-void test_extract_f0_method_fallback() {
-    std::cout << "[test] extract_f0 unknown method fallback...\n";
-
-    rvc::FeatureExtractor fe("nonexistent.pt", std::nullopt, "cpu", false);
-    std::vector<float> audio(1024, 0.0f);
-    auto f0 = fe.extract_f0(audio, 16000, "unknown_method");
-
-    CHECK(f0.size() > 0);
 
     std::cout << "  [OK]\n";
 }
@@ -112,8 +104,7 @@ void test_multithreaded_mel() {
 int main() {
     test_feature_extractor_init();
     test_extract_features_stub();
-    test_extract_f0_stub();
-    test_extract_f0_method_fallback();
+    test_extract_f0_rejects_unimplemented_methods();
     test_empty_audio();
     test_multithreaded_mel();
 
