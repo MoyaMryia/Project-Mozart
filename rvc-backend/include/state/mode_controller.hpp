@@ -111,6 +111,8 @@ private:
     static bool supported_mode(const std::string& mode);
     static bool unavailable_mode(const std::string& mode);
     static bool job_active(const Job& job);
+    static bool job_unfinished(const Job& job);
+    static bool job_finished(const Job& job);
     static std::string make_job_id();
     static std::string sanitize_extension(const std::string& name);
     nlohmann::json job_json(const Job& job) const;
