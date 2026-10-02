@@ -189,8 +189,8 @@ input (16kHz)
 组件实现：
 
 - **OnnxEngine**（`onnx_engine.cpp`）：ONNX Runtime C++ API；`Ort::Env` + `Ort::Session`，`IntraOpNumThreads(2)`、全图优化。支持 **TensorRT 直载**：同路径下存在 `.engine` 时优先加载（见 `make_engine()`）；也支持通过 `USE_CUDA_EP=ON` 启用 CUDA Execution Provider。当前生产构建默认使用 CPU ONNX Runtime；GPU 路径需确认 Jetson 上 TRT 头文件/库或 CUDA-enabled ORT 可用。
-- **FeatureExtractor**（`feature_extractor.cpp`）：quality/file 与 realtime 各自持有 HuBERT/RMVPE 引擎。realtime 资产必须满足固定 shape `[1,44800]`、`[1,128,32]`，并实际加载为 TensorRT；F0 方法 `rmvpe` 可用，`harvest` / `pm` 为占位。
-- **IndexSearch**（`index_search.cpp`）：自研 FAISS IVF `.index` 二进制解析（magic `IwFl`，质心 + 倒排表），**无 FAISS 运行时依赖**；`search()` 逐帧最近质心 + KNN1 混合。
+- **FeatureExtractor**（`feature_extractor.cpp`）：quality/file 与 realtime 各自持有 HuBERT/RMVPE 引擎。realtime 资产必须满足固定 shape `[1,44800]`、`[1,128,32]`，并实际加载为 TensorRT；F0 方法仅支持 `rmvpe`（`harvest`/`pm` 从未实现，已在配置/API/预设层显式拒绝）。
+- **IndexSearch**（`index_search.cpp`）：自研 FAISS IndexIVFFlat（`"IwFl"`）二进制解析，按 faiss 1.7.2–1.15 的真实序列化布局实现（已与真实 RVC `.index` 逐字节核对），**无 FAISS 运行时依赖**；`search()` 逐帧最近质心 + KNN1（nprobe=1）混合，检索结果与 faiss 自身一致（单测含真实 faiss fixture 对照）。
 - **ModelManager / RVCModel**（`model_loader.cpp`）：模型目录约定 `models/<id>/{<id>.onnx, config.json, <id>.index}`；解析 config.json（sampling_rate / emb_channels / spk_id / has_f0）；`list_models()` 扫描目录；`switch_model()` 即"重载 Generator + 重建 inferencer"。
 
 ### 5.4 当前实现缺口（第 1 步收尾清单）
@@ -198,7 +198,8 @@ input (16kHz)
 | 项 | 现状 | 说明 |
 |----|------|------|
 | mel 谱图 | ✅ | `rvc-backend/src/rvc/feature_extractor.cpp` 已实现 radix-2 FFT + HTK mel 滤波器组 + Slaney 归一化，匹配 librosa `htk=True`；RMVPE 输入为真实 mel |
-| F0 方法 | ⚠️ 部分 | 仅 `rmvpe`(onnx) 可用；harvest/pm 返回全零 |
+| F0 方法 | ✅ | 仅 `rmvpe`(onnx) 支持；harvest/pm 从未实现（曾静默返回全零 F0），已移除占位并在配置/API/预设层显式拒绝 |
+| FAISS index 检索链路 | ✅ | 解析器按 faiss 1.7.2–1.15 IndexIVFFlat 真实序列化布局重写；单测与真实 faiss 生成的 fixture、31.6MB 真实 RVC index 对照，检索结果与 faiss 零误差 |
 | TensorRT / GPU 推理 | ✅/⚠️ | qiqi realtime 的固定形状特征与 split Generator 已在 TensorRT 直载下验收；普通动态 ONNX 的 GPU Execution Provider 仍需在目标 Jetson 上单独确认 |
 | `.pth` 加载 | ❌ | 路线统一走 ONNX，**不做**（libtorch 编译支架已移除） |
 | HTTP `/api/file/upload` | ✅ | FILE_RVC 上传入口已挂路由并完成 HTTP 全链验证 |
