@@ -3,23 +3,21 @@
 @tailwind utilities;
 
 /* Visual rules retained from the original control-center document. */
-button, h2, h3, .btn-text, .section-title {
+button, h2, h3, .section-title {
   font-family: "Plus Jakarta Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "SimHei", sans-serif !important;
 }
 
 .toggle-checkbox:checked { right: 0; border-color: #111827; }
 .toggle-checkbox:checked + .toggle-label { background-color: #111827; }
 .toggle-checkbox:focus-visible + .toggle-label { outline: 2px solid #111827; outline-offset: 2px; }
-#log-panel::-webkit-scrollbar, #file-queue::-webkit-scrollbar { height: 4px; width: 4px; }
-#log-panel::-webkit-scrollbar-track, #file-queue::-webkit-scrollbar-track { background: transparent; }
-#log-panel::-webkit-scrollbar-thumb, #file-queue::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+#log-panel::-webkit-scrollbar { height: 4px; width: 4px; }
+#log-panel::-webkit-scrollbar-track { background: transparent; }
+#log-panel::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .mode-row.is-selected { background: rgba(229, 231, 235, 0.8); border-color: rgba(209, 213, 219, 0.8); }
 .mode-row.is-selected .mode-name { color: #111827; font-weight: 700; }
-.mode-row.is-selected .mode-desc { color: #4b5563; }
 .log-tag { display: inline-flex; align-items: center; min-width: 112px; padding: 0; font-size: 11px; font-weight: 700; line-height: 1.2; }
-.log-tag--system { color: #86efac; }.log-tag--rt_rvc { color: #4ade80; }.log-tag--file_rvc { color: #60a5fa; }.log-tag--rt_zero_shot { color: #fbbf24; }.log-tag--file_zero_shot { color: #e879f9; }
 .hardware-stat + .hardware-stat { border-left: 1px solid #e5e7eb; }.hardware-stat:first-child { padding-left: 0; }
 .left-sidebar { display: flex; flex-direction: column; }.sidebar-controls { flex: 1; min-height: 0; }
 .console-log { flex: 0 0 50%; min-height: 0; border-top: 1px solid #173b23; font-family: "Space Mono", monospace; }

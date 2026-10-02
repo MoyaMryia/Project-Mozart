@@ -107,8 +107,6 @@ public:
     bool supports_quality_streaming() const override;
     bool supports_realtime_streaming() const override;
 
-    std::shared_ptr<ModelManager> model_manager() const { return model_manager_; }
-
 private:
     std::shared_ptr<ModelManager> model_manager_;
     std::shared_ptr<FeatureExtractor> feature_extractor_;

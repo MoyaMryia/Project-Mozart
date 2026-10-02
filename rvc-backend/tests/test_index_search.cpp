@@ -1,5 +1,6 @@
 #include "rvc/index_search.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -354,6 +355,32 @@ static void test_search_semantics(const fs::path& dir) {
     std::cout << "  [OK]\n";
 }
 
+static void test_allocation_budget_and_sparse_ids(const fs::path& dir) {
+    std::cout << "[test] centroid allocation budget and duplicate sparse ids...\n";
+    auto oversized = make_two_cluster_spec();
+    oversized.nlist = 1000000;
+    const auto large_path = dir / "oversized_centroids.index";
+    CHECK(write_file(large_path, build_index_bytes(oversized)));
+    IndexSearch idx;
+    CHECK(!idx.load(large_path));
+    CHECK(!idx.loaded());
+
+    auto sparse = make_two_cluster_spec();
+    sparse.storage = "sprs";
+    sparse.storage_fourcc = "sprs";
+    auto bytes = build_index_bytes(sparse);
+    const std::string marker = "ilar";
+    const auto it = std::search(bytes.begin(), bytes.end(), marker.begin(), marker.end());
+    CHECK(it != bytes.end());
+    const auto second_id = static_cast<size_t>(it - bytes.begin()) + 48;
+    CHECK(second_id + 8 <= bytes.size());
+    std::fill(bytes.begin() + second_id, bytes.begin() + second_id + 8, 0);
+    const auto duplicate_path = dir / "duplicate_sparse.index";
+    CHECK(write_file(duplicate_path, bytes));
+    CHECK(!idx.load(duplicate_path));
+    CHECK(!idx.loaded());
+}
+
 static void test_real_faiss_fixture() {
     std::cout << "[test] real faiss-generated fixture (d=768)...\n";
     const fs::path base = fs::path(__FILE__).parent_path() / "fixtures";
@@ -387,6 +414,7 @@ int main() {
     test_synthetic_sprs(dir);
     test_corrupt_files(dir);
     test_search_semantics(dir);
+    test_allocation_budget_and_sparse_ids(dir);
     test_real_faiss_fixture();
 
     fs::remove_all(dir);

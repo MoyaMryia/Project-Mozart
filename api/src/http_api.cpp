@@ -309,6 +309,9 @@ void HttpApiServer::handle_request(int client_fd) {
     else if (route == "/api/mode/switch" && method == "POST") {
         response = handle_mode_switch(body);
     }
+    else if (route == "/api/realtime/routing" && method == "POST") {
+        response = handle_realtime_routing(body);
+    }
     else if (route == "/api/file/convert" && method == "POST") {
         response = handle_file_upload(header, body);
     }
@@ -516,6 +519,17 @@ std::string HttpApiServer::handle_mode_switch(const std::string& body) {
             : status == "invalid" ? 422
             : (status == "failed" || status == "busy") ? 409
             : status == "switching_deferred" ? 202 : 200;
+        return http_response(code, result.dump());
+    } catch (const std::exception&) {
+        return http_response(400, R"({"error":"invalid JSON request"})");
+    }
+}
+
+std::string HttpApiServer::handle_realtime_routing(const std::string& body) {
+    try {
+        const auto request = nlohmann::json::parse(body);
+        const auto result = controller_->set_realtime_routing(request);
+        const int code = result.value("status", "") == "ok" ? 200 : 409;
         return http_response(code, result.dump());
     } catch (const std::exception&) {
         return http_response(400, R"({"error":"invalid JSON request"})");

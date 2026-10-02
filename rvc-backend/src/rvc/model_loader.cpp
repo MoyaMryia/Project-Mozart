@@ -131,9 +131,14 @@ bool RVCModel::load(const std::string& device, bool half) {
             return false;
         }
 
-        if (std::filesystem::exists(index_path_)) {
-            load_index();
-        }
+        // NOTE(index): 检索链路尚未验证（TODO.md P3），且所有已验证配置
+        // index_rate=0.0——预加载 .index 会让每个模型常驻 ~115MB 却从不参与
+        // 推理，故停用。inferencer 消费端有 index().loaded() 门，未加载时
+        // 检索自动跳过、行为等同 index_rate=0。启用检索时恢复本调用，
+        // 并先完成 TODO.md P3 的输出一致性验证。
+        // if (std::filesystem::exists(index_path_)) {
+        //     load_index();
+        // }
 
         loaded_ = true;
         spdlog::info(
@@ -149,16 +154,6 @@ bool RVCModel::load(const std::string& device, bool half) {
     }
 }
 
-void RVCModel::unload() {
-    if (generator_engine_) generator_engine_->unload();
-    if (realtime_front_engine_) realtime_front_engine_->unload();
-    if (realtime_decoder_engine_) realtime_decoder_engine_->unload();
-    generator_engine_.reset();
-    realtime_front_engine_.reset();
-    realtime_decoder_engine_.reset();
-    loaded_ = false;
-}
-
 bool RVCModel::load_generator(const std::string& device, bool half) {
     if (std::filesystem::exists(onnx_path_)) {
         spdlog::info("Loading generator: {}", onnx_path_.string());
@@ -166,14 +161,9 @@ bool RVCModel::load_generator(const std::string& device, bool half) {
         return generator_engine_ && generator_engine_->loaded();
     }
 
-    spdlog::warn("ONNX model not found at {}; trying .pth fallback (needs libtorch)",
-                 onnx_path_.string());
-#ifdef USE_LIBTORCH
-    throw std::runtime_error("libtorch .pth loading not yet implemented");
-#else
-    spdlog::error("No ONNX model and USE_LIBTORCH=OFF; cannot load generator");
+    spdlog::error("No ONNX model at {}; .pth fallback requires libtorch which is "
+                  "not supported", onnx_path_.string());
     return false;
-#endif
 }
 
 bool RVCModel::load_realtime_generator() {

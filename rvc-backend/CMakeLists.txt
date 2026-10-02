@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ══════════════════════════════════════════════════════════
 # Options
 # ══════════════════════════════════════════════════════════
-option(USE_LIBTORCH "Enable libtorch for real RVC inference" OFF)
 option(USE_ONNX "Enable ONNX Runtime for real RVC inference" ON)
 option(USE_CUDA_EP "Enable ONNX Runtime CUDA execution provider (requires CUDA-enabled ORT)" OFF)
 option(BUILD_TESTS "Build unit tests" ON)
@@ -111,15 +110,6 @@ if(USE_ONNX)
 endif()
 
 # ══════════════════════════════════════════════════════════
-# libtorch (optional)
-# ══════════════════════════════════════════════════════════
-if(USE_LIBTORCH)
-    find_package(Torch REQUIRED)
-    add_definitions(-DUSE_LIBTORCH)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
-endif()
-
-# ══════════════════════════════════════════════════════════
 # TensorRT 直载（.engine 优先于 .onnx）
 # ══════════════════════════════════════════════════════════
 option(USE_TENSORRT "Enable TensorRT engine direct loading" ON)
@@ -210,23 +200,11 @@ if(USE_ONNX AND ONNX_RUNTIME_LIB)
     target_link_libraries(mozart_rvc_runtime PUBLIC ${ONNX_RUNTIME_LIB})
 endif()
 
-if(USE_LIBTORCH)
-    target_link_libraries(mozart_rvc_runtime PUBLIC ${TORCH_LIBRARIES})
-endif()
-
-# Compatibility executable for current deployment scripts. New deployments
-# should run mozart_stated, which is defined in state/.
-add_executable(rvc_backend src/main.cpp)
-target_link_libraries(rvc_backend PRIVATE mozart_rvc_runtime mozart_api)
-
 # ══════════════════════════════════════════════════════════
 # Compiler flags
 # ══════════════════════════════════════════════════════════
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(mozart_rvc_runtime PRIVATE -Wall -Wextra -Wpedantic -O2)
-    target_compile_options(rvc_backend PRIVATE -Wall -Wextra -Wpedantic -O2)
-elseif(MSVC)
-    target_compile_options(rvc_backend PRIVATE /W4 /O2)
 endif()
 
 # ══════════════════════════════════════════════════════════
@@ -260,10 +238,6 @@ if(BUILD_TESTS)
         nlohmann_json::nlohmann_json
         ${ONNX_RUNTIME_LIB}
     )
-    if(USE_ONNX AND ONNX_RUNTIME_LIB)
-        target_include_directories(test_udp_loopback PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
-        target_link_libraries(test_udp_loopback PRIVATE ${ONNX_RUNTIME_LIB})
-    endif()
     add_test(NAME rvc_udp_loopback COMMAND test_udp_loopback)
 
     add_executable(test_streaming tests/test_streaming.cpp
@@ -297,10 +271,6 @@ if(BUILD_TESTS)
         spdlog::spdlog
         ${ONNX_RUNTIME_LIB}
     )
-    if(USE_ONNX AND ONNX_RUNTIME_LIB)
-        target_include_directories(test_feature_extractor PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
-        target_link_libraries(test_feature_extractor PRIVATE ${ONNX_RUNTIME_LIB})
-    endif()
     add_test(NAME test_feature_extractor COMMAND test_feature_extractor)
 
     add_executable(test_inferencer tests/test_inferencer.cpp
@@ -308,6 +278,7 @@ if(BUILD_TESTS)
         src/rvc/feature_extractor.cpp
         src/rvc/model_loader.cpp
         src/rvc/onnx_engine.cpp
+        src/rvc/trt_engine.cpp
         src/rvc/index_search.cpp
     )
     target_include_directories(test_inferencer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -318,14 +289,11 @@ if(BUILD_TESTS)
         endif()
     endif()
     target_link_libraries(test_inferencer PRIVATE
+        trt_flags
         spdlog::spdlog
         nlohmann_json::nlohmann_json
         ${ONNX_RUNTIME_LIB}
     )
-    if(USE_ONNX AND ONNX_RUNTIME_LIB)
-        target_include_directories(test_inferencer PRIVATE ${ONNX_RUNTIME_INCLUDE_DIR})
-        target_link_libraries(test_inferencer PRIVATE ${ONNX_RUNTIME_LIB})
-    endif()
     add_test(NAME test_inferencer COMMAND test_inferencer)
 
     add_executable(test_index_search tests/test_index_search.cpp

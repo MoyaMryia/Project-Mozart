@@ -78,6 +78,10 @@ void ModeController::start_realtime_locked() {
     worker_config.skip_silence = config_.skip_silence;
     realtime_worker_ = std::make_unique<RealtimeRvcWorker>(pipeline_, std::move(worker_config));
     realtime_worker_->start();
+    // 路由状态（静音/直通）归 ModeController 持有：worker 在每次模式切换时
+    // 都会销毁重建，状态必须在重建后恢复，否则开关状态悄悄丢失。
+    realtime_worker_->set_mic_muted(realtime_mic_muted_);
+    realtime_worker_->set_bypass(realtime_bypass_);
 }
 
 void ModeController::stop_realtime_locked() {
@@ -93,7 +97,9 @@ nlohmann::json ModeController::transition_locked(const std::string& mode,
     const std::string previous_mode = mode_;
     stop_realtime_locked();
     const bool switch_model = !model_id.empty() && model_id != pipeline_.current_model_id();
-    if (switch_model && !pipeline_.is_mock() && !pipeline_.switch_model(model_id)) {
+    // 工厂只产出 RealRVCPipeline（见 RVCPipelineFactory::create），is_mock 恒 false，
+    // 此处无需 mock 门卫；模型加载失败时恢复先前的实时模式。
+    if (switch_model && !pipeline_.switch_model(model_id)) {
         if (previous_mode == "rt_rvc") {
             try {
                 start_realtime_locked();
@@ -126,6 +132,24 @@ nlohmann::json ModeController::transition_locked(const std::string& mode,
                      switch_model ? " after model switch" : "");
     }
     return {{"status", "active"}, {"mode", mode_}, {"model_id", pipeline_.current_model_id()}};
+}
+
+nlohmann::json ModeController::set_realtime_routing(const nlohmann::json& request) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    // 先落成员（跨模式切换的持久状态），再同步到存活的 worker
+    if (request.contains("mic_muted")) {
+        realtime_mic_muted_ = request.value("mic_muted", false);
+    }
+    if (request.contains("bypass")) {
+        realtime_bypass_ = request.value("bypass", false);
+    }
+    if (realtime_worker_) {
+        realtime_worker_->set_mic_muted(realtime_mic_muted_);
+        realtime_worker_->set_bypass(realtime_bypass_);
+    }
+    return {{"status", "ok"},
+            {"mic_muted", realtime_mic_muted_},
+            {"bypass", realtime_bypass_}};
 }
 
 nlohmann::json ModeController::request_mode(const std::string& mode, const std::string& model_id) {
@@ -164,10 +188,10 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
     if (active_jobs >= config_.max_queue_depth) {
         return {{"status", "rejected"}, {"error", "file queue is full"}};
     }
-    if (!pipeline_.is_mock() && model_id.empty() && pipeline_.current_model_id().empty()) {
+    if (model_id.empty() && pipeline_.current_model_id().empty()) {
         return {{"status", "rejected"}, {"error", "an RVC model must be selected"}};
     }
-    if (!pipeline_.is_mock() && !model_id.empty() && model_id != pipeline_.current_model_id()) {
+    if (!model_id.empty() && model_id != pipeline_.current_model_id()) {
         const auto models = list_models_locked();
         const auto model = std::find_if(models["models"].begin(), models["models"].end(), [&](const auto& item) {
             return item.value("id", "") == model_id && item.value("exists", false);
@@ -290,7 +314,6 @@ nlohmann::json ModeController::status() const {
         {"mode", mode_}, {"pending_target_mode", pending_mode_.empty() ? nlohmann::json(nullptr) : nlohmann::json(pending_mode_)},
         {"worker_running", realtime_worker_ && realtime_worker_->running()},
         {"stream_mode", realtime_worker_ && realtime_worker_->is_stream_mode()},
-        {"pipeline_mode", pipeline_.is_mock() ? "mock" : "real"},
         {"active_model_id", pipeline_.current_model_id()}, {"model", model},
         {"vad", {{"available", realtime_worker_ && realtime_worker_->running()}, {"frame_count", vad.frame_count},
                  {"voiced_percent", vad.frame_count == 0 ? 0.0 : 100.0 * vad.voiced_frame_count / vad.frame_count},
@@ -298,6 +321,9 @@ nlohmann::json ModeController::status() const {
         {"latency", {{"available", realtime_worker_ && realtime_worker_->running()}, {"count", latency.count},
                      {"avg_ms", latency.avg_ms}, {"max_ms", latency.max_ms}}},
         {"bypass", {{"inference_count", bypass.inference_count}, {"bypass_count", bypass.bypass_count}}},
+        {"realtime", {{"available", realtime_worker_ && realtime_worker_->running()},
+                      {"mic_muted", realtime_mic_muted_},
+                      {"bypass", realtime_bypass_}}},
         {"stream", {{"blocks", stream.blocks}, {"skipped_blocks", stream.skipped_blocks},
                     {"resets", stream.resets}, {"late_blocks", stream.late_blocks},
                     {"input_overruns", stream.input_overruns}, {"output_overruns", stream.output_overruns},
@@ -453,8 +479,13 @@ nlohmann::json ModeController::list_models_locked() const {
             const std::string id = entry.path().filename().string();
             const bool has_config = std::filesystem::exists(entry.path() / "config.json");
             const bool has_onnx = std::filesystem::exists(entry.path() / (id + ".onnx"));
+            // realtime split 资产（<id>-front/-decoder.onnx）没有单体 generator，
+            // 但 switch_model 可加载——它们同样是可用的模型（低延迟 profile 用）。
+            const bool has_realtime_split =
+                std::filesystem::exists(entry.path() / (id + "-front.onnx"))
+                && std::filesystem::exists(entry.path() / (id + "-decoder.onnx"));
             result["models"].push_back({
-                {"id", id}, {"exists", has_config && has_onnx},
+                {"id", id}, {"exists", has_config && (has_onnx || has_realtime_split)},
                 {"loaded", pipeline_.current_model_id() == id},
                 {"current", pipeline_.current_model_id() == id}
             });

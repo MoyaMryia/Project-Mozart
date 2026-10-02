@@ -1,15 +1,14 @@
 // test_mock_stream.cpp — IO 流驱动测试
 // ============================================================================
 // 覆盖：
-//   1. PipeWireStream stub：Capture 产静音帧 + frame_idx 递增；Playback 计数
-//   2. UdpStream 回声：Capture 收 input_frame → WriteFrame 发 output_frame 回发送方
-//   3. MockStream：生成临时 WAV，Capture 读帧验证 PCM + meta
-//   4. C-ABI mozart_io_create_pipewire_stream + read/write_frame
-#include "mozart/pipewire_stream.hpp"
+//   1. UdpStream 回声：Capture 收 input_frame → WriteFrame 发 output_frame 回发送方
+//   2. MockStream：生成临时 WAV，Capture 读帧验证 PCM + meta
+//   3. C-ABI mozart_io_create_udp_stream + read/write_frame
+// （PipeWireStream stub 已随 TODO(pipewire) 停用，其用例一并停用）
 #ifdef MOZART_IO_ENABLE_UDP
 #include "mozart/udp_stream.hpp"
 #endif
-#include "mozart/mock_stream.hpp"
+#include "mock_stream.hpp"
 #include "mozart/audio_io.h"
 #include "mozart/frame_meta.h"
 
@@ -46,47 +45,8 @@ static int g_failures = 0;
     if (!(cond)) { std::printf("FAIL [%s:%d] %s\n", __FILE__, __LINE__, #cond); ++g_failures; } \
 } while (0)
 
-// ---- PipeWireStream stub -----------------------------------------------------
-static void test_pipewire_stub() {
-    using namespace mozart;
-    PipeWireStream cap("default_mic", StreamDirection::Capture);
-    StreamConfig cfg; cfg.direction = StreamDirection::Capture;
-    cfg.sample_rate = 48000; cfg.frame_duration_ms = 20;
-    CHECK(cap.Open(cfg));
-
-    mozart_raw_frame_t f{};
-    for (int i = 0; i < 5; ++i) {
-        CHECK(cap.ReadFrame(&f, sizeof(f)));
-        CHECK(f.meta.frame_idx == static_cast<uint32_t>(i));
-        CHECK(f.pcm[0] == 0.0f);  // stub 产静音
-    }
-    CHECK(cap.frames_processed() == 5);
-    cap.Close();
-
-    PipeWireStream pb("virtual_sink", StreamDirection::Playback);
-    cfg.direction = StreamDirection::Playback;
-    CHECK(pb.Open(cfg));
-    mozart_output_frame_t of{};
-    for (int i = 0; i < 3; ++i) CHECK(pb.WriteFrame(&of, sizeof(of)));
-    CHECK(pb.frames_processed() == 3);
-    pb.Close();
-    std::printf("[OK] test_pipewire_stub\n");
-}
-
-// ---- C-ABI mozart_io_create_pipewire_stream ---------------------------------
-static void test_cabi_pipewire() {
-    mozart_stream_handle_t h = mozart_io_create_pipewire_stream("default", MOZART_IO_DIR_CAPTURE);
-    CHECK(h != nullptr);
-    CHECK(mozart_io_open_stream(h, MOZART_RAW_SAMPLE_RATE,
-                                MOZART_RAW_FRAME_MS, 16));
-    CHECK(mozart_io_is_stream_open(h));
-    mozart_raw_frame_t f{};
-    CHECK(mozart_io_read_frame(h, &f, sizeof(f)));
-    mozart_io_close_stream(h);
-    CHECK(!mozart_io_is_stream_open(h));
-    mozart_io_destroy_stream(h);
-    std::printf("[OK] test_cabi_pipewire\n");
-}
+// ---- PipeWireStream stub 用例已随 TODO(pipewire) 停用 ------------------------
+// （原 test_pipewire_stub / test_cabi_pipewire 见 git 历史；恢复 stub 时一并恢复）
 
 #ifdef MOZART_IO_ENABLE_UDP
 namespace {
@@ -378,8 +338,6 @@ static void test_mock_stream() {
 
 int main() {
     spdlog::set_level(spdlog::level::warn);  // 抑制 info 日志
-    test_pipewire_stub();
-    test_cabi_pipewire();
 #ifdef MOZART_IO_ENABLE_UDP
     test_udp_echo();
     test_udp_backlog_recovery();

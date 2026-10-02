@@ -7,8 +7,7 @@
        -> FFmpeg -> 预处理 -> HuBERT / RMVPE / RVC Generator ONNX
 ```
 
-推荐的后端全局入口是 `mozart_stated`。正常部署时不要使用旧的
-`rvc_backend` 可执行文件；它只用于兼容旧脚本。
+唯一的后端全局入口是 `mozart_stated`。
 
 ## 前置条件
 

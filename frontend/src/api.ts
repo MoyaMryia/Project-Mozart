@@ -1,4 +1,4 @@
-// api.ts — 后端 API 类型与请求封装（从 vanilla main.ts 平移，逻辑不变）
+// api.ts — 后端 API 类型与请求封装（从原 vanilla 控制中心平移，逻辑不变）
 export type Mode = 'idle' | 'rt_rvc' | 'file_rvc' | 'rt_zero_shot' | 'file_zero_shot';
 export type ActiveMode = Exclude<Mode, 'idle'>;
 
@@ -22,6 +22,7 @@ export interface Status {
   capabilities: Partial<Record<ActiveMode, boolean>>;
   file_queue_paused: boolean;
   model: { has_index?: string };
+  realtime?: { available: boolean; mic_muted: boolean; bypass: boolean };
 }
 
 export interface ModelList {

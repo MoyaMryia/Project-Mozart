@@ -25,7 +25,7 @@ def note(msg):
 
 note(f"start: {WAV} {len(pcm)/16000:.0f}s pace={PACE*1000:.0f}ms/frame")
 t0 = time.monotonic()
-be_pid = subprocess.run(["pgrep", "-f", "rvc_backend"], capture_output=True, text=True).stdout.split()[0]
+be_pid = subprocess.run(["pgrep", "-f", "mozart_stated"], capture_output=True, text=True).stdout.split()[0]
 
 def drain():
     global real, zeros, other

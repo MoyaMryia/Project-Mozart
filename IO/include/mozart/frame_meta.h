@@ -66,7 +66,9 @@ typedef struct {
 MOZART_STATIC_ASSERT(sizeof(mozart_frame_meta_t) == 16,
                      "mozart_frame_meta_t must be exactly 16 bytes");
 
-// ---- 48kHz 原始采集帧（物理设备 → 预处理）-----------------------------------
+// ---- 48kHz 原始采集帧（仅 IO 内部 stub/测试使用）-----------------------------
+// 注意：生产采集链路是 preprocessor 自带 ALSA（capture.c）直接产出 INPUT 帧，
+// mozart_raw_frame_t 从未跨组件边界；当前仅 IO 测试代码构造它。
 #pragma pack(push, 1)
 typedef struct {
     mozart_frame_meta_t meta;                    // 16B 元数据

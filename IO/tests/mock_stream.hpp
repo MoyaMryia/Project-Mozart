@@ -1,6 +1,6 @@
 // mock_stream.hpp — Mock 音频流（测试驱动）
 // ============================================================================
-// 无需物理声卡与网络连接，直接读取测试用音频文件（如 noisy_sample.wav）
+// 无需物理声卡与网络连接，直接读取测试用音频文件
 // 并产生伪 20ms 定时帧；用于 CTest 闭环集成测试。
 //
 // 采集端 (Capture)：从 WAV 文件循环读取，填充 mozart_raw_frame_t / mozart_input_frame_t
@@ -34,11 +34,8 @@ public:
     bool ReadFrame (void* out_frame_buf, uint32_t buf_size) override;
     bool WriteFrame(const void* in_frame_buf, uint32_t buf_size) override;
 
-    uint64_t GetUnderlyingLatencyNs() const noexcept override { return 0; }
-
     // 测试观测口
     uint64_t frames_read()  const noexcept { return frames_read_.load(); }
-    uint64_t frames_written() const noexcept { return frames_written_.load(); }
 
 private:
     std::string        wav_path_;
