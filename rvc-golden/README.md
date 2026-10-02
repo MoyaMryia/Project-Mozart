@@ -186,3 +186,39 @@ backend's audio data plane is UDP, not HTTP:
 That command activates `rt_rvc`, sends 20 ms `MZRT` packets, drains the
 two-second realtime window with silence, and writes the 48 kHz replies. UDP
 loss is an error by default; `--allow-missing` is available for diagnostics.
+
+## Generator model-vs-model consistency check
+
+Before replacing a shipped Generator ONNX with a re-exported one (e.g.
+swapping `de_narrator.onnx` for `generator_dynamic.onnx`), run a numerical
+comparison between the two files with identical inputs:
+
+```bash
+python rvc-golden/compare_generator_models.py \
+  --baseline  rvc-backend/models/de_narrator/de_narrator.onnx \
+  --candidate rvc-backend/models/de_narrator/generator_dynamic.onnx \
+  --probe-lengths 50,100,200 \
+  --output-dir rvc-golden/output
+```
+
+The script introspects each model's input contract, feeds both models with
+identical values (deterministic seed, or captured golden tensors via
+`--tensors-dir rvc-golden/tensors`), and reports max/mean absolute error,
+cosine similarity, RMS, and sample count with a PASS / DEGRADED / FAIL
+verdict (exit codes 0 / 2 / 1). `--probe-lengths` additionally runs
+inference at several frame counts to back any dynamic-axes claim before it
+is advertised (AGENTS.md: no dynamic axes without multi-length runs).
+
+Lossless input dtype conversions required by differing model contracts are
+reported explicitly. Missing captured inputs, differing output layouts, or
+failed candidate length probes prevent PASS. Each model is also run twice with
+the same inputs: differing results indicate internal randomness and cannot
+establish numerical equivalence. Use deterministic exports or explicit shared
+noise inputs before accepting a replacement; a fixed input seed alone does not
+control random operators inside ONNX.
+
+The harness itself is verified without the real models:
+
+```bash
+python rvc-golden/compare_generator_models.py --self-test
+```

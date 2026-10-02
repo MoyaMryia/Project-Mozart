@@ -436,7 +436,8 @@ nlohmann::json ModeController::save_preset(const nlohmann::json& preset) {
     validated.filter_radius = parameters.value("filter_radius", validated.filter_radius);
     validated.rms_mix_rate = parameters.value("rms_mix_rate", validated.rms_mix_rate);
     validated.protect = parameters.value("protect", validated.protect);
-    const bool valid = (validated.f0_method == "rmvpe" || validated.f0_method == "harvest" || validated.f0_method == "pm")
+    // harvest/pm F0 从未实现（曾静默返回全零 F0），只接受 rmvpe。
+    const bool valid = (validated.f0_method == "rmvpe")
         && validated.pitch_shift >= -12 && validated.pitch_shift <= 12
         && validated.index_rate >= 0.0f && validated.index_rate <= 1.0f
         && validated.filter_radius >= 0 && validated.filter_radius <= 7

@@ -404,6 +404,12 @@ std::vector<float> FeatureExtractor::extract_f0_impl(
     const std::string& method,
     bool realtime
 ) {
+    // harvest/pm 从未实现（曾经静默返回全零 F0，直接毁掉变声输出），
+    // 现在只支持 rmvpe；未知方法一律显式失败。
+    if (method != "rmvpe") {
+        throw std::runtime_error(
+            "unsupported f0_method '" + method + "': only 'rmvpe' is implemented");
+    }
     IEngine* primary_rmvpe = realtime
         ? realtime_rmvpe_engine_.get() : rmvpe_engine_.get();
     if (method == "rmvpe" && primary_rmvpe && primary_rmvpe->loaded()) {
@@ -561,14 +567,6 @@ std::vector<float> FeatureExtractor::extract_f0_impl(
         return hz;
     }
 
-    if (method == "harvest") {
-        return f0_harvest(audio, sample_rate);
-    }
-
-    if (method == "pm") {
-        return f0_pm(audio, sample_rate);
-    }
-
     if (realtime || !mock_rmvpe_) {
         throw std::runtime_error("RMVPE engine is unavailable and rvc.mock.rmvpe is false");
     }
@@ -642,26 +640,6 @@ std::vector<float> FeatureExtractor::extract_features_impl(
     size_t n_frames = audio.size() / 512;
     if (n_frames == 0) n_frames = 1;
     return std::vector<float>(n_frames * 768, 0.0f);
-}
-
-std::vector<float> FeatureExtractor::f0_harvest(
-    const std::vector<float>& audio,
-    uint32_t sample_rate
-) {
-    spdlog::warn("pyworld harvest not available; using zero F0");
-    size_t n_frames = audio.size() / 512;
-    if (n_frames == 0) n_frames = 1;
-    return std::vector<float>(n_frames, 0.0f);
-}
-
-std::vector<float> FeatureExtractor::f0_pm(
-    const std::vector<float>& audio,
-    uint32_t sample_rate
-) {
-    spdlog::warn("parselmouth pm not available; using zero F0");
-    size_t n_frames = audio.size() / 512;
-    if (n_frames == 0) n_frames = 1;
-    return std::vector<float>(n_frames, 0.0f);
 }
 
 } // namespace rvc

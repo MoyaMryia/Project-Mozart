@@ -101,9 +101,10 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
 
 ### P3 — 收尾
 
-- [ ] `de_narrator.index` 缺失（DESIGN 约定 `<id>.index`），index 检索链路未验证。
+- [x] ~~index 检索链路未验证~~ —— **实为必挂，已重写并验证（2026-09-28）**：原 `index_search.cpp` 读的是凭空构造的布局（`IwFl` 魔数之后字段全部对不上），任何真实 faiss 文件都加载不了。已按 faiss 1.7.2–1.15 IndexIVFFlat 真实序列化布局重写（含 `"full"`/`"sprs"` 倒排表、strict 校验、扁平存储），新增 `test_index_search` 单测：与真实 faiss 生成的 fixture 对照检索结果逐帧一致；并用 31.6MB 真实 RVC index（added_IVF256, ntotal=10000, HF 上游模型）集成验证，12 组随机查询与 faiss nprobe=1 零误差。**剩余**：`de_narrator.index` 本体仍缺失，需训练侧导出后放入 `models/de_narrator/` 板上端到端试听。
 - [x] ~~mel 谱图还是占位实现~~ —— **已实现**：`rvc-backend/src/rvc/feature_extractor.cpp` 已包含 radix-2 FFT + HTK mel 滤波器组 + Slaney 归一化，RMVPE 输入为真实 mel。
-- [ ] 新导出的 `generator_dynamic.onnx` 与原 `de_narrator.onnx` 输出一致性校验（数值对比）后再替换。
+- [x] ~~harvest/pm F0 占位~~ —— **已移除（2026-09-28）**：两者从未实现，曾静默返回全零 F0 直接毁掉变声输出。现在仅支持 `rmvpe`：运行时 API/预设传入即拒绝，旧配置在构造时强制回 `rmvpe` 并告警，`test_feature_extractor` 覆盖拒绝路径。
+- [ ] 新导出的 `generator_dynamic.onnx` 与原 `de_narrator.onnx` 输出一致性校验（数值对比）后再替换。**脚本已就绪**：`rvc-golden/compare_generator_models.py`（`--self-test` 已本地验证；喂相同输入对比 max/mean 误差、余弦、样本数，`--probe-lengths` 顺带实测动态轴声明），板上跑法见 `rvc-golden/README.md`。
 - [x] ~~DESIGN.md 更新~~：§1 延迟指标、§5.4 缺口清单、§4.3 实时性策略（逐帧→分块）均已同步，§2.2/§6 state_manager 状态已从"未编码"改为"已编码"。
 - [x] ~~README.md / TODO.md 自身清理~~：同步 TTS 决策、mel 实现、state_manager 落地等不一致描述；README 已改为中文。
 

@@ -278,6 +278,7 @@ if(BUILD_TESTS)
         src/rvc/feature_extractor.cpp
         src/rvc/model_loader.cpp
         src/rvc/onnx_engine.cpp
+        src/rvc/trt_engine.cpp
         src/rvc/index_search.cpp
     )
     target_include_directories(test_inferencer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -288,11 +289,22 @@ if(BUILD_TESTS)
         endif()
     endif()
     target_link_libraries(test_inferencer PRIVATE
+        trt_flags
         spdlog::spdlog
         nlohmann_json::nlohmann_json
         ${ONNX_RUNTIME_LIB}
     )
     add_test(NAME test_inferencer COMMAND test_inferencer)
+
+    add_executable(test_index_search tests/test_index_search.cpp
+        src/rvc/index_search.cpp
+    )
+    target_include_directories(test_index_search PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(test_index_search PRIVATE
+        spdlog::spdlog
+        Threads::Threads
+    )
+    add_test(NAME test_index_search COMMAND test_index_search)
 
     add_executable(diag_f32 tests/diag_f32.cpp
         src/rvc/feature_extractor.cpp
