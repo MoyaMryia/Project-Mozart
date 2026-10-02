@@ -15,6 +15,7 @@ public:
     virtual ~ControlPlane() = default;
 
     virtual nlohmann::json request_mode(const std::string& mode, const std::string& model_id) = 0;
+    virtual nlohmann::json set_realtime_routing(const nlohmann::json& request) = 0;
     virtual nlohmann::json enqueue_file(std::filesystem::path source_file,
                                         const std::string& original_name,
                                         const std::string& model_id) = 0;

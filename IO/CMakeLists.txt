@@ -11,9 +11,7 @@ endif()
 
 # ---- Options -----------------------------------------------------------------
 option(MOZART_IO_BUILD_TESTS    "Build unit tests"          ON)
-option(MOZART_IO_ENABLE_PIPEWIRE "Enable PipeWire driver"   OFF)
 option(MOZART_IO_ENABLE_UDP     "Enable UDP network driver" ON)
-option(MOZART_IO_BUILD_SHARED   "Build shared lib (else static)" ON)
 
 # ---- Dependencies ------------------------------------------------------------
 find_package(Threads REQUIRED)
@@ -31,18 +29,14 @@ if(NOT TARGET spdlog::spdlog)
     )
     FetchContent_MakeAvailable(spdlog)
 endif()
-if(TARGET spdlog)
-    set_target_properties(spdlog PROPERTIES POSITION_INDEPENDENT_CODE ON)
-endif()
 
 # ---- Sources -----------------------------------------------------------------
-# pipewire_stream.cpp 默认编译为 stub（不依赖 libpipewire）；
-# MOZART_IO_ENABLE_PIPEWIRE=ON 时链接 libpipewire，后续在源码内用该宏切换真实实现。
+# 生产库只保留实际有消费者的路径：UDP 契约流 + C-ABI 工厂 + SpscRing。
+# mock_stream.{cpp,hpp} 移入 tests/（仅测试消费）；
+# pipewire_stream.{cpp,hpp} 整体 #if 0（TODO(pipewire) 待办，见源文件）。
 set(IO_SOURCES
     src/audio_stream.cpp
     src/ring_buffer.cpp
-    src/mock_stream.cpp
-    src/pipewire_stream.cpp
 )
 
 set(IO_HEADERS
@@ -50,8 +44,6 @@ set(IO_HEADERS
     include/mozart/audio_io.h
     include/mozart/audio_stream.hpp
     include/mozart/ring_buffer.hpp
-    include/mozart/mock_stream.hpp
-    include/mozart/pipewire_stream.hpp
 )
 
 if(MOZART_IO_ENABLE_UDP)
@@ -59,20 +51,9 @@ if(MOZART_IO_ENABLE_UDP)
     list(APPEND IO_HEADERS include/mozart/udp_stream.hpp)
 endif()
 
-if(MOZART_IO_ENABLE_PIPEWIRE)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
-endif()
-
 # ---- Library -----------------------------------------------------------------
-if(MOZART_IO_BUILD_SHARED)
-    add_library(mozart_io SHARED ${IO_SOURCES} ${IO_HEADERS})
-    set_target_properties(mozart_io PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-    )
-else()
-    add_library(mozart_io STATIC ${IO_SOURCES} ${IO_HEADERS})
-endif()
+# Jetson-only 项目：静态链接，无导出符号表需求（MOZART_API 恒为空）。
+add_library(mozart_io STATIC ${IO_SOURCES} ${IO_HEADERS})
 
 target_include_directories(mozart_io PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -87,17 +68,6 @@ if(MOZART_IO_ENABLE_UDP)
     target_compile_definitions(mozart_io PUBLIC MOZART_IO_ENABLE_UDP=1)
 endif()
 
-if(MOZART_IO_ENABLE_PIPEWIRE)
-    target_link_libraries(mozart_io PUBLIC ${PIPEWIRE_LIBRARIES})
-    target_include_directories(mozart_io PUBLIC ${PIPEWIRE_INCLUDE_DIRS})
-    target_compile_definitions(mozart_io PUBLIC MOZART_IO_ENABLE_PIPEWIRE=1)
-endif()
-
-# Hide C-ABI symbols only when shared; keep MOZART_API export macro
-if(MOZART_IO_BUILD_SHARED)
-    target_compile_definitions(mozart_io PRIVATE MOZART_IO_EXPORTS=1)
-endif()
-
 # ---- Compiler flags ----------------------------------------------------------
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(mozart_io PRIVATE -Wall -Wextra -Wpedantic -O2)
@@ -106,8 +76,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(mozart_io PRIVATE
             -march=armv8.2-a+fp16+dotprod -mtune=cortex-a78ae)
     endif()
-elseif(MSVC)
-    target_compile_options(mozart_io PRIVATE /W4 /O2)
 endif()
 
 # ---- Tests -------------------------------------------------------------------

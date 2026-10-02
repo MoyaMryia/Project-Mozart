@@ -216,6 +216,9 @@ bool IndexSearch::parse_ivf_index(const std::filesystem::path& path) {
         throw std::runtime_error("unexpected quantizer codes count " + std::to_string(count));
     }
 
+    if (static_cast<uint64_t>(floats_expected) > r.remaining() / sizeof(float)) {
+        throw std::runtime_error("file too small for quantizer centroids");
+    }
     centroids_.resize(static_cast<size_t>(floats_expected));
     for (auto& c : centroids_) c = r.f32();
 
@@ -252,15 +255,20 @@ bool IndexSearch::parse_ivf_index(const std::filesystem::path& path) {
         }
     } else if (list_type == "sprs") {
         const int64_t pairs = r.i64();
-        if (pairs < 0 || static_cast<uint64_t>(pairs) > kMaxTotalVectors) {
+        if (pairs < 0 || pairs > nlist || static_cast<uint64_t>(pairs) > r.remaining() / 16) {
             throw std::runtime_error("invalid 'sprs' pair count");
         }
+        std::vector<bool> seen(static_cast<size_t>(nlist), false);
         for (int64_t i = 0; i < pairs; ++i) {
             const int64_t idx = r.i64();
             const int64_t v = r.i64();
             if (idx < 0 || idx >= nlist || v < 0) {
                 throw std::runtime_error("invalid 'sprs' entry");
             }
+            if (seen[static_cast<size_t>(idx)]) {
+                throw std::runtime_error("duplicate 'sprs' list id");
+            }
+            seen[static_cast<size_t>(idx)] = true;
             sizes[static_cast<size_t>(idx)] = static_cast<uint64_t>(v);
         }
     } else {

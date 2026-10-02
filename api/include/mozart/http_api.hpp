@@ -67,6 +67,7 @@ private:
     std::string handle_presets_delete(const std::string& path);
     std::string handle_list_models();
     std::string handle_mode_switch(const std::string& body);
+    std::string handle_realtime_routing(const std::string& body);
     std::string handle_file_upload(const std::string& header, const std::string& body);
     std::string handle_file_status(const std::string& path);
     std::string handle_file_cancel(const std::string& path);

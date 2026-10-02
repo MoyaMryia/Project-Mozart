@@ -33,7 +33,6 @@ public:
     bool loaded() const { return loaded_; }
 
     bool load(const std::string& device = "cuda", bool half = false);
-    void unload();
 
     IEngine& generator_engine() { return *generator_engine_; }
     IEngine& realtime_front_engine() { return *realtime_front_engine_; }

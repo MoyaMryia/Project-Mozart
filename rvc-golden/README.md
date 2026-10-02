@@ -202,12 +202,20 @@ python rvc-golden/compare_generator_models.py \
 ```
 
 The script introspects each model's input contract, feeds both models with
-byte-identical inputs (deterministic seed, or captured golden tensors via
+identical values (deterministic seed, or captured golden tensors via
 `--tensors-dir rvc-golden/tensors`), and reports max/mean absolute error,
 cosine similarity, RMS, and sample count with a PASS / DEGRADED / FAIL
 verdict (exit codes 0 / 2 / 1). `--probe-lengths` additionally runs
 inference at several frame counts to back any dynamic-axes claim before it
 is advertised (AGENTS.md: no dynamic axes without multi-length runs).
+
+Lossless input dtype conversions required by differing model contracts are
+reported explicitly. Missing captured inputs, differing output layouts, or
+failed candidate length probes prevent PASS. Each model is also run twice with
+the same inputs: differing results indicate internal randomness and cannot
+establish numerical equivalence. Use deterministic exports or explicit shared
+noise inputs before accepting a replacement; a fixed input seed alone does not
+control random operators inside ONNX.
 
 The harness itself is verified without the real models:
 

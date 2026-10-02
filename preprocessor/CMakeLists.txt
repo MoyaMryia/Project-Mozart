@@ -59,7 +59,7 @@ if(MOZART_USE_RNNOISE)
         )
         target_include_directories(export_rnnoise_blob PRIVATE
             ${RNNOISE_SRC_DIR}
-            ${CMAKE_SOURCE_DIR}/native/rnnoise/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/native/rnnoise/include
         )
         target_compile_definitions(export_rnnoise_blob PRIVATE
             HAVE_CONFIG_H=1 TRAINING=0 RNNOISE_BUILD
@@ -89,7 +89,7 @@ target_include_directories(mozart_pre_core PUBLIC
 target_link_libraries(mozart_pre_core PUBLIC m asound)
 
 if(MOZART_USE_RNNOISE)
-    set(MOZART_RNNOISE_DEFAULT_MODEL "${CMAKE_SOURCE_DIR}/assets/rnnoise_default.rnnb"
+    set(MOZART_RNNOISE_DEFAULT_MODEL "${CMAKE_CURRENT_SOURCE_DIR}/assets/rnnoise_default.rnnb"
         CACHE PATH "RNNoise 权重 blob 默认路径")
     if(NOT EXISTS "${MOZART_RNNOISE_DEFAULT_MODEL}")
         message(WARNING "RNNoise blob 不存在: ${MOZART_RNNOISE_DEFAULT_MODEL}\n"

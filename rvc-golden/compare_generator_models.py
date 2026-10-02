@@ -43,7 +43,7 @@ SOURCE_DIM_DEFAULT = 8
 def ort_dtype_to_numpy(ort_type: str):
     return {
         "tensor(float)": np.float32,
-        "tensor(double)": np.float32,
+        "tensor(double)": np.float64,
         "tensor(int64)": np.int64,
         "tensor(int32)": np.int32,
     }.get(ort_type)
@@ -72,7 +72,13 @@ def make_feed(name: str, spec, frames: int, upp: int, rng: np.random.Generator,
               captured):
     """按单个输入的规格生成确定性输入；captured 优先。"""
     if captured is not None:
-        return captured
+        dtype = spec["dtype"]
+        if dtype is None:
+            raise ValueError(f"unsupported dtype for captured input '{name}'")
+        converted = captured.astype(dtype, copy=False)
+        if not np.array_equal(captured, converted):
+            raise ValueError(f"lossy dtype conversion for captured input '{name}'")
+        return converted
     dtype = spec["dtype"] or np.float32
     shape = [resolve_dim(d, frames, upp, name) for d in spec["shape"]]
     if name == "feats":
@@ -156,6 +162,9 @@ def probe_lengths(session, specs, output_name, lengths, upp, rng_seed):
     symbolic = any(not isinstance(d, int) or d <= 0
                    for spec in specs.values() for d in spec["shape"])
     results = {}
+    if not symbolic:
+        print("    model has fully static shapes; length probing not applicable")
+        return results
     for length in lengths:
         rng = np.random.default_rng(rng_seed)
         feeds = {name: make_feed(name, spec, length, upp, rng, None)
@@ -167,10 +176,8 @@ def probe_lengths(session, specs, output_name, lengths, upp, rng_seed):
             print(f"    length {length}: FAILED ({str(exc).splitlines()[0][:100]})")
             results[length] = False
             continue
-        print(f"    length {length}: OK ({out.size} samples)")
+        print(f"    length {length}: {'OK' if ok else 'FAILED (NaN/Inf)'} ({out.size} samples)")
         results[length] = bool(ok)
-    if not symbolic:
-        print("    model has fully static shapes; length probing not applicable")
     return results
 
 
@@ -205,9 +212,11 @@ def compare(args) -> int:
               f"candidate-only={only_cand} (each model fed with its own subset)")
 
     lengths = args.probe_lengths or []
+    probe_failed = False
     if lengths:
         print("\ndynamic length probing (candidate):")
-        probe_lengths(cand_sess, cand_inputs, cand_out, lengths, args.upp, args.seed)
+        candidate_probes = probe_lengths(cand_sess, cand_inputs, cand_out, lengths, args.upp, args.seed)
+        probe_failed = any(not ok for ok in candidate_probes.values())
         print("dynamic length probing (baseline):")
         probe_lengths(base_sess, base_inputs, base_out, lengths, args.upp, args.seed)
 
@@ -222,11 +231,40 @@ def compare(args) -> int:
                                   captured.get(name) if captured else None)
                   for name, spec in cand_inputs.items()}
 
+    for name in set(base_feeds) & set(cand_feeds):
+        a, b = base_feeds[name], cand_feeds[name]
+        if a.shape != b.shape or not np.array_equal(a, b):
+            print(f"VERDICT: FAIL (input '{name}' is not identical between models)")
+            return 1
+        if a.dtype != b.dtype:
+            print(f"  NOTE input '{name}' uses equal values with contract-required "
+                  f"dtype conversion: {a.dtype} -> {b.dtype}")
+    if captured is not None:
+        missing = (set(base_inputs) | set(cand_inputs)) - set(captured)
+        if missing:
+            print(f"VERDICT: FAIL (captured inputs missing: {sorted(missing)})")
+            return 1
+
     base_audio = run_model(base_sess, base_out, base_feeds)
     cand_audio = run_model(cand_sess, cand_out, cand_feeds)
+    base_repeat = run_model(base_sess, base_out, base_feeds)
+    cand_repeat = run_model(cand_sess, cand_out, cand_feeds)
+    reproducible = (np.array_equal(base_audio, base_repeat)
+                    and np.array_equal(cand_audio, cand_repeat))
 
     metrics = audio_metrics(base_audio, cand_audio)
     status, notes = verdict(metrics)
+    if not reproducible:
+        status = "FAIL"
+        notes.append("repeated inference differs with identical inputs; stochastic "
+                     "outputs cannot establish numerical equivalence — export "
+                     "deterministic generators or expose identical noise inputs")
+    if base_audio.shape != cand_audio.shape or base_audio.dtype != cand_audio.dtype:
+        status = "FAIL"
+        notes.append("output shape or dtype differs")
+    if probe_failed:
+        status = "FAIL"
+        notes.append("candidate failed requested dynamic-length inference")
 
     print(f"\nframes={frames} seed={args.seed}")
     print(f"  samples    : baseline={metrics['samples']} candidate="
@@ -263,21 +301,37 @@ def self_test() -> int:
     import onnx
     from onnx import helper, TensorProto
 
-    def build_model(path: Path, scale: float, dynamic: bool = False):
+    def build_model(path: Path, scale: float, dynamic: bool = False,
+                    fixed_reshape: bool = False, transposed: bool = False,
+                    stochastic: bool = False):
         w = np.array([0.5, -0.3, 0.2, 0.9, 0.1, -0.7, 0.4, 0.6],
                      dtype=np.float32).reshape(8, 1)
         node_feat = helper.make_node("MatMul", ["feats", "W"], ["y"], name="mm")
         node_tanh = helper.make_node("Tanh", ["y"], ["audio"], name="tanh")
         t_dim = "frames" if dynamic else 4
+        nodes = [node_feat, node_tanh]
+        initializers = [helper.make_tensor("W", TensorProto.FLOAT, [8, 1],
+                                          (w * scale).ravel().tolist())]
+        if fixed_reshape:
+            nodes.insert(0, helper.make_node("Reshape", ["feats", "shape"], ["fixed"]))
+            node_feat.input[0] = "fixed"
+            initializers.append(helper.make_tensor("shape", TensorProto.INT64, [2], [4, 8]))
+        if transposed:
+            node_tanh.output[0] = "before_transpose"
+            nodes.append(helper.make_node("Transpose", ["before_transpose"], ["audio"], perm=[1, 0]))
+        if stochastic:
+            node_tanh.output[0] = "before_noise"
+            nodes.append(helper.make_node("RandomNormalLike", ["before_noise"], ["noise"]))
+            nodes.append(helper.make_node("Add", ["before_noise", "noise"], ["audio"]))
         graph = helper.make_graph(
-            [node_feat, node_tanh], "gen",
+            nodes, "gen",
             [
                 helper.make_tensor_value_info("feats", TensorProto.FLOAT, [t_dim, 8]),
                 helper.make_tensor_value_info("sid", TensorProto.INT64, [1]),
             ],
-            [helper.make_tensor_value_info("audio", TensorProto.FLOAT, [t_dim, 1])],
-            [helper.make_tensor("W", TensorProto.FLOAT, [8, 1],
-                                (w * scale).ravel().tolist())],
+            [helper.make_tensor_value_info("audio", TensorProto.FLOAT,
+                                          [1, t_dim] if transposed else [t_dim, 1])],
+            initializers,
         )
         model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 17)])
         model.ir_version = 10  # 兼容较旧的 onnxruntime（IR 14 尚未普及）
@@ -291,6 +345,9 @@ def self_test() -> int:
         build_model(tmp / "b.onnx", 1.0)
         build_model(tmp / "c.onnx", 1.5)
         build_model(tmp / "dyn.onnx", 1.0, dynamic=True)
+        build_model(tmp / "fake-dyn.onnx", 1.0, dynamic=True, fixed_reshape=True)
+        build_model(tmp / "transposed.onnx", 1.0, transposed=True)
+        build_model(tmp / "stochastic.onnx", 1.0, stochastic=True)
 
         class Args:
             baseline = str(tmp / "a.onnx")
@@ -305,6 +362,17 @@ def self_test() -> int:
         print("── self-test: identical models must PASS ──")
         if compare(Args) != 0:
             failures += 1
+
+        print("── self-test: falsely advertised dynamic axes must FAIL ──")
+        Args.candidate = str(tmp / "fake-dyn.onnx")
+        Args.probe_lengths = [2, 4, 9]
+        if compare(Args) != 1:
+            failures += 1
+        print("── self-test: equal samples with different output layout must FAIL ──")
+        Args.probe_lengths = []
+        Args.candidate = str(tmp / "transposed.onnx")
+        if compare(Args) != 1:
+            failures += 1
         print("── self-test: perturbed model must FAIL ──")
         Args.candidate = str(tmp / "c.onnx")
         if compare(Args) != 1:
@@ -314,6 +382,12 @@ def self_test() -> int:
         Args.candidate = str(tmp / "dyn.onnx")
         Args.probe_lengths = [2, 4, 9]
         if compare(Args) != 0:
+            failures += 1
+
+        print("── self-test: stochastic models cannot establish equivalence ──")
+        Args.baseline = Args.candidate = str(tmp / "stochastic.onnx")
+        Args.probe_lengths = []
+        if compare(Args) != 1:
             failures += 1
 
     if failures:
@@ -344,7 +418,13 @@ def main() -> int:
         return self_test()
     if not args.baseline or not args.candidate:
         parser.error("--baseline and --candidate are required (or use --self-test)")
-    return compare(args)
+    if isinstance(args.probe_lengths, str):
+        args.probe_lengths = [int(v) for v in args.probe_lengths.split(',') if v.strip()]
+    try:
+        return compare(args)
+    except Exception as exc:
+        print(f"VERDICT: FAIL ({exc})")
+        return 1
 
 
 if __name__ == "__main__":

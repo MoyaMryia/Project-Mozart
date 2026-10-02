@@ -75,7 +75,9 @@ bool StateManagerDaemon::start() {
     controller_config.max_cache_bytes = static_cast<uint64_t>(config_.get_int("storage.max_cache_size_mb", 1000)) * 1024ULL * 1024ULL;
     controller_config.models_dir = models_dir;
     controller_config.presets_path = config_.resolve_file_path("storage.presets_path", "./storage/presets.json");
-    controller_config.default_parameters = default_parameters;
+    // The pipeline normalizes stale F0 methods to rmvpe. Reset must restore
+    // those effective defaults rather than reintroducing an unsupported method.
+    controller_config.default_parameters = pipeline_->parameters();
     controller_ = std::make_unique<rvc::ModeController>(*pipeline_, std::move(controller_config));
 
     api_ = std::make_unique<rvc::HttpApiServer>(

@@ -75,6 +75,13 @@ public:
     void stop();
     bool running() const noexcept { return running_.load(); }
 
+    // 实时快捷控制：静音（输出静音，不推理）与干声直通（16k 输入升采样回放，
+    // 不推理）。仅流式模式生效；互斥时静音优先。
+    void set_mic_muted(bool muted) noexcept { mic_muted_.store(muted, std::memory_order_relaxed); }
+    bool mic_muted() const noexcept { return mic_muted_.load(std::memory_order_relaxed); }
+    void set_bypass(bool on) noexcept { bypass_.store(on, std::memory_order_relaxed); }
+    bool bypass() const noexcept { return bypass_.load(std::memory_order_relaxed); }
+
     LatencyStats get_latency_stats() const;
     BypassStats get_bypass_stats() const;
     VadStats get_vad_stats() const;
@@ -90,6 +97,8 @@ private:
     bool stream_mode_ = false;
     std::unique_ptr<StreamingRvc> streaming_;
 
+    std::atomic<bool> mic_muted_{false};
+    std::atomic<bool> bypass_{false};
     std::atomic<bool> running_{false};
     std::thread worker_thread_;
     std::thread inference_thread_;

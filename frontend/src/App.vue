@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // App.vue — 控制中心主应用。
-// UI 模板从原 vanilla index.html 1:1 平移（class/结构未动），逻辑从
-// main.ts / monitor.ts 移植为组合式状态。新增：SUB 字幕条（SSE 订阅）。
+// UI 模板从原 vanilla 控制中心 1:1 平移（class/结构未动），逻辑从原 vanilla
+// main.ts 移植为组合式状态。新增：SUB 字幕条（SSE 订阅）。
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
@@ -10,16 +10,21 @@ import {
 } from './api';
 
 // ---- 类型/常量 ----
-const MODES: ActiveMode[] = ['rt_rvc', 'file_rvc', 'rt_zero_shot', 'file_zero_shot'];
+// zero-shot 两个模式是后端 501 桩（seed-VC 为 TODO.md P2 路线），落地前不在
+// 界面提供入口；后端 Mode 枚举与 capabilities 位保持不变以稳定 API 契约。
+const MODES: ActiveMode[] = [
+  'rt_rvc',
+  'file_rvc',
+  // 'rt_zero_shot',   // TODO(seed-vc): 实现后恢复
+  // 'file_zero_shot', // TODO(seed-vc): 实现后恢复
+];
 const isFileMode = (mode: string) => mode === 'file_rvc';
 
 // ---- 响应式状态 ----
 const status = ref<Status | null>(null);
 const apiOnline = ref(true);
+const switching = ref(false);                         // 模式切换请求进行中
 const selectedMode = ref<ActiveMode>('rt_rvc');       // UI 选中的行
-const enabledMode = ref<ActiveMode | null>(           // 开关 + localStorage
-  localStorage.getItem('mozart-enabled-mode') as ActiveMode | null);
-const modeSelectedByUser = ref(false);
 const uploadFile = ref<File | null>(null);
 const uploadFileName = ref('');
 const uploadInputValue = ref('');                     // 清空 input[type=file] 用
@@ -56,7 +61,6 @@ const activeJob = computed<Job | null>(() =>
 const queuePaused = computed(() => status.value?.file_queue_paused ?? false);
 const canSubmitFile = computed(() =>
   selectedMode.value === 'file_rvc'
-  && enabledMode.value === 'file_rvc'
   && status.value?.mode === 'file_rvc'
   && Boolean(uploadFile.value)
   && apiOnline.value);
@@ -130,9 +134,18 @@ const refreshStatus = async () => {
   }
 };
 
+const isModeOn = (mode: ActiveMode) =>
+  !!status.value && (status.value.mode === mode || status.value.pending_target_mode === mode);
+
 const switchMode = async (mode: Mode): Promise<boolean> => {
+  if (switching.value) return false;
   try {
-    if (mode !== 'idle' && !selectedModel.value) throw new Error('请先选择可用模型');
+    switching.value = true;
+    if (mode !== 'idle') {
+      if (status.value?.capabilities[mode] !== true) throw new Error('此模式尚未实现');
+      if (!selectedModel.value) throw new Error('请先选择可用模型');
+      localStorage.setItem('mozart-enabled-mode', mode);
+    }
     await api('/api/mode/switch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,6 +154,7 @@ const switchMode = async (mode: Mode): Promise<boolean> => {
     await refreshStatus();
     return true;
   } catch (error) { showError(error); return false; }
+  finally { switching.value = false; }
 };
 
 const refreshModels = async () => {
@@ -242,7 +256,6 @@ const refreshMonitor = async () => {
 const submitFile = async () => {
   if (!uploadFile.value) return showError(new Error('请先选择音频文件'));
   if (selectedMode.value !== 'file_rvc') return showError(new Error('请先选择 FILE_RVC 模式'));
-  if (enabledMode.value !== 'file_rvc') return showError(new Error('请先打开 FILE_RVC 开关并点击全局启动'));
   try {
     if (status.value?.mode !== 'file_rvc') return showError(new Error('FILE_RVC 尚未启动'));
     const data = new FormData();
@@ -284,9 +297,7 @@ const togglePause = async () => {
   } catch (error) { showError(error); }
 };
 const globalRun = async () => {
-  if (!enabledMode.value) return showError(new Error('请先打开一个已实现模式的开关'));
-  selectedMode.value = enabledMode.value;
-  await switchMode(enabledMode.value);
+  await switchMode(selectedMode.value);
 };
 const globalStop = async () => { await switchMode('idle'); };
 
@@ -296,20 +307,33 @@ const pickMode = (mode: ActiveMode) => {
     showError(new Error('此模式尚未实现'));
     return;
   }
-  modeSelectedByUser.value = true;
   selectedMode.value = mode;
 };
+// 开关直接驱动后端：打开=切换到该模式，关闭=回 idle。
+// 勾选态由后端 status 派生（见 isModeOn），本地不再另立状态。
 const onToggle = (mode: ActiveMode, checked: boolean | null) => {
-  if (checked) {
-    modeSelectedByUser.value = true;
-    enabledMode.value = mode;
-    localStorage.setItem('mozart-enabled-mode', mode);
-    selectedMode.value = mode;
-  } else if (enabledMode.value === mode) {
-    enabledMode.value = null;
-    localStorage.removeItem('mozart-enabled-mode');
-  }
+  if (switching.value) return;
+  selectedMode.value = mode;
+  void (checked ? switchMode(mode) : switchMode('idle'));
 };
+
+// ---- 实时快捷控制（静音 / 干声直通，仅 RT_RVC 运行时可用）----
+const realtimeAvailable = computed(() =>
+  !!status.value && status.value.mode === 'rt_rvc' && (status.value.realtime?.available ?? false));
+const micMuted = computed(() => status.value?.realtime?.mic_muted ?? false);
+const bypassOn = computed(() => status.value?.realtime?.bypass ?? false);
+const setRouting = async (patch: Record<string, boolean>) => {
+  try {
+    await api('/api/realtime/routing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    await refreshStatus();
+  } catch (error) { showError(error); }
+};
+const toggleMicMute = () => void setRouting({ mic_muted: !micMuted.value });
+const toggleBypass = () => void setRouting({ bypass: !bypassOn.value });
 
 // ---- 字幕 SSE ----
 let eventSource: EventSource | null = null;
@@ -335,7 +359,9 @@ watch(() => status.value?.model.has_index, () => { void refreshParameters(); });
 // ---- 生命周期 ----
 const timers: number[] = [];
 onMounted(() => {
-  selectedMode.value = enabledMode.value || 'rt_rvc';
+  // 恢复上次使用的模式；localStorage 里的旧值可能指向已停用的桩模式
+  const stored = localStorage.getItem('mozart-enabled-mode') as ActiveMode | null;
+  selectedMode.value = stored && MODES.includes(stored) ? stored : 'rt_rvc';
   void refreshStatus();
   void refreshModels();
   void refreshLogs();
@@ -416,7 +442,6 @@ onUnmounted(() => {
           <div class="flex items-center gap-2 min-h-[24px] mb-2" aria-live="polite">
             <div class="relative w-5 h-5 flex items-center justify-center" aria-hidden="true">
               <svg :class="['system-state-icon', status?.mode !== 'idle' ? 'text-emerald-600' : 'hidden']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="m20 15 14 9-14 9V15Z"/></svg>
-              <svg :class="['system-state-icon', 'hidden', 'text-gray-500']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="M17 15h5v18h-5V15Zm9 0h5v18h-5V15Z"/></svg>
               <svg :class="['system-state-icon', status?.mode === 'idle' ? 'text-red-600' : 'hidden']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="M16 16h16v16H16V16Z"/></svg>
             </div>
             <div class="min-w-0">
@@ -427,7 +452,7 @@ onUnmounted(() => {
             <button type="button" data-state="paused" class="transport-button" aria-label="暂停文件队列" :title="queuePaused ? '恢复文件队列' : '暂停队列（当前任务会完成）'" :aria-pressed="queuePaused" :class="{ 'is-active': queuePaused }" :disabled="status?.mode !== 'file_rvc'" @click.prevent="togglePause">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h4v14H6V5Zm8 0h4v14h-4V5Z"/></svg>
             </button>
-            <button type="button" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" :aria-pressed="!!status && status.mode !== 'idle'" :class="{ 'is-active': !!status && status.mode !== 'idle' }" :disabled="!enabledMode || status?.capabilities[enabledMode] !== true" @click.prevent="globalRun">
+            <button type="button" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" :aria-pressed="!!status && status.mode !== 'idle'" :class="{ 'is-active': !!status && status.mode !== 'idle' }" :disabled="switching || status?.capabilities[selectedMode] !== true" @click.prevent="globalRun">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
             </button>
             <button type="button" data-state="stopped" class="transport-button" aria-label="停止当前模式" title="停止当前模式（当前文件任务会完成）" :aria-pressed="status?.mode === 'idle'" :class="{ 'is-active': !status || status.mode === 'idle' }" @click.prevent="globalStop">
@@ -447,12 +472,11 @@ onUnmounted(() => {
             <div v-for="mode in MODES" :key="mode" :class="['mode-row w-full rounded-md transition-colors duration-150 hover:bg-gray-100 border border-transparent group flex items-stretch overflow-hidden', selectedMode === mode && 'is-selected']" :data-mode="mode">
               <button type="button" class="flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900" :data-mode="mode" :aria-pressed="selectedMode === mode" @click="pickMode(mode)">
                 <span class="mode-name block font-mono text-sm text-gray-700" translate="no">{{ mode.toUpperCase().replace('_', '_') }}</span>
-                <span class="mode-desc hidden block text-[11px] font-bold text-gray-500 mt-1 truncate" aria-live="polite"></span>
               </button>
               <div class="w-px bg-gray-300/50"></div>
               <div class="w-14 flex items-center justify-center p-2 shrink-0 bg-white/40">
                 <div class="relative inline-block w-9 h-5 align-middle select-none">
-                  <input type="checkbox" :id="`toggle-${mode}`" :checked="enabledMode === mode" :disabled="status?.capabilities[mode] !== true" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-[left,right,border-color] duration-150 ease-in-out top-0.5 left-0.5 checked:left-auto checked:right-0.5 checked:border-gray-900" :aria-label="`Toggle ${mode.toUpperCase()}`" @change="onToggle(mode, ($event.target as HTMLInputElement).checked)">
+                  <input type="checkbox" :id="`toggle-${mode}`" :checked="isModeOn(mode)" :disabled="switching || status?.capabilities[mode] !== true" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-[left,right,border-color] duration-150 ease-in-out top-0.5 left-0.5 checked:left-auto checked:right-0.5 checked:border-gray-900" :aria-label="`Toggle ${mode.toUpperCase()}`" @change="onToggle(mode, ($event.target as HTMLInputElement).checked)">
                   <label :for="`toggle-${mode}`" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-150 ease-in-out"></label>
                 </div>
               </div>
@@ -604,8 +628,10 @@ onUnmounted(() => {
               <option value="all" data-i18n="logFilterAll">全部模式</option>
               <option value="rt_rvc" translate="no">RT_RVC</option>
               <option value="file_rvc" translate="no">FILE_RVC</option>
+              <!-- zero-shot 模式为 501 桩，不会产生日志；实现后恢复
               <option value="rt_zero_shot" translate="no">RT_ZERO_SHOT</option>
               <option value="file_zero_shot" translate="no">FILE_ZERO_SHOT</option>
+              -->
             </select>
             <button type="button" class="text-[11px] font-extrabold text-[#052E16] hover:text-black px-1.5 py-1 rounded-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#052E16] shrink-0" @click="void api('/api/logs', { method: 'DELETE' }).then(refreshLogs).catch(showError)">清空日志</button>
           </div>
@@ -713,14 +739,14 @@ onUnmounted(() => {
 
       <!-- 实时音频快捷控制固定在整个右栏底部 -->
       <div :class="['grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-200', isFileMode(selectedMode) && 'hidden']">
-        <button type="button" class="relative bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed" aria-pressed="false" disabled>
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-emerald-600 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+        <button type="button" :class="['relative text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40', micMuted ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-100 text-gray-900']" :aria-pressed="micMuted" :disabled="!realtimeAvailable || switching" :title="realtimeAvailable ? '变声输出静音，不影响采集' : '仅在 RT_RVC 运行时可用'" @click.prevent="toggleMicMute">
+          <svg :class="['absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', micMuted ? 'text-white' : 'text-emerald-600']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4Zm-6 9H4v1a8 8 0 0 0 7 7.94V22H8v2h8v-2h-3v-2.06A8 8 0 0 0 20 12v-1h-2v1a6 6 0 0 1-12 0v-1Z"/>
           </svg>
-          <span class="w-full pl-8 text-left" data-i18n="btnMute">静音麦克风</span>
+          <span class="w-full pl-8 text-left" data-i18n="btnMute">{{ micMuted ? '取消静音' : '静音麦克风' }}</span>
         </button>
-        <button type="button" class="relative bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed" aria-pressed="false" disabled>
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+        <button type="button" :class="['relative text-[11px] font-extrabold tracking-wide px-3 py-3 rounded-2xl border-2 border-gray-900 transition-colors duration-150 flex items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40', bypassOn ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-100 text-gray-900']" :aria-pressed="bypassOn" :disabled="!realtimeAvailable || switching" :title="realtimeAvailable ? '输出原始人声（不推理）' : '仅在 RT_RVC 运行时可用'" @click.prevent="toggleBypass">
+          <svg :class="['absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', bypassOn ? 'text-white' : 'text-gray-400']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="m13.6 2-8.2 10.5a1 1 0 0 0 .8 1.6h4.5l-.7 7.9a1 1 0 0 0 1.8.6L19 11.5a1 1 0 0 0-.8-1.6h-4.5L14.6 3a1 1 0 0 0-1-1Z"/>
           </svg>
           <span class="w-full pl-8 text-left" data-i18n="btnBypass">旁路直通</span>

@@ -68,6 +68,14 @@ rvc-golden/input/
 !rvc-golden/output/preprocessor-sample-mp4-30s-streaming-quality-python-reference.wav
 !rvc-golden/output/preprocessor-sample-mp4-30s-fp16-mozart-backend.wav
 
+# qiqi-zh-run runtime working dir (backend.yaml points here): local engines,
+# captured tensors and temp files stay out of git, only the run configs track
+rvc-golden/qiqi-zh-run/**
+!rvc-golden/qiqi-zh-run/backend.yaml
+!rvc-golden/qiqi-zh-run/backend-ui.yaml
+!rvc-golden/qiqi-zh-run/config.json
+!rvc-golden/qiqi-zh-run/presets.json
+
 # CMake
 CMakeCache.txt
 CMakeFiles/
@@ -77,9 +85,6 @@ cmake-build-*/
 
 # node_dependencies
 node_modules/
-
-# USB gadget experiment artifacts (evidence in ~/mozart-archive)
-build-gpu/
 
 # USB gadget experiment artifacts (evidence docs kept, binaries ignored)
 build-gpu/
