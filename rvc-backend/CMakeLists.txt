@@ -212,6 +212,13 @@ endif()
 # ══════════════════════════════════════════════════════════
 if(BUILD_TESTS)
     enable_testing()
+    add_executable(test_mode_controller tests/test_mode_controller.cpp)
+    target_link_libraries(test_mode_controller PRIVATE mozart_rvc_runtime)
+    foreach(case capacity position clear_queued active_cancel eviction clear_completed clear_failed)
+        add_test(NAME state_${case} COMMAND test_mode_controller ${case})
+        set_tests_properties(state_${case} PROPERTIES TIMEOUT 30)
+    endforeach()
+
     add_executable(test_udp_loopback tests/test_udp_loopback.cpp
         src/rvc/audio_worker.cpp
         src/rvc/streaming_pipeline.cpp

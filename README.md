@@ -83,8 +83,8 @@ cd preprocessor && make -j6
 # 实时模式（发送 + 本地扬声器播放回包）
 ./build/bin/mozart-pre -d hw:1,0 -o plughw:1,3
 
-# 离线模式（无需麦克风）
-./build/bin/mozart-pre -i input.wav
+# 固定音频按实时节拍回放（48kHz / stereo / PCM16 WAV，无需麦克风）
+./build/bin/mozart-pre -i input.wav --pace
 ```
 
 ### 3. 构建 RVC 后端（Jetson）
