@@ -1,5 +1,7 @@
 # FILE_RVC Deployment And Startup
 
+> 中文版见 [DEPLOYMENT.zh-CN.md](DEPLOYMENT.zh-CN.md)。
+
 This document starts the current Project Mozart FILE_RVC stack:
 
 ```text
@@ -14,7 +16,7 @@ The only backend entry point is `mozart_stated`.
 From the repository root, the following must exist:
 
 ```text
-build/state/mozart_stated
+build-gpu/state/mozart_stated
 rvc-backend/config.yaml
 rvc-backend/assets/hubert/hubert_base.onnx
 rvc-backend/assets/rmvpe/rmvpe.onnx
@@ -95,7 +97,7 @@ For example, the installed model ID is `de_narrator`.
 From the repository root, start the global state daemon:
 
 ```bash
-./build/state/mozart_stated ./rvc-backend/config.yaml
+./build-gpu/state/mozart_stated ./rvc-backend/config.yaml
 ```
 
 Expected startup messages include:
