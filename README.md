@@ -197,10 +197,14 @@ realtime 资产，不应把缺失资产当成低延迟部署成功。
 16 kHz 输入
   → RMVPE ONNX        （mel 128×128 → F0）
   → HuBERT ONNX       （audio → [T, 768] 特征）
-  → Index 检索        （FAISS IVF，KNN1，无 FAISS 运行时依赖）
+  → Index 检索        （FAISS IVF，KNN1；解析与单测已验证，生产默认关闭）
   → Generator ONNX/TRT （feats + pitch + sid → 48 kHz 音频）
   → protect 混合      （与原特征混合，保留原声特点）
 ```
+
+> **Index 检索当前未在生产启用**：`.index` 的 faiss 序列化解析与单测已完成，
+> 但 `RVCModel` 出于常驻内存考虑停用了预加载（`model_loader.cpp`），
+> `index_rate` 默认 `0.0`，因此推理实际跳过检索。详见 [TODO.md](TODO.md) P3。
 
 ### 流式架构
 
@@ -218,7 +222,9 @@ realtime 资产，不应把缺失资产当成低延迟部署成功。
 
 全链合计 ≈ 98 ms / 2 s 音频 ≈ **5 % GPU**。
 
-> 注：以上为实验室 TensorRT FP16 数字。生产构建需确认 TensorRT 引擎或 GPU ONNX Runtime 在 Jetson 上实际加载。
+> 注：以上均为固定形状 TensorRT FP16 数字。普通**动态** ONNX 在当前 sm87
+> 环境可能因缺少对应 CUDA kernel 回退到 CPU（见 [DESIGN.md](DESIGN.md) §5.3 与
+> [TODO.md](TODO.md) P1），不能把这些数字套到动态 ONNX 路径上。
 
 ---
 
@@ -284,7 +290,7 @@ rvc:
   realtime_rmvpe_path: ""
   f0_method: "rmvpe"
   pitch_shift: 0
-  index_rate: 0.75
+  index_rate: 0.0            # 默认关闭；.index 预加载当前停用（见上）
   protect: 0.33
   device: "cuda"
 
@@ -328,12 +334,19 @@ network:
 
 ## 当前主要缺口
 
-详见 [TODO.md](TODO.md)，核心未竟项：
+详见 [TODO.md](TODO.md) 与 [reports/](reports/README.md)，核心未竟项：
 
-1. **默认音色的 realtime 资产**：当前已验收一个低延迟 C++ realtime 音色；其他音色仍可只部署普通 Generator 做 file/quality 推理。
-2. **PipeWire 物理声卡驱动**：当前为 stub，需实现 `pw_stream` capture/playback。
-3. **文字路接入 C++ 守护进程**：STT/LLM/TTS 当前由独立 Python 进程运行。
-4. **零样本变声**：尚未实现。
+1. **物理实时 demo 启动不确定**：模型工厂按目录顺序自动加载首个可用音色，
+   直接切 `rt_rvc` 不保证选中已验收的 `qiqi-zh-realtime`；需要显式初始模型配置或启动器。
+2. **普通动态 ONNX 的 GPU 回退与内存上界**：固定形状 TensorRT 资产可上 GPU，
+   但全长的动态 ONNX 会因缺少 sm87 kernel 回退 CPU，并在冷启动时逼近内存上限；
+   需要裁剪模型缓存、按模式懒加载，并在 `/status` 暴露实际执行后端。
+3. **Index 检索未启用**：解析器与单测完成，但生产预加载被停用（`index_rate=0`）。
+4. **PipeWire 物理声卡驱动**：当前为 stub，需实现 `pw_stream` capture/playback。
+5. **文字路接入 C++ 守护进程**：STT/LLM/TTS 当前由独立 Python 进程运行；
+   且 `/api/subtitles` 的字幕文件被替换时 SSE 无法恢复。
+6. **前端实时面板未接线**：波形 canvas 与音色管理库仍未接数据。
+7. **零样本变声**：尚未实现。
 
 ---
 
@@ -341,8 +354,8 @@ network:
 
 - 请勿在 Jetson 上 `pip install fairseq torchcrepe`
 - 请勿提交 `.pth` 模型文件（先导出 ONNX）
-- 请勿提交 `build/` 目录
-- 新增文档请放在相关模块目录
+- 请勿提交 `build/` / `build-gpu/` 目录
+- 新增文档请放在相关模块目录；带日期的一次性审计 / 审查报告放 [`reports/`](reports/README.md)，RVC 复现资产放 `rvc-golden/`
 - 新增音色模型：PC 端导出 ONNX → 部署到 Jetson
 - RVC 质量回归：先跑 Golden Model → 对比 ONNX → 再测后端
 
@@ -352,16 +365,44 @@ network:
 
 ## 文档索引
 
+**核心**
+
 | 文档 | 内容 |
 |------|------|
-| [TODO.md](TODO.md) | 当前任务与实测基准 |
-| [DESIGN.md](DESIGN.md) | 系统设计、架构、契约、实现路线 |
 | [TARGET.md](TARGET.md) | 产品愿景与交付目标 |
-| [AGENTS.md](AGENTS.md) | RVC 调试工作流 |
-| [state/README.md](state/README.md) | 状态机与资源编排 |
-| [state/API.md](state/API.md) | HTTP API 规范 |
-| [frontend/DEPLOYMENT.zh-CN.md](frontend/DEPLOYMENT.zh-CN.md) | 前端构建与部署 |
-| [rvc-golden/README.md](rvc-golden/README.md) | Golden 模型回归测试 |
+| [DESIGN.md](DESIGN.md) | 系统设计、架构、契约、实现路线（唯一设计文档） |
+| [TODO.md](TODO.md) | 当前任务与实测基准 |
+| [AGENTS.md](AGENTS.md) | RVC 调试工作流（Golden → ONNX → 后端的强制顺序） |
+
+**模块**
+
+| 文档 | 内容 |
+|------|------|
+| [state/README.md](state/README.md) | 状态机与资源编排（[architecture.html](state/architecture.html) 交互式面板） |
+| [state/API.md](state/API.md) | HTTP API 权威规范 |
+| [frontend/DEPLOYMENT.zh-CN.md](frontend/DEPLOYMENT.zh-CN.md) | 前端构建与部署（中文，主） |
+| [frontend/DEPLOYMENT.md](frontend/DEPLOYMENT.md) | 同上的英文版 |
+
+**测试与调查**
+
+| 文档 | 内容 |
+|------|------|
+| [rvc-golden/README.md](rvc-golden/README.md) | Golden 模型回归测试与验收标准 |
+| [rvc-golden/STREAMING_BACKEND_INVESTIGATION.md](rvc-golden/STREAMING_BACKEND_INVESTIGATION.md) | 流式后端逐层对齐调查日志 |
+
+**USB 声卡调查（已定案关闭）**
+
+| 文档 | 内容 |
+|------|------|
+| [usb-gadget/DECISION.md](usb-gadget/DECISION.md) | 最终决策：Tegra234 XUDC 不支持 ISO，改用 USB 声卡小尾巴 |
+| [usb-gadget/STATUS.md](usb-gadget/STATUS.md) | gadget 路线的历史排查记录（已被 DECISION 取代） |
+| [usb-gadget/RESTORE-20260906.md](usb-gadget/RESTORE-20260906.md) | 系统恢复为官方状态的记录 |
+
+**报告归档**
+
+| 文档 | 内容 |
+|------|------|
+| [reports/README.md](reports/README.md) | 带日期的项目级审计 / 审查报告索引 |
 
 ---
 

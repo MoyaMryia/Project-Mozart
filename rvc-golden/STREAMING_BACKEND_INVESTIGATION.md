@@ -2,6 +2,9 @@
 
 最后更新：2026-09-05
 
+> 本文是 2026-09-05 的逐层对齐调查日志快照，保留当时的实验过程与数值。
+> 当前状态与待办以 [TODO.md](../TODO.md) 和 [reports/](../reports/README.md) 为准。
+
 ## 目标
 
 使用同一份可复现输入，先固定 PyTorch Golden Model，再逐层对比 Mozart

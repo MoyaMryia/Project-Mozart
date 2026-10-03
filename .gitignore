@@ -100,3 +100,11 @@ usb-gadget/**/modules.order
 usb-gadget/**/.tmp_versions/
 usb-gadget/scratch-*.c
 usb-gadget/tests/__pycache__/
+
+# Dated project reports: keep the Markdown, ignore regenerated evidence
+reports/**/*.wav
+reports/**/*.json
+reports/**/jobs/
+reports/**/stream-jobs/
+reports/**/stream-models/
+reports/**/__pycache__/

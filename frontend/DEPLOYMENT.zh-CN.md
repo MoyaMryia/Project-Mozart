@@ -1,5 +1,7 @@
 # FILE_RVC 部署与启用说明
 
+> English version: [DEPLOYMENT.md](DEPLOYMENT.md).
+
 本文档用于启动当前 Project Mozart 的 FILE_RVC 完整链路：
 
 ```text
@@ -14,7 +16,7 @@
 在仓库根目录下，以下文件应存在：
 
 ```text
-build/state/mozart_stated
+build-gpu/state/mozart_stated
 rvc-backend/config.yaml
 rvc-backend/assets/hubert/hubert_base.onnx
 rvc-backend/assets/rmvpe/rmvpe.onnx
@@ -110,7 +112,7 @@ de_narrator
 在仓库根目录启动全局状态 daemon：
 
 ```bash
-./build/state/mozart_stated ./rvc-backend/config.yaml
+./build-gpu/state/mozart_stated ./rvc-backend/config.yaml
 ```
 
 正常启动应看到以下关键日志：
