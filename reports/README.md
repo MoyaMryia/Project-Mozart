@@ -14,6 +14,7 @@ Golden 回归所需的**可复用**输入 / 输出 / 张量仍然放在
 |------|------|------|
 | 2026-10-02 | [next-steps-audit-20261002/AUDIT.md](next-steps-audit-20261002/AUDIT.md) | 合并 PR #1/#2 后的现状审计、下一里程碑（物理实时 demo）与优先级验收标准 |
 | 2026-10-02 | [pr-2-review-20261002/REVIEW.md](pr-2-review-20261002/REVIEW.md) | PR #2（FAISS 解析 + RVC 导出验证）的代码审查与 Generator 诊断 |
+| 2026-10-03 | [seedvc-zeroshot-research-20261003/RESEARCH.md](seedvc-zeroshot-research-20261003/RESEARCH.md) | Seed-VC 零样本变声调研与 Orin Nano 8GB 板上实测（离线 RTF/内存） |
 
 ## 阅读约定
 

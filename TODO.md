@@ -102,7 +102,7 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
 - [x] **TTS 接线 + 全链演示（2026-08-31）**：`tools/demo_fullchain.py` 串起 **语音→ASR→LLM翻译→TTS→RVC变声→HDMI播放** 全链闭环（file 模式稳出声）。实测单句：ASR 0.7s / LLM 0.9s / TTS 13.5s（5s 音频，CPU 挤）/ RVC 27s（CPU RTF≈5）。关键坑：Matcha 纯中文词库读不了英文（换 melo 中英混读）；melo 输出安静 + rms_mix_rate 会把安静包络带进变声输出（发送前峰值归一化 0.9）；后端构建的 RNNoise blob 路径指向 rvc-backend/assets（已拷贝）。`tools/tts2rvc.py` 为 UDP 实时变声通路（P1 GPU 化后启用）
 - [ ] **并发基准（2026-08-31 实测，`tools/bench_concurrent.py`）**：极限并发（RVC realtime 流 + TTS + ASR + LLM 同板）尚需用已验收的 qiqi profile 重测；旧数据中的 RVC CPU ONNX 短板不再代表 realtime TensorRT 路径。注意：后端只回包给"首个 UDP 客户端"，多消费者需各开一路或改广播
 - [ ] TTS/RVC 提速：继续评估普通 quality/file 路径的 GPU ONNX fallback，并将 TTS 从 CPU 推理迁移到 GPU（如收益明确）
-- [ ] **零样本变声（比赛杀招）**：seed-VC（github.com/DonkeyHang/seedVC）——翻译到目标语言后零样本克隆指定音色。待调研：模型体积/推理耗时/8GB 板可行性；与现有 RT_ZERO_SHOT 模式槽位对接
+- [ ] **零样本变声（比赛杀招）**：Seed-VC（`github.com/DonkeyHang/seedVC`）——已做调研与 Orin 实测，见 [reports/seedvc-zeroshot-research-20261003/RESEARCH.md](reports/seedvc-zeroshot-research-20261003/RESEARCH.md)。结论：离线可跑（tiny RTF 0.35/4 步、base 0.78/10 步），但峰值内存 5.4–6.1 GB，**必须与 RVC 互斥卸载**；实时档未打通，不建议押注 `RT_ZERO_SHOT`。建议先做 `FILE_ZERO_SHOT`（Python sidecar + 复用 FILE_RVC 外壳）。**待办**：① 明确需求是 VC 还是零样本 TTS；② 许可证 GPL-3.0 评估；③ 若做实时需先把流式分块逐块计时。
 
 ### P3 — 收尾
 

@@ -340,7 +340,7 @@ Jetson:
 | 1 | **实时降噪 + RVC 变声** | preprocessor ✅ / IO ✅(UDP) / rvc-backend ✅（ONNX 主链路、TensorRT 直载代码、滑动窗口） | **当前**：真实 mel 已实现；GPU 生产构建与真模型出声待验证；PipeWire 真驱动待实现 |
 | 2 | **ASR 转写 + Qwen 翻译 + 可选 TTS** | Python 工具链（`tools/stt_service.py`、`tools/subtitle_bridge.py`、`tools/tts_service.py`）已落地；尚未接入 C++ 守护进程 | ⬜ 工具链 ✅ / C++ 集成 ⬜ |
 | 3 | **离线文件 / 网页上传变声** | `state/` + `FileRvcWorker` + FFmpeg 解码 + HTTP API 任务队列 | ✅ |
-| 4 | **Zero-Shot 零样本变声** | state 4 模式落地 + 新推理引擎 + 角色注册 | ⬜ |
+| 4 | **Zero-Shot 零样本变声** | state 4 模式落地 + 新推理引擎 + 角色注册 | ⬜ 未实现（`501`）。调研与 Orin 实测见 [reports/seedvc-zeroshot-research-20261003/RESEARCH.md](reports/seedvc-zeroshot-research-20261003/RESEARCH.md)：离线可用但内存 5.4–6.1 GB 需独占，实时待验证；建议先做 FILE_ZERO_SHOT sidecar |
 
 已完成的基线（第 1 步前半）：
 
