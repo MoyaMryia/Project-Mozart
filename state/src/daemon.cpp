@@ -26,10 +26,11 @@ bool StateManagerDaemon::start() {
     const uint32_t input_rate = config_.get_int("input.contract.sample_rate", MOZART_INPUT_SAMPLE_RATE);
     const uint32_t output_rate = config_.get_int("output.sample_rate", MOZART_OUTPUT_SAMPLE_RATE);
     const uint32_t frame_ms = config_.get_int("network.audio.frame_duration_ms", MOZART_INPUT_FRAME_MS);
+    const bool rvc_enabled = config_.get_bool("rvc.enabled", true);
     const rvc::RvcMockConfig mock{
-        config_.get_bool("rvc.mock.generator", false),
-        config_.get_bool("rvc.mock.hubert", false),
-        config_.get_bool("rvc.mock.rmvpe", false)
+        !rvc_enabled || config_.get_bool("rvc.mock.generator", false),
+        !rvc_enabled || config_.get_bool("rvc.mock.hubert", false),
+        !rvc_enabled || config_.get_bool("rvc.mock.rmvpe", false)
     };
     const std::filesystem::path models_dir = config_.resolve_file_path("rvc.models_dir", "./models");
     const std::filesystem::path hubert_path = config_.resolve_file_path("rvc.hubert_path", "./assets/hubert/hubert_base.onnx");
@@ -55,13 +56,20 @@ bool StateManagerDaemon::start() {
     default_parameters.filter_radius = config_.get_int("rvc.filter_radius", default_parameters.filter_radius);
     default_parameters.rms_mix_rate = static_cast<float>(config_.get_double("rvc.rms_mix_rate", default_parameters.rms_mix_rate));
     default_parameters.protect = static_cast<float>(config_.get_double("rvc.protect", default_parameters.protect));
-    pipeline_ = rvc::RVCPipelineFactory::create(
-        mock, models_dir, hubert_path, rmvpe_path,
-        input_rate, output_rate, config_.get_string("rvc.device", "cuda"),
-        config_.get_bool("rvc.half", false), default_parameters,
-        realtime_hubert_path, realtime_rmvpe_path);
+    if (rvc_enabled) {
+        pipeline_ = rvc::RVCPipelineFactory::create(
+            mock, models_dir, hubert_path, rmvpe_path,
+            input_rate, output_rate, config_.get_string("rvc.device", "cuda"),
+            config_.get_bool("rvc.half", false), default_parameters,
+            realtime_hubert_path, realtime_rmvpe_path);
+    } else {
+        // Mock flags alone can still initialize feature engines when assets
+        // exist. A disabled lane must never construct those engine owners.
+        pipeline_ = std::make_unique<rvc::MockRVCPipeline>(input_rate, output_rate);
+    }
 
     rvc::ModeController::Config controller_config;
+    controller_config.rvc_enabled = rvc_enabled;
     controller_config.audio_host = config_.get_string("network.audio.host", "0.0.0.0");
     controller_config.audio_port = static_cast<uint16_t>(config_.get_int("network.audio.port", 18000));
     controller_config.input_sample_rate = input_rate;

@@ -65,6 +65,7 @@ mozart_dsp_t *mozart_dsp_new(const mozart_dsp_config_t *cfg)
 {
     mozart_dsp_t *d = calloc(1, sizeof(*d));
     if (!d) return NULL;
+    d->fast_db = d->slow_db = -100.0f;
     bool use_rn = cfg ? cfg->rnnoise : true;
     if (use_rn) {
         d->rn = mozart_rnnoise_new(cfg ? cfg->rnnoise_model : NULL);
@@ -195,6 +196,7 @@ int mozart_dsp_process(mozart_dsp_t *d,
                 d->in_speech = 1;
                 d->enter_count = 0;
                 d->segment_id = (uint8_t)(d->segment_id + 1); // 0 = 静音间隔
+                if (d->segment_id == 0) d->segment_id = 1;
             }
         }
     } else {
@@ -203,11 +205,21 @@ int mozart_dsp_process(mozart_dsp_t *d,
         d->slow_db += 0.02f * (db - d->slow_db);
         d->fast_db += 0.50f * (db - d->fast_db);
         frame_vad = db > ENERGY_GATE_DB && db > d->slow_db + 6.0f;
-        if (frame_vad && !d->in_speech) {
-            d->in_speech = 1;
-            d->segment_id = (uint8_t)(d->segment_id + 1);
-        } else if (!frame_vad && d->in_speech && db < d->slow_db + 3.0f) {
-            d->in_speech = 0;
+        if (d->in_speech) {
+            const int quiet = db <= ENERGY_GATE_DB || db < d->slow_db + 3.0f;
+            d->exit_count = quiet ? d->exit_count + 1 : 0;
+            if (d->exit_count >= SEG_EXIT_FRAMES) {
+                d->in_speech = 0;
+                d->exit_count = 0;
+            }
+        } else {
+            d->enter_count = frame_vad ? d->enter_count + 1 : 0;
+            if (d->enter_count >= SEG_ENTER_FRAMES) {
+                d->in_speech = 1;
+                d->enter_count = 0;
+                d->segment_id = (uint8_t)(d->segment_id + 1);
+                if (d->segment_id == 0) d->segment_id = 1;
+            }
         }
     }
 

@@ -1,0 +1,21 @@
+# Reference TTS owns a separate worker. Keep unused RVC engines out of RAM.
+input:
+  contract:
+    sample_rate: 16000
+output:
+  sample_rate: 48000
+network:
+  audio:
+    host: 127.0.0.1
+    port: 18000
+  control:
+    host: 127.0.0.1
+    port: 18080
+rvc:
+  enabled: false
+  models_dir: ../temp/disabled-rvc-models
+  device: cpu
+storage:
+  temp_dir: ../temp/rvc-jobs
+  presets_path: ../temp/presets.json
+  max_queue_depth: 5

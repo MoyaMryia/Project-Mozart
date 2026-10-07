@@ -31,6 +31,7 @@ public:
         uint32_t input_sample_rate = MOZART_INPUT_SAMPLE_RATE;
         uint32_t output_sample_rate = MOZART_OUTPUT_SAMPLE_RATE;
         uint32_t frame_duration_ms = MOZART_INPUT_FRAME_MS;
+        bool rvc_enabled = true;
         bool skip_silence = true;
         bool file_rnnoise = false;
         std::filesystem::path storage_dir = "./storage/temp";

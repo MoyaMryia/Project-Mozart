@@ -109,16 +109,14 @@ void StreamingRvc::push(const mozart_input_frame_t& frame)
     if (have_last_meta_) {
         const uint32_t idx_gap = frame.meta.frame_idx - last_frame_idx_; // u32 回绕安全
         const bool idx_gap_bad = idx_gap == 0 || idx_gap > kFrameIdxResetGap;
-        const uint8_t seg = frame.meta.segment_id;
-        const bool seg_changed = seg != last_segment_;
-        const bool pts_jump = frame.meta.pts_ns > last_pts_ns_
-            && frame.meta.pts_ns - last_pts_ns_ > kPtsResetGapNs;
-        if (idx_gap_bad || seg_changed || pts_jump) {
+        const bool pts_jump = frame.meta.pts_ns < last_pts_ns_
+            || frame.meta.pts_ns - last_pts_ns_ > kPtsResetGapNs;
+        // ASR utterance boundaries do not interrupt the PCM timeline.
+        if (idx_gap_bad || pts_jump) {
             handle_discontinuity();
         }
     }
     last_frame_idx_ = frame.meta.frame_idx;
-    last_segment_ = frame.meta.segment_id;
     last_pts_ns_ = frame.meta.pts_ns;
     have_last_meta_ = true;
 

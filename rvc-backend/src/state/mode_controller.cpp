@@ -162,6 +162,10 @@ nlohmann::json ModeController::set_realtime_routing(const nlohmann::json& reques
 
 nlohmann::json ModeController::request_mode(const std::string& mode, const std::string& model_id) {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!config_.rvc_enabled && mode != "idle") {
+        return {{"status", "unavailable"}, {"mode", mode},
+                {"error", "RVC is disabled in this translated-speech deployment"}};
+    }
     if (unavailable_mode(mode)) {
         return {{"status", "unavailable"}, {"mode", mode},
                 {"error", "Zero-Shot worker is not implemented"}};
@@ -191,6 +195,7 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
                                             const std::string& original_name,
                                             const std::string& model_id) {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!config_.rvc_enabled) return {{"status", "rejected"}, {"error", "RVC is disabled"}};
     const size_t unfinished_jobs = static_cast<size_t>(std::count_if(
         jobs_.begin(), jobs_.end(), [](const Job& job) { return job_unfinished(job); }));
     if (unfinished_jobs >= config_.max_queue_depth) {
@@ -339,7 +344,7 @@ nlohmann::json ModeController::status() const {
                   {"output_underruns", stream.output_underruns},
                     {"startup_output_underruns", stream.startup_output_underruns}}},
         {"queue", queue}, {"file_queue_paused", file_queue_paused_}, {"last_error", last_error_},
-        {"capabilities", { {"rt_rvc", true}, {"file_rvc", true}, {"rt_zero_shot", false}, {"file_zero_shot", false} }}
+        {"capabilities", { {"rt_rvc", config_.rvc_enabled}, {"file_rvc", config_.rvc_enabled}, {"rt_zero_shot", false}, {"file_zero_shot", false} }}
     };
 }
 

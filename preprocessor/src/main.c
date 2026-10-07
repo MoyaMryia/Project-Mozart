@@ -20,6 +20,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -74,6 +75,7 @@ static int udp_open(const char *host, uint16_t port)
 typedef struct {
     int                 fd;         // 已连接的后端 UDP socket（收发同口）
     const char         *device;     // ALSA 播放设备
+    atomic_uint         last_played_frame;
     bool                monotonic_pts; // 快速离线输入使用相对 PTS，不做往返计时
     volatile sig_atomic_t *stop;    // 共享停止标志
 } playback_args_t;
@@ -124,6 +126,7 @@ static void *playback_thread(void *arg)
 
         if (mozart_playback_write(pb, frame.pcm, MOZART_OUTPUT_SAMPLES) == 0) {
             played++;
+            atomic_store(&pa->last_played_frame, frame.meta.frame_idx);
         }
 
         // 回包携带当前输入帧的元数据，不能代表缓冲后音频的端到端延迟。
@@ -283,6 +286,7 @@ int main(int argc, char **argv)
         } else {
             if (mozart_capture_read(cap, stereo) < 0) {
                 fprintf(stderr, "[pre] 采集失败，退出\n");
+                exit_code = 1;
                 break;
             }
             // 本帧覆盖 [now-20ms, now]，pts 取帧起始
@@ -292,6 +296,7 @@ int main(int argc, char **argv)
 
         if (mozart_dsp_process(dsp, stereo, &frame) < 0) {
             fprintf(stderr, "[pre] dsp 处理失败\n");
+            exit_code = 1;
             break;
         }
         memcpy(pkt + 4, &frame, sizeof(frame));
@@ -317,6 +322,19 @@ int main(int argc, char **argv)
     fprintf(stderr, "[pre] 结束: 发送 %ld 帧 (%.1f s), overruns=%ld\n",
             sent, sent * 0.02, overruns);
 
+    // A finite replay must receive its final reply before shutting down the
+    // shared UDP socket. Bound the wait so an offline backend cannot hang exit.
+    if (play_tid && !g_stop) {
+        const uint64_t deadline = mozart_now_ns() + 2000000000ull;
+        const struct timespec poll = { .tv_sec = 0, .tv_nsec = 10000000 };
+        while (atomic_load(&play_args.last_played_frame) < (uint32_t)sent
+               && mozart_now_ns() < deadline && !g_stop) {
+            nanosleep(&poll, NULL);
+        }
+        // Allow the four 20 ms ALSA periods already written to leave the device.
+        const struct timespec tail = { .tv_sec = 0, .tv_nsec = 100000000 };
+        if (!g_stop) nanosleep(&tail, NULL);
+    }
     // 通知播放线程退出并等待
     g_stop = 1;
     if (play_tid) {

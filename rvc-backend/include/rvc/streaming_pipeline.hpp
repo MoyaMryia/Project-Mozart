@@ -17,7 +17,7 @@
 // 跨块拼接：块间输入 hop = window - crossfade/3（输出 50ms 重叠区线性淡化）。
 //
 // 不连续性处理（宁可重置也不接错相位）：
-//   - frame_idx 跳变 / segment_id 变化 / pts 大跳 → 全量重置（清环、清淡化尾）
+//   - frame_idx 跳变 / pts 回退或大跳 → 全量重置（清环、清淡化尾）
 //   - 推理落后（积压 > 2 hop）→ 丢弃整块直接追最新，淡化尾作废
 //   - 静音窗（skip_silence 且整窗无 VAD）→ 跳过推理，输出等长静音
 
@@ -69,7 +69,7 @@ public:
     explicit StreamingRvc(Config config);
 
     // ---- AudioWorker 泵线程 ----
-    // 喂一帧；内部检测 frame_idx/segment_id/pts 不连续并触发重置。
+    // 喂一帧；内部检测 frame_idx/pts 不连续并触发重置。
     void push(const mozart_input_frame_t& frame);
 
     // 取最多 n 个输出样本，返回实际取到的数量（不足由调用方补零=欠载）。
@@ -113,7 +113,6 @@ private:
     // 不连续检测基准（push 侧独占）
     bool have_last_meta_ = false;
     uint32_t last_frame_idx_ = 0;
-    uint8_t last_segment_ = 0;
     uint64_t last_pts_ns_ = 0;
 
     // 输出样本环

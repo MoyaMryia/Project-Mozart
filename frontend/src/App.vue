@@ -2,6 +2,7 @@
 // App.vue — 控制中心主应用。
 // UI 模板从原 vanilla 控制中心 1:1 平移（class/结构未动），逻辑从原 vanilla
 // main.ts 移植为组合式状态。新增：SUB 字幕条（SSE 订阅）。
+import SpeechPanel from './SpeechPanel.vue';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
@@ -19,6 +20,7 @@ const MODES: ActiveMode[] = [
   // 'file_zero_shot', // TODO(seed-vc): 实现后恢复
 ];
 const isFileMode = (mode: string) => mode === 'file_rvc';
+const speechOnly = computed(() => !!status.value && !status.value.capabilities.rt_rvc && !status.value.capabilities.file_rvc);
 
 // ---- 响应式状态 ----
 const status = ref<Status | null>(null);
@@ -44,8 +46,6 @@ const toastMessage = ref('');
 const subtitleEvents = ref<SubtitleEvent[]>([]);
 const subtitleState = ref<'connecting' | 'online' | 'offline'>('connecting');
 
-// live 面板沿用原行为：恒为隐藏（canvas 波形从未接线）
-const showLive = ref(false);
 
 // ---- toast ----
 let toastTimer: number | undefined;
@@ -95,7 +95,7 @@ const statCache = computed(() => monitor.value
 const statVram = computed(() => {
   if (!monitor.value) return 'N/A';
   return monitor.value.gpu.available
-    ? `${monitor.value.gpu.load_percent.toFixed(0)}% / ${gib(monitor.value.gpu.memory_used_bytes)} GB`
+    ? `${monitor.value.gpu.load_percent.toFixed(0)}%${monitor.value.gpu.memory_type === 'shared' ? ' · SHARED RAM' : ''}`
     : 'UNAVAILABLE';
 });
 const gib = (bytes: number) => (bytes / 1024 ** 3).toFixed(1);
@@ -121,7 +121,7 @@ const parameterRows = computed<ParameterRow[]>(() => [
 const parameterLabel = (key: keyof RvcParameters, value: string | number) => {
   if (key === 'f0_method') return String(value).toUpperCase();
   if (key === 'pitch_shift') return `${value} st`;
-  return String(value);
+  return typeof value === 'number' ? String(Number(value.toFixed(2))) : String(value);
 };
 
 // ---- API 动作 ----
@@ -299,7 +299,11 @@ const togglePause = async () => {
 const globalRun = async () => {
   await switchMode(selectedMode.value);
 };
-const globalStop = async () => { await switchMode('idle'); };
+const globalStop = async () => {
+  await switchMode('idle');
+  try { await api('/api/speech/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); }
+  catch { /* An absent speech service does not prevent stopping RVC. */ }
+};
 
 // ---- 模式选择（原 selectMode / toggle 逻辑）----
 const pickMode = (mode: ActiveMode) => {
@@ -343,7 +347,9 @@ const connectSubtitles = () => {
     eventSource.onopen = () => { subtitleState.value = 'online'; };
     eventSource.onmessage = (event) => {
       try {
-        subtitleEvents.value.push(JSON.parse(event.data) as SubtitleEvent);
+        const caption = JSON.parse(event.data) as SubtitleEvent;
+        if (caption.utterance_id && subtitleEvents.value.some(item => item.utterance_id === caption.utterance_id)) return;
+        subtitleEvents.value.push(caption);
         if (subtitleEvents.value.length > 50) subtitleEvents.value.shift();
       } catch { /* 非 JSON 行忽略 */ }
     };
@@ -411,7 +417,7 @@ onUnmounted(() => {
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 10v3m4-7v11m4-14v18m4-13v7m4-10v13m4-8v3"/></svg>
         <span class="text-[10px] font-bold text-gray-500 tracking-wider">PIPEWIRE</span>
-        <span :class="stateClass(monitor?.pipewire.available ?? null)">{{ monitor?.pipewire.available === undefined ? 'UNKNOWN' : monitor.pipewire.available ? 'CONNECTED' : 'OFFLINE' }}</span>
+        <span :class="stateClass(monitor?.pipewire.available ?? null)">{{ monitor?.pipewire.available === undefined ? 'UNKNOWN' : monitor.pipewire.available ? 'AVAILABLE' : 'OFFLINE' }}</span>
       </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 12h2l2-6 4 12 3-8 2 4h5"/></svg>
@@ -432,13 +438,13 @@ onUnmounted(() => {
   </header>
 
   <!-- 三栏主布局 -->
-  <main id="main-content" class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr_340px] bg-[#FCFDFE] overflow-y-auto md:overflow-hidden">
+  <main id="main-content" :class="['flex-1 min-h-0 grid grid-cols-1 bg-[#FCFDFE] overflow-y-auto md:overflow-hidden', speechOnly ? 'md:grid-cols-[240px_1fr]' : 'md:grid-cols-[300px_1fr_340px]']">
 
     <!-- 左栏：全局控制、系统运行模式与导航 -->
     <section class="left-sidebar bg-[#FAFAFA] border-r border-gray-100 overflow-visible md:overflow-hidden md:h-full" aria-label="System Navigation">
       <div class="sidebar-controls space-y-4 p-4 md:px-5 md:py-3 md:overflow-y-auto">
         <!-- 全局运行控制 -->
-        <div class="relative">
+        <div v-if="!speechOnly" class="relative">
           <div class="flex items-center gap-2 min-h-[24px] mb-2" aria-live="polite">
             <div class="relative w-5 h-5 flex items-center justify-center" aria-hidden="true">
               <svg :class="['system-state-icon', status?.mode !== 'idle' ? 'text-emerald-600' : 'hidden']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="m20 15 14 9-14 9V15Z"/></svg>
@@ -455,7 +461,7 @@ onUnmounted(() => {
             <button type="button" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" :aria-pressed="!!status && status.mode !== 'idle'" :class="{ 'is-active': !!status && status.mode !== 'idle' }" :disabled="switching || status?.capabilities[selectedMode] !== true" @click.prevent="globalRun">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
             </button>
-            <button type="button" data-state="stopped" class="transport-button" aria-label="停止当前模式" title="停止当前模式（当前文件任务会完成）" :aria-pressed="status?.mode === 'idle'" :class="{ 'is-active': !status || status.mode === 'idle' }" @click.prevent="globalStop">
+            <button type="button" data-state="stopped" class="transport-button" aria-label="停止 RVC 和语音播报" title="停止 RVC 和语音播报（当前 RVC 文件任务会完成）" :aria-pressed="status?.mode === 'idle'" :class="{ 'is-active': !status || status.mode === 'idle' }" @click.prevent="globalStop">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6V6Z"/></svg>
             </button>
           </div>
@@ -466,8 +472,8 @@ onUnmounted(() => {
         </div>
 
         <!-- 系统模式列表 -->
-        <div>
-          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase mb-3 section-title" data-i18n="systemModesTitle">系统模式</h2>
+        <div v-if="!speechOnly">
+          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase mb-3 section-title" data-i18n="systemModesTitle">RVC 模式</h2>
           <div class="space-y-2" role="group" aria-label="System modes">
             <div v-for="mode in MODES" :key="mode" :class="['mode-row w-full rounded-md transition-colors duration-150 hover:bg-gray-100 border border-transparent group flex items-stretch overflow-hidden', selectedMode === mode && 'is-selected']" :data-mode="mode">
               <button type="button" class="flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900" :data-mode="mode" :aria-pressed="selectedMode === mode" @click="pickMode(mode)">
@@ -482,11 +488,14 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-          <button type="button" class="w-full mt-3 bg-white hover:bg-gray-100 text-gray-900 border border-gray-200 hover:border-gray-900 px-3 py-2.5 rounded-2xl transition-colors duration-150 flex items-center gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 disabled:cursor-not-allowed" disabled aria-haspopup="dialog">
-            <svg class="w-4 h-4 shrink-0 text-emerald-700" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8m-8 4h8"/></svg>
-            <span class="flex-1 text-left text-[11px] font-extrabold">音色管理库</span>
-            <span class="font-mono text-[10px] font-bold text-gray-500 tabular-nums">4</span>
-          </button>
+          <p v-if="speechOnly" class="mt-3 text-xs text-gray-500">翻译播报配置 · RVC 已关闭以释放内存</p>
+          <a href="#reference-speech" class="block mt-3 text-xs font-bold underline">管理参考音色与翻译播报</a>
+        </div>
+
+        <div v-else class="space-y-3">
+          <h2 class="text-xs font-extrabold tracking-wider text-gray-900 uppercase">翻译与参考音色</h2>
+          <p class="text-xs text-gray-600 leading-5">在右侧选择参考音色，生成语音预览，或启用翻译播报。</p>
+          <a href="#reference-speech" class="block text-xs font-bold underline">管理参考音色与翻译播报</a>
         </div>
 
         <!-- 挂起切换状态槽 -->
@@ -508,53 +517,7 @@ onUnmounted(() => {
 
       <div class="min-h-0 flex flex-col overflow-y-auto no-scrollbar">
 
-      <!-- RT 模式：实时音频控制面板（沿用原行为：当前恒隐藏） -->
-      <div :class="['flex-1 flex flex-col min-h-0 gap-3', !showLive && 'hidden']">
-        <div class="flex-1 flex flex-col min-h-0 gap-2">
-          <div class="flex-1 flex flex-col min-h-0 gap-2">
-            <!-- 输入音轨 -->
-            <div class="flex-1 flex flex-col min-h-[140px] pb-3 border-b border-gray-200 gap-2">
-              <div class="flex justify-between items-center shrink-0 border-b border-gray-100 pb-2">
-                <span class="text-xs font-extrabold tracking-wider text-gray-700 font-mono">INPUT / MIC</span>
-                <div class="flex items-center gap-2 font-mono text-[10px] text-gray-500" role="group" aria-label="波形坐标轴步进">
-                  <span class="hidden sm:inline font-bold tracking-wider text-gray-400">网格步进</span>
-                  <div class="inline-flex items-center gap-1 border-b border-gray-300 focus-within:border-gray-900">
-                    <span class="font-bold text-gray-700">X</span>
-                    <input type="number" class="axis-step-input w-9 bg-transparent text-right font-bold text-gray-900 focus:outline-none" min="0.25" max="2" step="0.25" value="0.5" aria-label="X 轴步进，单位秒">
-                    <span>s</span>
-                    <button type="button" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="减小 X 轴步进" title="减小 X 轴步进">
-                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
-                    </button>
-                    <button type="button" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="增大 X 轴步进" title="增大 X 轴步进">
-                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
-                    </button>
-                  </div>
-                  <div class="inline-flex items-center gap-1 border-b border-gray-300 focus-within:border-gray-900">
-                    <span class="font-bold text-gray-700">Y</span>
-                    <input type="number" class="axis-step-input w-9 bg-transparent text-right font-bold text-gray-900 focus:outline-none" min="0.25" max="1" step="0.25" value="0.5" aria-label="Y 轴步进">
-                    <button type="button" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="减小 Y 轴步进" title="减小 Y 轴步进">
-                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
-                    </button>
-                    <button type="button" class="w-5 h-5 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 rounded-sm" aria-label="增大 Y 轴步进" title="增大 Y 轴步进">
-                      <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <canvas class="w-full flex-1 min-h-[110px]" role="img" aria-label="麦克风实时波形，横轴为最近 2 秒时间，纵轴为标准化振幅负 1 到正 1"></canvas>
-            </div>
-
-            <!-- 输出音轨 -->
-            <div class="flex-1 flex flex-col min-h-[140px] gap-2">
-              <div class="flex justify-between items-center shrink-0 border-b border-gray-100 pb-2">
-                <span class="text-xs font-extrabold tracking-wider text-emerald-700 font-mono">{{ isFileMode(selectedMode) ? 'OUTPUT / FILE RVC' : 'OUTPUT / RVC' }}</span>
-              </div>
-              <canvas class="w-full flex-1 min-h-[110px]" role="img" aria-label="模型输出实时波形，横轴为最近 2 秒时间，纵轴为标准化振幅负 1 到正 1"></canvas>
-            </div>
-          </div>
-        </div>
-
-      </div>
+      <SpeechPanel id="reference-speech" />
 
       <!-- FILE 模式：音频文件上传 -->
       <div :class="['mb-6', !isFileMode(selectedMode) && 'hidden']">
@@ -613,10 +576,11 @@ onUnmounted(() => {
           <span :class="['text-[9px] font-mono font-bold', subtitleState === 'online' ? 'text-emerald-600' : subtitleState === 'offline' ? 'text-red-500' : 'text-gray-400']">{{ subtitleState.toUpperCase() }}</span>
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音…（mozart-pre -b 127.0.0.1:18100 双发开启字幕路）' }}</div>
-          <div class="text-[11px] text-gray-500 leading-4 truncate">{{ latestSubtitle?.en || '' }}</div>
+          <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音输入…' }}</div>
+          <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.en || '' }}</div>
+          <p v-if="latestSubtitle?.translation_error || latestSubtitle?.speech_error" class="text-[11px] text-amber-700 leading-4" role="status">{{ latestSubtitle.translation_error || latestSubtitle.speech_error }}</p>
         </div>
-        <span v-if="latestSubtitle" class="shrink-0 font-mono text-[9px] text-gray-400 tabular-nums self-center">{{ latestSubtitle.translate_ms }}ms</span>
+        <span v-if="latestSubtitle?.translate_ms !== undefined" class="shrink-0 font-mono text-[9px] text-gray-400 tabular-nums self-center">{{ latestSubtitle.translate_ms }}ms</span>
       </div>
 
       <!-- 主界面下方：终端式系统日志 -->
@@ -649,7 +613,7 @@ onUnmounted(() => {
     </section>
 
     <!-- 右栏：参数设置与硬件状态 -->
-    <section class="p-3 md:p-4 border-l border-gray-100 bg-white flex flex-col gap-5 overflow-y-auto md:h-full" aria-label="Mode parameters and speaker selection">
+    <section v-if="!speechOnly" class="p-3 md:p-4 border-l border-gray-100 bg-white flex flex-col gap-5 overflow-y-auto md:h-full" aria-label="Mode parameters and speaker selection">
 
       <!-- 参数设置（按模式切换） -->
       <div class="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
