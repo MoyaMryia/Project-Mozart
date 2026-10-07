@@ -1,0 +1,39 @@
+input:
+  contract:
+    sample_rate: 16000
+  meta:
+    vad_enabled: false
+output:
+  sample_rate: 48000
+network:
+  audio:
+    host: 127.0.0.1
+    port: 18101
+    frame_duration_ms: 20
+  control:
+    host: 127.0.0.1
+    port: 18181
+rvc:
+  models_dir: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run
+  hubert_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx
+  rmvpe_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx
+  realtime_hubert_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.onnx
+  realtime_rmvpe_path: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.onnx
+  f0_method: rmvpe
+  pitch_shift: 0
+  index_rate: 0.0
+  filter_radius: 3
+  rms_mix_rate: 1.0
+  protect: 0.33
+  device: cuda
+  half: false
+  mock:
+    generator: false
+    hubert: false
+    rmvpe: false
+storage:
+  temp_dir: /home/moyamryia/Mozart/rvc-golden/next-steps-audit-20261002/jobs
+  presets_path: /home/moyamryia/Mozart/rvc-golden/next-steps-audit-20261002/presets.json
+  ffmpeg_path: ffmpeg
+  file_rnnoise: false
+  max_queue_depth: 5

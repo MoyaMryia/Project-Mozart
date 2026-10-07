@@ -46,7 +46,7 @@ rvc:
   realtime_rmvpe_path: ""
 
   # 推理参数
-  f0_method: "rmvpe"          # rmvpe / harvest / pm
+  f0_method: "rmvpe"          # 仅支持 rmvpe；harvest/pm 从未实现，传入即拒绝
   pitch_shift: 0              # 变调（半音）
   index_rate: 0.0             # 0 对齐 golden；.index 预加载已停用（见 model_loader.cpp）
   filter_radius: 3

@@ -15,7 +15,7 @@ HTTP API -> StateManagerDaemon -> ModeController
 ```
 
 `mozart_stated` is the only backend entry point. Deploy it from the root
-`build/` tree for the full daemon architecture.
+`build-gpu/` tree for the full daemon architecture.
 
 ## Supported Modes
 
@@ -44,19 +44,37 @@ quality/legacy streaming profile when that model has a regular Generator.
 The split-only `qiqi-zh-realtime` profile requires its realtime assets and is
 not considered deployed when validation fails.
 
+> **Known gap — initial model selection is not explicit.**
+> `RVCPipelineFactory::create` loads the first model with `exists == true` from
+> directory iteration (`rvc-backend/src/rvc/pipeline.cpp`). Switching to `rt_rvc`
+> therefore does not guarantee the validated split profile; activate the intended
+> model explicitly (`POST /api/models/{id}/activate`) or add an initial-model
+> setting/launcher before capture starts.
+
 ## Endpoints
 
 | Endpoint | Purpose |
 | --- | --- |
+| `GET /api/health` | Liveness check (`{"status":"ok"}`). |
 | `GET /api/status` | Authoritative mode, pending transition, queue, selected model, capabilities, plus `latency` (avg/max ms), `stream` (blocks/resets/overruns), `bypass` (inference/bypass counts), and `vad` stats from the active real-time worker. Also carries `realtime` routing state (`mic_muted` / `bypass`). |
+| `GET /api/monitor` | CPU, memory, GPU load, PipeWire status. |
+| `GET /api/logs` | Backend log ring buffer. |
+| `DELETE /api/logs` | Clears the backend log ring buffer. |
 | `POST /api/mode/switch` | JSON `{ "mode": "file_rvc", "speaker_id": "model_id" }`. A switch away from an active file job is deferred. |
 | `POST /api/realtime/routing` | JSON `{ "mic_muted": bool, "bypass": bool }`. Mute outputs silent frames (no inference); bypass plays the raw 16 kHz input upsampled to 48 kHz (no inference). Routing state survives mode switches and is reported in `status.realtime`. Requires a running RT_RVC worker. |
 | `POST /api/file/convert` | Multipart `audio_file` and optional `speaker_id`; stores the upload and returns a queued job ID. |
 | `GET /api/file/status?job_id=...` | Job state, progress, error, and completed download URL. |
 | `DELETE /api/file/cancel?job_id=...` | Removes queued work or requests processing cancellation at the next frame boundary. |
+| `POST /api/file/pause` / `POST /api/file/resume` | Pauses / resumes file-queue consumption. |
 | `GET /api/file/result?job_id=...` | Downloads a completed 48 kHz mono WAV result. |
+| `DELETE /api/file/finished` | Removes only terminal (`completed` / `failed` / `cancelled`) jobs and their files; queued work is retained. |
+| `DELETE /api/file/job?job_id=...` | Removes one specific job. |
 | `GET /api/models` | Discovers installed RVC models. |
 | `POST /api/models/{id}/activate` | Switches model through the controller, never from the HTTP thread directly. |
+| `GET /api/subtitles` | Server-Sent Events stream tailing the subtitle JSONL file (`MOZART_SUBTITLES_JSONL`, default `/tmp/opencode/subtitles.jsonl`). Reopens on file replacement or truncation and retains incomplete JSONL lines until they finish. |
+| `GET /api/parameters` / `PUT /api/parameters` | Reads / updates RVC inference parameters. |
+| `POST /api/parameters/reset` | Restores effective defaults. |
+| `GET /api/presets` / `POST /api/presets` / `DELETE /api/presets/{id}` | Lists / saves / deletes parameter presets. |
 
 The file queue has a configurable depth of 50 and a 100 MB request limit.
 The depth counts `queued`, `processing`, and `cancelling` jobs; terminal history

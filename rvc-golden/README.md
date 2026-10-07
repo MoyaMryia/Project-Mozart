@@ -6,6 +6,9 @@ RVC implementation against the original RVC inference path.
 It intentionally does not use Mozart preprocessing, ONNX Runtime, TensorRT, or
 the handwritten C++ mel/F0 implementation.
 
+> 带日期的项目审计 / 审查报告已移至仓库根目录 [`reports/`](../reports/README.md)；
+> 本目录只保留可复用的 Golden 参考与验收标准。
+
 Reproduce the locked qiqi audible reference through the original PyTorch RVC
 path and require an exact WAV SHA-256 match:
 

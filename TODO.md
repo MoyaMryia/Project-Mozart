@@ -1,13 +1,24 @@
 # TODO
 
-> 2026-08-28 板上实测后落盘，2026-08-30 预处理重写后更新。所有数字均在 Jetson Orin Nano Super 8GB（MAXN_SUPER 满频）实测，非估算。
+> 2026-08-28 板上实测后落盘，2026-08-30 预处理重写后更新，2026-10-02 同步审计结论。所有数字均在 Jetson Orin Nano Super 8GB（MAXN_SUPER 满频）实测，非估算。
 > 配套文档：TARGET.md（定位）、DESIGN.md（设计）。低延迟 C++ realtime profile 已完成并验收；本文件只管"接下来做什么"。
+> 2026-10-02 审计全文见 [reports/next-steps-audit-20261002/AUDIT.md](reports/next-steps-audit-20261002/AUDIT.md) 与 [reports/pr-2-review-20261002/REVIEW.md](reports/pr-2-review-20261002/REVIEW.md)。
 
 ---
 
 ## 0. 一句话现状
 
-RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 TensorRT 下实测通过；qiqi profile 首帧出声约 320ms，稳态 pipeline p95 约 93ms。Qwen3.5-0.8B 已量化验证（GPU 36-45 t/s）；预处理、HTTP/UDP 数据面和 state daemon 已打通。当前主要卡点是其他音色尚未导出 realtime split 资产，以及 PipeWire 物理声卡仍为 stub。
+> **2026-10-07 更新**：翻译文本参考播报已接入 PocketTTS、前端和受控启动器；
+> 采用短片段合成/播放及有界 deferred admission，RVC 可按配置完全禁用。
+> mock 麦克风/扬声器 demo 完成，用户已另行检查物理路径。自动检查不代表源语义
+> 或声线身份通过；4B 翻译模型仍为候选，生产默认 0.8B 未变。
+> 下一步优先处理用户确认源文中的人称、领域词与跨句识别错误，并使用保留的
+> 源音频/人工参考验证；不以放宽队列或删文本提高成功率。证据见
+> [源文与上下文报告](reports/sentence-context-20261007/RESULTS.md) 和
+> [mock demo 报告](reports/demo-20261007/RESULTS.md)。下列旧基准仅代表各自测量组合。
+
+
+RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 TensorRT 下实测通过；qiqi profile 首帧出声约 320ms，稳态 pipeline p95 约 93ms。Qwen3.5-0.8B 已量化验证（GPU 36-45 t/s）；预处理、HTTP/UDP 数据面和 state daemon 已打通，PR #1 / #2 已合入 main。当前主要卡点：物理实时 demo 启动不确定（工厂自动挑首个模型）、全长动态 ONNX 在 sm87 回退 CPU 且冷启动内存逼近上限、`.index` 生产预加载停用、PipeWire 物理声卡仍为 stub、文字路未接入守护进程。
 
 ---
 
@@ -66,18 +77,21 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
 
 ### P0 — 实时路能出声的前提
 
+- [ ] **物理实时 demo 启动确定化（demo 前置，2026-10-02 审计优先级 1）**：模型工厂按目录顺序自动加载首个可用音色，直接切 `rt_rvc` 不保证选中 `qiqi-zh-realtime`；需要显式初始模型配置或启动器，使用稳定 ALSA 名称而非卡序号。验收：一条命令拉起目标模型 + 后端 + 采集/播放；`/health` 报告实际 split profile 与引擎资产；先用保留的 paced 输入通过，再试听真实麦克风/线缆/输出；分别测量首帧出声、稳态延迟、ALSA overrun 与流计数。
+- [ ] **运行时内存上界 + 动态 ONNX GPU 回退（审计优先级 2）**：见 P1。
 - [x] **AudioWorker 改滑动窗口分块**（2026-08-30 完成，见 §0.5）：`StreamingRvc` 已落地，剩余为真模型出声后的主观调优。
 - [x] **延迟目标改写**：低延迟 upstream realtime profile 的已验收结果为首帧约 320ms、稳态 pipeline p95 约 93ms；quality/legacy 路径仍受 Generator T=200 约束。
 - [x] **真模型 C++ realtime 出声验证**：qiqi profile 已完成 TensorRT UDP 端到端验证，0 inference error、0 late block、0 丢包
-- [x] **补全扬声器出声路径**（方案 A，2026-09-01）：`mozart-pre -o <alsa设备>` 已实现——同进程 UDP 接收线程收 3860B 输出包 → ALSA 播放（48k f32 mono → S16 立体声复制）。支持 e2e 延迟统计（pts_ns 透传）。待真模型联合验证。
+- [x] **补全扬声器出声路径**（方案 A，2026-09-01）：`mozart-pre -o <alsa设备>` 已实现——同进程 UDP 接收线程收 3860B 输出包 → ALSA 播放（48k f32 mono → S16 立体声复制）。支持 e2e 延迟统计（pts_ns 透传）。已随 qiqi realtime profile 联合验证。
 
 ### P1 — GPU 推理落地
 
-- [x] **GPU 推理落地**：qiqi realtime 特征和 split Generator 通过 TensorRT 直载；普通动态 ONNX 在当前 sm87 环境仍可能回退 CPU
+- [x] **固定形状 GPU 推理落地**：qiqi realtime 特征和 split Generator 通过 TensorRT 直载，已在 sm87 验收。
   - a) 源码编译 ORT（`--use_cuda --use_tensorrt`，CUDA 13.2 + TRT 10.16 + cuDNN 9.20 齐备）；
   - b) C++ 直接加载 `.engine`（绕过 ORT，已落地 `TrtEngine`，头文件在 `/usr/include/x86_64-linux-gnu` 之外找 NvInfer.h）；
-  - c) 等 JetPack 提供 aarch64 GPU ORT（官方 release 的 aarch64 包是 CPU-only）。
-- [x] `rvc-backend` 的 GPU 构建与 TensorRT 直载已验证；CUDA EP 仍作为普通 ONNX 的可选 fallback。
+  - c) JetPack 官方 release 的 aarch64 ORT 包是 CPU-only。
+- [ ] **普通动态 ONNX 仍回退 CPU（2026-10-02 审计确认）**：全长动态图报 `cudaErrorNoKernelImageForDevice`，ORT 自动重建 CPU session；冷启动可用内存一度降至 ~467 MiB、swap 占用 ~566 MiB。需按目标 sm87 校验 ORT/CUDA 依赖构建，或为每个所需 shape 提供已验证的 TensorRT 资产；并在 `/status` 暴露实际执行后端与回退信息。
+- [ ] **有界模型缓存 + 按模式懒加载**：`ModelManager` 当前保留已加载模型，feature 初始化同时加载 quality/realtime 资产，IDLE 不释放引擎。需引入缓存上界与安全生命周期，并在重复模型/模式切换下验证内存有界。
 - [x] 跳过 ORT 直接加载 `.engine`：CMake 支持 `USE_TENSORRT=ON`，将 `.engine` 放同名 `.onnx` 旁即可自动加载。
 
 ### P2 — 文字路
@@ -89,6 +103,7 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
   - [x] llama-server 常驻 ✅ 2026-08-30：CUDA 版重编（b-9723942，固化回 ~/mozart-archive），Q4_K_M `-c 2048 -ngl 99` @18200，**翻译必须 `chat_template_kwargs:{"enable_thinking":false}`**（思考模式默认开会吃光 max_tokens）
   - [x] 文字路全链胶水 `tools/subtitle_bridge.py` ✅ 实测：STT final → 翻译 0.57-0.70s/句 → 字幕 JSONL + `--speak` TTS 播报（~2s/句）
   - [x] 字幕 SSE 输出壳 ✅ 2026-08-30：后端 `GET /api/subtitles` 已实现 SSE tail（读取外部字幕 JSONL 文件）；前端 Vue 3 已新增 SUB 字幕条组件。
+  - [ ] **字幕 SSE 恢复缺口（2026-10-02 审计）**：tail 持有已打开的文件描述符，字幕 JSONL 被替换（新 inode）后不再产生事件；需按 inode/文件轮换重开。
   - [ ] **文字路接入生产守护进程**：当前 STT/翻译/TTS 由外部 Python 工具（`tools/stt_service.py`、`tools/subtitle_bridge.py`）独立运行并写 `/tmp/opencode/subtitles.jsonl`，未由 `mozart_stated` 统一拉起与守护。
   - [x] 前端技术栈升级（2026-08-31）：vanilla DOM → **Vue 3 + Vite SFC**；生产 dist 构建通过（gzip 38KB）
   - [ ] **前端实时面板接线**：`frontend/src/App.vue` 中 `showLive` 恒为 `false`，两个 canvas 波形未接数据；"静音麦克风 / 旁路直通"按钮 ✅ 2026-09-12 已实现（`POST /api/realtime/routing`，静音=输出静音帧不推理、直通=16k 干声升采样直出，状态在 `status.realtime`，跨模式切换保持）；`音色管理库` 按钮未实现。
@@ -97,14 +112,16 @@ RVC 普通 file/quality 路径和一个低延迟 C++ realtime profile 已在 Ten
 - [x] **TTS 接线 + 全链演示（2026-08-31）**：`tools/demo_fullchain.py` 串起 **语音→ASR→LLM翻译→TTS→RVC变声→HDMI播放** 全链闭环（file 模式稳出声）。实测单句：ASR 0.7s / LLM 0.9s / TTS 13.5s（5s 音频，CPU 挤）/ RVC 27s（CPU RTF≈5）。关键坑：Matcha 纯中文词库读不了英文（换 melo 中英混读）；melo 输出安静 + rms_mix_rate 会把安静包络带进变声输出（发送前峰值归一化 0.9）；后端构建的 RNNoise blob 路径指向 rvc-backend/assets（已拷贝）。`tools/tts2rvc.py` 为 UDP 实时变声通路（P1 GPU 化后启用）
 - [ ] **并发基准（2026-08-31 实测，`tools/bench_concurrent.py`）**：极限并发（RVC realtime 流 + TTS + ASR + LLM 同板）尚需用已验收的 qiqi profile 重测；旧数据中的 RVC CPU ONNX 短板不再代表 realtime TensorRT 路径。注意：后端只回包给"首个 UDP 客户端"，多消费者需各开一路或改广播
 - [ ] TTS/RVC 提速：继续评估普通 quality/file 路径的 GPU ONNX fallback，并将 TTS 从 CPU 推理迁移到 GPU（如收益明确）
-- [ ] **零样本变声（比赛杀招）**：seed-VC（github.com/DonkeyHang/seedVC）——翻译到目标语言后零样本克隆指定音色。待调研：模型体积/推理耗时/8GB 板可行性；与现有 RT_ZERO_SHOT 模式槽位对接
+- [x] **需求确定与参考音色 TTS demo**：用户选择翻译文本的参考音色播报，PocketTTS 已实现；见 [tools/REFERENCE_SPEECH.md](tools/REFERENCE_SPEECH.md)。
+- [ ] **源语义可靠性与声线验收**：以用户确认源文验证数量、人称、否定、领域词和跨句含义；自动 ASR 分数不代表语义正确，未覆盖不确定项保留审计。
+- [ ] **零样本 VC 备选**：Seed-VC 历史调研与板测保留于 [reports/seedvc-zeroshot-research-20261003/RESEARCH.md](reports/seedvc-zeroshot-research-20261003/RESEARCH.md)。原有 RT/FILE_ZERO_SHOT 返回 501，暂不作为参考 TTS 的前置任务。
 
 ### P3 — 收尾
 
-- [x] ~~index 检索链路未验证~~ —— **实为必挂，已重写并验证（2026-09-28）**：原 `index_search.cpp` 读的是凭空构造的布局（`IwFl` 魔数之后字段全部对不上），任何真实 faiss 文件都加载不了。已按 faiss 1.7.2–1.15 IndexIVFFlat 真实序列化布局重写（含 `"full"`/`"sprs"` 倒排表、strict 校验、扁平存储），新增 `test_index_search` 单测：与真实 faiss 生成的 fixture 对照检索结果逐帧一致；并用 31.6MB 真实 RVC index（added_IVF256, ntotal=10000, HF 上游模型）集成验证，12 组随机查询与 faiss nprobe=1 零误差。**剩余**：`de_narrator.index` 本体仍缺失，需训练侧导出后放入 `models/de_narrator/` 板上端到端试听。
+- [x] ~~index 检索链路未验证~~ —— **实为必挂，已重写并验证（2026-09-28）**：原 `index_search.cpp` 读的是凭空构造的布局（`IwFl` 魔数之后字段全部对不上），任何真实 faiss 文件都加载不了。已按 faiss 1.7.2–1.15 IndexIVFFlat 真实序列化布局重写（含 `"full"`/`"sprs"` 倒排表、strict 校验、扁平存储），新增 `test_index_search` 单测：与真实 faiss 生成的 fixture 对照检索结果逐帧一致；并用 31.6MB 真实 RVC index（added_IVF256, ntotal=10000, HF 上游模型）集成验证，12 组随机查询与 faiss nprobe=1 零误差。**剩余**：`de_narrator.index` 本体仍缺失，需训练侧导出后放入 `models/de_narrator/` 板上端到端试听。**生产状态（2026-10-02）**：`RVCModel` 仍停用 `.index` 预加载（每个模型常驻 ~115MB），`index_rate` 默认 0，检索不参与推理；解析器与单测就绪不等于生产检索已启用。
 - [x] ~~mel 谱图还是占位实现~~ —— **已实现**：`rvc-backend/src/rvc/feature_extractor.cpp` 已包含 radix-2 FFT + HTK mel 滤波器组 + Slaney 归一化，RMVPE 输入为真实 mel。
 - [x] ~~harvest/pm F0 占位~~ —— **已移除（2026-09-28）**：两者从未实现，曾静默返回全零 F0 直接毁掉变声输出。现在仅支持 `rmvpe`：运行时 API/预设传入即拒绝，旧配置在构造时强制回 `rmvpe` 并告警，`test_feature_extractor` 覆盖拒绝路径。
-- [ ] 新导出的 `generator_dynamic.onnx` 与原 `de_narrator.onnx` 输出一致性校验（数值对比）后再替换。**脚本已就绪**：`rvc-golden/compare_generator_models.py`（`--self-test` 已本地验证；喂相同输入对比 max/mean 误差、余弦、样本数，`--probe-lengths` 顺带实测动态轴声明），板上跑法见 `rvc-golden/README.md`。
+- [ ] 新导出的 `generator_dynamic.onnx` 与原 `de_narrator.onnx` 输出一致性校验（数值对比）后再替换。**脚本已就绪**：`rvc-golden/compare_generator_models.py`（`--self-test` 已本地验证；喂相同输入对比 max/mean 误差、余弦、样本数，`--probe-lengths` 顺带实测动态轴声明），板上跑法见 `rvc-golden/README.md`。**2026-10-02 诊断结论**：两个导出都含 `RandomNormalLike`/`RandomUniform`，相同输入重复推理结果不同，且 T=50/100 失败；因此大幅数值差异不能判定哪个模型正确，也未替换任何资产。下一步：用共享显式噪声（或确定性均值路径）重导，再对比捕获张量并验证后端。
 - [x] ~~DESIGN.md 更新~~：§1 延迟指标、§5.4 缺口清单、§4.3 实时性策略（逐帧→分块）均已同步，§2.2/§6 state_manager 状态已从"未编码"改为"已编码"。
 - [x] ~~README.md / TODO.md 自身清理~~：同步 TTS 决策、mel 实现、state_manager 落地等不一致描述；README 已改为中文。
 
