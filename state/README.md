@@ -2,7 +2,7 @@
 
 `state` 模块负责 Project Mozart 后端的全局生命周期管理、I/O 设备重定向、显存/模型智能置换以及多线程算力调度编排。
 
-当前可执行入口为根目录构建产物 `build/state/mozart_stated`。它是唯一的进程组合根：创建 API 控制面、RVC runtime、实时 worker、文件 worker 与任务队列。
+当前可执行入口为根目录构建产物 `build-gpu/state/mozart_stated`（顶层全组件构建，见 [README.md](../README.md)）。它是唯一的进程组合根：创建 API 控制面、RVC runtime、实时 worker、文件 worker 与任务队列。
 
 其核心设计目标是在 NVIDIA Jetson Orin Nano (8GB VRAM) 共享内存架构下实现**极高吞吐、极低延迟以及不爆音 (Fail-safe) 的强互斥系统稳定性**。
 
@@ -12,7 +12,7 @@
 
 我们为系统设计了直观的**交互式系统调用链与拓扑图**。该网页展示了系统数据流、线程解耦、SPSC/UDP层间传输规范以及编排层面的时序控制：
 
-* 📄 **交互式架构面板**：[architecture.html](file://./architecture.html) (可直接使用浏览器打开查看)
+* 📄 **交互式架构面板**：[architecture.html](./architecture.html)（可直接用浏览器打开）
 
 ---
 
@@ -74,11 +74,13 @@
 
 ## 3. 强互斥状态转移与优雅等待队列
 
-系统定义了 4 种具体模式：
+系统定义了 4 种具体模式；当前 daemon 只实现前 3 种可用状态（`IDLE` / `RT_RVC` / `FILE_RVC`），零样本两态仍返回 HTTP `501`（见 [API.md](API.md)）：
 * `RT_RVC`：实时 RVC 变声（独占 PipeWire 音频物理采集与播放）。若当前模型和固定形状 realtime 特征资产齐全，则使用约 320 ms 首帧出声的 upstream realtime 路径；普通模型缺少这些资产时使用 quality/legacy fallback。
 * `FILE_RVC`：离线文件批量变声（断开 PipeWire 设备，仅加载 RVC 核心进行高速批处理）。
-* `RT_ZERO_SHOT`：实时零样本变声（加载 Zero-Shot Torch/ONNX 提示词变声核心）。
-* `FILE_ZERO_SHOT`：离线零样本变声。
+* `RT_ZERO_SHOT`：实时零样本变声（加载 Zero-Shot Torch/ONNX 提示词变声核心）。**尚未实现。**
+* `FILE_ZERO_SHOT`：离线零样本变声。**尚未实现。**
+
+> 除模式切换外，守护进程还提供 `IDLE`（不处理、释放资源）作为默认静息态。
 
 ### 双轨控制逻辑
 | 当前激活状态 | 目标状态 | 切换逻辑 | 行为描述 |
