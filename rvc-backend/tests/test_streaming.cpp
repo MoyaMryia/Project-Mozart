@@ -326,6 +326,22 @@ int main()
         CHECK(!out.empty(), "post-reanchor output present");
     }
 
+    printf("test_segment_changes_preserve_pcm_timeline\n");
+    {
+        StreamingRvc s{StreamingRvc::Config{}};
+        Upsample3Pipeline pipe;
+        for (uint32_t i = 1; i <= 300; ++i) {
+            s.push(make_frame(i, 1, .1f, static_cast<uint8_t>(i % 7), i * 20000000ull));
+            while (s.try_process_one(pipe)) {}
+        }
+        CHECK(s.stats().resets.load() == 0, "utterance boundaries preserve rolling context");
+        CHECK(s.stats().blocks.load() == 3, "continuous PCM still produces scheduled blocks");
+        s.push(make_frame(301, 1, .1f, 1, 1000000ull));
+        CHECK(s.stats().resets.load() == 1, "backward clock triggers reset");
+        s.push(make_frame(302, 1, .1f, 1, 2000000000ull));
+        CHECK(s.stats().resets.load() == 2, "large forward clock jump triggers reset");
+    }
+
     if (g_fail) {
         printf("\n%d test(s) FAILED\n", g_fail);
         return 1;

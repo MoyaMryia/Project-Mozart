@@ -14,6 +14,7 @@
 #include <system_error>
 #include <thread>
 #include <unistd.h>
+#include <sys/stat.h>
 
 // 写已断开的 socket 不应让进程收到 SIGPIPE（Linux）。没有该标志时退化为 0。
 #ifndef MSG_NOSIGNAL
@@ -41,6 +42,55 @@ static std::string http_response(int code, const std::string& body, const std::s
            "Content-Length: " + std::to_string(body.size()) + "\r\n"
            "Connection: close\r\n"
            "\r\n" + body;
+}
+
+// The reference-TTS worker owns its engine and queue in a separate process.
+// Keep inference off this control server; proxy only bounded metadata and WAVs.
+static std::string speech_request(const std::string& method, const std::string& path,
+                                  const std::string& body) {
+    const auto unavailable = []() {
+        return std::string("HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n")
+            + R"({"error":"Reference speech service unavailable; start tools/speech_service.py"})";
+    };
+    const char* env = std::getenv("MOZART_SPEECH_PORT");
+    int port = 18081;
+    try { if (env && env[0]) port = std::stoi(env); } catch (...) { return unavailable(); }
+    if (port < 1 || port > 65535) return unavailable();
+    if (body.size() > 7ULL * 1024 * 1024)
+        return http_response(413, R"({"error":"Speech request exceeds 7 MiB"})");
+    const int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return unavailable();
+    timeval timeout{5, 0};
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_port = htons(static_cast<uint16_t>(port));
+    inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
+    if (connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
+        socket_close(fd);
+        return unavailable();
+    }
+    const std::string request = method + " " + path + " HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+        "Content-Type: application/json\r\nConnection: close\r\nContent-Length: "
+        + std::to_string(body.size()) + "\r\n\r\n" + body;
+    size_t sent = 0;
+    while (sent < request.size()) {
+        const auto n = send(fd, request.data() + sent, request.size() - sent, MSG_NOSIGNAL);
+        if (n <= 0) { socket_close(fd); return unavailable(); }
+        sent += static_cast<size_t>(n);
+    }
+    std::string response;
+    char buffer[8192];
+    ssize_t n;
+    while ((n = recv(fd, buffer, sizeof(buffer), 0)) > 0) {
+        response.append(buffer, static_cast<size_t>(n));
+        if (response.size() > 10ULL * 1024 * 1024) {
+            socket_close(fd); return unavailable();
+        }
+    }
+    socket_close(fd);
+    return n < 0 || response.empty() ? unavailable() : response;
 }
 
 static std::string parse_request_path(const std::string& req) {
@@ -270,7 +320,11 @@ void HttpApiServer::handle_request(int client_fd) {
 
     std::string response;
 
-    if ((route == "/health" || route == "/api/health") && method == "GET") {
+    if (route == "/api/voices" || route.find("/api/voices/") == 0
+        || route.find("/api/speech/") == 0) {
+        response = speech_request(method, path, body);
+    }
+    else if ((route == "/health" || route == "/api/health") && method == "GET") {
         response = handle_health();
     }
     else if ((route == "/status" || route == "/api/status") && method == "GET") {
@@ -383,7 +437,12 @@ void HttpApiServer::handle_request(int client_fd) {
         response = http_response(404, R"({"error":"not found"})");
     }
 
-    send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+    size_t sent = 0;
+    while (sent < response.size()) {
+        const auto n = send(client_fd, response.data() + sent, response.size() - sent, MSG_NOSIGNAL);
+        if (n <= 0) break;
+        sent += static_cast<size_t>(n);
+    }
 }
 
 std::string HttpApiServer::handle_health() {
@@ -404,16 +463,30 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
     const std::string file_path = env && env[0] ? env : "/tmp/opencode/subtitles.jsonl";
 
     std::ifstream file;
+    struct stat identity{};
+    bool opened_once = false;
     auto try_open = [&]() {
         file.close();
         file.clear();
         file.open(file_path);
-        if (file) file.seekg(0, std::ios::end); // 只推新增行
+        if (file) {
+            stat(file_path.c_str(), &identity);
+            if (!opened_once) file.seekg(0, std::ios::end);
+            opened_once = true; // Replacement logs start at byte zero.
+        }
     };
     try_open();
     auto last_retry = std::chrono::steady_clock::now();
 
     while (running_) {
+        struct stat current{};
+        if (file.is_open() && stat(file_path.c_str(), &current) == 0) {
+            const auto position = file.tellg();
+            if (current.st_ino != identity.st_ino || current.st_dev != identity.st_dev
+                || (position >= 0 && current.st_size < position)) {
+                try_open();
+            }
+        }
         if (!file.is_open()) {
             const auto now = std::chrono::steady_clock::now();
             if (now - last_retry > std::chrono::seconds(2)) {
@@ -422,7 +495,10 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
             }
         } else {
             std::string line;
-            while (std::getline(file, line)) {
+            while (file) {
+                const auto position = file.tellg();
+                if (!std::getline(file, line)) break;
+                if (file.eof()) { file.clear(); file.seekg(position); break; }
                 if (line.empty()) continue;
                 const std::string payload = "data: " + line + "\n\n";
                 if (send(client_fd, payload.c_str(), payload.size(), MSG_NOSIGNAL) < 0) {

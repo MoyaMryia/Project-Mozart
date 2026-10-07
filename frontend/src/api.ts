@@ -58,9 +58,12 @@ export interface MonitorSnapshot {
 
 export interface SubtitleEvent {
   seq: number;
+  utterance_id?: string;
   zh: string;
   en: string;
-  translate_ms: number;
+  translate_ms?: number;
+  translation_error?: string;
+  speech_error?: string;
   ts: string;
 }
 

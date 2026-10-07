@@ -131,6 +131,30 @@ static void test_reset(void)
     mozart_dsp_free(d);
 }
 
+static void test_energy_vad_hangover(void)
+{
+    printf("test_energy_vad_hangover\n");
+    mozart_dsp_config_t cfg = { .rnnoise = false, .rnnoise_model = NULL };
+    mozart_dsp_t *d = mozart_dsp_new(&cfg);
+    mozart_input_frame_t out;
+    int16_t in[MOZART_RAW_SAMPLES * 2];
+    for (int k = 0; k < 6; ++k) {
+        for (int i = 0; i < MOZART_RAW_SAMPLES; ++i) {
+            int16_t sample = (int16_t)(16000 * sinf(2 * MOZART_PI * 1000 * i / 48000));
+            in[2*i] = in[2*i+1] = sample;
+        }
+        mozart_dsp_process(d, in, &out);
+    }
+    uint8_t segment = out.meta.segment_id;
+    CHECK(segment != 0, "energy VAD enters speech after sustained input");
+    memset(in, 0, sizeof(in));
+    for (int k = 0; k < 10; ++k) mozart_dsp_process(d, in, &out);
+    CHECK(out.meta.segment_id == segment, "200ms pause preserves utterance");
+    for (int k = 0; k < 50; ++k) mozart_dsp_process(d, in, &out);
+    CHECK(out.meta.segment_id == 0, "sustained silence ends utterance");
+    mozart_dsp_free(d);
+}
+
 int main(void)
 {
     test_channel_pick();
@@ -138,6 +162,7 @@ int main(void)
     test_passband_gain();
     test_meta_and_vad();
     test_reset();
+    test_energy_vad_hangover();
     if (g_fail) {
         printf("\n%d test(s) FAILED\n", g_fail);
         return 1;

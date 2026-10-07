@@ -2,7 +2,7 @@
 
 面向 **NVIDIA Jetson Orin Nano Super 8GB** 的实时 AI 变声系统。
 
-插上麦克风说话，板端输出降噪并变声后的实时语音；同时文字路将语音转写、本地翻译并显示字幕。一块边缘板，两条处理路径，运行时零 Python、零 PyTorch 依赖。
+插上麦克风说话，板端输出降噪并变声后的实时语音；同时文字路将语音转写、本地翻译并显示字幕。一块边缘板，实时变声、字幕与参考音色播报三条路径。RVC 音频链路使用 C/C++；字幕与参考 TTS 使用隔离的 Python/sherpa-onnx 进程，所选部署链路无需 PyTorch。
 
 ---
 
@@ -12,7 +12,20 @@
 
 - **实时路**：人声降噪 → RVC 变声。已验证的 C++ upstream realtime profile 从首帧输入到首帧出声约 **320 ms**。
 - **文字路**：ASR 转写 → 本地 Qwen(0.8B) 翻译 → 字幕，单句 1–2 秒延迟可接受。
-- 两条路径在 8 GB 共享内存板子上分开跑，强互斥单活跃模式。
+- **参考音色播报**：翻译文本 → PocketTTS 短片段参考音色合成 → 有界播放队列；后续片段合成与已完成片段播放重叠。支持参考 WAV 上传、预览、取消与整句结果下载。
+- RVC 实时/文件模式保持单活跃；字幕与参考播报独立运行。8 GB 内存适配以实测组合为准。
+
+### 翻译播报快速入口
+
+参见 [参考音色播报部署与 API](tools/REFERENCE_SPEECH.md)。使用 `state/translated-speech.yaml` 可关闭未使用的 RVC 模型，节省内存。`test-audio.mp4` 可以按正常麦克风节拍回放：
+
+```bash
+.venv/bin/python tools/run_translated_speech.py \
+  --backend-config state/translated-speech.yaml \
+  --reference reference.wav --input test-audio.mp4 --seconds 120
+```
+
+字幕始终保留原文；显式年份和大数量通过译文数字检查。模型仍可能误识别或误译，参考音色的身份与发音需要试听。
 
 ---
 
@@ -26,17 +39,18 @@ Microphone/UDP ──► [IO] ──► [Preprocessor C11] ──contract stream
                           │                                          │
                           ▼                                          ▼
                    PyTorch（PC）                            ONNX Runtime / TensorRT（Jetson）
-                   零 Python · 零 PyTorch 依赖
+                   RVC 链路：零 Python · 零 PyTorch 依赖
 ```
 
-**两栖架构**：模型导出在 PC 上一次性完成（PyTorch）；Jetson 仅运行 ONNX Runtime / TensorRT，没有 fairseq、torchcrepe 等 Python 依赖链。
+**两栖架构**：模型导出在 PC 上一次性完成（PyTorch）；RVC 的 Jetson 推理运行 ONNX Runtime / TensorRT，不依赖 fairseq、torchcrepe。参考 TTS 与 ASR 使用 Python/sherpa-onnx 服务，无需安装 PyTorch。
 
-### 两条并行路径
+### 并行路径
 
 | 路径 | 延迟目标 | 组件 |
 |------|---------|------|
 | **实时变声** | 约 320 ms 首帧出声（已验证 profile） | Preprocessor → HuBERT → RMVPE → split Generator → SOLA |
-| **翻译字幕** | 1–2 s / 句 | STT（sherpa-onnx）→ LLM（Qwen3.5-0.8B）→ 字幕 |
+| **翻译字幕** | 以句末实测为准 | STT（sherpa-onnx；可选 SenseVoice final 校正）→ Qwen3.5-0.8B → 字幕 |
+| **参考播报** | 短片段逐段出声，非模型 token 流式输出 | 翻译 final → 独立参考 TTS worker → 有界 ALSA 播放 |
 
 ---
 
@@ -50,8 +64,8 @@ Microphone/UDP ──► [IO] ──► [Preprocessor C11] ──contract stream
 | `state/` | C++17 | 顶层守护进程 `mozart_stated`：模式控制器、IDLE/RT_RVC/FILE_RVC 强互斥 | ✅ 已编码 |
 | `api/` | C++ | 原生 socket HTTP 服务器：`/health`、`/status`、`/models`、`/file/*`、`/subtitles`（SSE） | ✅ |
 | `monitor/` | C++ | 系统遥测：CPU、内存、GPU 负载、PipeWire 状态 | ✅ |
-| `frontend/` | Vue 3 + TS + Tailwind | 控制面板：模式切换、模型管理、文件队列、字幕 | 框架 ✅；实时波形/部分按钮未接线 |
-| `tools/` | Python | ONNX 导出脚本、STT/TTS 服务、全链 demo、并发基准 | ✅（文字路未接入 C++ 守护进程） |
+| `frontend/` | Vue 3 + TS + Tailwind | 模式切换、文件队列、字幕、参考音色上传/预览/播报 | ✅；语音质量仍需试听验收 |
+| `tools/` | Python | ONNX 导出、STT/TTS 服务、受控启动器、并发基准 | ✅；文字路由独立进程负责生命周期 |
 | `rvc-golden/` | Python | PyTorch Golden 参考，用于 ONNX 回归测试 | ✅ |
 
 ---

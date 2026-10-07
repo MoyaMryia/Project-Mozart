@@ -238,6 +238,21 @@ void test_clear_terminal(bool fail) {
             "queued input did not survive terminal cleanup");
 }
 
+void test_disabled() {
+    TempDir temporary;
+    TestPipeline pipeline(false, false);
+    rvc::ModeController::Config config;
+    config.rvc_enabled = false;
+    config.storage_dir = temporary.path / "jobs";
+    config.presets_path = temporary.path / "presets.json";
+    rvc::ModeController controller(pipeline, config);
+    require(!controller.status()["capabilities"]["rt_rvc"].get<bool>(), "disabled realtime capability advertised");
+    require(!controller.status()["capabilities"]["file_rvc"].get<bool>(), "disabled file capability advertised");
+    require(controller.request_mode("rt_rvc").value("status", "") == "unavailable", "disabled mode started");
+    require(controller.request_mode("idle").value("status", "") == "active", "idle unavailable");
+    require(controller.enqueue_file(temporary.path/"missing.wav", "missing.wav", "").value("status", "") == "rejected", "disabled file queue accepted input");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -250,6 +265,7 @@ int main(int argc, char** argv) {
         else if (name == "active_cancel") test_active_cancel();
         else if (name == "eviction") test_eviction();
         else if (name == "clear_completed") test_clear_terminal(false);
+        else if (name == "disabled") test_disabled();
         else if (name == "clear_failed") test_clear_terminal(true);
         else throw std::runtime_error("unknown case: " + name);
         std::cout << name << " PASSED\n";

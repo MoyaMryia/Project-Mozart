@@ -19,10 +19,21 @@ HTTP API -> StateManagerDaemon -> ModeController
 
 ## Supported Modes
 
-- `idle`: no audio device or worker is active.
+- `idle`: no RVC audio device or worker is active; independent captions/reference speech may continue.
 - `rt_rvc`: opens the UDP contract stream and starts `AudioWorker`.
 - `file_rvc`: closes the real-time stream and consumes one queued job at a time.
 - `rt_zero_shot` and `file_zero_shot`: return HTTP `501` until their worker is implemented.
+
+Reference-conditioned TTS is available through `/api/voices` and
+`/api/speech/*`, proxied to the isolated loopback worker. It synthesizes translated
+text, so it does not use the legacy audio-conversion zero-shot mode enum. See
+[reference speech contracts](../tools/REFERENCE_SPEECH.md) for profiles, jobs,
+cancellation, downloads and speech-session controls. An unavailable worker
+returns 503 while native RVC/status/caption routes continue to work.
+
+`rvc.enabled: false` disables both RVC capabilities and their queue/mode
+admission, and skips neural RVC asset loads. `state/translated-speech.yaml`
+provides that deployment profile; default configurations keep RVC enabled.
 
 `rt_rvc` automatically selects the low-latency upstream realtime profile when
 the selected model has split `front`/`decoder` engines and the configured
