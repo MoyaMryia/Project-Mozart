@@ -8,6 +8,13 @@ const source = (id: string): SubtitleEvent => ({
   ts: '12:00:00', translation_status: 'pending',
 });
 
+test('a rejected candidate remains available after a newer partial caption', () => {
+  const candidate: SubtitleEvent = {...source('session:1'), en: 'This is 跑分.',
+    translation_status: 'failed', translation_error: 'Untranslated Chinese'};
+  const events = [candidate, {...source('session:2'), translation_status: 'recognizing' as const}];
+  assert.equal(latestTranslation(events), candidate);
+});
+
 test('translation updates its source row without changing caption order', () => {
   const events: SubtitleEvent[] = [];
   upsertSubtitle(events, source('first'));

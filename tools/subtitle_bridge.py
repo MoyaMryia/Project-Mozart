@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Streaming Chinese ASR → English translation → captions and reference speech.
 
-Captions are always published. Speech admission failures are explicit and never
-fall back to reading Chinese through an English voice. The speech service owns
-its queue and playback device.
+Captions retain source text, translation candidates, and errors. Speech can use
+a candidate that fails translation checks. The speech service owns its queue
+and playback device.
 """
 import argparse
 import json
@@ -149,6 +149,8 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
         record['translation_status'] = 'completed'
     except Exception as error:
         record.update(translation_error=str(error), translation_status='failed')
+        record['en'] = next((item['content'] for item in reversed(record['translation_audit'])
+                             if item.get('content')), '')
         if record.get('asr_numeric_audit', {}).get('issues'):
             record['speech_skipped_reason'] = 'asr_numeric_uncertainty'
         elif record.get('asr_polarity_audit', {}).get('issues'):
@@ -161,6 +163,8 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
     yield dict(record)
 
     if speech_url and record['en']:
+        if record['translation_status'] == 'failed':
+            record['speech_degraded'] = True
         try:
             result = request_json(speech_url+'/api/speech/events', {
                 'text': record['en'], 'source_text': text,

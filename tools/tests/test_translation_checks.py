@@ -3,6 +3,12 @@ sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 from translation_checks import required_numbers, required_number_counts, missing_numbers, repeated_numbers, added_large_numbers, normalize_translation_quantities, changed_loan_repayment, changed_explicit_roles, source_role_constraints
 
 class TranslationChecks(unittest.TestCase):
+    def test_repeated_units_do_not_create_an_invented_sum(self):
+        self.assertEqual(required_numbers('七千五千又是大几千'), [])
+        self.assertEqual(missing_numbers('七千五千又是大几千',
+            'Seven thousand five thousand is a large number.'), [])
+        self.assertEqual(required_numbers('七千五百和五千'), ['5000', '7500'])
+
     def test_spoken_year(self):
         self.assertEqual(required_numbers('一九八七年我考上大学'),['1987'])
         self.assertEqual(missing_numbers('一九八七年','It was 1987.'),[])

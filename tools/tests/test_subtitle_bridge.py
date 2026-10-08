@@ -7,6 +7,43 @@ def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
 
 class BridgeChecks(unittest.TestCase):
+    def test_rejected_translation_remains_visible_and_requests_speech(self):
+        for source, candidate, finish, reason in [
+                ('这个叫跑分', 'This is called 跑分.', 'stop', 'untranslated Chinese'),
+                ('要付12000元', 'Pay 1,000.', 'stop', 'numerals missing'),
+                ('你好。', 'Hello and', 'length', 'token limit')]:
+            with self.subTest(candidate=candidate), patch('subtitle_bridge.request_json',
+                    side_effect=[answer(candidate, finish), answer(candidate, finish), {'id': 'speech-job'}]) as request:
+                updates = list(caption_updates({'seq': 7, 'text': source},
+                    1, 'session', 'http://example', 'http://speech'))
+            self.assertEqual(len(updates), 3)
+            self.assertEqual(updates[1]['en'], candidate)
+            self.assertEqual(updates[1]['translation_status'], 'failed')
+            self.assertIn(reason, updates[1]['translation_error'])
+            self.assertEqual(updates[2]['speech'], 'speech-job')
+            self.assertTrue(updates[2]['speech_degraded'])
+            self.assertEqual(request.call_args.args[1]['text'], candidate)
+
+    def test_failed_retry_uses_previous_candidate_and_reports_speech_error(self):
+        with patch('subtitle_bridge.request_json', side_effect=[answer('This is 跑分.'),
+                TimeoutError('Translation timeout'), TimeoutError('Speech timeout')]):
+            updates = list(caption_updates({'seq': 7, 'text': '这个叫跑分'},
+                1, 'session', 'http://example', 'http://speech'))
+        self.assertEqual(updates[-1]['en'], 'This is 跑分.')
+        self.assertEqual(updates[-1]['translation_error'], 'Translation timeout')
+        self.assertEqual(updates[-1]['speech_error'], 'Speech timeout')
+        self.assertTrue(updates[-1]['speech_degraded'])
+
+    def test_unavailable_translator_keeps_source_and_error_without_candidate(self):
+        with patch('subtitle_bridge.request_json', side_effect=TimeoutError('Translation timeout')) as request:
+            updates = list(caption_updates({'seq': 7, 'text': '你好。'},
+                1, 'session', 'http://example', 'http://speech'))
+        self.assertEqual(request.call_count, 1)
+        self.assertEqual(len(updates), 2)
+        self.assertEqual(updates[-1]['zh'], '你好。')
+        self.assertEqual(updates[-1]['en'], '')
+        self.assertEqual(updates[-1]['translation_error'], 'Translation timeout')
+
     def test_source_is_available_before_translation_starts(self):
         with patch('subtitle_bridge.translate_recognized_event', return_value=('Hello.', .1)) as translate_call:
             updates = caption_updates({'seq': 7, 'text': '你好。'}, 1, 'session', 'http://example')

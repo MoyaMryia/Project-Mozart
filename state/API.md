@@ -157,7 +157,12 @@ For that policy, a full queue produces `translation_status: skipped`; source cap
 Partial captions do not start translation or speech.
 Optional refinement runs after online ASR. The original `zh` remains the translation source.
 The frontend shows a different `refined_zh` separately.
-If a newer partial caption arrives, the frontend keeps the most recent completed translation in a separate, labeled line.
+If a newer partial caption arrives, the frontend keeps the most recent available translation in a separate, labeled line.
+If translation checks fail, `en` contains the last available candidate and `translation_status` stays `failed`.
+The frontend labels this candidate and keeps it visible when a newer partial caption arrives.
+With speech enabled, the bridge submits that candidate and sets `speech_degraded: true`.
+The record keeps `translation_error`, `translation_audit`, and any `speech_error`.
+Without a candidate, `en` stays empty. The source text and error remain available.
 Refinement audits use `refinement_numeric_audit` and `refinement_polarity_audit`.
 With the coverage policy, normal shutdown waits for queued translations.
 An interrupted process can resume stored requests with their original utterance IDs.
