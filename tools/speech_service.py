@@ -197,11 +197,14 @@ class SpeechService:
     def submit(self, body):
         text = str(body.get('text', '')).strip()
         language = body.get('language', 'en')
+        degraded = body.get('speech_degraded', False)
+        if not isinstance(degraded, bool):
+            raise ApiError(400, 'speech_degraded must be a boolean')
         if language not in (['en'] if self.engine == 'pocket' else ['en', 'zh']):
             raise ApiError(422, 'Selected engine does not support this output language')
         if not text or len(text) > 500:
             raise ApiError(400, 'Speech text must contain 1–500 characters')
-        if language == 'en' and any('\u3400' <= c <= '\u9fff' for c in text):
+        if language == 'en' and not degraded and any('\u3400' <= c <= '\u9fff' for c in text):
             raise ApiError(422, 'English output contains Chinese text; translation is required')
         with self.lock:
             key = str(body.get('utterance_id', ''))
@@ -248,7 +251,7 @@ class SpeechService:
                 'reference_text': voice['transcript'], 'engine': self.engine,
                 'utterance_id': key, 'source_text': str(body.get('source_text', ''))[:2000],
                 'status': 'queued', 'created_at': time.time(),
-                'live': live, 'playback': playback,
+                'live': live, 'playback': playback, 'speech_degraded': degraded,
                 'admission_pending': admission_pending,
                 'was_deferred': admission_pending, 'admission_wait_seconds': 0,
                 'chunk_texts': texts, 'chunk_count': len(texts), 'chunks': [],

@@ -23,6 +23,7 @@ class BridgeChecks(unittest.TestCase):
             self.assertEqual(updates[2]['speech'], 'speech-job')
             self.assertTrue(updates[2]['speech_degraded'])
             self.assertEqual(request.call_args.args[1]['text'], candidate)
+            self.assertTrue(request.call_args.args[1]['speech_degraded'])
 
     def test_failed_retry_uses_previous_candidate_and_reports_speech_error(self):
         with patch('subtitle_bridge.request_json', side_effect=[answer('This is 跑分.'),

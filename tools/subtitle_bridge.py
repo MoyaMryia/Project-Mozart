@@ -168,6 +168,7 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
         try:
             result = request_json(speech_url+'/api/speech/events', {
                 'text': record['en'], 'source_text': text,
+                'speech_degraded': record.get('speech_degraded', False),
                 'utterance_id': record['utterance_id']}, timeout=3)
             record['speech'] = result.get('id', result.get('skipped', ''))
         except Exception as error:

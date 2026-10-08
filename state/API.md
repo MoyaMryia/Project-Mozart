@@ -161,6 +161,7 @@ If a newer partial caption arrives, the frontend keeps the most recent available
 If translation checks fail, `en` contains the last available candidate and `translation_status` stays `failed`.
 The frontend labels this candidate and keeps it visible when a newer partial caption arrives.
 With speech enabled, the bridge submits that candidate and sets `speech_degraded: true`.
+This flag permits Chinese characters in an English speech candidate. It does not add Chinese support to the engine.
 The record keeps `translation_error`, `translation_audit`, and any `speech_error`.
 Without a candidate, `en` stays empty. The source text and error remain available.
 Refinement audits use `refinement_numeric_audit` and `refinement_polarity_audit`.
