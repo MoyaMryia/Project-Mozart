@@ -1,76 +1,74 @@
-# RVC Golden Reference
+# RVC Golden reference
 
-This directory is an isolated PyTorch reference for comparing the Mozart C++
-RVC implementation against the original RVC inference path.
+This directory gives the original PyTorch RVC reference for Mozart comparisons.
+The reference does not use Mozart preprocessing or its C++ feature implementation.
+It also does not use ONNX Runtime or TensorRT.
+Reusable inputs, outputs, hashes, and captured tensors stay in this directory.
+Dated project reports use [`reports/`](../reports/README.md).
 
-It intentionally does not use Mozart preprocessing, ONNX Runtime, TensorRT, or
-the handwritten C++ mel/F0 implementation.
+## Comparison order
 
-> 带日期的项目审计 / 审查报告已移至仓库根目录 [`reports/`](../reports/README.md)；
-> 本目录只保留可复用的 Golden 参考与验收标准。
+1. Make a deterministic input with espeak or espeak-ng.
+2. Keep that exact WAV for the full investigation.
+3. Run the original PyTorch path with official HuBERT/ContentVec and RMVPE assets.
+4. Listen to the result before accepting the model as a reference.
+5. Save the intermediate tensors.
+6. Compare ONNX and PyTorch with same captured inputs.
+7. Run the same input through the backend after those comparisons pass.
+8. Replace one component at a time to find the first difference.
 
-Reproduce the locked qiqi audible reference through the original PyTorch RVC
-path and require an exact WAV SHA-256 match:
+The minimum tensor set contains 16 kHz input, RMVPE mel/F0, HuBERT features, coarse pitch, continuous pitch, sequence length, speaker ID, and Generator output.
+Comparisons include shape, dtype, layout, finite values, numerical error, cosine similarity, duration, and audio statistics.
+The [agent instructions](../AGENTS.md) give the full procedure.
+
+## Locked references
+
+The manifest `golden_manifest.json`, version 4, stores the shared context and named standards.
+The context records assets, runners, runtime, source commit, input, and parameters.
+Each standard has a SHA-256 hash and WAV format fields.
+Backend targets also specify `mode`, `model_id`, `corr_min`, and `f0_max_cents`.
+
+| Standard | Recorded meaning |
+| --- | --- |
+| `offline-audible` | Original offline `generator.infer()` output with random VAE noise. |
+| `offline-deterministic` | Offline output through the deterministic mean path. |
+| `streaming-deterministic` | Mean-path output with legacy 2-second windows and Golden-aligned T398 framing. |
+| `streaming-quality-audible` | Random-VAE quality reference with full-prefix computation and 2-second lookahead. |
+| `streaming-quality-deterministic` | Mean-path output with the same quality framing. |
+
+The recorded deterministic backend comparisons reached aligned correlation 1.0 and F0 difference 0.0 cents.
+These results apply to the matching full-length and legacy streaming assets.
+They do not specify the low-latency split Generator profile.
+A deterministic export cannot reproduce an unrelated random-VAE realization byte for byte.
+
+Run the manifest verifier:
+
+```bash
+/home/moyamryia/vc_backend_venv/bin/python rvc-golden/verify_golden.py
+```
+
+Reproduce the locked audible reference:
 
 ```bash
 RVC_CUDA_GRAPH=0 /home/moyamryia/vc_backend_venv/bin/python \
   rvc-golden/verify_golden.py --reproduce offline-audible
 ```
 
-Inputs, outputs, model hashes, and intermediate tensors are kept under this
-directory so each C++ stage can be compared numerically.
+The verifier returns exit code 1 for a context, hash, source cleanliness, or WAV format difference.
+The `--model PATH` option selects a different checkpoint location.
+The `--reproduce STANDARD` option also compares the generated WAV hash for equality.
+The runner uses Torch and NumPy seed 114514.
+Locked reproduction restores the original WAV `PEAK` timestamp to prevent metadata-only hash differences.
 
-The runner fixes Torch/NumPy RNG with seed `114514`. During locked reproduction
-it also restores the original WAV `PEAK` chunk timestamp recorded in the
-manifest. Libsndfile otherwise writes the current time into that chunk, making
-two sample-identical FLOAT WAV files have different whole-file hashes.
+These absolute environment paths describe the recorded Jetson installation.
+Equivalent assets and a compatible reference environment are necessary on a different host.
 
-## Locked standards
+## MP4 references
 
-`golden_manifest.json` (version 4) records a shared `context` (input, model,
-runners, verifier, runtime, RVC source commit, HuBERT/RMVPE assets, parameters)
-and a list of `standards`, each locked by SHA-256 + WAV format and independently
-verified:
+The first 30 seconds of `preprocessor/sample.mp4` form a different locked input.
+The manifest stores the source hash, FFmpeg arguments, extracted PCM16 input, model context, and output.
 
-- `offline-audible` — the original RVC `generator.infer()` random-VAE offline
-  reference (`output/...python-reference.wav`). A deterministic ONNX/TRT export
-  cannot bit-match it (different RNG realization).
-- `offline-deterministic` — the mean-path offline reference
-  (`run_reference.py --deterministic-generator`, `...python-reference-DET.wav`).
-  File-mode inference through the full-length `qiqi-zh-full` model reproduces
-  it at aligned correlation 1.0 / F0 0.0 cents.
-- `streaming-deterministic` — the mean-path 2 s-window streaming reference
-  (`run_streaming_reference.py --deterministic-generator`,
-  `...streaming-...-DET.wav`). The production streaming backend (golden-aligned
-  T398 framing) reproduces it at aligned correlation 1.0 / F0 0.0 cents.
-- `streaming-quality-audible` — the quality-first random-VAE streaming audition
-  reference. It recomputes from the complete stream start with 2 s lookahead
-  and restores the post-load RNG state for every prefix.
-- `streaming-quality-deterministic` — the same quality-first framing with the
-  deterministic mean-path Generator. This is the numerical quality ceiling for
-  future C++ streaming work, not the current production framing contract.
-
-Backend targets carry `mode`, `model_id`, `corr_min`, and `f0_max_cents` in
-their `repro` blocks. Verify the locked context, hashes, formats, recorded
-streaming quality metrics, and all-unvoiced F0 contract:
-
-```bash
-/home/moyamryia/vc_backend_venv/bin/python \
-  rvc-golden/verify_golden.py
-```
-
-The verifier exits `1` if any SHA-256, RVC source commit, tree cleanliness, or
-WAV format field differs. Use `--model PATH` when the model is elsewhere.
-With `--reproduce STANDARD`, it additionally runs the appropriate reference
-runner in a temporary directory and requires the generated WAV to match the
-locked file byte for byte.
-
-## Preprocessor MP4 reference
-
-The first 30 seconds of `preprocessor/sample.mp4` are extracted as 16 kHz mono
-PCM16 and run through the same offline qiqi PyTorch reference. The source MP4,
-ffmpeg arguments, extracted input, model/code context, and output WAV are all
-locked in the manifest.
+Reproduce the offline reference:
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
@@ -78,12 +76,7 @@ locked in the manifest.
   --reproduce preprocessor-sample-mp4-30s-offline-audible
 ```
 
-Audition output:
-`output/preprocessor-sample-mp4-30s-python-reference.wav`.
-
-The same extracted input has also passed the quality-first streaming path. Its
-latency-free audition output is:
-`output/preprocessor-sample-mp4-30s-streaming-quality-python-reference.wav`.
+Reproduce the quality streaming reference:
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
@@ -91,43 +84,47 @@ latency-free audition output is:
   --reproduce preprocessor-sample-mp4-30s-streaming-quality-audible
 ```
 
-To additionally reproduce each numeric standard against the **running backend**
-(HTTP + UDP), which drives file mode and the streaming dataplane and checks
-correlation / F0 / RMS against the manifest tolerances:
+The audition files are:
+
+```text
+output/preprocessor-sample-mp4-30s-python-reference.wav
+output/preprocessor-sample-mp4-30s-streaming-quality-python-reference.wav
+```
+
+## Backend reproduction
+
+Start the matching backend configuration:
 
 ```bash
-build-gpu/state/mozart_stated rvc-golden/qiqi-zh-run/backend.yaml &
+build-gpu/state/mozart_stated rvc-golden/qiqi-zh-run/backend.yaml
+```
+
+In a different terminal, compare the backend targets:
+
+```bash
 /home/moyamryia/vc_backend_venv/bin/python \
   rvc-golden/verify_backend.py \
   --api http://127.0.0.1:18181 --udp 127.0.0.1:18101
 ```
 
-`verify_backend.py` prints a per-standard PASS/FAIL line and exits `1` if any
-standard is not reproduced within tolerance. Deterministic standards regenerate
-via `run_reference.py --deterministic-generator --metadata <path>` and
-`run_streaming_reference.py --deterministic-generator`.
+The verifier drives HTTP file conversion and UDP streaming.
+It compares correlation, F0, and RMS against the manifest limits.
+It prints one PASS/FAIL result per standard and returns exit code 1 if any target fails.
+Deterministic targets use the corresponding deterministic reference runners.
 
-## Streaming reference
+## Legacy and quality streaming
 
-`run_streaming_reference.py` has two purposes without involving the C++
-backend:
+The legacy runner uses 20 ms input frames, a 2 s window, a 1.94 s hop, and a 60 ms crossfade.
+This path gives a locked target for the matching legacy backend assets.
+It does not define every current realtime configuration.
 
-- Its legacy defaults model the current realtime contract: 20 ms input frames,
-  a 2 s window, a 1.94 s hop, and a 60 ms crossfade. This remains the production
-  backend's locked numeric target.
-- Its quality-first mode recomputes each 2 s target from the complete prefix,
-  waits for 2 s of real future context, and emits a latency-free audition
-  timeline. It deliberately spends much more time and memory to provide a
-  stronger streaming debugging target. Deployment efficiency belongs in the
-  C++ implementation, not this Golden ceiling.
+Quality mode computes each target from the full prefix and waits for 2 s of future context.
+It creates an audition timeline without startup latency.
+The time and memory necessary for this reference exceed those of the deployment path.
+It also adds an 80-sample HuBERT guard and handles unvoiced RMVPE windows explicitly.
+Both modes save exact window input, RMVPE intermediates, Generator inputs, and Generator output.
 
-Both modes save each window's exact input, RMVPE intermediates, Generator
-inputs, and Generator output under the selected tensor directory. The
-quality-first path also adds an 80-sample HuBERT guard, avoiding the legacy
-20 ms zero-padding at each window end, and safely preserves all-unvoiced RMVPE
-windows without exception-driven control flow.
-
-Reproduce the checked-in quality-first qiqi standards:
+Reproduce the quality standards:
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
@@ -136,7 +133,7 @@ Reproduce the checked-in quality-first qiqi standards:
   rvc-golden/verify_golden.py --reproduce streaming-quality-deterministic
 ```
 
-Compare a streaming audition against its offline deterministic Golden:
+Compare a deterministic streaming audition with its offline reference:
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
@@ -146,19 +143,18 @@ Compare a streaming audition against its offline deterministic Golden:
   --stream-hop 31040
 ```
 
-Raw stream outputs retain startup latency and flush. Files passed through
-`--audition-output` contain only the assembled content timeline, cropped to the
-same HuBERT frame contract as the corresponding offline result.
-Quality-first mode rejects any prefix whose target plus lookahead can exceed the
-original RVC pipeline's 41-second unsplit limit. With the locked 2 s target and
-2 s lookahead, inputs are therefore limited to about 37 seconds. Split longer
-test material into locked cases rather than silently changing the output-length
-rule.
+Raw stream files keep startup latency and final drain audio.
+The `--audition-output` option keeps only the assembled content timeline.
+Quality mode rejects prefixes beyond the original 41-second unsplit pipeline limit.
+With a 2-second target and 2-second lookahead, its input limit is approximately 37 seconds.
+Longer material must use different locked cases.
 
-The quality-first mode above is deliberately not the low-latency contract used
-by upstream realtime RVC. A separate headless runner exercises that path with a
-short output block, rolling past context, cached pitch, Generator head cropping,
-and SOLA alignment:
+## Upstream realtime reference
+
+The headless realtime runner uses a short block, past context, cached pitch, Generator head cropping, and SOLA alignment.
+It gives a different reference for the upstream realtime path.
+
+Run that reference:
 
 ```bash
 RVC_CUDA_GRAPH=0 /home/moyamryia/vc_backend_venv/bin/python \
@@ -167,14 +163,12 @@ RVC_CUDA_GRAPH=0 /home/moyamryia/vc_backend_venv/bin/python \
   --output /tmp/opencode/qiqi-upstream-realtime.wav
 ```
 
-This runner defaults to CPU for portable semantic comparison. Its measured CPU
-time is not a backend latency estimate; use the exported TensorRT stages for
-performance work. Realtime output is expected to differ numerically from the
-offline Golden, so compare it against upstream realtime output plus objective
-audio statistics and listening tests.
+The runner defaults to CPU.
+Its CPU time is not a backend latency estimate.
+Realtime output can differ from the offline Golden output.
+The matching upstream realtime output, objective measurements, and listening are necessary for its comparison.
 
-The realtime UDP client is separate from this Golden runner because the
-backend's audio data plane is UDP, not HTTP:
+The UDP client can exercise a backend profile:
 
 ```bash
 /home/moyamryia/vc_backend_venv/bin/python \
@@ -186,42 +180,43 @@ backend's audio data plane is UDP, not HTTP:
   --model-id qiqi-zh-run
 ```
 
-That command activates `rt_rvc`, sends 20 ms `MZRT` packets, drains the
-two-second realtime window with silence, and writes the 48 kHz replies. UDP
-loss is an error by default; `--allow-missing` is available for diagnostics.
+The command selects that model, sends 20 ms MZRT packets, and writes the 48 kHz replies.
+The selected model determines the actual streaming profile.
+UDP loss produces an error by default.
+The diagnostic `--allow-missing` option permits incomplete replies.
+The [deployment guide](../frontend/DEPLOYMENT.md#use-the-low-latency-profile) specifies the split realtime assets and selection procedure.
 
-## Generator model-vs-model consistency check
+## Compare Generator exports
 
-Before replacing a shipped Generator ONNX with a re-exported one (e.g.
-swapping `de_narrator.onnx` for `generator_dynamic.onnx`), run a numerical
-comparison between the two files with identical inputs:
+Before an asset replacement, compare the shipped model and candidate with same inputs:
 
 ```bash
-python rvc-golden/compare_generator_models.py \
-  --baseline  rvc-backend/models/de_narrator/de_narrator.onnx \
+python3 rvc-golden/compare_generator_models.py \
+  --baseline rvc-backend/models/de_narrator/de_narrator.onnx \
   --candidate rvc-backend/models/de_narrator/generator_dynamic.onnx \
   --probe-lengths 50,100,200 \
   --output-dir rvc-golden/output
 ```
 
-The script introspects each model's input contract, feeds both models with
-identical values (deterministic seed, or captured golden tensors via
-`--tensors-dir rvc-golden/tensors`), and reports max/mean absolute error,
-cosine similarity, RMS, and sample count with a PASS / DEGRADED / FAIL
-verdict (exit codes 0 / 2 / 1). `--probe-lengths` additionally runs
-inference at several frame counts to back any dynamic-axes claim before it
-is advertised (AGENTS.md: no dynamic axes without multi-length runs).
+The script reads each model input contract.
+It supplies same values from a fixed seed or captured tensors through `--tensors-dir rvc-golden/tensors`.
+It reports absolute error, cosine similarity, RMS, and sample count.
+The verdicts PASS, DEGRADED, and FAIL use exit codes 0, 2, and 1.
+Length probes execute inference at each requested frame count.
+A dynamic-axis claim must have satisfactory inference results at multiple lengths.
 
-Lossless input dtype conversions required by differing model contracts are
-reported explicitly. Missing captured inputs, differing output layouts, or
-failed candidate length probes prevent PASS. Each model is also run twice with
-the same inputs: differing results indicate internal randomness and cannot
-establish numerical equivalence. Use deterministic exports or explicit shared
-noise inputs before accepting a replacement; a fixed input seed alone does not
-control random operators inside ONNX.
+Lossless dtype conversions appear in the report.
+Missing captured inputs, different output layouts, or failed candidate length probes prevent PASS.
+Each model also runs twice with the same inputs.
+Different repeated outputs indicate internal randomness and do not prove numerical equivalence.
+A fixed input seed does not control random operators inside ONNX.
+Deterministic exports or explicit shared noise are necessary for acceptance.
 
-The harness itself is verified without the real models:
+Run the comparison utility self-test without real models:
 
 ```bash
-python rvc-golden/compare_generator_models.py --self-test
+python3 rvc-golden/compare_generator_models.py --self-test
 ```
+
+The dated [streaming investigation](STREAMING_BACKEND_INVESTIGATION.md) keeps the original evidence.
+Its historical deployment claims must agree with the current code and assets.

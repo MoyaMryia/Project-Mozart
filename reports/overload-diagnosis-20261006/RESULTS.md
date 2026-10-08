@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Mozart Jetson overload diagnosis — 2026-10-06
 
 The demonstrated bottleneck is the speech playback/admission design. The Jetson retained CPU and RAM headroom in two controlled probes, yet enabling paced playback caused valid speech to be dropped. Translation defects and occasional stalled generation cause additional losses. These results support redesigning the speech pipeline before changing hardware.

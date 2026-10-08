@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](DECISION.md)为准。
+
 > **⚠ 2026-09-06 终局**：本文件 §3 描述的 Windows Code 10 排查已被
 > `DECISION.md` 取代。根因是硬件（Tegra234 XUDC 不支持 ISO），USB gadget
 > 路线锁死关闭，最终方案见 `DECISION.md`。下文保留作调查记录。

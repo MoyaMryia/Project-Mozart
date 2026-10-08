@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Mozart mock demo — 7 October 2026
 
 The app is running on Jetson through the local control page http://127.0.0.1:5180/. The current run uses `/tmp/test-audio.mp4`, original seconds 720–840, at microphone pace, and a silent ALSA null speaker paced to each generated WAV's duration. USB capture and playback are disabled in this run. The user previously reported completing the physical audio check; that is user evidence, not an independently repeated speaker test.

@@ -1,210 +1,164 @@
-# FILE_RVC 部署与启用说明
+# FILE_RVC 部署
 
-> English version: [DEPLOYMENT.md](DEPLOYMENT.md).
-
-本文档用于启动当前 Project Mozart 的 FILE_RVC 完整链路：
-
-```text
-浏览器 -> Vite 前端 -> /api 代理 -> mozart_stated -> FILE_RVC Worker
-       -> FFmpeg -> 预处理 -> HuBERT / RMVPE / RVC Generator ONNX
-```
-
-唯一的后端全局入口是 `mozart_stated`。
+后端入口为 `mozart_stated`。前端通过 Vite 代理访问 API。
+文件工作线程使用 FFmpeg 解码，再执行 RVC 推理。
+对应英文说明见 [DEPLOYMENT.md](DEPLOYMENT.md)。
 
 ## 前置条件
 
-在仓库根目录下，以下文件应存在：
+原生构建需要 CMake、C++17 编译器、ALSA 开发文件、yaml-cpp、nlohmann/json 和 spdlog。
+文件转换需要 FFmpeg。ONNX 推理需要 ONNX Runtime 及开发文件。
+TensorRT 推理需要对应库和引擎资产。前端需要 Node.js 与 npm。
 
-```text
-build-gpu/state/mozart_stated
-rvc-backend/config.yaml
-rvc-backend/assets/hubert/hubert_base.onnx
-rvc-backend/assets/rmvpe/rmvpe.onnx
-rvc-backend/models/de_narrator/de_narrator.onnx
-rvc-backend/models/de_narrator/config.json
-```
-
-检查 ONNX Runtime：
+检查已安装程序：
 
 ```bash
+cmake --version
+ffmpeg -version
+node --version
+npm --version
 ldconfig -p | grep onnxruntime
 ```
 
-检查 FFmpeg：
-
-```bash
-ffmpeg -version
-```
-
-前端命令需要先通过 nvm 加载 Node.js：
+如果使用 nvm，先加载环境：
 
 ```bash
 source ~/.nvm/nvm.sh
-node --version
-npm --version
 ```
 
 ## 构建
 
-在仓库根目录构建 daemon、RVC runtime、IO 和预处理组件：
+从仓库根目录构建守护进程：
 
 ```bash
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j4
+cmake -S . -B build-gpu -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON
+cmake --build build-gpu -j4
 ```
+
+确认配置输出找到所需推理运行时。当前 CMake 在缺少 ONNX Runtime 时会关闭 ONNX 推理。
+此类构建不能证明真实模型可用。独立构建 `rvc-backend/` 不产生守护进程。
 
 构建前端：
 
 ```bash
-cd frontend
-source ~/.nvm/nvm.sh
-npm install
-npm run build
+npm --prefix frontend ci
+npm --prefix frontend run build
 ```
 
-生产环境前端产物位于：
+产物目录为 `frontend/dist/`。
+
+## 安装模型资产
+
+普通模型目录结构：
 
 ```text
-frontend/dist/
+rvc-backend/models/<model_id>/
+├── <model_id>.onnx
+├── <model_id>.engine
+└── config.json
 ```
 
-## 真实 ONNX 配置
+`.engine` 可选。同名引擎加载成功时，后端优先使用 TensorRT。
+生产当前不加载检索索引。
 
-daemon 读取的配置文件是：
-
-```text
-rvc-backend/config.yaml
-```
-
-要启用真实 FILE_RVC 推理，三个组件的 mock 必须都为 `false`：
+在 `rvc-backend/config.yaml` 设置资产路径：
 
 ```yaml
 rvc:
   models_dir: "./models"
   hubert_path: "./assets/hubert/hubert_base.onnx"
   rmvpe_path: "./assets/rmvpe/rmvpe.onnx"
+  realtime_hubert_path: ""
+  realtime_rmvpe_path: ""
   mock:
     generator: false
     hubert: false
     rmvpe: false
+storage:
+  file_rnnoise: false
 ```
 
-这些路径相对于 `rvc-backend/config.yaml` 所在目录解析，不受 shell
-当前工作目录影响。
+相对文件路径以配置文件所在目录为基准，不依赖 shell 工作目录。
+真实推理必须关闭三个 mock 开关。
+干净文件对比使用 `file_rnnoise: false`；仅在专门测试预处理时开启。
 
-每个 RVC 音色以一个模型目录存在：
+## 启动后端
 
-```text
-rvc-backend/models/<model_id>/
-├── <model_id>.onnx
-├── config.json
-└── <model_id>.index     # 可选：检索增强索引
-```
-
-当前已部署的音色模型 ID：
-
-```text
-de_narrator
-```
-
-## 启动 Daemon
-
-在仓库根目录启动全局状态 daemon：
+从仓库根目录启动：
 
 ```bash
-./build-gpu/state/mozart_stated ./rvc-backend/config.yaml
+./build-gpu/state/mozart_stated rvc-backend/config.yaml
 ```
 
-正常启动应看到以下关键日志：
+初始模式为 `IDLE`。模型工厂按目录顺序自动选择，不保证目标音色。
 
-```text
-RVC config: generator=real, hubert=real, rmvpe=real
-ONNX engine loaded: de_narrator.onnx
-HuBERT engine loaded
-RMVPE engine loaded
-HTTP API server listening on 0.0.0.0:18080
-state daemon started; initial mode is IDLE
-```
-
-另开终端验证服务、真实模型与模型列表：
+另开终端读取服务状态：
 
 ```bash
 curl http://127.0.0.1:18080/api/health
-curl http://127.0.0.1:18080/api/status
 curl http://127.0.0.1:18080/api/models
+curl http://127.0.0.1:18080/api/status
 ```
 
-`/api/status` 应至少包含：
+健康接口只证明 HTTP 服务响应。模型就绪需要目标模型、真实资产和一次成功转换。
+`device: cuda` 不证明实际使用 GPU。加载日志可用于核对资产与运行时选择。
 
-```json
-{
-  "pipeline_mode": "real",
-  "active_model_id": "de_narrator"
-}
+显式选择已经安装的普通模型：
+
+```bash
+curl -X POST http://127.0.0.1:18080/api/mode/switch \
+  -H 'Content-Type: application/json' \
+  --data '{"mode":"file_rvc","model_id":"<model_id>"}'
 ```
+
+确认响应中的 `status` 为 `active`，`model_id` 与目标一致。
 
 ## 启动前端
 
-在第二个终端中执行：
+另开终端启动 Vite：
 
 ```bash
-cd frontend
-source ~/.nvm/nvm.sh
-npm run dev
+npm --prefix frontend run dev
 ```
 
-浏览器打开：
+打开 [本机界面](http://127.0.0.1:5173/)。
+Vite 将 `/api` 请求转发到 `http://127.0.0.1:18080`。
+当前配置也接受局域网连接，其他设备使用 `http://<jetson-ip>:5173/`。
 
-```text
-http://127.0.0.1:5173/
+## 转换文件
+
+1. 在前端选择 `FILE_RVC`。
+2. 选择已经安装的普通模型。
+3. 选择输入音频。
+4. 启动转换。
+5. 等待任务完成。
+6. 下载 WAV 结果。
+
+也可通过 API 上传：
+
+```bash
+curl -X POST http://127.0.0.1:18080/api/file/convert \
+  -F 'audio_file=@input.wav' -F 'model_id=<model_id>'
 ```
 
-Vite 会将浏览器的 `/api/...` 请求代理到：
+使用响应中的任务 ID 查询：
 
-```text
-http://127.0.0.1:18080
+```bash
+curl 'http://127.0.0.1:18080/api/file/status?job_id=<job_id>'
 ```
 
-若从局域网其他设备访问 Jetson，请使用 Jetson IP：
+完成后下载：
 
-```text
-http://<jetson-ip>:5173/
+```bash
+curl 'http://127.0.0.1:18080/api/file/result?job_id=<job_id>' -o output.wav
 ```
 
-Vite 配置已启用外部主机监听。
+取消活动任务需要等待可用的取消检查点，无法中断当前 FFmpeg 命令或整段推理调用。
+队列与存储约束见 [API 文档](../state/API.md)。
 
-## FILE_RVC 页面流程
+## 使用低延迟配置
 
-1. 打开前端页面。
-2. 选择 `FILE_RVC` 模式。
-3. 选择 `de_narrator` 音色模型。
-4. 选择要转换的音频文件。
-5. 按需设置当前支持的 RVC 参数。
-6. 点击开始转换。
-7. 在队列和底部终端面板查看任务状态与后端日志。
-8. 任务完成后在队列中下载 WAV 输出。
-
-底部终端面板直接展示 daemon 的后端日志：
-
-```text
-GET /api/logs
-```
-
-它不是浏览器端模拟日志。当前 RVC 参数通过以下接口读取和修改：
-
-```text
-GET /api/parameters
-PUT /api/parameters
-```
-
-## 第一次启用实时变声
-
-建议第一次先按上面的 FILE_RVC 流程验证普通模型。普通音色只需要
-`<model_id>.onnx`、`config.json` 以及 quality/file 使用的 HuBERT/RMVPE
-资产；不需要给所有音色都导出 realtime 版本。
-
-当前已经验收的低延迟音色是 `qiqi-zh-realtime`。它的模型目录需要包含拆分后
-的 Generator 引擎：
+已经记录低延迟结果的模型为 `qiqi-zh-realtime`。它的目录包含 split Generator 资产：
 
 ```text
 rvc-backend/models/qiqi-zh-realtime/
@@ -215,7 +169,7 @@ rvc-backend/models/qiqi-zh-realtime/
 └── config.json
 ```
 
-两份 realtime 特征引擎与普通 quality/file 资产分开配置：
+设置独立的实时特征路径：
 
 ```yaml
 rvc:
@@ -225,63 +179,26 @@ rvc:
   realtime_rmvpe_path: "./assets/rmvpe/rmvpe-realtime.onnx"
 ```
 
-realtime 文件旁必须存在同名 `.engine`。固定契约是 HuBERT `[1,44800]`、
-RMVPE `[1,128,32]`。不要把这两份固定形状文件填到普通 `hubert_path` 或
-`rmvpe_path`，否则可变长度的 FILE_RVC 任务可能失败。
+实时特征文件旁需要同名 `.engine`。HuBERT 输入为 `[1,44800]`，RMVPE 输入为 `[1,128,32]`。
+普通特征路径继续用于文件转换和 quality 流式推理。仅有 split Generator 的模型不能执行普通文件转换。
 
-启动 daemon 后切换到实时模式：
+选择实时模型：
 
 ```bash
 curl -X POST http://127.0.0.1:18080/api/mode/switch \
   -H 'Content-Type: application/json' \
   --data '{"mode":"rt_rvc","model_id":"qiqi-zh-realtime"}'
-curl "http://127.0.0.1:18080/api/logs?limit=50"
+curl 'http://127.0.0.1:18080/api/logs?limit=50'
 ```
 
-日志应出现 `upstream realtime (240ms block + 2.5s past + SOLA)`。已验收 profile
-从首帧输入到首帧变声输出约 320ms；2.5 秒 past 是历史上下文，不是等待时间。
-没有 realtime 资产的普通音色会继续使用 quality/legacy streaming；
-`qiqi-zh-realtime` 必须完整提供 realtime 资产，校验失败时不能视为部署成功。
+确认日志包含以下配置名称：
 
-## 运行时 API 检查
-
-常用检查命令：
-
-```bash
-curl http://127.0.0.1:18080/api/parameters
-curl "http://127.0.0.1:18080/api/logs?limit=30"
-curl http://127.0.0.1:18080/api/models
+```text
+upstream realtime (240ms block + 2.5s past + SOLA)
 ```
 
-不通过前端，直接验证 FILE_RVC：
+该配置已记录首帧出声约 320 ms。2.5 s 上下文来自过去音频，不增加等长的前视等待。
+其他资产需要单独测量延迟并试听。
 
-```bash
-curl -X POST http://127.0.0.1:18080/api/mode/switch \
-  -H "Content-Type: application/json" \
-  --data '{"mode":"file_rvc","model_id":"de_narrator"}'
-
-curl -X POST http://127.0.0.1:18080/api/file/convert \
-  -F "audio_file=@/path/to/input.wav" \
-  -F "model_id=de_narrator"
-
-curl "http://127.0.0.1:18080/api/file/status?job_id=<job_id>"
-curl -o converted.wav "http://127.0.0.1:18080/api/file/result?job_id=<job_id>"
-```
-
-## 停止服务
-
-在 daemon 所在终端按 `Ctrl+C`，可正常停止后端。
-
-在 Vite 所在终端按 `Ctrl+C`，可停止前端开发服务器。
-
-## 常见问题
-
-| 现象 | 检查方法 |
-| --- | --- |
-| 页面提示 API 离线 | 执行 `curl http://127.0.0.1:18080/api/health`，确认 daemon 正在运行后重启 Vite。 |
-| 前端没有可选模型 | 执行 `curl http://127.0.0.1:18080/api/models`；每个模型目录必须有 `<model_id>.onnx` 和 `config.json`。 |
-| `pipeline_mode` 显示 `mock` | 检查配置中全部 `rvc.mock.*` 都为 `false`，然后重启 daemon。 |
-| 文件任务失败 | 执行 `curl "http://127.0.0.1:18080/api/logs?limit=50"`；相同日志会显示在前端终端面板。 |
-| Daemon 无法绑定 18080 端口 | 使用 `ss -ltnp 'sport = :18080'` 找到旧进程，停止后重新启动 daemon。 |
-| 音频无法解码 | 确认 `ffmpeg -version` 可以运行，并上传支持的音频格式。 |
-| 修改参数时返回 `409` | 当前有 FILE_RVC 任务正在处理；等待完成或取消任务后再修改参数。 |
+模式切换停止后端 UDP 工作线程，不停止外部麦克风进程。
+独立 TTS 部署步骤见 [参考播报说明](../tools/REFERENCE_SPEECH.md)。

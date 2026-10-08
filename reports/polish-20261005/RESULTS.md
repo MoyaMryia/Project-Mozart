@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Mozart integration polish and Jetson results — 2026-10-05
 
 Mozart now has a working reference-conditioned English TTS backend using Kyutai PocketTTS through sherpa-onnx. The native API, Vue controls, source captions, translation bridge, persistent voice registry, supervised worker and bounded playback queue are integrated. It is a usable development prototype. Recognition, translation and cross-language voice identity have not passed a daily-use quality bar.

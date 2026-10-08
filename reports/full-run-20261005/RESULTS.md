@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Mozart full project run — 5 October 2026
 
 **The selected complete stack fits the 8 GB Jetson, but the current project does not yet deliver reliable translated speech in a cloned voice. The largest blockers are segmentation, recognition/translation accuracy, speech-job integration and voice acceptance.**

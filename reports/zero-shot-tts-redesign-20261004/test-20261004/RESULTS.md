@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../../README.md)为准。
+
 # Reference-conditioned TTS on Jetson — measured results, 2026-10-04
 
 **Direct cloned TTS fits this Jetson. PocketTTS is the fastest English-output candidate; ZipVoice has stronger measured reference-speaker similarity. Neither has passed a human listening acceptance test.** Proceed with the text/reference TTS architecture, using Pocket for the performance prototype and retaining ZipVoice for the voice-quality comparison.

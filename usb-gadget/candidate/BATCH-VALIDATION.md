@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../DECISION.md)为准。
+
 # Consolidated validation
 
 ## Current Scope

@@ -1,183 +1,180 @@
-# FILE_RVC Deployment And Startup
+# Deploy FILE_RVC
 
-> 中文版见 [DEPLOYMENT.zh-CN.md](DEPLOYMENT.zh-CN.md)。
+The backend entry point is `mozart_stated`.
+The frontend sends API requests through the Vite proxy.
+The file worker uses FFmpeg and the RVC pipeline.
 
-This document starts the current Project Mozart FILE_RVC stack:
+The [Chinese version](DEPLOYMENT.zh-CN.md) contains the same procedures.
+The [writing rules](../docs/WRITING.md) define the project terms.
 
-```text
-Browser -> Vite frontend -> /api proxy -> mozart_stated -> FILE_RVC worker
-        -> FFmpeg -> preprocessor -> HuBERT / RMVPE / RVC Generator ONNX
-```
+## Required components
 
-The only backend entry point is `mozart_stated`.
+For the native build, CMake, a C++17 compiler, ALSA development files, yaml-cpp, nlohmann/json, and spdlog are necessary.
+FFmpeg is necessary for file conversion.
+ONNX Runtime and its development files are necessary for ONNX inference.
+The applicable libraries and model engines are necessary for TensorRT inference.
+Node.js and npm are necessary for the frontend.
 
-## Prerequisites
-
-From the repository root, the following must exist:
-
-```text
-build-gpu/state/mozart_stated
-rvc-backend/config.yaml
-rvc-backend/assets/hubert/hubert_base.onnx
-rvc-backend/assets/rmvpe/rmvpe.onnx
-rvc-backend/models/de_narrator/de_narrator.onnx
-rvc-backend/models/de_narrator/config.json
-```
-
-Check the ONNX Runtime shared library:
+Do a check of the installed programs:
 
 ```bash
+cmake --version
+ffmpeg -version
+node --version
+npm --version
 ldconfig -p | grep onnxruntime
 ```
 
-Check FFmpeg:
-
-```bash
-ffmpeg -version
-```
-
-Load Node through nvm before running frontend commands:
+If Node.js uses nvm, load nvm first:
 
 ```bash
 source ~/.nvm/nvm.sh
-node --version
-npm --version
 ```
 
 ## Build
 
-Build the daemon and all required native components from the repository root:
+From the repository root, build the daemon:
 
 ```bash
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j4
+cmake -S . -B build-gpu -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON
+cmake --build build-gpu -j4
 ```
+
+Make sure that the configuration output identifies the necessary inference runtime.
+If ONNX Runtime is missing, CMake disables ONNX inference.
+Such a build does not prove that real model inference is available.
+A `rvc-backend/` build does not produce the daemon.
 
 Build the frontend:
 
 ```bash
-cd frontend
-source ~/.nvm/nvm.sh
-npm install
-npm run build
+npm --prefix frontend ci
+npm --prefix frontend run build
 ```
 
-The frontend production bundle is created in `frontend/dist/`.
+The output directory is `frontend/dist/`.
 
-## Real ONNX Configuration
+## Install model assets
 
-`rvc-backend/config.yaml` controls the daemon. For real FILE_RVC conversion,
-all component mocks must remain disabled:
+An ordinary model uses this directory structure:
+
+```text
+rvc-backend/models/<model_id>/
+├── <model_id>.onnx
+├── <model_id>.engine
+└── config.json
+```
+
+The `.engine` file is optional.
+If that file loads satisfactoryly, the backend uses TensorRT before ONNX Runtime.
+The backend does not load retrieval indexes for production inference.
+
+Set the asset paths in `rvc-backend/config.yaml`:
 
 ```yaml
 rvc:
   models_dir: "./models"
   hubert_path: "./assets/hubert/hubert_base.onnx"
   rmvpe_path: "./assets/rmvpe/rmvpe.onnx"
+  realtime_hubert_path: ""
+  realtime_rmvpe_path: ""
   mock:
     generator: false
     hubert: false
     rmvpe: false
+storage:
+  file_rnnoise: false
 ```
 
-These paths are resolved relative to `rvc-backend/config.yaml`, not the shell
-working directory. A model is a directory under `rvc-backend/models/`:
+Relative file paths use the directory of the configuration file.
+They do not use the shell working directory.
+The three mock settings must be false for real inference.
+Clean file comparisons use `file_rnnoise: false` unless preprocessing is the subject of the test.
 
-```text
-rvc-backend/models/<model_id>/
-├── <model_id>.onnx
-├── config.json
-└── <model_id>.index     # optional retrieval index
-```
+## Start the backend
 
-For example, the installed model ID is `de_narrator`.
-
-## Start The Daemon
-
-From the repository root, start the global state daemon:
+From the repository root, start the daemon:
 
 ```bash
-./build-gpu/state/mozart_stated ./rvc-backend/config.yaml
+./build-gpu/state/mozart_stated rvc-backend/config.yaml
 ```
 
-Expected startup messages include:
+The initial mode is `IDLE`.
+The factory can select a model from directory order.
+It does not guarantee a particular initial model.
 
-```text
-RVC config: generator=real, hubert=real, rmvpe=real
-ONNX engine loaded: de_narrator.onnx
-HuBERT engine loaded
-RMVPE engine loaded
-HTTP API server listening on 0.0.0.0:18080
-state daemon started; initial mode is IDLE
-```
-
-Verify health and real model status from another terminal:
+In a different terminal, read the service state:
 
 ```bash
 curl http://127.0.0.1:18080/api/health
-curl http://127.0.0.1:18080/api/status
 curl http://127.0.0.1:18080/api/models
+curl http://127.0.0.1:18080/api/status
 ```
 
-`/api/status` should report:
+The health response proves only that the HTTP service responds.
+Model readiness checks include the selected model, real assets, and a satisfactory conversion.
+The `device: cuda` setting does not prove GPU execution.
+The engine logs identify the loaded assets and runtime selection.
 
-```json
-{
-  "pipeline_mode": "real",
-  "active_model_id": "de_narrator"
-}
-```
-
-## Start The Frontend
-
-In a second terminal:
+Select an installed ordinary model explicitly:
 
 ```bash
-cd frontend
-source ~/.nvm/nvm.sh
-npm run dev
+curl -X POST http://127.0.0.1:18080/api/mode/switch \
+  -H 'Content-Type: application/json' \
+  --data '{"mode":"file_rvc","model_id":"<model_id>"}'
 ```
 
-Open:
+Make sure that the response reports `status: active` and the intended `model_id`.
 
-```text
-http://127.0.0.1:5173/
+## Start the frontend
+
+In a different terminal, start Vite:
+
+```bash
+npm --prefix frontend run dev
 ```
 
-Vite proxies browser `/api/...` requests to the daemon at
-`http://127.0.0.1:18080`.
+Open [the local frontend](http://127.0.0.1:5173/).
+Vite sends `/api` requests to `http://127.0.0.1:18080`.
+The current Vite configuration also accepts local network connections.
+Another device uses `http://<jetson-ip>:5173/`.
 
-For another device on the local network, use the Jetson host address and start
-Vite with its default host-enabled configuration:
+## Convert a file
 
-```text
-http://<jetson-ip>:5173/
+1. Select `FILE_RVC` in the frontend.
+2. Select an installed ordinary model.
+3. Select the input audio file.
+4. Start conversion.
+5. Wait for the job to report completion.
+6. Download the WAV result.
+
+For an API procedure, upload the file:
+
+```bash
+curl -X POST http://127.0.0.1:18080/api/file/convert \
+  -F 'audio_file=@input.wav' -F 'model_id=<model_id>'
 ```
 
-## FILE_RVC Workflow
+Read the returned job state:
 
-1. Open the frontend.
-2. Select `FILE_RVC`.
-3. Select model `de_narrator`.
-4. Choose an audio file.
-5. Set supported RVC parameters if needed.
-6. Click the conversion button.
-7. Monitor the queue and the terminal panel.
-8. Download the completed WAV from the queue.
+```bash
+curl 'http://127.0.0.1:18080/api/file/status?job_id=<job_id>'
+```
 
-The terminal panel renders daemon logs from `GET /api/logs`; it is not a
-browser-side simulation. The active RVC parameters are read from and written
-to `GET`/`PUT /api/parameters`.
+After completion, download the result:
 
-## First-Time Realtime Setup
+```bash
+curl 'http://127.0.0.1:18080/api/file/result?job_id=<job_id>' -o output.wav
+```
 
-Start with FILE_RVC. Any ordinary model only needs `<model_id>.onnx`,
-`config.json`, and the quality HuBERT/RMVPE paths shown above. Realtime is an
-optional profile for one selected model; it does not require every voice model
-to be exported twice.
+An active cancellation request waits for the next available cancellation point.
+It cannot interrupt the current FFmpeg command or full RVC inference call.
+The [API document](../state/API.md) gives the queue and storage limits.
 
-The currently validated low-latency model is `qiqi-zh-realtime`. Its model
-directory must contain split Generator engines:
+## Use the low-latency profile
+
+The recorded low-latency model is `qiqi-zh-realtime`.
+Its directory contains these split Generator assets:
 
 ```text
 rvc-backend/models/qiqi-zh-realtime/
@@ -188,8 +185,7 @@ rvc-backend/models/qiqi-zh-realtime/
 └── config.json
 ```
 
-The two shared fixed-shape feature engines are configured separately from the
-quality/file assets:
+Set different realtime feature paths:
 
 ```yaml
 rvc:
@@ -199,65 +195,30 @@ rvc:
   realtime_rmvpe_path: "./assets/rmvpe/rmvpe-realtime.onnx"
 ```
 
-The realtime files must have neighboring `.engine` files. Their contracts are
-HuBERT `[1,44800]` and RMVPE `[1,128,32]`. Do not replace the quality paths with
-these fixed-shape files, or variable-length FILE_RVC jobs can fail.
+The realtime feature files must have adjacent `.engine` files.
+HuBERT uses input `[1,44800]`; RMVPE uses input `[1,128,32]`.
+The ordinary feature paths continue to serve file conversion and quality streaming.
+A model with only split Generator assets cannot perform ordinary file conversion.
 
-Switch the running daemon to realtime and verify the startup log:
+Select the realtime model:
 
 ```bash
 curl -X POST http://127.0.0.1:18080/api/mode/switch \
   -H 'Content-Type: application/json' \
   --data '{"mode":"rt_rvc","model_id":"qiqi-zh-realtime"}'
-curl "http://127.0.0.1:18080/api/logs?limit=50"
+curl 'http://127.0.0.1:18080/api/logs?limit=50'
 ```
 
-Look for `upstream realtime (240ms block + 2.5s past + SOLA)`. The validated
-profile produces its first converted audio after about 320 ms. The 2.5 s past
-buffer is historical context, not future waiting. Ordinary models without
-realtime assets continue with quality/legacy streaming; `qiqi-zh-realtime`
-requires its complete realtime asset set and should not be treated as deployed
-when validation fails.
+Make sure that the log contains this profile name:
 
-## Runtime API Checks
-
-Useful commands during deployment:
-
-```bash
-curl http://127.0.0.1:18080/api/parameters
-curl "http://127.0.0.1:18080/api/logs?limit=30"
-curl http://127.0.0.1:18080/api/models
+```text
+upstream realtime (240ms block + 2.5s past + SOLA)
 ```
 
-Test FILE_RVC without the frontend:
+The recorded first output latency is approximately 320 ms for this configuration.
+The 2.5 s context contains past audio; it adds no equivalent future wait.
+Different assets must have their own latency and listening tests.
 
-```bash
-curl -X POST http://127.0.0.1:18080/api/mode/switch \
-  -H "Content-Type: application/json" \
-  --data '{"mode":"file_rvc","model_id":"de_narrator"}'
-
-curl -X POST http://127.0.0.1:18080/api/file/convert \
-  -F "audio_file=@/path/to/input.wav" \
-  -F "model_id=de_narrator"
-
-curl "http://127.0.0.1:18080/api/file/status?job_id=<job_id>"
-curl -o converted.wav "http://127.0.0.1:18080/api/file/result?job_id=<job_id>"
-```
-
-## Stop
-
-Press `Ctrl+C` in the daemon terminal to stop the backend cleanly.
-
-Press `Ctrl+C` in the Vite terminal to stop the development frontend.
-
-## Troubleshooting
-
-| Symptom | Check |
-| --- | --- |
-| Browser reports API offline | Confirm `curl http://127.0.0.1:18080/api/health` succeeds, then restart Vite. |
-| Frontend has no model options | Check `curl http://127.0.0.1:18080/api/models`; each model needs `<model_id>.onnx` and `config.json`. |
-| `pipeline_mode` is `mock` | Ensure every `rvc.mock.*` value is `false`, then restart the daemon. |
-| Job fails | Read `curl "http://127.0.0.1:18080/api/logs?limit=50"`; the same entries appear in the frontend terminal. |
-| Daemon cannot bind port 18080 | Find the previous process with `ss -ltnp 'sport = :18080'`, stop it, then restart the daemon. |
-| Audio cannot be decoded | Confirm `ffmpeg -version` works and upload a supported audio file. |
-| Parameters return `409` | A file job is actively processing. Wait for it to finish or cancel it before changing runtime parameters. |
+Mode changes stop the backend UDP worker.
+They do not stop an external microphone process.
+The [reference speech guide](../tools/REFERENCE_SPEECH.md) gives the TTS deployment procedure.

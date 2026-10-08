@@ -1,102 +1,162 @@
-# State Manager HTTP API
+# State manager HTTP API
 
-`mozart_stated` hosts the `state` control plane. It owns all
-mode transitions, real-time worker lifecycle, and the single-consumer
-`FILE_RVC` queue. The controller does not receive or mutate audio sample
-buffers.
-
-The daemon composes these layers in one process, with the state manager as the
-only lifecycle owner:
+`mozart_stated` gives the HTTP control service.
+`ModeController` owns RVC mode changes, realtime workers, and the file queue.
+The controller does not process PCM samples.
 
 ```text
-HTTP API -> StateManagerDaemon -> ModeController
-                                  -> RealtimeRvcWorker -> IO C ABI -> AudioWorker
-                                  -> FileRvcWorker -> FFmpeg -> preprocessor -> RVC pipeline
+HTTP -> StateManagerDaemon -> ModeController
+                              -> RealtimeRvcWorker -> UDP IO -> AudioWorker
+                              -> FileRvcWorker -> FFmpeg -> RVC
 ```
 
-`mozart_stated` is the only backend entry point. Deploy it from the root
-`build-gpu/` tree for the full daemon architecture.
+The [deployment guide](../frontend/DEPLOYMENT.md) gives the build and start procedures.
+The default HTTP port is 18080.
+The tables use the `/api` prefix; only some routes also accept an alias without this prefix.
 
-## Supported Modes
+## Modes
 
-- `idle`: no RVC audio device or worker is active; independent captions/reference speech may continue.
-- `rt_rvc`: opens the UDP contract stream and starts `AudioWorker`.
-- `file_rvc`: closes the real-time stream and consumes one queued job at a time.
-- `rt_zero_shot` and `file_zero_shot`: return HTTP `501` until their worker is implemented.
-
-Reference-conditioned TTS is available through `/api/voices` and
-`/api/speech/*`, proxied to the isolated loopback worker. It synthesizes translated
-text, so it does not use the legacy audio-conversion zero-shot mode enum. See
-[reference speech contracts](../tools/REFERENCE_SPEECH.md) for profiles, jobs,
-cancellation, downloads and speech-session controls. An unavailable worker
-returns 503 while native RVC/status/caption routes continue to work.
-
-`rvc.enabled: false` disables both RVC capabilities and their queue/mode
-admission, and skips neural RVC asset loads. `state/translated-speech.yaml`
-provides that deployment profile; default configurations keep RVC enabled.
-
-`rt_rvc` automatically selects the low-latency upstream realtime profile when
-the selected model has split `front`/`decoder` engines and the configured
-realtime HuBERT/RMVPE assets pass fixed-shape TensorRT validation. The validated
-profile uses a 240 ms block and 2.5 s rolling past context; the past context is
-not future buffering. If those assets are absent, the worker falls back to the
-quality/legacy streaming profile when that model has a regular Generator.
-The split-only `qiqi-zh-realtime` profile requires its realtime assets and is
-not considered deployed when validation fails.
-
-> **Known gap — initial model selection is not explicit.**
-> `RVCPipelineFactory::create` loads the first model with `exists == true` from
-> directory iteration (`rvc-backend/src/rvc/pipeline.cpp`). Switching to `rt_rvc`
-> therefore does not guarantee the validated split profile; activate the intended
-> model explicitly (`POST /api/models/{id}/activate`) or add an initial-model
-> setting/launcher before capture starts.
-
-## Endpoints
-
-| Endpoint | Purpose |
+| Mode | Current behavior |
 | --- | --- |
-| `GET /api/health` | Liveness check (`{"status":"ok"}`). |
-| `GET /api/status` | Authoritative mode, pending transition, queue, selected model, capabilities, plus `latency` (avg/max ms), `stream` (blocks/resets/overruns), `bypass` (inference/bypass counts), and `vad` stats from the active real-time worker. Also carries `realtime` routing state (`mic_muted` / `bypass`). |
-| `GET /api/monitor` | CPU, memory, GPU load, PipeWire status. |
-| `GET /api/logs` | Backend log ring buffer. |
-| `DELETE /api/logs` | Clears the backend log ring buffer. |
-| `POST /api/mode/switch` | JSON `{ "mode": "file_rvc", "speaker_id": "model_id" }`. A switch away from an active file job is deferred. |
-| `POST /api/realtime/routing` | JSON `{ "mic_muted": bool, "bypass": bool }`. Mute outputs silent frames (no inference); bypass plays the raw 16 kHz input upsampled to 48 kHz (no inference). Routing state survives mode switches and is reported in `status.realtime`. Requires a running RT_RVC worker. |
-| `POST /api/file/convert` | Multipart `audio_file` and optional `speaker_id`; stores the upload and returns a queued job ID. |
-| `GET /api/file/status?job_id=...` | Job state, progress, error, and completed download URL. |
-| `DELETE /api/file/cancel?job_id=...` | Removes queued work or requests processing cancellation at the next frame boundary. |
-| `POST /api/file/pause` / `POST /api/file/resume` | Pauses / resumes file-queue consumption. |
-| `GET /api/file/result?job_id=...` | Downloads a completed 48 kHz mono WAV result. |
-| `DELETE /api/file/finished` | Removes only terminal (`completed` / `failed` / `cancelled`) jobs and their files; queued work is retained. |
-| `DELETE /api/file/job?job_id=...` | Removes one specific job. |
-| `GET /api/models` | Discovers installed RVC models. |
-| `POST /api/models/{id}/activate` | Switches model through the controller, never from the HTTP thread directly. |
-| `GET /api/subtitles` | Server-Sent Events stream tailing the subtitle JSONL file (`MOZART_SUBTITLES_JSONL`, default `/tmp/opencode/subtitles.jsonl`). Reopens on file replacement or truncation and retains incomplete JSONL lines until they finish. |
-| `GET /api/parameters` / `PUT /api/parameters` | Reads / updates RVC inference parameters. |
-| `POST /api/parameters/reset` | Restores effective defaults. |
-| `GET /api/presets` / `POST /api/presets` / `DELETE /api/presets/{id}` | Lists / saves / deletes parameter presets. |
+| `idle` | Stops RVC workers; loaded engines can stay in memory. |
+| `rt_rvc` | Opens the UDP stream and starts the realtime worker. |
+| `file_rvc` | Closes the realtime stream and processes one file job at a time. |
+| `rt_zero_shot` / `file_zero_shot` | Returns HTTP 501; these workers are missing. |
 
-The file queue has a configurable depth of 50 and a 100 MB request limit.
-The depth counts `queued`, `processing`, and `cancelling` jobs; terminal history
-does not consume capacity. `queue_position` is one-based among unfinished jobs.
-`DELETE /api/file/finished` removes only `completed`, `failed`, and `cancelled`
-jobs and their files. Queued work is retained.
+A change away from an active file job uses a pending transition slot.
+The controller applies that transition after the job ends.
+Later requests can replace the pending transition.
+A model change during an active file job returns a busy response.
+Independent captions and reference speech can continue in any RVC mode.
 
-Temporary files use `storage.temp_dir`; after a job finishes, the controller
-evicts oldest unprotected files towards 80% of `storage.max_cache_size_mb`.
-Files owned by queued, processing, or cancelling jobs are protected, even when
-retaining them keeps the directory above the threshold. This cache target is
-not a hard disk quota.
+The `rvc.enabled: false` setting prevents RVC engine loads and RVC job admission.
+The `state/translated-speech.yaml` profile uses this setting.
+The native daemon does not own external microphone processes.
+An RVC mode change does not stop their capture.
 
-Queue lifecycle regression tests run on a Linux host with CMake, Ninja, a C++17
-compiler, ALSA development headers, and FFmpeg:
+## Model selection
+
+A mode request accepts `model_id`.
+The older `speaker_id` field is also an alias for a model ID.
+It is not the numeric speaker tensor inside a Generator.
+
+```json
+{"mode":"file_rvc","model_id":"de_narrator"}
+```
+
+The factory selects an initial model from directory order.
+It stops the search even if `load_model()` returns false.
+An explicit model selection and a satisfactory inference are necessary deployment checks.
+
+The realtime worker selects the upstream profile when the split Generator and fixed feature assets satisfy its input contract.
+This profile uses 240 ms blocks and 2.5 s of past context.
+Ordinary models can use quality or legacy streaming when realtime assets are missing.
+Realtime assets are necessary for a model with only split Generator assets.
+It cannot perform ordinary file conversion.
+
+## Service and control routes
+
+| Request | Response or action |
+| --- | --- |
+| `GET /api/health` | Returns `{"status":"ok"}`. This is a liveness response. |
+| `GET /api/status` | Returns the mode, pending transition, queue, model, capabilities, and active worker statistics. |
+| `GET /api/monitor` | Returns CPU, memory, GPU, and PipeWire measurements. |
+| `GET /api/logs` | Returns the backend log buffer. |
+| `DELETE /api/logs` | Clears that buffer. |
+| `POST /api/mode/switch` | Accepts the mode and optional model ID. |
+| `POST /api/realtime/routing` | Accepts `mic_muted` and `bypass` Boolean fields. |
+| `GET /api/models` | Lists discovered models. |
+| `POST /api/models/{id}/activate` | Requests a model change through the controller. |
+
+The controller keeps the routing settings after mode changes.
+The controller accepts them even when no realtime worker is active.
+Mute produces silent output without inference.
+Bypass resamples the input from 16 kHz to 48 kHz without inference.
+These controls do not close the physical microphone.
+
+The status statistics include `latency`, `stream`, `bypass`, and `vad`.
+The `realtime` object gives the routing settings.
+A real pipeline label or a CUDA request does not prove satisfactory GPU execution.
+The API does not yet give full information about the actual runtime and asset selection.
+
+## File routes
+
+| Request | Response or action |
+| --- | --- |
+| `POST /api/file/convert` | Accepts multipart `audio_file` and optional `model_id`; returns a queued job ID. |
+| `GET /api/file/status?job_id=...` | Returns state, progress, error, and the completed download URL. |
+| `GET /api/file/result?job_id=...` | Downloads a completed 48 kHz mono WAV. |
+| `DELETE /api/file/cancel?job_id=...` | Cancels queued work or sets the active cancellation flag. |
+| `POST /api/file/pause` | Stops queue consumption after the active job. |
+| `POST /api/file/resume` | Starts queue consumption again in file mode. |
+| `DELETE /api/file/finished` | Removes terminal jobs and their files. |
+| `DELETE /api/file/job?job_id=...` | Removes one inactive job and its files. |
+
+Uploads also accept the `speaker_id` model alias.
+A status request must include `job_id`; it does not list the full queue.
+The default queue depth is 50 unfinished jobs.
+The depth includes `queued`, `processing`, and `cancelling` jobs.
+Terminal history does not consume queue capacity.
+The returned `queue_position` counts unfinished jobs from one.
+
+The request reader allows approximately 110 MiB, including HTTP and multipart data.
+Its error text calls this a 100 MB limit.
+This limit is not a decoded audio duration or memory limit.
+The [audit report](../reports/repository-audit-20261008/RESULTS.md) records this mismatch.
+
+Active cancellation changes the state to `cancelling`.
+The current FFmpeg commands and full inference calls cannot stop at a frame boundary.
+The worker reads the flag at the next available cancellation point.
+The `cancelling` state continues to own the worker and pipeline.
+Daemon shutdown can also wait for these operations.
+
+Temporary files use `storage.temp_dir`.
+After a job ends, cache cleanup aims for 80% of `storage.max_cache_size_mb` when the upper limit is exceeded.
+Files of unfinished jobs stay protected.
+This target is not a hard disk quota.
+The queue and terminal history use memory; they do not survive a restart.
+Terminal history has no independent count limit.
+
+## Captions, parameters, and speech
+
+| Request | Response or action |
+| --- | --- |
+| `GET /api/subtitles` | Sends subtitle JSONL records as Server-Sent Events (SSE). |
+| `GET /api/parameters` / `PUT /api/parameters` | Reads or changes RVC parameters. |
+| `POST /api/parameters/reset` | Restores the effective defaults. |
+| `GET /api/presets` / `POST /api/presets` | Lists or saves parameter presets. |
+| `DELETE /api/presets/{id}` | Deletes a preset. |
+| `/api/voices` and `/api/speech/*` | Proxies requests to the independent reference speech service. |
+
+Subtitles use `MOZART_SUBTITLES_JSONL`, with default path `/tmp/opencode/subtitles.jsonl`.
+The reader reopens the file after replacement or truncation.
+It waits for incomplete JSONL lines to finish.
+The first connection starts at the file end; it does not replay earlier captions.
+Each SSE connection uses a thread, with no configured connection limit.
+
+Reference speech uses translated text and does not use the Zero-Shot VC mode enum.
+A missing speech service returns HTTP 503.
+The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes and queue limits.
+
+## Current HTTP limits
+
+Ordinary HTTP requests use one serial request handler.
+Accepted connections have no request timeout.
+An incomplete request can block health, mode, and cancellation requests.
+It can also delay daemon shutdown.
+The loopback probe in the audit reproduced the health blockage.
+
+## Regression tests
+
+Run the host regressions from the repository root:
 
 ```bash
-cmake -S rvc-backend -B build/host -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+cmake -S rvc-backend -B build/host -DCMAKE_BUILD_TYPE=Debug \
   -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON
-cmake --build build/host --target test_mode_controller -j2
-ctest --test-dir build/host -R '^state_' --output-on-failure
+cmake --build build/host -j2
+ctest --test-dir build/host --output-on-failure
 ```
 
-These tests use the real controller, file worker, and FFmpeg with test-only
-inference. They do not validate model quality, GPU latency, or physical audio I/O.
+A C++17 compiler, ALSA development files, FFmpeg, and local socket access are necessary for these tests.
+They use test inference for controller and lifecycle cases.
+They do not prove neural quality, GPU latency, or physical audio correctness.

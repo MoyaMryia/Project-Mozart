@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Mozart reliability campaign — final short replay verified, quality limitations remain
 
 The final120-second replay is completely collected and verified on both hosts. All20admitted sentences completed without failure, expiry or capacity rejection; four uncertain source captions were blocked before translation. Recognition and translation meaning remain insufficient for live reliance. The4B translator is not approved as the production default, and no new30-minute reliability replay was launched. All74regression checks passed on both hosts. Existing source changes and remote commits are preserved; nothing was committed or pushed. Earlier sections retain the historical sequence of controls and validation snapshots; the final outcome below supersedes their pending/running status.
