@@ -1,6 +1,7 @@
 # 实时字幕补丁的 Jetson 短测
 
 日期：2026-10-08。测试提交：`8bf2a46`，包含三个临时补丁。
+后续输出上限补丁和延迟拆分见 [后续短测](FOLLOWUP.md)。本报告保留原始三轮结果。
 本轮支持保留补丁。慢翻译和可选复核没有阻塞后续中文字幕。
 播报仍有明显积压，不能据此声称已经实现低延迟语音翻译。
 
@@ -105,11 +106,12 @@
 
 测试脚本使用设备现有模型路径和共享测试锁。不要在生产服务占用端口时运行。
 脚本拒绝覆盖已有结果目录。故障模式会停止本轮启动的翻译和播报服务。
+复现本报告时，使用 `8bf2a46` 的代码快照。后续脚本要求显式填写提交标记，并记录工具摘要供核对。
 
 ```bash
-python3 run_probe.py /home/moyamryia/mozart-realtime-patches-20261008 base-v2 --mode base --seconds 120
-python3 run_probe.py /home/moyamryia/mozart-realtime-patches-20261008 refine-v2 --mode refine --seconds 120
-python3 run_probe.py /home/moyamryia/mozart-realtime-patches-20261008 failure-v2 --mode failure --seconds 60
+python3 run_probe.py /home/moyamryia/mozart-realtime-patches-20261008 base-v2 --mode base --seconds 120 --commit 8bf2a46
+python3 run_probe.py /home/moyamryia/mozart-realtime-patches-20261008 refine-v2 --mode refine --seconds 120 --commit 8bf2a46
+python3 run_probe.py /home/moyamryia/mozart-realtime-patches-20261008 failure-v2 --mode failure --seconds 60 --commit 8bf2a46
 python3 analyze_probe.py /home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/base-v2
 ```
 
