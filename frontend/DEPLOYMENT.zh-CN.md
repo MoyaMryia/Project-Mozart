@@ -9,6 +9,7 @@
 原生构建需要 CMake、C++17 编译器、ALSA 开发文件、yaml-cpp、nlohmann/json 和 spdlog。
 文件转换需要 FFmpeg。ONNX 推理需要 ONNX Runtime 及开发文件。
 TensorRT 推理需要对应库和引擎资产。前端需要 Node.js 与 npm。
+字幕回归使用 Node.js 24，执行 `npm --prefix frontend test`。
 
 检查已安装程序：
 

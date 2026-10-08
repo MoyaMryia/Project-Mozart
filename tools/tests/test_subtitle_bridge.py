@@ -1,12 +1,58 @@
 import pathlib,sys,unittest
 from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
-from subtitle_bridge import translate, translate_recognized_event
+from subtitle_bridge import caption_updates, translate, translate_recognized_event
 
 def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
 
 class BridgeChecks(unittest.TestCase):
+    def test_source_is_available_before_translation_starts(self):
+        with patch('subtitle_bridge.translate_recognized_event', return_value=('Hello.', .1)) as translate_call:
+            updates = caption_updates({'seq': 7, 'text': '你好。'}, 1, 'session', 'http://example')
+            source = next(updates)
+            translate_call.assert_not_called()
+            self.assertEqual((source['zh'], source['en']), ('你好。', ''))
+            self.assertEqual(source['translation_status'], 'pending')
+            translated = next(updates)
+            self.assertEqual(translated['utterance_id'], source['utterance_id'])
+            self.assertEqual((source['revision'], translated['revision']), (0, 1))
+            self.assertEqual(translated['en'], 'Hello.')
+            self.assertEqual(translated['translation_status'], 'completed')
+            self.assertEqual(source['en'], '')
+            with self.assertRaises(StopIteration):
+                next(updates)
+
+    def test_translation_is_available_before_speech_request(self):
+        with patch('subtitle_bridge.translate_recognized_event', return_value=('Hello.', .1)), \
+                patch('subtitle_bridge.request_json', side_effect=TimeoutError('Speech timeout')) as speech_call:
+            updates = caption_updates({'seq': 7, 'text': '你好。'}, 1, 'session',
+                                      'http://example', 'http://speech')
+            next(updates)
+            translated = next(updates)
+            speech_call.assert_not_called()
+            self.assertEqual(translated['en'], 'Hello.')
+            result = next(updates)
+            self.assertEqual(result['revision'], 2)
+            self.assertEqual(result['en'], 'Hello.')
+            self.assertEqual(result['speech_error'], 'Speech timeout')
+            self.assertNotIn('speech_error', translated)
+            speech_call.assert_called_once()
+            with self.assertRaises(StopIteration):
+                next(updates)
+
+    def test_uncertain_source_remains_visible_without_speech(self):
+        event = {'seq': 7, 'text': '700。', 'asr_numeric_audit': {'issues': ['itn_quantity_disagreement']}}
+        with patch('subtitle_bridge.request_json') as request:
+            updates = list(caption_updates(event, 1, 'session', 'http://example', 'http://speech'))
+        request.assert_not_called()
+        self.assertEqual(len(updates), 2)
+        self.assertEqual(updates[0]['zh'], '700。')
+        self.assertEqual(updates[1]['translation_status'], 'failed')
+        self.assertEqual(updates[1]['speech_skipped_reason'], 'asr_numeric_uncertainty')
+        self.assertIn('Recognition uncertain', updates[1]['translation_error'])
+        self.assertEqual(updates[1]['en'], '')
+
     def test_unresolved_context_never_calls_translator(self):
         for text in ['他不管对面是谁，不管自己啊在。','妈妈已经有点不相信了妈妈。']:
             event={'text':text}

@@ -3,6 +3,7 @@
 // UI 模板从原 vanilla 控制中心 1:1 平移（class/结构未动），逻辑从原 vanilla
 // main.ts 移植为组合式状态。新增：SUB 字幕条（SSE 订阅）。
 import SpeechPanel from './SpeechPanel.vue';
+import { upsertSubtitle } from './subtitles';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
@@ -348,9 +349,7 @@ const connectSubtitles = () => {
     eventSource.onmessage = (event) => {
       try {
         const caption = JSON.parse(event.data) as SubtitleEvent;
-        if (caption.utterance_id && subtitleEvents.value.some(item => item.utterance_id === caption.utterance_id)) return;
-        subtitleEvents.value.push(caption);
-        if (subtitleEvents.value.length > 50) subtitleEvents.value.shift();
+        upsertSubtitle(subtitleEvents.value, caption);
       } catch { /* 非 JSON 行忽略 */ }
     };
     eventSource.onerror = () => { subtitleState.value = 'offline'; };
@@ -577,7 +576,7 @@ onUnmounted(() => {
         </div>
         <div class="min-w-0 flex-1 text-left">
           <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音输入…' }}</div>
-          <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.en || '' }}</div>
+          <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.translation_status === 'pending' ? '翻译中…' : latestSubtitle?.en || '' }}</div>
           <p v-if="latestSubtitle?.translation_error || latestSubtitle?.speech_error" class="text-[11px] text-amber-700 leading-4" role="status">{{ latestSubtitle.translation_error || latestSubtitle.speech_error }}</p>
         </div>
         <span v-if="latestSubtitle?.translate_ms !== undefined" class="shrink-0 font-mono text-[9px] text-gray-400 tabular-nums self-center">{{ latestSubtitle.translate_ms }}ms</span>

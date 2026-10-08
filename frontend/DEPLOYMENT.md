@@ -14,6 +14,7 @@ FFmpeg is necessary for file conversion.
 ONNX Runtime and its development files are necessary for ONNX inference.
 The applicable libraries and model engines are necessary for TensorRT inference.
 Node.js and npm are necessary for the frontend.
+Use Node.js 24 to run the subtitle tests with `npm --prefix frontend test`.
 
 Do a check of the installed programs:
 

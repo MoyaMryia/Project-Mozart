@@ -59,6 +59,8 @@ export interface MonitorSnapshot {
 export interface SubtitleEvent {
   seq: number;
   utterance_id?: string;
+  revision?: number;
+  translation_status?: 'pending' | 'completed' | 'failed';
   zh: string;
   en: string;
   translate_ms?: number;
