@@ -161,7 +161,11 @@ The original input is the source reference.
 
 The bridge uses `--speak` for speech requests.
 It uses the selected speech session and accepts only translated text for speech.
-A failed translation publishes the source caption and an error.
+A failed translation publishes the source caption, the last available candidate, and an error.
+The frontend labels the candidate as unverified.
+With speech enabled, the bridge also submits that candidate and sets `speech_degraded: true`.
+Translation status stays `failed`; the record retains the checks and any speech request error.
+Without a candidate, the bridge publishes the source and error without a speech request.
 It does not use source-language speech as a substitute.
 Partial Zipformer captions reach the frontend before endpoint detection.
 One background worker translates final utterances in order.
@@ -186,6 +190,7 @@ It converts exact composites such as 七万五千 to 75,000 as one quantity.
 It does not accept two quantities, 70,000 and 5,000, as an equivalent translation.
 Vague, malformed, mixed, and colloquial quantities stay unchanged.
 The caption audit keeps the original Chinese and attempted English.
+For ambiguous repeated units such as 七千五千, the checks do not require an invented sum of 12,000.
 These checks do not prove semantic accuracy.
 
 ### Recognition uncertainty
@@ -256,7 +261,7 @@ Waiting speech does not expire after 30 seconds. Queue delay and estimated durat
 The service accepts waiting text before audio capacity becomes available.
 The existing 12-second audio buffer limit still controls synthesis. The service keeps generated WAV files on disk.
 Delay can increase when the output duration exceeds the input duration.
-Invalid text, translation checks, engine errors, and explicit cancellation can still prevent speech.
+Invalid text, unavailable translation candidates, engine errors, and explicit cancellation can still prevent speech.
 The [coverage report](../reports/realtime-patches-20261008/COVERAGE.md) gives the replay results and limits.
 
 Speech tasks use `speech-jobs.sqlite3` in the speech data directory.

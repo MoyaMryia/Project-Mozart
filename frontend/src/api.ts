@@ -68,6 +68,7 @@ export interface SubtitleEvent {
   en: string;
   translate_ms?: number;
   translation_error?: string;
+  speech_degraded?: boolean;
   speech_error?: string;
   ts: string;
 }

@@ -148,7 +148,10 @@ def required_number_counts(text):
         if len(amount) == 3 and amount[0] in DIGITS and amount[1] in DIGITS and amount[2] in ('百','千'):
             numbers.update(str(DIGITS[c]*UNITS[amount[2]]) for c in amount[:2])
         else:
-            numbers[str(integer(amount))] += 1
+            # Do not sum repeated units in an ambiguous recognition result.
+            value = _exact_section(amount)
+            if value is not None:
+                numbers[str(value)] += 1
     return numbers
 
 

@@ -2,7 +2,7 @@ import type { SubtitleEvent } from './api';
 
 export function latestTranslation(events: SubtitleEvent[]): SubtitleEvent | null {
   for (let i = events.length-1; i >= 0; i--) {
-    if (events[i].en && events[i].translation_status !== 'failed') return events[i];
+    if (events[i].en) return events[i];
   }
   return null;
 }
