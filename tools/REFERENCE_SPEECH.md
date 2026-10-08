@@ -166,6 +166,7 @@ The frontend labels the candidate as unverified.
 With speech enabled, the bridge also submits that candidate and sets `speech_degraded: true`.
 The speech service stores this flag and permits Chinese characters in the candidate.
 The English engine has no verified Chinese pronunciation support.
+The [fallback report](../reports/realtime-patches-20261008/FALLBACK.md) gives the validation results and limits.
 Translation status stays `failed`; the record retains the checks and any speech request error.
 Without a candidate, the bridge publishes the source and error without a speech request.
 It does not use source-language speech as a substitute.
