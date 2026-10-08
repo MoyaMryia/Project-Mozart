@@ -117,6 +117,8 @@ The subtitle revision increases for each update; fixed revision numbers do not i
 
 Explicit digits, spoken four-digit years, and large quantities receive numeric checks.
 A failed check permits one fresh translation retry.
+The bridge limits each attempt to 128 output tokens.
+A response with `finish_reason=length` fails the translation checks.
 Repeated quantities must keep their occurrence counts.
 The checks reject invented large amounts, missing quantities, untranslated Chinese, and token-limit truncation.
 A calendar month name can replace its number only if it does not hide another missing quantity.
