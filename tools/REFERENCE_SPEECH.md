@@ -257,6 +257,7 @@ The service accepts waiting text before audio capacity becomes available.
 The existing 12-second audio buffer limit still controls synthesis. The service keeps generated WAV files on disk.
 Delay can increase when the output duration exceeds the input duration.
 Invalid text, translation checks, engine errors, and explicit cancellation can still prevent speech.
+The [coverage report](../reports/realtime-patches-20261008/COVERAGE.md) gives the replay results and limits.
 
 Speech tasks use `speech-jobs.sqlite3` in the speech data directory.
 Translation tasks use `captions/translation-queue.sqlite3` in that directory.
