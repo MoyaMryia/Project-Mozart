@@ -63,7 +63,7 @@ def translate(url, text, timeout=10, audit=None):
     for attempt in range(2):
         result = request_json(url+'/v1/chat/completions', {
             'chat_template_kwargs': {'enable_thinking': False},
-            'messages': messages, 'max_tokens': 300, 'temperature': 0}, timeout)
+            'messages': messages, 'max_tokens': 128, 'temperature': 0}, timeout)
         choice = result['choices'][0]
         content = choice['message']['content'].strip()
         if not content:
