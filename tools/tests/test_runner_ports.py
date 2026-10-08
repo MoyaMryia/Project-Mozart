@@ -2,6 +2,7 @@ import socket
 import sys
 import unittest
 from unittest.mock import Mock
+from unittest.mock import patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -9,6 +10,26 @@ from run_translated_speech import assert_ports_available, check_services
 
 
 class RunnerPorts(unittest.TestCase):
+    def test_optional_service_exit_does_not_stop_captions(self):
+        speech, captions = Mock(), Mock()
+        speech.poll.return_value = 3
+        captions.poll.return_value = None
+        degraded = set()
+        with patch('run_translated_speech.print') as output:
+            for _ in range(2):
+                check_services([('speech', speech, None), ('captions', captions, None)],
+                               800*1024, {'speech', 'translation'}, degraded)
+        self.assertEqual(degraded, {'speech'})
+        output.assert_called_once()
+
+    def test_critical_failure_and_memory_guard_remain_active_in_degraded_mode(self):
+        captions = Mock()
+        captions.poll.return_value = 2
+        with self.assertRaisesRegex(RuntimeError, 'captions exited'):
+            check_services([('captions', captions, None)], 800*1024, {'speech', 'translation'})
+        with self.assertRaisesRegex(RuntimeError, '768 MiB'):
+            check_services([], 767*1024, {'speech', 'translation'})
+
     def test_retained_services_are_supervised_after_capture_ends(self):
         speech = Mock(); speech.poll.return_value = None
         translation = Mock(); translation.poll.return_value = None

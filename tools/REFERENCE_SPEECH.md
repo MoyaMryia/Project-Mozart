@@ -48,8 +48,12 @@ After capture and queued speech end, the API and voice previews stay available.
 The supervisor continues its child-process checks and 768 MiB available-memory guard.
 
 The supervisor starts the native API, ASR, translator, and speech service.
-It rejects occupied ports and waits for speech engine readiness before capture.
-It drains the final caption and stops its children on exit.
+It rejects occupied ports. Capture starts after the native API and online ASR become ready.
+Speech engine warmup and reference selection run in a background thread.
+During model startup, translation can fail and speech can skip. The bridge reports these outcomes without replaying earlier utterances.
+Translation and speech service failures keep source captions running.
+Native API or ASR failures still stop the stack. The 768 MiB available-memory guard remains active.
+The supervisor drains captions within the shutdown deadline and stops its children on exit.
 It does not start the frontend or optional RVC monitor.
 
 In a different terminal, start the frontend:
@@ -67,7 +71,8 @@ These limits prevent that default from determining the deployment memory budget.
 
 The options are `--translation-cache-mib`, `--translation-batch-size`, and `--translation-ubatch-size`.
 The `--llama-model` option selects a different model.
-Candidate models must pass full quality and memory tests before deployment.
+The default translator is Qwen 0.8B.
+Use this model for the next latency test. Evaluate larger models only when specific translation errors require them.
 
 ## Reference profiles and independent service
 
