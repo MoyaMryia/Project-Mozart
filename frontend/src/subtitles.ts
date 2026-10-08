@@ -8,6 +8,12 @@ export function upsertSubtitle(events: SubtitleEvent[], caption: SubtitleEvent):
     events[index] = caption;
     return;
   }
-  events.push(caption);
+  const session = caption.utterance_id?.split(':').slice(0, -1).join(':');
+  const sameSession = (item: SubtitleEvent) => session &&
+    item.utterance_id?.split(':').slice(0, -1).join(':') === session;
+  if (events.length === 50 && events.some(item => sameSession(item) && item.seq > caption.seq)) return;
+  const position = events.findIndex(item => sameSession(item) && item.seq > caption.seq);
+  if (position >= 0) events.splice(position, 0, caption);
+  else events.push(caption);
   if (events.length > 50) events.shift();
 }

@@ -47,3 +47,22 @@ test('legacy events remain valid and caption history stays bounded', () => {
   assert.equal(events.length, 50);
   assert.equal(events[0].utterance_id, '1');
 });
+
+test('partial, final and translation use one row with increasing revisions', () => {
+  const events: SubtitleEvent[] = [];
+  upsertSubtitle(events, {...source('session:1'), final: false, translation_status: 'recognizing'});
+  upsertSubtitle(events, {...source('session:1'), revision: 1, final: true});
+  upsertSubtitle(events, {...source('session:1'), revision: 2, final: true, en: 'Hello.', translation_status: 'completed'});
+  assert.equal(events.length, 1);
+  assert.equal(events[0].final, true);
+  assert.equal(events[0].en, 'Hello.');
+});
+
+test('late translation cannot restore an old row after history eviction', () => {
+  const events: SubtitleEvent[] = [];
+  for (let seq = 1; seq <= 51; seq++) upsertSubtitle(events, {...source(`session:${seq}`), seq});
+  upsertSubtitle(events, {...source('session:1'), seq: 1, revision: 2, en: 'Late'});
+  assert.equal(events.length, 50);
+  assert.equal(events[0].seq, 2);
+  assert.equal(events[49].seq, 51);
+});

@@ -136,17 +136,23 @@ Each SSE connection uses a thread, with no configured connection limit.
 
 For each utterance, the bridge sends complete records with the same `utterance_id`:
 
-| `revision` | Record content |
+| Stage | Record content |
 | --- | --- |
-| `0` | Source text with `translation_status: pending`, before translation starts. |
-| `1` | Translation result with status `completed` or `failed`, before the speech request. |
-| `2` | Speech request result or error, if translated text was submitted for speech. |
+| Partial ASR | Source text with `final: false` and `translation_status: recognizing`. |
+| Final ASR | Source text with `final: true` and `translation_status: pending`. |
+| Translation | Result with status `completed`, `failed`, or `skipped`. |
+| Speech request | Request result or error, if translated text was submitted for speech. |
 
 Use `utterance_id` to update the same caption. Accept only a newer revision.
 Treat a missing revision as `0` for older producers.
+The bridge increases the revision for each update. Stage numbers are not fixed revision values.
 Count utterances by ID, not by JSONL line count.
 The `final` field marks final ASR text. It does not mean translation or speech has finished.
-Translation and speech requests still use serial processing in this small patch.
+One background worker processes translation and speech requests in order.
+Its queue holds at most four waiting final utterances, plus one active utterance.
+A full queue produces `translation_status: skipped`; source captions continue.
+Partial captions do not start translation or speech.
+Shutdown allows 20 seconds for background work. Pending translations then receive an explicit skipped status.
 
 Reference speech uses translated text and does not use the Zero-Shot VC mode enum.
 A missing speech service returns HTTP 503.

@@ -15,6 +15,9 @@ import sys
 import time
 import urllib.request
 import uuid
+import threading
+import queue
+from collections import OrderedDict
 from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles
 import re
 from asr_checks import boundary_fragment_audit
@@ -111,23 +114,30 @@ def translate_recognized_event(url, event, audit=None):
     return translate(url, event['text'].strip(), audit=audit)
 
 
-def caption_updates(event, seq, session_id, llama_url, speech_url=None):
-    """Publish source text, then translation, then the speech request result."""
+def source_caption(event, seq, session_id):
     text = event['text'].strip()
+    final = event.get('type', 'final') == 'final'
     record = {'seq': seq, 'utterance_id': f'{session_id}:{event["seq"]}',
         'zh': text, 'en': '', 'asr_engine': event.get('final_engine', 'zipformer'),
         'received_at': time.time(), 'asr_emitted_at': event.get('emitted_at'),
         'online_text': event.get('online_text', text),
         'final_decode_ms': event.get('final_decode_ms', 0),
-        'ts': time.strftime('%H:%M:%S'), 'final': True,
-        'revision': 0, 'translation_status': 'pending'}
+        'ts': time.strftime('%H:%M:%S'), 'final': final,
+        'revision': 0, 'translation_status': 'pending' if final else 'recognizing'}
     for name in ('source_audio','source_audio_sha256','source_audio_seconds',
                  'audio_start_pts_ns','audio_end_pts_ns','asr_numeric_audit','asr_polarity_audit'):
         if name in event:
             record[name] = event[name]
-    boundary = boundary_fragment_audit(text)
+    boundary = boundary_fragment_audit(text) if final else None
     if boundary is not None:
         record['asr_boundary_audit'] = boundary
+    return record
+
+
+def caption_updates(event, seq, session_id, llama_url, speech_url=None):
+    """Publish source text, then translation, then the speech request result."""
+    text = event['text'].strip()
+    record = source_caption(event, seq, session_id)
     yield dict(record)
 
     translating = time.monotonic()
@@ -158,6 +168,83 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
             record['speech_error'] = str(error)
         record['revision'] = 2
         yield dict(record)
+
+
+class CaptionDispatcher:
+    """Publish source captions while one worker processes a bounded translation queue."""
+
+    def __init__(self, publish, session_id, llama_url, speech_url=None, pending_limit=4):
+        self.publish, self.session_id = publish, session_id
+        self.llama_url, self.speech_url = llama_url, speech_url
+        self.pending = queue.Queue(maxsize=pending_limit)
+        self.latest = OrderedDict()
+        self.lock = threading.RLock()
+        self.closing = threading.Event()
+        self.aborted = False
+        self.worker = threading.Thread(target=self.run, daemon=True)
+        self.worker.start()
+
+    def update(self, key, changes, create=False):
+        with self.lock:
+            if self.aborted or (key not in self.latest and not create):
+                return
+            previous = self.latest.get(key, {})
+            record = {**previous, **changes, 'revision': previous.get('revision', -1)+1}
+            self.latest[key] = record
+            while len(self.latest) > 128:
+                self.latest.popitem(last=False)
+            self.publish(dict(record))
+
+    def accept(self, event):
+        if event.get('type') not in ('partial', 'final') or not event.get('text', '').strip():
+            return
+        record = source_caption(event, event['seq'], self.session_id)
+        key = record['utterance_id']
+        with self.lock:
+            if self.closing.is_set() or self.latest.get(key, {}).get('final'):
+                return
+            self.update(key, record, create=True)
+            if not record['final']:
+                return
+            try:
+                self.pending.put_nowait(dict(event))
+            except queue.Full:
+                self.update(key, {'translation_status': 'skipped',
+                    'translation_error': 'Translation queue is full; source caption remains available'})
+
+    def run(self):
+        while not self.aborted and (not self.closing.is_set() or not self.pending.empty()):
+            try:
+                event = self.pending.get(timeout=.1)
+            except queue.Empty:
+                continue
+            key = f'{self.session_id}:{event["seq"]}'
+            try:
+                updates = caption_updates(event, event['seq'], self.session_id,
+                                          self.llama_url, self.speech_url)
+                next(updates)
+                for record in updates:
+                    changes = {name: value for name, value in record.items()
+                               if name.startswith(('translation_', 'speech')) or name in
+                               ('en', 'translate_ms', 'translated_at')}
+                    changes['translation_source_text'] = event['text'].strip()
+                    self.update(key, changes)
+            except Exception as error:
+                self.update(key, {'translation_status': 'failed', 'translation_error': str(error)})
+            finally:
+                self.pending.task_done()
+
+    def close(self, timeout=20):
+        self.closing.set()
+        self.worker.join(timeout=timeout)
+        with self.lock:
+            if self.worker.is_alive():
+                for key, record in list(self.latest.items()):
+                    if record.get('translation_status') == 'pending':
+                        self.update(key, {'translation_status': 'skipped',
+                            'translation_error': 'Translation stopped at the shutdown deadline'})
+                self.aborted = True
+        return not self.worker.is_alive()
 
 
 def main():
@@ -191,20 +278,22 @@ def main():
     print(f'[bridge] stt pid={stt.pid} port={args.stt_port}', file=sys.stderr, flush=True)
     try:
         with open(args.jsonl, 'a', encoding='utf-8') as captions:
-            seq = 0
-            for line in stt.stdout:
-                try:
-                    event = json.loads(line.strip())
-                except json.JSONDecodeError:
-                    continue
-                if event.get('type') != 'final' or not event.get('text', '').strip():
-                    continue
-                seq += 1
-                for record in caption_updates(event, seq, session_id, args.llama_url,
-                                              args.speech_url if args.speak else None):
-                    print(json.dumps(record, ensure_ascii=False), flush=True)
-                    captions.write(json.dumps(record, ensure_ascii=False)+'\n')
-                    captions.flush()
+            def publish(record):
+                line = json.dumps(record, ensure_ascii=False)
+                print(line, flush=True)
+                captions.write(line+'\n')
+                captions.flush()
+            dispatcher = CaptionDispatcher(publish, session_id, args.llama_url,
+                                           args.speech_url if args.speak else None)
+            try:
+                for line in stt.stdout:
+                    try:
+                        event = json.loads(line.strip())
+                    except json.JSONDecodeError:
+                        continue
+                    dispatcher.accept(event)
+            finally:
+                dispatcher.close()
         stt.wait(timeout=5)
         if stt.returncode:
             raise RuntimeError(f'STT exited with status {stt.returncode}')
