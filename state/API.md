@@ -142,6 +142,7 @@ For each utterance, the bridge sends complete records with the same `utterance_i
 | Final ASR | Source text with `final: true` and `translation_status: pending`. |
 | Translation | Result with status `completed`, `failed`, or `skipped`. |
 | Speech request | Request result or error, if translated text was submitted for speech. |
+| Optional ASR refinement | `refined_zh` and `refinement_status`, without another translation or speech request. |
 
 Use `utterance_id` to update the same caption. Accept only a newer revision.
 Treat a missing revision as `0` for older producers.
@@ -152,6 +153,9 @@ One background worker processes translation and speech requests in order.
 Its queue holds at most four waiting final utterances, plus one active utterance.
 A full queue produces `translation_status: skipped`; source captions continue.
 Partial captions do not start translation or speech.
+Optional refinement runs after online ASR. The original `zh` remains the translation source.
+The frontend shows a different `refined_zh` separately.
+Refinement audits use `refinement_numeric_audit` and `refinement_polarity_audit`.
 Shutdown allows 20 seconds for background work. Pending translations then receive an explicit skipped status.
 
 Reference speech uses translated text and does not use the Zero-Shot VC mode enum.

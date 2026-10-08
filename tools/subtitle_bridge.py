@@ -125,7 +125,8 @@ def source_caption(event, seq, session_id):
         'ts': time.strftime('%H:%M:%S'), 'final': final,
         'revision': 0, 'translation_status': 'pending' if final else 'recognizing'}
     for name in ('source_audio','source_audio_sha256','source_audio_seconds',
-                 'audio_start_pts_ns','audio_end_pts_ns','asr_numeric_audit','asr_polarity_audit'):
+                 'audio_start_pts_ns','audio_end_pts_ns','asr_numeric_audit','asr_polarity_audit',
+                 'refinement_status'):
         if name in event:
             record[name] = event[name]
     boundary = boundary_fragment_audit(text) if final else None
@@ -196,6 +197,16 @@ class CaptionDispatcher:
             self.publish(dict(record))
 
     def accept(self, event):
+        if event.get('type') == 'refined':
+            changes = {'refinement_status': event['refinement_status']}
+            for source, target in (('refined_text', 'refined_zh'), ('refinement_error', 'refinement_error'),
+                                   ('final_decode_ms', 'refinement_decode_ms'),
+                                   ('asr_numeric_audit', 'refinement_numeric_audit'),
+                                   ('asr_polarity_audit', 'refinement_polarity_audit')):
+                if source in event:
+                    changes[target] = event[source]
+            self.update(f'{self.session_id}:{event["seq"]}', changes)
+            return
         if event.get('type') not in ('partial', 'final') or not event.get('text', '').strip():
             return
         record = source_caption(event, event['seq'], self.session_id)

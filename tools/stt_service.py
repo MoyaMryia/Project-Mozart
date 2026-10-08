@@ -28,9 +28,10 @@ from pathlib import Path
 import wave
 import array
 import hashlib
+import threading
 
 import sherpa_onnx
-from asr_checks import refine_with_numeric_check, polarity_audit
+from asr_refinement import UtteranceRefiner
 
 MZRT_MAGIC = 0x4D5A5254
 HEADER = struct.Struct("<IQIBBBB")  # magic, pts_ns, frame_idx, vad, energy, conf, segment
@@ -72,10 +73,16 @@ def main():
     signal.signal(signal.SIGTERM, _sigterm)
 
     recognizer = build_recognizer(args)
-    final_recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+    output_lock = threading.Lock()
+    def emit(event):
+        with output_lock:
+            if args.json:
+                print(json.dumps(event, ensure_ascii=False), flush=True)
+            elif event['type'] == 'refined':
+                print(f"\n[REFINED#{event['seq']}] {event.get('refined_text', event.get('refinement_error', ''))}", flush=True)
+    refiner = UtteranceRefiner(lambda: sherpa_onnx.OfflineRecognizer.from_sense_voice(
         model=f"{args.final_model}/model.int8.onnx", tokens=f"{args.final_model}/tokens.txt",
-        num_threads=args.threads, language="zh", use_itn=True,
-    ) if args.final_model else None
+        num_threads=args.threads, language="zh", use_itn=True), emit) if args.final_model else None
     utterance_pcm = []
     utterance_start_pts = None
     utterance_end_pts = None
@@ -121,13 +128,6 @@ def main():
             cut_offset = len(text)
         delta = text[cut_offset:].strip()
         online_text = delta
-        final_seconds = 0.0
-        numeric_check = None
-        if final_recognizer and utterance_pcm:
-            began = time.monotonic()
-            delta, numeric_check = refine_with_numeric_check(final_recognizer,
-                [sample for frame in utterance_pcm for sample in frame], online_text)
-            final_seconds = time.monotonic()-began
         captured_pcm = utterance_pcm
         captured_start = utterance_start_pts
         utterance_pcm = []
@@ -138,11 +138,6 @@ def main():
             finals += 1
             diagnostic = {'emitted_at':time.time(), 'audio_start_pts_ns':captured_start,
                           'audio_end_pts_ns':utterance_end_pts}
-            if numeric_check is not None:
-                diagnostic['asr_numeric_audit'] = numeric_check
-            polarity = polarity_audit(online_text, delta) if final_recognizer else None
-            if polarity is not None:
-                diagnostic['asr_polarity_audit'] = polarity
             if args.utterance_dir and captured_pcm:
                 path=args.utterance_dir/f'{finals:04d}.wav'
                 samples=array.array('h',(max(-32768,min(32767,round(sample*32768)))
@@ -153,16 +148,17 @@ def main():
                     audio.writeframes(samples.tobytes())
                 diagnostic.update(source_audio=str(path),source_audio_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
                                   source_audio_seconds=len(samples)/16000)
-            print(f"\n[FINAL#{finals}] {delta}", flush=True)
+            with output_lock:
+                print(f"\n[FINAL#{finals}] {delta}", flush=True)
             if transcript_f:
                 transcript_f.write(delta + "\n")
                 transcript_f.flush()
-            if args.json:
-                print(json.dumps({"type": "final", "seq": finals, "text": delta, "online_text": online_text,
-                    "final_engine": "sensevoice" if final_recognizer else "zipformer",
-                    **diagnostic,
-                    "final_decode_ms": round(final_seconds*1000)},
-                                 ensure_ascii=False), flush=True)
+            event = {'type': 'final', 'seq': finals, 'text': delta, 'online_text': online_text,
+                     'final_engine': 'zipformer', **diagnostic, 'final_decode_ms': 0,
+                     'refinement_status': 'pending' if refiner else 'disabled'}
+            emit(event)
+            if refiner and captured_pcm:
+                refiner.submit(event, captured_pcm)
 
     def finish_stream():
         """连接结束：喂 tail + input_finished，切出最后一段增量。"""
@@ -185,9 +181,9 @@ def main():
             last_partial_emit = now
             if args.json:
                 if delta.strip():
-                    print(json.dumps({'type': 'partial', 'seq': finals+1, 'text': delta,
+                    emit({'type': 'partial', 'seq': finals+1, 'text': delta,
                         'emitted_at': time.time(), 'audio_start_pts_ns': utterance_start_pts,
-                        'audio_end_pts_ns': utterance_end_pts}, ensure_ascii=False), flush=True)
+                        'audio_end_pts_ns': utterance_end_pts})
             else:
                 print("\r[PART] " + delta, end="", flush=True)
 
@@ -207,7 +203,7 @@ def main():
                         show_partial()
                 if time.monotonic() - last_report > 10:
                     print(f"\n[stt] packets={packets} finals={finals} "
-                          f"pending_seg={current_seg}", flush=True)
+                          f"pending_seg={current_seg}", flush=True, file=sys.stderr)
                     last_report = time.monotonic()
                 continue
 
@@ -243,8 +239,11 @@ def main():
         pass
     finally:
         finish_stream()
+        if refiner:
+            refiner.close()
         if transcript_f:
             transcript_f.close()
+        sock.close()
         print(f"\n[stt] exit: packets={packets} finals={finals}", flush=True)
 
 
