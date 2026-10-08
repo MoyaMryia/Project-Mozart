@@ -1,0 +1,547 @@
+{
+  "tested_commit": "8bf2a46ac7121d9f4e3a330ab00d843ea5fa592f",
+  "date": "2026-10-08",
+  "runs": {
+    "base-v1": {
+      "mode": "base",
+      "caption_record_count": 336,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.0004000663757324219,
+        "p95": 0.0028069019317626953,
+        "max": 0.006023883819580078
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.09818768501281738,
+        "p95": 0.18941426277160645,
+        "max": 0.20005393028259277
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.351,
+        "p95": 2.067,
+        "max": 6.893
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.7700231075286865,
+        "p95": 6.010372638702393,
+        "max": 7.073615550994873
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 16,
+      "job_states": {
+        "completed": 20
+      },
+      "job_count": 20,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 1
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 20,
+        "median": 12.171653389930725,
+        "p95": 22.564629077911377,
+        "max": 22.564629077911377
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 20,
+        "median": 13.215089440345764,
+        "p95": 22.917348384857178,
+        "max": 22.917348384857178
+      },
+      "first_piece_compute_seconds": {
+        "count": 20,
+        "median": 1.684685535000085,
+        "p95": 3.85250896499997,
+        "max": 3.85250896499997
+      },
+      "played_piece_count": 48,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.305145263671875,
+      "cpu_all_cores_percent": {
+        "count": 145,
+        "median": 41.17647058823529,
+        "p95": 52.78688524590164,
+        "max": 55.700325732899024
+      },
+      "max_swap_used_bytes": 0,
+      "swapin_pages": 0,
+      "gpu_percent": {
+        "count": 149,
+        "median": 0,
+        "p95": 91,
+        "max": 99
+      },
+      "gpu_mean_percent": 11.838926174496644,
+      "gpu_nonzero_sample_fraction": 0.14093959731543623,
+      "gpu_temperature_C": {
+        "count": 149,
+        "median": 54.031,
+        "p95": 55.718,
+        "max": 56.281
+      },
+      "max_buffered_audio_seconds": 9.751875867843628,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 150.114268369,
+        "remaining_pids_before_cleanup": [],
+        "injection": null
+      },
+      "completed_audio": {
+        "files": 20,
+        "duration_seconds": 118.56,
+        "all_parents_match_ordered_pieces": true,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "8bf2a46",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/base-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/base-v1/speech"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824304,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "18acebddb4f09061d56aab3da372fb50702c05ff94571ecbbba9283ad0c76047",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "60c12f2fe165c77eb567473333c1332d54dc81a004d6f080b0dffae4de329b06",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "36a161cc06f3cf83438f4f0c8a5ed35d329d3779b35159e5efb7573bfe544807",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "490f6ef48a5de1a5913b5d7d2ea85e937600c9f6bcbceb091db83c339b51369b"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "source_hashes_match_tested_commit": true
+    },
+    "refine-v1": {
+      "mode": "refine",
+      "caption_record_count": 359,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "completed": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.0003762245178222656,
+        "p95": 0.0036127567291259766,
+        "max": 0.006337165832519531
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.09915804862976074,
+        "p95": 0.18547916412353516,
+        "max": 0.20040345191955566
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.36,
+        "p95": 2.022,
+        "max": 6.884
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.7723956108093262,
+        "p95": 5.9867002964019775,
+        "max": 7.054462909698486
+      },
+      "refinement_compute_seconds": {
+        "count": 23,
+        "median": 0.327,
+        "p95": 0.963,
+        "max": 1.336
+      },
+      "translations_with_other_partial_updates_while_pending": 16,
+      "job_states": {
+        "completed": 20
+      },
+      "job_count": 20,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 1
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 20,
+        "median": 12.115358591079712,
+        "p95": 22.682567834854126,
+        "max": 22.682567834854126
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 20,
+        "median": 13.179091930389404,
+        "p95": 23.053380012512207,
+        "max": 23.053380012512207
+      },
+      "first_piece_compute_seconds": {
+        "count": 20,
+        "median": 1.6547815499999388,
+        "p95": 3.7976167500000884,
+        "max": 3.7976167500000884
+      },
+      "played_piece_count": 48,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 3.7491302490234375,
+      "cpu_all_cores_percent": {
+        "count": 145,
+        "median": 42.08809135399674,
+        "p95": 59.706362153344216,
+        "max": 70.04909983633387
+      },
+      "max_swap_used_bytes": 0,
+      "swapin_pages": 0,
+      "gpu_percent": {
+        "count": 149,
+        "median": 0,
+        "p95": 90,
+        "max": 99
+      },
+      "gpu_mean_percent": 11.51006711409396,
+      "gpu_nonzero_sample_fraction": 0.1476510067114094,
+      "gpu_temperature_C": {
+        "count": 149,
+        "median": 54.875,
+        "p95": 56.562,
+        "max": 57.531
+      },
+      "max_buffered_audio_seconds": 9.880375862121582,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 150.07667322199995,
+        "remaining_pids_before_cleanup": [],
+        "injection": null
+      },
+      "completed_audio": {
+        "files": 20,
+        "duration_seconds": 118.56,
+        "all_parents_match_ordered_pieces": true,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "8bf2a46",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/refine-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/refine-v1/speech",
+          "--final-model",
+          "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
+        ],
+        "mode": "refine",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824318,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "18acebddb4f09061d56aab3da372fb50702c05ff94571ecbbba9283ad0c76047",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "60c12f2fe165c77eb567473333c1332d54dc81a004d6f080b0dffae4de329b06",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "36a161cc06f3cf83438f4f0c8a5ed35d329d3779b35159e5efb7573bfe544807",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "490f6ef48a5de1a5913b5d7d2ea85e937600c9f6bcbceb091db83c339b51369b"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "source_hashes_match_tested_commit": true
+    },
+    "failure-v1": {
+      "mode": "failure",
+      "caption_record_count": 162,
+      "unique_utterances": 13,
+      "final_utterances": 13,
+      "partial_updates": 132,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 4,
+        "failed": 9
+      },
+      "refinement_status": {
+        "disabled": 13
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 132,
+        "median": 0.0003510713577270508,
+        "p95": 0.0006628036499023438,
+        "max": 0.0044651031494140625
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 132,
+        "median": 0.10214388370513916,
+        "p95": 0.18964314460754395,
+        "max": 0.2000260353088379
+      },
+      "translation_compute_seconds": {
+        "count": 4,
+        "median": 0.3225,
+        "p95": 1.272,
+        "max": 1.272
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 4,
+        "median": 0.5577126741409302,
+        "p95": 1.4151217937469482,
+        "max": 1.4151217937469482
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 3,
+      "job_states": {
+        "completed": 2,
+        "cancelled": 2
+      },
+      "job_count": 4,
+      "source_to_speech_errors": {},
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1,
+        "<urlopen error [Errno 111] Connection refused>": 7
+      },
+      "submit_to_first_play_seconds": {
+        "count": 2,
+        "median": 5.818228840827942,
+        "p95": 9.390439987182617,
+        "max": 9.390439987182617
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 2,
+        "median": 6.7100536823272705,
+        "p95": 9.754338502883911,
+        "max": 9.754338502883911
+      },
+      "first_piece_compute_seconds": {
+        "count": 2,
+        "median": 1.9181786450000118,
+        "p95": 2.2435114200000044,
+        "max": 2.2435114200000044
+      },
+      "played_piece_count": 6,
+      "playback_order_preserved": true,
+      "native_frames": 3000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.278331756591797,
+      "cpu_all_cores_percent": {
+        "count": 61,
+        "median": 10.114192495921692,
+        "p95": 51.72413793103448,
+        "max": 56.22950819672131
+      },
+      "max_swap_used_bytes": 0,
+      "swapin_pages": 0,
+      "gpu_percent": {
+        "count": 63,
+        "median": 0,
+        "p95": 88,
+        "max": 97
+      },
+      "gpu_mean_percent": 6.984126984126984,
+      "gpu_nonzero_sample_fraction": 0.09523809523809523,
+      "gpu_temperature_C": {
+        "count": 63,
+        "median": 53.531,
+        "p95": 54.5,
+        "max": 55.593
+      },
+      "max_buffered_audio_seconds": 6.467047643661499,
+      "finals_after_failure": 7,
+      "partial_updates_after_failure": 70,
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 63.892163810000056,
+        "remaining_pids_before_cleanup": [],
+        "injection": {
+          "at": 1791457094.3247933,
+          "targets": [
+            {
+              "pid": 7889,
+              "command": "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python /home/moyamryia/mozart-realtime-patches-20261008/tools/speech_service.py --model /home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26 --preload --data-dir /home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/failure-v1/speech --playback-device null "
+            },
+            {
+              "pid": 7891,
+              "command": "/home/moyamryia/mozart-archive/qwen35/llama.cpp/build-cuda-bin/llama-server -m /home/moyamryia/mozart-archive/qwen35/gguf/qwen35-0.8b-text-Q4_K_M.gguf -c 2048 -b 256 -ub 128 --cache-ram 128 -ngl 99 -np 1 -t 2 -tb 2 --host 127.0.0.1 --port 18200 --jinja "
+            }
+          ]
+        }
+      },
+      "completed_audio": {
+        "files": 2,
+        "duration_seconds": 13.36,
+        "all_parents_match_ordered_pieces": true,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "8bf2a46",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "60",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/failure-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/failure-v1/speech"
+        ],
+        "mode": "failure",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824311,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "18acebddb4f09061d56aab3da372fb50702c05ff94571ecbbba9283ad0c76047",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "60c12f2fe165c77eb567473333c1332d54dc81a004d6f080b0dffae4de329b06",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "36a161cc06f3cf83438f4f0c8a5ed35d329d3779b35159e5efb7573bfe544807",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "490f6ef48a5de1a5913b5d7d2ea85e937600c9f6bcbceb091db83c339b51369b"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "source_hashes_match_tested_commit": true
+    }
+  },
+  "comparison": {
+    "source_texts_identical": true,
+    "english_texts_identical": true,
+    "same_spoken_source_ids": true,
+    "shared_completed_wavs": 20,
+    "all_shared_wavs_byte_identical": true,
+    "source_seconds_per_run": 120,
+    "source_archive_hashes_verified": true
+  }
+}
