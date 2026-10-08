@@ -150,18 +150,22 @@ The bridge increases the revision for each update. Stage numbers are not fixed r
 Count utterances by ID, not by JSONL line count.
 The `final` field marks final ASR text. It does not mean translation or speech has finished.
 One background worker processes translation and speech requests in order.
-Its queue holds at most four waiting final utterances, plus one active utterance.
-A full queue produces `translation_status: skipped`; source captions continue.
+The default coverage policy stores waiting final utterances in a disk queue.
+It keeps only recent caption records in memory.
+With `--delivery-policy realtime`, the queue holds four waiting final utterances and one active utterance.
+For that policy, a full queue produces `translation_status: skipped`; source captions continue.
 Partial captions do not start translation or speech.
 Optional refinement runs after online ASR. The original `zh` remains the translation source.
 The frontend shows a different `refined_zh` separately.
 If a newer partial caption arrives, the frontend keeps the most recent completed translation in a separate, labeled line.
 Refinement audits use `refinement_numeric_audit` and `refinement_polarity_audit`.
-Shutdown allows 20 seconds for background work. Pending translations then receive an explicit skipped status.
+With the coverage policy, normal shutdown waits for queued translations.
+An interrupted process can resume stored requests with their original utterance IDs.
+With the realtime policy, shutdown allows 20 seconds. Remaining translations then receive an explicit skipped status.
 
 Reference speech uses translated text and does not use the Zero-Shot VC mode enum.
 A missing speech service returns HTTP 503.
-The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes and queue limits.
+The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes, disk queues, and delivery policies.
 
 ## Current HTTP limits
 

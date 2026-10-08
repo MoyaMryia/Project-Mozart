@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reference voice registry, bounded speech jobs and one owned ALSA output.
+"""Reference voice registry, disk-backed speech jobs, and one owned ALSA output.
 
 Runs on loopback behind Mozart's HTTP API. Inference is isolated in a warm child
 process so cancellation/timeouts can release the engine without stopping captions.
@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import select
 import signal
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -23,6 +24,7 @@ from urllib.parse import urlsplit
 import uuid
 import wave
 from speech_chunks import estimated_audio_seconds, split_speech_text
+from durable_jobs import DiskJobs, DiskPending
 
 TERMINAL = {'completed', 'failed', 'cancelled', 'expired'}
 
@@ -33,14 +35,15 @@ class ApiError(Exception):
 
 
 def atomic_json(path, value):
-    temporary = path.with_suffix('.tmp')
+    temporary = path.with_name(path.name+'.tmp')
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2))
     temporary.replace(path)
 
 
 class SpeechService:
     def __init__(self, root, worker_command, engine='pocket', playback_device='default',
-                 queue_limit=4, timeout=90, history_limit=128, preload=False):
+                 queue_limit=4, timeout=90, history_limit=128, preload=False,
+                 delivery_policy='realtime'):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         (self.root/'voices').mkdir(exist_ok=True)
@@ -48,21 +51,36 @@ class SpeechService:
         self.command, self.engine, self.device = worker_command, engine, playback_device
         self.queue_limit, self.timeout, self.history_limit = queue_limit, timeout, history_limit
         self.lock = threading.Condition(threading.RLock())
+        self.delivery_policy = delivery_policy
+        self.storage_warning = None
         self.voices = {p.stem: json.loads(p.read_text()) for p in (self.root/'voices').glob('*.json')}
         self.jobs, self.pending, self.keys = OrderedDict(), deque(), OrderedDict()
+        if self.delivery_policy == 'coverage':
+            self.jobs = DiskJobs(self.root/'speech-jobs.sqlite3', history_limit,
+                pinned=lambda: {getattr(self, 'active', None), getattr(self, 'active_play', None)}-{None})
+            self.pending = DiskPending(self.jobs)
         self.play_pending = deque()
         self.playback_limit_seconds = 12
         self.live_audio_budget_seconds = 24
         self.deferred_limit = 4
         self.active_play_piece = None
-        for path in sorted((self.root/'results').glob('*.json'), key=lambda p: p.stat().st_mtime):
+        paths = [] if isinstance(self.jobs, DiskJobs) and len(self.jobs) else sorted((self.root/'results').glob('*.json'), key=lambda p: p.stat().st_mtime)
+        for path in paths:
             job = json.loads(path.read_text())
-            if job['status'] not in TERMINAL:
+            if job['status'] not in TERMINAL and self.delivery_policy != 'coverage':
                 job.update(status='failed', error='Speech service restarted before completion')
                 atomic_json(path, job)
             self.jobs[job['id']] = job
-            if job.get('utterance_id'):
+            if job.get('utterance_id') and self.delivery_policy != 'coverage':
                 self.keys[job['utterance_id']] = job['id']
+        if self.delivery_policy == 'coverage':
+            for key in self.jobs.ids("status NOT IN ('completed','failed','cancelled','expired')"):
+                job = self.jobs[key]
+                if 'playback_started_at' in job:
+                    job.update(status='failed', error='Playback was interrupted; automatic replay is disabled')
+                    self.save_job(job)
+                else:
+                    self.reset_waiting(job)
         self.prune()
         self.session = {'enabled': False, 'voice_id': '', 'language': 'en', 'playback': False}
         self.child = self.player = None
@@ -78,7 +96,14 @@ class SpeechService:
 
     def status(self):
         with self.lock:
+            coverage = self.delivery_policy == 'coverage'
+            jobs = self.jobs.recent(self.history_limit) if coverage else [dict(j) for j in reversed(self.jobs.values())]
             return {'available': True, 'engine': self.engine, 'runtime': self.runtime,
+                'delivery_policy': self.delivery_policy,
+                'storage_warning': self.storage_warning,
+                'unfinished_jobs': self.jobs.unfinished() if coverage else sum(j['status'] not in TERMINAL for j in self.jobs.values()),
+                'pending_jobs': len(self.pending),
+                'resident_jobs': len(self.jobs.cache) if coverage else len(self.jobs),
                 'warmup_error':self.warmup_error,
                 'languages': ['en'] if self.engine == 'pocket' else ['en', 'zh'],
                 'reference_tts': True, 'streaming_playback': False,
@@ -86,11 +111,32 @@ class SpeechService:
                 'live_audio_budget_seconds': self.live_audio_budget_seconds,
                 'audio_backlog_seconds': self.audio_backlog_seconds(),
                 'buffered_audio_seconds': self.buffered_audio_seconds(),
-                'deferred_jobs': sum(j.get('admission_pending', False) and j['status'] not in TERMINAL for j in self.jobs.values()),
+                'deferred_jobs': 0 if coverage else sum(j.get('admission_pending', False) and j['status'] not in TERMINAL for j in self.jobs.values()),
                 'session': dict(self.session), 'queue_limit': self.queue_limit,
                 'playback_device': self.device, 'playback_queue_limit_seconds': self.playback_limit_seconds,
                 'voices': list(self.voices.values()),
-                'jobs': [dict(j) for j in reversed(self.jobs.values())]}
+                'jobs': jobs}
+
+    def save_job(self, job):
+        if self.delivery_policy == 'coverage':
+            self.jobs[job['id']] = job
+        try:
+            atomic_json(self.root/'results'/f"{job['id']}.json", job)
+        except OSError as error:
+            if self.delivery_policy != 'coverage':
+                raise
+            self.storage_warning = str(error)
+            print(f'[speech] JSON snapshot failed; the SQLite task remains stored: {error}', file=sys.stderr, flush=True)
+
+    def reset_waiting(self, job):
+        for name in ('error', 'finished_at', 'started_at', 'queue_seconds', 'admitted_at',
+                     'audio_ready_at', 'generation_finished_at', 'duration_seconds',
+                     'synthesis_seconds', 'sample_rate', 'first_callback_seconds', 'expired_stage'):
+            job.pop(name, None)
+        job.update(status='queued', chunks=[], generated_chunks=0, played_chunks=0,
+                   generation_done=False, played_duration_seconds=0, admission_pending=False)
+        self.save_job(job)
+        self.pending.append(job['id'])
 
     def add_voice(self, body):
         import numpy as np
@@ -138,7 +184,8 @@ class SpeechService:
         with self.lock:
             if voice_id not in self.voices:
                 raise ApiError(404, 'Reference voice not found')
-            if any(j['voice_id'] == voice_id and j['status'] not in TERMINAL for j in self.jobs.values()):
+            busy = self.jobs.voice_busy(voice_id) if self.delivery_policy == 'coverage' else any(j['voice_id'] == voice_id and j['status'] not in TERMINAL for j in self.jobs.values())
+            if busy:
                 raise ApiError(409, 'Reference is in use by an unfinished job')
             if self.session['voice_id'] == voice_id:
                 self.session.update(enabled=False, voice_id='')
@@ -160,8 +207,9 @@ class SpeechService:
             key = str(body.get('utterance_id', ''))
             if len(key) > 128:
                 raise ApiError(400, 'Utterance ID exceeds 128 characters')
-            if key and key in self.keys and self.keys[key] in self.jobs:
-                return dict(self.jobs[self.keys[key]])
+            existing = self.jobs.find_utterance(key) if key and self.delivery_policy == 'coverage' else self.keys.get(key)
+            if existing and existing in self.jobs:
+                return dict(self.jobs[existing])
             voice = self.voices.get(body.get('voice_id'))
             if voice is None:
                 raise ApiError(404, 'Reference voice not found')
@@ -173,9 +221,11 @@ class SpeechService:
                 raise ApiError(400, 'live and playback must be booleans')
             texts = split_speech_text(text, language) if live or playback else [text]
             estimate = sum(estimated_audio_seconds(piece, language) for piece in texts)
-            unfinished = [j for j in self.jobs.values() if j['status'] not in TERMINAL]
+            unfinished = [] if self.delivery_policy == 'coverage' else [j for j in self.jobs.values() if j['status'] not in TERMINAL]
             admission_pending = False
-            if live and playback:
+            if self.delivery_policy == 'coverage':
+                pass
+            elif live and playback:
                 deferred = sum(j.get('admission_pending', False) for j in unfinished)
                 if len(unfinished) >= 64 or estimate > self.live_audio_budget_seconds:
                     raise ApiError(429, 'Estimated speech delay exceeds the live audio budget; captions continue')
@@ -206,21 +256,26 @@ class SpeechService:
                 'estimated_duration_seconds': estimate, 'played_duration_seconds': 0,
                 'max_duration_seconds': min(45, max(4, (len(text)*.35 if language == 'zh' else len(text.split())*.9)+2)),
                 'result_url': f'/api/speech/jobs/{job_id}/result'}
-            self.jobs[job_id] = job
-            self.pending.append(job_id)
-            if key:
+            try:
+                self.jobs[job_id] = job
+                self.save_job(job)
+                self.pending.append(job_id)
+            except (OSError, sqlite3.Error) as error:
+                raise ApiError(507, 'Speech task storage failed; inspect the service log') from error
+            if key and self.delivery_policy != 'coverage':
                 self.keys[key] = job_id
                 while len(self.keys) > 256:
                     self.keys.popitem(last=False)
             self.prune()
-            atomic_json(self.root/'results'/f'{job_id}.json', job)
             self.lock.notify_all()
             return dict(job)
 
     def audio_backlog_seconds(self, include_deferred=False):
         now = time.time()
-        total = 0
-        for job in self.jobs.values():
+        coverage = self.delivery_policy == 'coverage'
+        total = self.pending.estimate() if coverage else 0
+        jobs = (self.jobs[key] for key in self.jobs.ids("pending=0 AND status NOT IN ('completed','failed','cancelled','expired')")) if coverage else self.jobs.values()
+        for job in jobs:
             if job['status'] in TERMINAL or not job['playback'] or (job.get('admission_pending') and not include_deferred):
                 continue
             duration = job.get('duration_seconds', 0)
@@ -242,8 +297,10 @@ class SpeechService:
         return total
 
     def prune(self):
-        for job_id in list(self.jobs):
-            if len(self.jobs) <= self.history_limit:
+        coverage = self.delivery_policy == 'coverage'
+        candidates = self.jobs.history_to_remove(self.history_limit) if coverage else list(self.jobs)
+        for job_id in candidates:
+            if not coverage and len(self.jobs) <= self.history_limit:
                 break
             if self.jobs[job_id]['status'] in TERMINAL and job_id not in {getattr(self, 'active', None), getattr(self, 'active_play', None)}:
                 del self.jobs[job_id]
@@ -259,13 +316,16 @@ class SpeechService:
                 raise ApiError(404, 'Speech job not found')
             if job['status'] not in TERMINAL:
                 job['status'] = 'cancelled'
-                self.pending = deque(i for i in self.pending if i != job_id)
+                if self.delivery_policy == 'coverage':
+                    self.pending.discard(job_id)
+                else:
+                    self.pending = deque(i for i in self.pending if i != job_id)
                 self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job_id)
                 if getattr(self, 'active', None) == job_id:
                     self.kill(self.child)
                 if getattr(self, 'active_play', None) == job_id:
                     self.kill(self.player)
-            atomic_json(self.root/'results'/f'{job_id}.json', job)
+            self.save_job(job)
             self.lock.notify_all()
             return dict(job)
 
@@ -380,7 +440,7 @@ class SpeechService:
                         try:
                             self.child.stdin.write(json.dumps(request).encode()+b'\n')
                             self.child.stdin.flush()
-                            result = self.read_child(timeout=20 if job['live'] else None)
+                            result = self.read_child(timeout=20 if job['live'] and self.delivery_policy != 'coverage' else None)
                             if 'error' in result:
                                 raise RuntimeError(result['error'])
                             with self.lock:
@@ -413,7 +473,7 @@ class SpeechService:
                                     if 'playback_started_at' not in job:
                                         job['status'] = 'ready'
                                     self.lock.notify_all()
-                                atomic_json(output.with_suffix('.json'), job)
+                                self.save_job(job)
                         finally:
                             partial.unlink(missing_ok=True)
                     with self.lock:
@@ -454,12 +514,14 @@ class SpeechService:
                     with self.lock:
                         if job['status'] in TERMINAL:
                             job['finished_at'] = time.time()
-                        atomic_json(output.with_suffix('.json'), job)
+                        self.save_job(job)
                         self.active = None
                         self.prune()
                         self.lock.notify_all()
 
     def expire_before_first_audio(self, job):
+        if self.delivery_policy == 'coverage':
+            return False
         first_output = 'playback_started_at' if job['playback'] else 'audio_ready_at'
         if (job['live'] and first_output not in job and
                 time.time()-job['created_at'] > 30):
@@ -468,7 +530,7 @@ class SpeechService:
             job.update(status='expired', finished_at=time.time(), expired_stage=stage,
                        error=f'Live speech did not reach first output within 30 seconds ({stage})')
             self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job['id'])
-            atomic_json(self.root/'results'/f"{job['id']}.json", job)
+            self.save_job(job)
             self.lock.notify_all()
             return True
         return False
@@ -496,6 +558,7 @@ class SpeechService:
                     chunk['playback_started_at'] = time.time()
                     job['status'] = 'playing'
                     job.setdefault('playback_started_at', chunk['playback_started_at'])
+                    self.save_job(job)
                 try:
                     with self.lock:
                         if job['status'] in TERMINAL or self.closed:
@@ -529,23 +592,39 @@ class SpeechService:
                     with self.lock:
                         if job['status'] in TERMINAL:
                             job['finished_at'] = time.time()
-                        atomic_json(self.root/'results'/f"{job['id']}.json", job)
+                        self.save_job(job)
                         self.active_play = None
                         self.active_play_piece = None
                         self.prune()
                         self.lock.notify_all()
 
     def close(self):
+        restore = []
         with self.lock:
+            if self.closed:
+                return
             self.closed = True
-            for job in list(self.jobs.values()):
+            if self.delivery_policy == 'coverage':
+                keys = self.jobs.ids("pending=0 AND status NOT IN ('completed','failed','cancelled','expired')")
+                jobs = [self.jobs[key] for key in keys]
+            else:
+                jobs = list(self.jobs.values())
+            for job in jobs:
                 if job['status'] not in TERMINAL:
+                    if self.delivery_policy == 'coverage' and 'playback_started_at' not in job:
+                        restore.append(json.loads(json.dumps(job)))
                     self.cancel(job['id'])
             self.lock.notify_all()
         self.kill(self.child)
         self.kill(self.player)
         self.play_worker.join(timeout=5)
         self.worker.join(timeout=5)
+        if not self.worker.is_alive() and not self.play_worker.is_alive():
+            with self.lock:
+                for job in restore:
+                    self.reset_waiting(job)
+                if self.delivery_policy == 'coverage':
+                    self.jobs.close()
         if self.child:
             self.child.stdin.close()
             self.child.stdout.close()
@@ -581,8 +660,10 @@ class SpeechService:
                 return self.submit({**body, **self.session, 'live': True})
             if parts == ['api', 'speech', 'stop'] and method == 'POST':
                 self.session['enabled'] = False
-                for job_id in list(self.jobs):
+                keys = self.jobs.ids("status NOT IN ('completed','failed','cancelled','expired')") if self.delivery_policy == 'coverage' else list(self.jobs)
+                for job_id in keys:
                     self.cancel(job_id)
+                self.prune()
                 return {'stopped': True}
             if parts == ['api', 'speech', 'jobs']:
                 if method == 'GET':
@@ -648,13 +729,15 @@ def main():
     parser.add_argument('--data-dir', type=Path, default=Path.home()/'.local/share/mozart/speech')
     parser.add_argument('--playback-device', default='default')
     parser.add_argument('--preload',action='store_true',help='Initialize the worker before admitting live input')
+    parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     args = parser.parse_args()
     command = [sys.executable, str(Path(__file__).with_name('clone_worker.py')),
         '--model', args.model, '--engine', args.engine, '--threads', str(args.threads), '--vocoder', args.vocoder,
         '--provider', args.provider, '--precision', args.precision]
     if args.provider_config:
         command += ['--provider-config', str(args.provider_config)]
-    service = SpeechService(args.data_dir, command, args.engine, args.playback_device,preload=args.preload)
+    service = SpeechService(args.data_dir, command, args.engine, args.playback_device,
+                            preload=args.preload, delivery_policy=args.delivery_policy)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(service))
     server.daemon_threads = True
     def terminate(*_):

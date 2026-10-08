@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { api } from './api';
 interface Voice { id: string; name: string; status: string; duration_seconds: number; identity_approved: boolean }
 interface SpeechJob { id: string; text: string; status: string; result_url: string; error?: string; duration_seconds?: number; synthesis_seconds?: number; chunk_count?: number; played_chunks?: number; admission_pending?: boolean }
-interface SpeechStatus { engine: string; voices: Voice[]; jobs: SpeechJob[]; languages: string[]; queue_limit: number; live_audio_budget_seconds?: number; playback_device: string; session: { enabled: boolean; voice_id: string; language: string; playback: boolean } }
+interface SpeechStatus { engine: string; voices: Voice[]; jobs: SpeechJob[]; languages: string[]; queue_limit: number; delivery_policy?: string; pending_jobs?: number; live_audio_budget_seconds?: number; playback_device: string; session: { enabled: boolean; voice_id: string; language: string; playback: boolean } }
 const state = ref<SpeechStatus | null>(null);
 const unavailable = ref('');
 const error = ref('');
@@ -94,7 +94,7 @@ onUnmounted(() => clearInterval(timer));
         <button class="border rounded px-3 py-2 text-xs disabled:opacity-40" :disabled="busy || !selectedVoice" @click="session(!selectedSessionActive)">{{ selectedSessionActive ? 'Disable translated speech' : state.session.enabled ? 'Apply selected voice and playback' : 'Enable translated speech' }}</button>
         <button class="border border-red-200 text-red-700 rounded px-3 py-2 text-xs disabled:opacity-40" :disabled="busy" @click="stop">Stop speech and clear queue</button>
       </div>
-      <p class="text-xs text-gray-500" role="status">{{ state.session.enabled ? `Translated speech enabled · ${sessionVoiceName} · ${state.session.playback ? (state.playback_device === 'null' ? 'Silent mock speaker' : 'Jetson playback') : 'WAV output'}` : 'Translated speech disabled' }} · {{ state.live_audio_budget_seconds ? `Live audio budget ${state.live_audio_budget_seconds}s` : `Up to ${state.queue_limit} unfinished jobs` }} · Speech must start within 30 seconds</p>
+      <p class="text-xs text-gray-500" role="status">{{ state.session.enabled ? `Translated speech enabled · ${sessionVoiceName} · ${state.session.playback ? (state.playback_device === 'null' ? 'Silent mock speaker' : 'Jetson playback') : 'WAV output'}` : 'Translated speech disabled' }} · {{ state.delivery_policy === 'coverage' ? `Coverage priority · ${state.pending_jobs ?? 0} waiting tasks · Delay can increase` : `${state.live_audio_budget_seconds ? `Live audio budget ${state.live_audio_budget_seconds}s` : `Up to ${state.queue_limit} unfinished jobs`} · Speech must start within 30 seconds` }}</p>
       <div v-for="job in state.jobs.slice(0, 6)" :key="job.id" class="border-t border-gray-100 pt-2 space-y-1 text-xs">
         <div class="flex justify-between gap-2"><span class="font-bold">{{ job.status === 'queued' && job.admission_pending ? 'Waiting for speech capacity' : job.status }}</span><button v-if="['queued', 'processing', 'ready', 'playing'].includes(job.status)" class="underline" @click="cancel(job.id)">Cancel</button></div>
         <p>{{ job.text }}</p><p v-if="job.error" class="text-red-700">{{ job.error }}</p>
