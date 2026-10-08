@@ -28,16 +28,21 @@ def main():
     parser.add_argument('--provider', choices=['cpu', 'cuda'], required=True)
     parser.add_argument('--precision', choices=['int8', 'float32'], required=True)
     parser.add_argument('--pythonpath', type=Path)
+    parser.add_argument('--worker-script', type=Path)
+    parser.add_argument('--threads', type=int, default=2)
     parser.add_argument('--profile', action='store_true')
     parser.add_argument('--repeats', type=int, default=2)
     args = parser.parse_args()
+    if args.threads < 1:
+        parser.error('--threads must be positive')
     sys.path.insert(0, str(args.root/'tools'))
     from speech_chunks import estimated_audio_seconds
     import numpy as np
     import soundfile as sf
     args.output.mkdir(parents=True, exist_ok=False)
-    command = [sys.executable, str(args.root/'tools/clone_worker.py'), '--engine', 'pocket',
-               '--model', str(args.model), '--threads', '2', '--provider', args.provider,
+    worker = args.worker_script or args.root/'tools/clone_worker.py'
+    command = [sys.executable, str(worker), '--engine', 'pocket',
+               '--model', str(args.model), '--threads', str(args.threads), '--provider', args.provider,
                '--precision', args.precision]
     if args.profile:
         config = args.output/'provider.conf'
@@ -46,7 +51,7 @@ def main():
     environment = os.environ.copy()
     if args.pythonpath:
         environment['PYTHONPATH'] = str(args.pythonpath)+os.pathsep+environment.get('PYTHONPATH', '')
-    report = {'command': command, 'reference_sha256': digest(args.reference),
+    report = {'command': command, 'worker_sha256': digest(worker), 'reference_sha256': digest(args.reference),
               'texts_sha256': digest(args.texts), 'provider': args.provider,
               'precision': args.precision, 'profile': args.profile, 'records': [],
               'model_sha256': {p.name: digest(p) for p in args.model.glob('*.onnx')}}

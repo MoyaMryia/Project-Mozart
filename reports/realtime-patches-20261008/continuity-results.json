@@ -1,0 +1,3679 @@
+{
+  "date": "2026-10-08",
+  "application_commit": "c8b3ef2",
+  "numerical_flow_comparison": {
+    "checks": [
+      {
+        "batch": 1,
+        "scale": 0.01,
+        "repeat": 0,
+        "max_absolute_error": 1.4901161193847656e-07,
+        "mean_absolute_error": 5.1106326282024384e-08,
+        "passed": true,
+        "baseline_seconds": 0.01832364999972924,
+        "combined_seconds": 0.016560631000174908
+      },
+      {
+        "batch": 1,
+        "scale": 0.01,
+        "repeat": 1,
+        "max_absolute_error": 1.9371509552001953e-07,
+        "mean_absolute_error": 4.317553248256445e-08,
+        "passed": true,
+        "baseline_seconds": 0.015230965998853208,
+        "combined_seconds": 0.012465937999877497
+      },
+      {
+        "batch": 1,
+        "scale": 0.1,
+        "repeat": 0,
+        "max_absolute_error": 1.4901161193847656e-07,
+        "mean_absolute_error": 5.459878593683243e-08,
+        "passed": true,
+        "baseline_seconds": 0.013828052000462776,
+        "combined_seconds": 0.012298670000745915
+      },
+      {
+        "batch": 1,
+        "scale": 0.1,
+        "repeat": 1,
+        "max_absolute_error": 2.086162567138672e-07,
+        "mean_absolute_error": 4.18367562815547e-08,
+        "passed": true,
+        "baseline_seconds": 0.013721809000344365,
+        "combined_seconds": 0.012248044999068952
+      },
+      {
+        "batch": 1,
+        "scale": 1.0,
+        "repeat": 0,
+        "max_absolute_error": 2.384185791015625e-07,
+        "mean_absolute_error": 8.195638656616211e-08,
+        "passed": true,
+        "baseline_seconds": 0.013658478999786894,
+        "combined_seconds": 0.012217452000186313
+      },
+      {
+        "batch": 1,
+        "scale": 1.0,
+        "repeat": 1,
+        "max_absolute_error": 3.5762786865234375e-07,
+        "mean_absolute_error": 1.327134668827057e-07,
+        "passed": true,
+        "baseline_seconds": 0.013581838000391144,
+        "combined_seconds": 0.012240268000823562
+      },
+      {
+        "batch": 2,
+        "scale": 0.01,
+        "repeat": 0,
+        "max_absolute_error": 1.4901161193847656e-07,
+        "mean_absolute_error": 3.7180143408477306e-08,
+        "passed": true,
+        "baseline_seconds": 0.014555044999724487,
+        "combined_seconds": 0.013176676000512089
+      },
+      {
+        "batch": 2,
+        "scale": 0.01,
+        "repeat": 1,
+        "max_absolute_error": 1.341104507446289e-07,
+        "mean_absolute_error": 4.858884494751692e-08,
+        "passed": true,
+        "baseline_seconds": 0.014581670000552549,
+        "combined_seconds": 0.013175620000765775
+      },
+      {
+        "batch": 2,
+        "scale": 0.1,
+        "repeat": 0,
+        "max_absolute_error": 2.086162567138672e-07,
+        "mean_absolute_error": 5.6716089602559805e-08,
+        "passed": true,
+        "baseline_seconds": 0.01455482199889957,
+        "combined_seconds": 0.01316441899871279
+      },
+      {
+        "batch": 2,
+        "scale": 0.1,
+        "repeat": 1,
+        "max_absolute_error": 1.341104507446289e-07,
+        "mean_absolute_error": 5.074252840131521e-08,
+        "passed": true,
+        "baseline_seconds": 0.01455853399966145,
+        "combined_seconds": 0.013109954001265578
+      },
+      {
+        "batch": 2,
+        "scale": 1.0,
+        "repeat": 0,
+        "max_absolute_error": 3.5762786865234375e-07,
+        "mean_absolute_error": 9.406358003616333e-08,
+        "passed": true,
+        "baseline_seconds": 0.01459322200025781,
+        "combined_seconds": 0.013116289999743458
+      },
+      {
+        "batch": 2,
+        "scale": 1.0,
+        "repeat": 1,
+        "max_absolute_error": 2.384185791015625e-07,
+        "mean_absolute_error": 8.166534826159477e-08,
+        "passed": true,
+        "baseline_seconds": 0.014551078000295092,
+        "combined_seconds": 0.013185220001105336
+      }
+    ],
+    "all_passed": true,
+    "steps": 5,
+    "caller_steps": 1,
+    "weights_shared": true,
+    "scope": "Synthetic flow tensors on CPU. Full speech and CUDA need separate tests."
+  },
+  "fixed_piece": {
+    "cpu-int8": {
+      "completed": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "command": [
+        "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+        "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+        "--engine",
+        "pocket",
+        "--model",
+        "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+        "--threads",
+        "2",
+        "--provider",
+        "cpu",
+        "--precision",
+        "int8"
+      ],
+      "worker_sha256": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cpu",
+        "precision": "int8",
+        "onnxruntime_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_loader_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.27.1",
+        "available_providers": [
+          "CPUExecutionProvider"
+        ]
+      },
+      "synthesis_seconds": {
+        "count": 8,
+        "median": 1.7775877770009174,
+        "mean": 1.6577295720003349,
+        "max": 2.4945992780012602,
+        "min": 0.8286155780006084
+      },
+      "rtf": {
+        "count": 8,
+        "median": 0.7408338655306765,
+        "mean": 0.753272429463158,
+        "max": 0.796745748077508,
+        "min": 0.7251742087212966
+      },
+      "warm_records": [
+        {
+          "repeat": 1,
+          "index": 0,
+          "request": {
+            "text": "Mother told me that during the summer vacation,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-00.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 2.055595253001229,
+          "result": {
+            "duration_seconds": 2.8,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.055064071999368,
+            "first_callback_seconds": 1.720012730000235,
+            "synthesis_text": "Mother told me that during the summer vacation.",
+            "raw_peak": 0.5982621908187866,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "c174cdb967ab546e7cea4e5a6d482745e9e0a2c8e5c82423e2b0a935549f5536",
+            "sample_rate": 24000,
+            "samples": 67200,
+            "rms": 0.10422389209270477,
+            "peak": 0.5982666015625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "request": {
+            "text": "Your mother is thinking about the house.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-01.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 1.6045123940002668,
+          "result": {
+            "duration_seconds": 2.16,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.6039226520006196,
+            "first_callback_seconds": 1.4012425050004822,
+            "synthesis_text": "Your mother is thinking about the house.",
+            "raw_peak": 0.5721380710601807,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "98068196fca8a33206fa181dbdfbce975bacb2e9efc6bd0ae6a9c7f592819d72",
+            "sample_rate": 24000,
+            "samples": 51840,
+            "rms": 0.09338095039129257,
+            "peak": 0.5721435546875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "request": {
+            "text": "My son is studying for a graduate exam at school.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-02.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 11.0
+          },
+          "roundtrip_seconds": 2.332005737000145,
+          "result": {
+            "duration_seconds": 3.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.331638079000186,
+            "first_callback_seconds": 1.9191810640004405,
+            "synthesis_text": "My son is studying for a graduate exam at school.",
+            "raw_peak": 0.5621156096458435,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "ca326b401ffa03b257cb52ae8435b11406276cfdf8ac05aac896838c104f30dc",
+            "sample_rate": 24000,
+            "samples": 76800,
+            "rms": 0.0959714874625206,
+            "peak": 0.562103271484375,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "request": {
+            "text": "My son",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-03.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4
+          },
+          "roundtrip_seconds": 0.9368250749994331,
+          "result": {
+            "duration_seconds": 1.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 0.9364545049993467,
+            "first_callback_seconds": 0.9299521350003488,
+            "synthesis_text": "My son.",
+            "raw_peak": 0.4406973123550415,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "49bd2cd276cd8b3e0b8af1211775ee288947430d192ea26f25415e632775af54",
+            "sample_rate": 24000,
+            "samples": 28800,
+            "rms": 0.06341113895177841,
+            "peak": 0.440673828125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "request": {
+            "text": "Now preparing for the graduate entrance exam,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-04.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 2.4949764400007552,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.4945992780012602,
+            "first_callback_seconds": 2.0379682940001658,
+            "synthesis_text": "Now preparing for the graduate entrance exam.",
+            "raw_peak": 0.556294858455658,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "0090967697834a99700516e434a4145325f85334a033e453e9a906e5d087fc51",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.07123932242393494,
+            "peak": 0.5562744140625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "request": {
+            "text": "Wanting to advance but you are doing gambling.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-05.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 1.9518279559997609,
+          "result": {
+            "duration_seconds": 2.64,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.9512529020012153,
+            "first_callback_seconds": 1.6458632170015335,
+            "synthesis_text": "Wanting to advance but you are doing gambling.",
+            "raw_peak": 0.7256258726119995,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "1d2d4cbabbb24503ac41ac6af2351489989aa0f45299483f2fe13b0557c184c1",
+            "sample_rate": 24000,
+            "samples": 63360,
+            "rms": 0.1117866188287735,
+            "peak": 0.725616455078125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "request": {
+            "text": "That is you.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-06.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 0.8289936670007592,
+          "result": {
+            "duration_seconds": 1.04,
+            "sample_rate": 24000,
+            "synthesis_seconds": 0.8286155780006084,
+            "first_callback_seconds": 0.8230683040001168,
+            "synthesis_text": "That is you.",
+            "raw_peak": 0.4341430366039276,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "d4d524b928b30ef5e93df1e17a1dfc9e2f626bd4763cbac265c3799040810404",
+            "sample_rate": 24000,
+            "samples": 24960,
+            "rms": 0.09882111847400665,
+            "peak": 0.43414306640625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "request": {
+            "text": "Repay the loan",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8/01-07.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.060836210999696,
+          "result": {
+            "duration_seconds": 1.36,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.060289510000075,
+            "first_callback_seconds": 1.0115620880005736,
+            "synthesis_text": "Repay the loan.",
+            "raw_peak": 0.6271693706512451,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "1350e03bb8a7f18d152e28b8a124061cd673ddd3d9794e33495ad3250f3186ac",
+            "sample_rate": 24000,
+            "samples": 32640,
+            "rms": 0.07181476056575775,
+            "peak": 0.627166748046875,
+            "finite": true
+          }
+        }
+      ],
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+      "model_sha256": {
+        "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+        "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+        "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+        "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+        "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e"
+      }
+    },
+    "cpu-int8-threads1": {
+      "completed": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "command": [
+        "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+        "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+        "--engine",
+        "pocket",
+        "--model",
+        "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+        "--threads",
+        "1",
+        "--provider",
+        "cpu",
+        "--precision",
+        "int8"
+      ],
+      "worker_sha256": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cpu",
+        "precision": "int8",
+        "onnxruntime_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_loader_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.27.1",
+        "available_providers": [
+          "CPUExecutionProvider"
+        ]
+      },
+      "synthesis_seconds": {
+        "count": 8,
+        "median": 2.310135734501273,
+        "mean": 2.150823711375324,
+        "max": 3.241612616000566,
+        "min": 1.0641596139994363
+      },
+      "rtf": {
+        "count": 8,
+        "median": 0.9627551064188913,
+        "mean": 0.9757506469006456,
+        "max": 1.023230398076381,
+        "min": 0.9423292488373739
+      },
+      "warm_records": [
+        {
+          "repeat": 1,
+          "index": 0,
+          "request": {
+            "text": "Mother told me that during the summer vacation,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-00.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 2.670852922001359,
+          "result": {
+            "duration_seconds": 2.8,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.6705170099994575,
+            "first_callback_seconds": 2.104701264999676,
+            "synthesis_text": "Mother told me that during the summer vacation.",
+            "raw_peak": 0.5982621908187866,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "c174cdb967ab546e7cea4e5a6d482745e9e0a2c8e5c82423e2b0a935549f5536",
+            "sample_rate": 24000,
+            "samples": 67200,
+            "rms": 0.10422389209270477,
+            "peak": 0.5982666015625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "request": {
+            "text": "Your mother is thinking about the house.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-01.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 2.0842078549994767,
+          "result": {
+            "duration_seconds": 2.16,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.0838397180014,
+            "first_callback_seconds": 1.7431240180012537,
+            "synthesis_text": "Your mother is thinking about the house.",
+            "raw_peak": 0.5721380710601807,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "98068196fca8a33206fa181dbdfbce975bacb2e9efc6bd0ae6a9c7f592819d72",
+            "sample_rate": 24000,
+            "samples": 51840,
+            "rms": 0.09338095039129257,
+            "peak": 0.5721435546875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "request": {
+            "text": "My son is studying for a graduate exam at school.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-02.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 11.0
+          },
+          "roundtrip_seconds": 3.033629302999543,
+          "result": {
+            "duration_seconds": 3.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.0332735179999872,
+            "first_callback_seconds": 2.330814218999876,
+            "synthesis_text": "My son is studying for a graduate exam at school.",
+            "raw_peak": 0.5621156096458435,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "ca326b401ffa03b257cb52ae8435b11406276cfdf8ac05aac896838c104f30dc",
+            "sample_rate": 24000,
+            "samples": 76800,
+            "rms": 0.0959714874625206,
+            "peak": 0.562103271484375,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "request": {
+            "text": "My son",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-03.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4
+          },
+          "roundtrip_seconds": 1.210142719999567,
+          "result": {
+            "duration_seconds": 1.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.2098029339995264,
+            "first_callback_seconds": 1.2046354750000319,
+            "synthesis_text": "My son.",
+            "raw_peak": 0.4406973123550415,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "49bd2cd276cd8b3e0b8af1211775ee288947430d192ea26f25415e632775af54",
+            "sample_rate": 24000,
+            "samples": 28800,
+            "rms": 0.06341113895177841,
+            "peak": 0.440673828125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "request": {
+            "text": "Now preparing for the graduate entrance exam,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-04.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 3.241956272999232,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.241612616000566,
+            "first_callback_seconds": 2.4612987489999796,
+            "synthesis_text": "Now preparing for the graduate entrance exam.",
+            "raw_peak": 0.556294858455658,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "0090967697834a99700516e434a4145325f85334a033e453e9a906e5d087fc51",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.07123932242393494,
+            "peak": 0.5562744140625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "request": {
+            "text": "Wanting to advance but you are doing gambling.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-05.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 2.5367706720007845,
+          "result": {
+            "duration_seconds": 2.64,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.536431751001146,
+            "first_callback_seconds": 2.0235859240001446,
+            "synthesis_text": "Wanting to advance but you are doing gambling.",
+            "raw_peak": 0.7256258726119995,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "1d2d4cbabbb24503ac41ac6af2351489989aa0f45299483f2fe13b0557c184c1",
+            "sample_rate": 24000,
+            "samples": 63360,
+            "rms": 0.1117866188287735,
+            "peak": 0.725616455078125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "request": {
+            "text": "That is you.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-06.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.0644983430011052,
+          "result": {
+            "duration_seconds": 1.04,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.0641596139994363,
+            "first_callback_seconds": 1.0594068199989124,
+            "synthesis_text": "That is you.",
+            "raw_peak": 0.4341430366039276,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "d4d524b928b30ef5e93df1e17a1dfc9e2f626bd4763cbac265c3799040810404",
+            "sample_rate": 24000,
+            "samples": 24960,
+            "rms": 0.09882111847400665,
+            "peak": 0.43414306640625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "request": {
+            "text": "Repay the loan",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads1/01-07.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.367281209999419,
+          "result": {
+            "duration_seconds": 1.36,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.3669525300010719,
+            "first_callback_seconds": 1.2966565590013488,
+            "synthesis_text": "Repay the loan.",
+            "raw_peak": 0.6271693706512451,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "1350e03bb8a7f18d152e28b8a124061cd673ddd3d9794e33495ad3250f3186ac",
+            "sample_rate": 24000,
+            "samples": 32640,
+            "rms": 0.07181476056575775,
+            "peak": 0.627166748046875,
+            "finite": true
+          }
+        }
+      ],
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+      "model_sha256": {
+        "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+        "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+        "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+        "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+        "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e"
+      }
+    },
+    "cpu-int8-threads3": {
+      "completed": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "command": [
+        "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+        "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+        "--engine",
+        "pocket",
+        "--model",
+        "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+        "--threads",
+        "3",
+        "--provider",
+        "cpu",
+        "--precision",
+        "int8"
+      ],
+      "worker_sha256": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cpu",
+        "precision": "int8",
+        "onnxruntime_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_loader_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.27.1",
+        "available_providers": [
+          "CPUExecutionProvider"
+        ]
+      },
+      "synthesis_seconds": {
+        "count": 8,
+        "median": 1.6366661230003956,
+        "mean": 1.5169425353751649,
+        "max": 2.2791329989995575,
+        "min": 0.8094637140002305
+      },
+      "rtf": {
+        "count": 8,
+        "median": 0.6706071237066302,
+        "mean": 0.6830846190517417,
+        "max": 0.7227354589287772,
+        "min": 0.6573973650000653
+      },
+      "warm_records": [
+        {
+          "repeat": 1,
+          "index": 0,
+          "request": {
+            "text": "Mother told me that during the summer vacation,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-00.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 1.8538525049989403,
+          "result": {
+            "duration_seconds": 2.8,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.853361995999876,
+            "first_callback_seconds": 1.594472794999092,
+            "synthesis_text": "Mother told me that during the summer vacation.",
+            "raw_peak": 0.6033446192741394,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "1fdf6f46d96a125bb5a474fbaa48adbf7ce313339d0f066aa53184aab816aabc",
+            "sample_rate": 24000,
+            "samples": 67200,
+            "rms": 0.10425892472267151,
+            "peak": 0.603363037109375,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "request": {
+            "text": "Your mother is thinking about the house.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-01.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 1.4461358150001615,
+          "result": {
+            "duration_seconds": 2.16,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.445543384001212,
+            "first_callback_seconds": 1.2890044940013468,
+            "synthesis_text": "Your mother is thinking about the house.",
+            "raw_peak": 0.5744261145591736,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "698263d89def668b792419e12bad1f465c446e1f598ed873917530acd0c4bc62",
+            "sample_rate": 24000,
+            "samples": 51840,
+            "rms": 0.09343212097883224,
+            "peak": 0.574432373046875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "request": {
+            "text": "My son is studying for a graduate exam at school.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-02.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 11.0
+          },
+          "roundtrip_seconds": 2.104122363998613,
+          "result": {
+            "duration_seconds": 3.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.103671568000209,
+            "first_callback_seconds": 1.7859506940003484,
+            "synthesis_text": "My son is studying for a graduate exam at school.",
+            "raw_peak": 0.5464414358139038,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "fdd52bba1123d8bbdd627d39cf506358b1108c7a7c115ed5afaf8fe3d88367b7",
+            "sample_rate": 24000,
+            "samples": 76800,
+            "rms": 0.0943714901804924,
+            "peak": 0.546417236328125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "request": {
+            "text": "My son",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-03.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4
+          },
+          "roundtrip_seconds": 0.8486072619998595,
+          "result": {
+            "duration_seconds": 1.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 0.8482042440009536,
+            "first_callback_seconds": 0.8429266060011287,
+            "synthesis_text": "My son.",
+            "raw_peak": 0.4859963655471802,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "3191e3f714625a6e75d5e0d5c0adf2374f5e83f3789b9449e56f6f05386d8140",
+            "sample_rate": 24000,
+            "samples": 28800,
+            "rms": 0.06343583017587662,
+            "peak": 0.485992431640625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "request": {
+            "text": "Now preparing for the graduate entrance exam,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-04.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 2.279513584999222,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.2791329989995575,
+            "first_callback_seconds": 1.9288607999988017,
+            "synthesis_text": "Now preparing for the graduate entrance exam.",
+            "raw_peak": 0.544704258441925,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "97e6c8a9174caaf41b0a56a1694b6892b03d74042f04e70f07934d6378488fef",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.07694181054830551,
+            "peak": 0.544677734375,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "request": {
+            "text": "Wanting to advance but you are doing gambling.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-05.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 1.8281485839997913,
+          "result": {
+            "duration_seconds": 2.72,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.8277888619995792,
+            "first_callback_seconds": 1.5803434680001374,
+            "synthesis_text": "Wanting to advance but you are doing gambling.",
+            "raw_peak": 0.7376549243927002,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "364212a926b8a32848b999d1f21c5c83ba023d40777465974dcff6cd63a5700a",
+            "sample_rate": 24000,
+            "samples": 65280,
+            "rms": 0.11820764094591141,
+            "peak": 0.737640380859375,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "request": {
+            "text": "That is you.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-06.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 0.8098429559995566,
+          "result": {
+            "duration_seconds": 1.12,
+            "sample_rate": 24000,
+            "synthesis_seconds": 0.8094637140002305,
+            "first_callback_seconds": 0.8038460669995402,
+            "synthesis_text": "That is you.",
+            "raw_peak": 0.46586698293685913,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "a8a13c457728f0e3b8ccef305c8aeba3d7d8cda58d79ca06805b0259bfa479b7",
+            "sample_rate": 24000,
+            "samples": 26880,
+            "rms": 0.09797770529985428,
+            "peak": 0.46588134765625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "request": {
+            "text": "Repay the loan",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads3/01-07.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 0.9687118609999743,
+          "result": {
+            "duration_seconds": 1.36,
+            "sample_rate": 24000,
+            "synthesis_seconds": 0.9683735159997013,
+            "first_callback_seconds": 0.9286193219995766,
+            "synthesis_text": "Repay the loan.",
+            "raw_peak": 0.6243817806243896,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "7219f11e980b5a604cfefa2939212ac83a96b01bb09dfded53278ac10a76e691",
+            "sample_rate": 24000,
+            "samples": 32640,
+            "rms": 0.07181243598461151,
+            "peak": 0.624359130859375,
+            "finite": true
+          }
+        }
+      ],
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+      "model_sha256": {
+        "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+        "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+        "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+        "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+        "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e"
+      }
+    },
+    "cpu-int8-threads4": {
+      "completed": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "command": [
+        "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+        "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+        "--engine",
+        "pocket",
+        "--model",
+        "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+        "--threads",
+        "4",
+        "--provider",
+        "cpu",
+        "--precision",
+        "int8"
+      ],
+      "worker_sha256": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cpu",
+        "precision": "int8",
+        "onnxruntime_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_loader_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.27.1",
+        "available_providers": [
+          "CPUExecutionProvider"
+        ]
+      },
+      "synthesis_seconds": {
+        "count": 8,
+        "median": 1.6818565820003641,
+        "mean": 1.5699966495001263,
+        "max": 2.339758553998763,
+        "min": 0.7798387100010586
+      },
+      "rtf": {
+        "count": 8,
+        "median": 0.701388858417676,
+        "mean": 0.7147398336537563,
+        "max": 0.7568300301460005,
+        "min": 0.6801623703484777
+      },
+      "warm_records": [
+        {
+          "repeat": 1,
+          "index": 0,
+          "request": {
+            "text": "Mother told me that during the summer vacation,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-00.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 1.932033142000364,
+          "result": {
+            "duration_seconds": 2.8,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.9316569720012922,
+            "first_callback_seconds": 1.713783618000889,
+            "synthesis_text": "Mother told me that during the summer vacation.",
+            "raw_peak": 0.5982621908187866,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "c174cdb967ab546e7cea4e5a6d482745e9e0a2c8e5c82423e2b0a935549f5536",
+            "sample_rate": 24000,
+            "samples": 67200,
+            "rms": 0.10422389209270477,
+            "peak": 0.5982666015625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "request": {
+            "text": "Your mother is thinking about the house.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-01.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 1.528683713000646,
+          "result": {
+            "duration_seconds": 2.16,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.528290038000705,
+            "first_callback_seconds": 1.3916173430006893,
+            "synthesis_text": "Your mother is thinking about the house.",
+            "raw_peak": 0.5721380710601807,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "98068196fca8a33206fa181dbdfbce975bacb2e9efc6bd0ae6a9c7f592819d72",
+            "sample_rate": 24000,
+            "samples": 51840,
+            "rms": 0.09338095039129257,
+            "peak": 0.5721435546875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "request": {
+            "text": "My son is studying for a graduate exam at school.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-02.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 11.0
+          },
+          "roundtrip_seconds": 2.223771045000831,
+          "result": {
+            "duration_seconds": 3.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.2233689230015443,
+            "first_callback_seconds": 1.9522270760007814,
+            "synthesis_text": "My son is studying for a graduate exam at school.",
+            "raw_peak": 0.5621156096458435,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "ca326b401ffa03b257cb52ae8435b11406276cfdf8ac05aac896838c104f30dc",
+            "sample_rate": 24000,
+            "samples": 76800,
+            "rms": 0.0959714874625206,
+            "peak": 0.562103271484375,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "request": {
+            "text": "My son",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-03.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4
+          },
+          "roundtrip_seconds": 0.8927082969985349,
+          "result": {
+            "duration_seconds": 1.2,
+            "sample_rate": 24000,
+            "synthesis_seconds": 0.8923480319990631,
+            "first_callback_seconds": 0.8864539619989955,
+            "synthesis_text": "My son.",
+            "raw_peak": 0.4406973123550415,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "49bd2cd276cd8b3e0b8af1211775ee288947430d192ea26f25415e632775af54",
+            "sample_rate": 24000,
+            "samples": 28800,
+            "rms": 0.06341113895177841,
+            "peak": 0.440673828125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "request": {
+            "text": "Now preparing for the graduate entrance exam,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-04.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 2.340155268999297,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.339758553998763,
+            "first_callback_seconds": 2.04552341300041,
+            "synthesis_text": "Now preparing for the graduate entrance exam.",
+            "raw_peak": 0.556294858455658,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "0090967697834a99700516e434a4145325f85334a033e453e9a906e5d087fc51",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.07123932242393494,
+            "peak": 0.5562744140625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "request": {
+            "text": "Wanting to advance but you are doing gambling.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-05.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 1.835786816000109,
+          "result": {
+            "duration_seconds": 2.64,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.8354231260000233,
+            "first_callback_seconds": 1.6349368039991532,
+            "synthesis_text": "Wanting to advance but you are doing gambling.",
+            "raw_peak": 0.7256258726119995,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "1d2d4cbabbb24503ac41ac6af2351489989aa0f45299483f2fe13b0557c184c1",
+            "sample_rate": 24000,
+            "samples": 63360,
+            "rms": 0.1117866188287735,
+            "peak": 0.725616455078125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "request": {
+            "text": "That is you.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-06.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 0.7802542080007697,
+          "result": {
+            "duration_seconds": 1.04,
+            "sample_rate": 24000,
+            "synthesis_seconds": 0.7798387100010586,
+            "first_callback_seconds": 0.7752384960003837,
+            "synthesis_text": "That is you.",
+            "raw_peak": 0.4341430366039276,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "d4d524b928b30ef5e93df1e17a1dfc9e2f626bd4763cbac265c3799040810404",
+            "sample_rate": 24000,
+            "samples": 24960,
+            "rms": 0.09882111847400665,
+            "peak": 0.43414306640625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "request": {
+            "text": "Repay the loan",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cpu-int8-threads4/01-07.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.0296599860012066,
+          "result": {
+            "duration_seconds": 1.36,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.0292888409985608,
+            "first_callback_seconds": 0.9932770439991145,
+            "synthesis_text": "Repay the loan.",
+            "raw_peak": 0.6271693706512451,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "ba51847e33806aa4e3b1f8e9e32edb550bc7bae08ae93e4e9bdb0e7712331faf",
+            "sample_rate": 24000,
+            "samples": 32640,
+            "rms": 0.07181476056575775,
+            "peak": 0.627166748046875,
+            "finite": true
+          }
+        }
+      ],
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+      "model_sha256": {
+        "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+        "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+        "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+        "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+        "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e"
+      }
+    },
+    "cuda-original": {
+      "completed": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "command": [
+        "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+        "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+        "--engine",
+        "pocket",
+        "--model",
+        "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/sherpa-onnx-pocket-tts-2026-01-26",
+        "--threads",
+        "2",
+        "--provider",
+        "cuda",
+        "--precision",
+        "float32"
+      ],
+      "worker_sha256": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cuda",
+        "precision": "float32",
+        "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/build/Release/libonnxruntime.so.1.29.0",
+        "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/python/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.29.0",
+        "available_providers": [
+          "CUDAExecutionProvider",
+          "CPUExecutionProvider"
+        ]
+      },
+      "synthesis_seconds": {
+        "count": 8,
+        "median": 2.453789027498715,
+        "mean": 2.3687724628748583,
+        "max": 3.730390699000054,
+        "min": 1.213835382999605
+      },
+      "rtf": {
+        "count": 8,
+        "median": 1.0076694761626552,
+        "mean": 1.0167335854915607,
+        "max": 1.0879938339290414,
+        "min": 0.9516302803571567
+      },
+      "warm_records": [
+        {
+          "repeat": 1,
+          "index": 0,
+          "request": {
+            "text": "Mother told me that during the summer vacation,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-00.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 2.6813091050007642,
+          "result": {
+            "duration_seconds": 2.8,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.6807936359982705,
+            "first_callback_seconds": 2.0268394089998765,
+            "synthesis_text": "Mother told me that during the summer vacation.",
+            "raw_peak": 0.5703286528587341,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "ad7cccdbe57c6ae7037c5d925656656e475b0bf63bc4a34da467abe703a06985",
+            "sample_rate": 24000,
+            "samples": 67200,
+            "rms": 0.08388497680425644,
+            "peak": 0.5703125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "request": {
+            "text": "Your mother is thinking about the house.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-01.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 2.2273036959995807,
+          "result": {
+            "duration_seconds": 2.16,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.2267844189991592,
+            "first_callback_seconds": 1.8888228729992989,
+            "synthesis_text": "Your mother is thinking about the house.",
+            "raw_peak": 0.541522741317749,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "74d65f236900f791769ba89fd9326f5118b450d3b5094e8e41be3756917ce48a",
+            "sample_rate": 24000,
+            "samples": 51840,
+            "rms": 0.09097521752119064,
+            "peak": 0.54150390625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "request": {
+            "text": "My son is studying for a graduate exam at school.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-02.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 11.0
+          },
+          "roundtrip_seconds": 3.2791975879990787,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.2786690310003905,
+            "first_callback_seconds": 2.6156351440004073,
+            "synthesis_text": "My son is studying for a graduate exam at school.",
+            "raw_peak": 0.5500246286392212,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "9a2d2d494ac9b3a74b048aa94832720a7f03dbbdadd2e126304e89f6f8ea81d0",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.08170472830533981,
+            "peak": 0.550018310546875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "request": {
+            "text": "My son",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-03.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4
+          },
+          "roundtrip_seconds": 1.219084787000611,
+          "result": {
+            "duration_seconds": 1.12,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.2185530940005265,
+            "first_callback_seconds": 1.2098398870002711,
+            "synthesis_text": "My son.",
+            "raw_peak": 0.4646792709827423,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "c429ffe429387ba3175a4d936a657b2b0cbe95088059f4d0edff2e9a78b6a635",
+            "sample_rate": 24000,
+            "samples": 26880,
+            "rms": 0.059366948902606964,
+            "peak": 0.46466064453125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "request": {
+            "text": "Now preparing for the graduate entrance exam,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-04.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 3.3869229499996436,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.386405625000407,
+            "first_callback_seconds": 2.722576668998954,
+            "synthesis_text": "Now preparing for the graduate entrance exam.",
+            "raw_peak": 0.5161779522895813,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "249c19a8b26c9c85c1cf5c9d671b0a35f7a518cdcc6c72d0f8ed8c0e78313f99",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.06359413266181946,
+            "peak": 0.51617431640625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "request": {
+            "text": "Wanting to advance but you are doing gambling.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-05.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 3.73085231100049,
+          "result": {
+            "duration_seconds": 3.92,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.730390699000054,
+            "first_callback_seconds": 2.751570567001181,
+            "synthesis_text": "Wanting to advance but you are doing gambling.",
+            "raw_peak": 0.6035716533660889,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "ab29d18cb69ba3290169c3af702600540cf53efcdf1165c95cf3a258840bb2d0",
+            "sample_rate": 24000,
+            "samples": 94080,
+            "rms": 0.09351633489131927,
+            "peak": 0.603546142578125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "request": {
+            "text": "That is you.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-06.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.2152282120005111,
+          "result": {
+            "duration_seconds": 1.12,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.214747816000454,
+            "first_callback_seconds": 1.205661288000556,
+            "synthesis_text": "That is you.",
+            "raw_peak": 0.38596662878990173,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "50a61f4e2fe1f28510c06a0c61e7a7ca28f6db44449befb95f78724d52183dfb",
+            "sample_rate": 24000,
+            "samples": 26880,
+            "rms": 0.07361285388469696,
+            "peak": 0.385986328125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "request": {
+            "text": "Repay the loan",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-original/01-07.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.2144052840012591,
+          "result": {
+            "duration_seconds": 1.12,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.213835382999605,
+            "first_callback_seconds": 1.2045400489987514,
+            "synthesis_text": "Repay the loan.",
+            "raw_peak": 0.3146553039550781,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "4e539087164ca2766e48ded05383bc5d4c496c0f5a1a615e39d79f325dfa4d0d",
+            "sample_rate": 24000,
+            "samples": 26880,
+            "rms": 0.060210250318050385,
+            "peak": 0.314666748046875,
+            "finite": true
+          }
+        }
+      ],
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+      "model_sha256": {
+        "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+        "decoder.onnx": "f267880fde6c58b17b0a8f3647eaf8dcfad321f833f32d583ebc2fb2d1a15f10",
+        "lm_main.onnx": "255d1a9263c5abdf36034abfc19c11d21cc5f40f0f87d8361288e972cbd5c578",
+        "lm_flow.onnx": "79c013a554a54e63319c33c0cc8830cbbedc9b7e448ae7e26f7923ae11f9873e",
+        "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1"
+      }
+    },
+    "cuda-unrolled": {
+      "completed": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "command": [
+        "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+        "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/flow-unroll-v1/clone_worker_unrolled.py",
+        "--engine",
+        "pocket",
+        "--model",
+        "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/flow-unroll-v1/model",
+        "--threads",
+        "2",
+        "--provider",
+        "cuda",
+        "--precision",
+        "float32"
+      ],
+      "worker_sha256": "998ea9cee6cd3f08dc6f7363b45a6977a4cde6a261285d6c1c9b0c37870da4b9",
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cuda",
+        "precision": "float32",
+        "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/build/Release/libonnxruntime.so.1.29.0",
+        "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/python/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.29.0",
+        "available_providers": [
+          "CUDAExecutionProvider",
+          "CPUExecutionProvider"
+        ]
+      },
+      "synthesis_seconds": {
+        "count": 8,
+        "median": 2.523698664999756,
+        "mean": 2.3613420001247505,
+        "max": 3.725998107000123,
+        "min": 1.1154215099995781
+      },
+      "rtf": {
+        "count": 8,
+        "median": 0.9948345999995516,
+        "mean": 0.9995599323221174,
+        "max": 1.0620236714284406,
+        "min": 0.9505097211735009
+      },
+      "warm_records": [
+        {
+          "repeat": 1,
+          "index": 0,
+          "request": {
+            "text": "Mother told me that during the summer vacation,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-00.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 2.8219711800011282,
+          "result": {
+            "duration_seconds": 2.8,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.8213813420006773,
+            "first_callback_seconds": 2.168792439000754,
+            "synthesis_text": "Mother told me that during the summer vacation.",
+            "raw_peak": 0.5702179074287415,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "ccf26f1d6b3f4b9910f81eb04f9168fb91512afbc8978cd266aeb071844d7cf1",
+            "sample_rate": 24000,
+            "samples": 67200,
+            "rms": 0.08389043807983398,
+            "peak": 0.5701904296875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "request": {
+            "text": "Your mother is thinking about the house.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-01.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 2.2266122899982292,
+          "result": {
+            "duration_seconds": 2.24,
+            "sample_rate": 24000,
+            "synthesis_seconds": 2.226015987998835,
+            "first_callback_seconds": 1.8881866880001326,
+            "synthesis_text": "Your mother is thinking about the house.",
+            "raw_peak": 0.6581916809082031,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "545eee3f148bd35d2927fe87e178c1fc01a31f1b891a9232760a903b786182ef",
+            "sample_rate": 24000,
+            "samples": 53760,
+            "rms": 0.0890246033668518,
+            "peak": 0.658172607421875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "request": {
+            "text": "My son is studying for a graduate exam at school.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-02.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 11.0
+          },
+          "roundtrip_seconds": 3.3072055250013364,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.3065941499990004,
+            "first_callback_seconds": 2.6412750639992737,
+            "synthesis_text": "My son is studying for a graduate exam at school.",
+            "raw_peak": 0.549903392791748,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "9583edd0846e5ccc1f2fac197a351e8b0536a36fc9103a1f0ae674ccd78b8614",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.08167997747659683,
+            "peak": 0.549896240234375,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "request": {
+            "text": "My son",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-03.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4
+          },
+          "roundtrip_seconds": 1.1890053499992064,
+          "result": {
+            "duration_seconds": 1.12,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.1883544550000806,
+            "first_callback_seconds": 1.179025391000323,
+            "synthesis_text": "My son.",
+            "raw_peak": 0.4648829400539398,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "baba640759ca0afa92e9b4cb2d0c08d3be5daa1d96ba49603c4270aed4f796a7",
+            "sample_rate": 24000,
+            "samples": 26880,
+            "rms": 0.05938149243593216,
+            "peak": 0.464874267578125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "request": {
+            "text": "Now preparing for the graduate entrance exam,",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-04.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 8.3
+          },
+          "roundtrip_seconds": 3.3181341609997617,
+          "result": {
+            "duration_seconds": 3.44,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.317503936999856,
+            "first_callback_seconds": 2.6546711760001926,
+            "synthesis_text": "Now preparing for the graduate entrance exam.",
+            "raw_peak": 0.5159400701522827,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "7efc21d16acbbbfebedaffdf69d89e2cba64635b7e3d9dca213ba5d5532539c9",
+            "sample_rate": 24000,
+            "samples": 82560,
+            "rms": 0.0635775551199913,
+            "peak": 0.51593017578125,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "request": {
+            "text": "Wanting to advance but you are doing gambling.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-05.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 9.2
+          },
+          "roundtrip_seconds": 3.726590762000342,
+          "result": {
+            "duration_seconds": 3.92,
+            "sample_rate": 24000,
+            "synthesis_seconds": 3.725998107000123,
+            "first_callback_seconds": 2.7476750780006114,
+            "synthesis_text": "Wanting to advance but you are doing gambling.",
+            "raw_peak": 0.6019630432128906,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "c07c9c70daf8885aa7f9b47421385d87787a34b1ee5e17b064f98991822b7697",
+            "sample_rate": 24000,
+            "samples": 94080,
+            "rms": 0.09351831674575806,
+            "peak": 0.601959228515625,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "request": {
+            "text": "That is you.",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-06.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.190123775999382,
+          "result": {
+            "duration_seconds": 1.12,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.1894665119998535,
+            "first_callback_seconds": 1.1801861530002498,
+            "synthesis_text": "That is you.",
+            "raw_peak": 0.38544178009033203,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "380ab694816563844e0ea390926bf058731bc253d0cd19a7c043771ba09b4570",
+            "sample_rate": 24000,
+            "samples": 26880,
+            "rms": 0.07282932847738266,
+            "peak": 0.385467529296875,
+            "finite": true
+          }
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "request": {
+            "text": "Repay the loan",
+            "reference": "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+            "output": "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/flow-unroll-v1/cuda-unrolled/01-07.wav",
+            "live": true,
+            "chunk_count": 2,
+            "max_duration_seconds": 4.7
+          },
+          "roundtrip_seconds": 1.1161245350012905,
+          "result": {
+            "duration_seconds": 1.12,
+            "sample_rate": 24000,
+            "synthesis_seconds": 1.1154215099995781,
+            "first_callback_seconds": 1.106445479001195,
+            "synthesis_text": "Repay the loan.",
+            "raw_peak": 0.3201585114002228,
+            "output_gain": 1.0
+          },
+          "audio": {
+            "sha256": "3f0240f1c861450cb6c44d9114238d95fd22bb39e59d99743bc95335dc250df6",
+            "sample_rate": 24000,
+            "samples": 26880,
+            "rms": 0.06156798452138901,
+            "peak": 0.320159912109375,
+            "finite": true
+          }
+        }
+      ],
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+      "model_sha256": {
+        "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+        "decoder.onnx": "f267880fde6c58b17b0a8f3647eaf8dcfad321f833f32d583ebc2fb2d1a15f10",
+        "lm_main.onnx": "255d1a9263c5abdf36034abfc19c11d21cc5f40f0f87d8361288e972cbd5c578",
+        "lm_flow.onnx": "a5f8555b63e7b77d14c2b6efba658a9cc8b380ca52620b962b93e13fdbda6086",
+        "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1"
+      }
+    }
+  },
+  "audio_comparison": {
+    "cpu-int8-threads1": {
+      "control": "cpu-int8",
+      "pairs": [
+        {
+          "repeat": 0,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.16,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 2,
+          "control_seconds": 3.2,
+          "variant_seconds": 3.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 3,
+          "control_seconds": 1.2,
+          "variant_seconds": 1.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 5,
+          "control_seconds": 2.64,
+          "variant_seconds": 2.64,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 6,
+          "control_seconds": 1.04,
+          "variant_seconds": 1.04,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 7,
+          "control_seconds": 1.36,
+          "variant_seconds": 1.36,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.16,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "control_seconds": 3.2,
+          "variant_seconds": 3.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "control_seconds": 1.2,
+          "variant_seconds": 1.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "control_seconds": 2.64,
+          "variant_seconds": 2.64,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "control_seconds": 1.04,
+          "variant_seconds": 1.04,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "control_seconds": 1.36,
+          "variant_seconds": 1.36,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        }
+      ]
+    },
+    "cpu-int8-threads3": {
+      "control": "cpu-int8",
+      "pairs": [
+        {
+          "repeat": 0,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": false,
+          "max_absolute_error": 0.640533447265625,
+          "rms_error": 0.045651685156988336,
+          "cosine_over_common_samples": 0.904103476134939
+        },
+        {
+          "repeat": 0,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.16,
+          "identical_pcm": false,
+          "max_absolute_error": 0.17901611328125,
+          "rms_error": 0.007855528536582635,
+          "cosine_over_common_samples": 0.9964637095545325
+        },
+        {
+          "repeat": 0,
+          "index": 2,
+          "control_seconds": 3.2,
+          "variant_seconds": 3.2,
+          "identical_pcm": false,
+          "max_absolute_error": 0.90740966796875,
+          "rms_error": 0.057510706418871876,
+          "cosine_over_common_samples": 0.8175482228034263
+        },
+        {
+          "repeat": 0,
+          "index": 3,
+          "control_seconds": 1.2,
+          "variant_seconds": 1.2,
+          "identical_pcm": false,
+          "max_absolute_error": 0.150390625,
+          "rms_error": 0.012568107799405471,
+          "cosine_over_common_samples": 0.9803660387016307
+        },
+        {
+          "repeat": 0,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": false,
+          "max_absolute_error": 0.58587646484375,
+          "rms_error": 0.06835086340620479,
+          "cosine_over_common_samples": 0.5768032187975489
+        },
+        {
+          "repeat": 0,
+          "index": 5,
+          "control_seconds": 2.64,
+          "variant_seconds": 2.72,
+          "identical_pcm": false,
+          "max_absolute_error": 0.826202392578125,
+          "rms_error": 0.08860165004268865,
+          "cosine_over_common_samples": 0.7098639323267762
+        },
+        {
+          "repeat": 0,
+          "index": 6,
+          "control_seconds": 1.04,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.28863525390625,
+          "rms_error": 0.03842710060148766,
+          "cosine_over_common_samples": 0.92692398774049
+        },
+        {
+          "repeat": 0,
+          "index": 7,
+          "control_seconds": 1.36,
+          "variant_seconds": 1.36,
+          "identical_pcm": false,
+          "max_absolute_error": 0.067962646484375,
+          "rms_error": 0.0040291298626834796,
+          "cosine_over_common_samples": 0.9984260932735666
+        },
+        {
+          "repeat": 1,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": false,
+          "max_absolute_error": 0.640533447265625,
+          "rms_error": 0.045651685156988336,
+          "cosine_over_common_samples": 0.904103476134939
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.16,
+          "identical_pcm": false,
+          "max_absolute_error": 0.17901611328125,
+          "rms_error": 0.007855528536582635,
+          "cosine_over_common_samples": 0.9964637095545325
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "control_seconds": 3.2,
+          "variant_seconds": 3.2,
+          "identical_pcm": false,
+          "max_absolute_error": 0.90740966796875,
+          "rms_error": 0.057510706418871876,
+          "cosine_over_common_samples": 0.8175482228034263
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "control_seconds": 1.2,
+          "variant_seconds": 1.2,
+          "identical_pcm": false,
+          "max_absolute_error": 0.150390625,
+          "rms_error": 0.012568107799405471,
+          "cosine_over_common_samples": 0.9803660387016307
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": false,
+          "max_absolute_error": 0.58587646484375,
+          "rms_error": 0.06835086340620479,
+          "cosine_over_common_samples": 0.5768032187975489
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "control_seconds": 2.64,
+          "variant_seconds": 2.72,
+          "identical_pcm": false,
+          "max_absolute_error": 0.826202392578125,
+          "rms_error": 0.08860165004268865,
+          "cosine_over_common_samples": 0.7098639323267762
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "control_seconds": 1.04,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.28863525390625,
+          "rms_error": 0.03842710060148766,
+          "cosine_over_common_samples": 0.92692398774049
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "control_seconds": 1.36,
+          "variant_seconds": 1.36,
+          "identical_pcm": false,
+          "max_absolute_error": 0.067962646484375,
+          "rms_error": 0.0040291298626834796,
+          "cosine_over_common_samples": 0.9984260932735666
+        }
+      ]
+    },
+    "cpu-int8-threads4": {
+      "control": "cpu-int8",
+      "pairs": [
+        {
+          "repeat": 0,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.16,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 2,
+          "control_seconds": 3.2,
+          "variant_seconds": 3.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 3,
+          "control_seconds": 1.2,
+          "variant_seconds": 1.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 5,
+          "control_seconds": 2.64,
+          "variant_seconds": 2.64,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 6,
+          "control_seconds": 1.04,
+          "variant_seconds": 1.04,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 0,
+          "index": 7,
+          "control_seconds": 1.36,
+          "variant_seconds": 1.36,
+          "identical_pcm": false,
+          "max_absolute_error": 3.0517578125e-05,
+          "rms_error": 1.6891763411332994e-07,
+          "cosine_over_common_samples": 0.9999999999972338
+        },
+        {
+          "repeat": 1,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.16,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "control_seconds": 3.2,
+          "variant_seconds": 3.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "control_seconds": 1.2,
+          "variant_seconds": 1.2,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "control_seconds": 2.64,
+          "variant_seconds": 2.64,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "control_seconds": 1.04,
+          "variant_seconds": 1.04,
+          "identical_pcm": true,
+          "max_absolute_error": 0.0,
+          "rms_error": 0.0,
+          "cosine_over_common_samples": 1.0
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "control_seconds": 1.36,
+          "variant_seconds": 1.36,
+          "identical_pcm": false,
+          "max_absolute_error": 3.0517578125e-05,
+          "rms_error": 1.6891763411332994e-07,
+          "cosine_over_common_samples": 0.9999999999972338
+        }
+      ]
+    },
+    "cuda-unrolled": {
+      "control": "cuda-original",
+      "pairs": [
+        {
+          "repeat": 0,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": false,
+          "max_absolute_error": 0.221527099609375,
+          "rms_error": 0.00789017322762873,
+          "cosine_over_common_samples": 0.9955767037296747
+        },
+        {
+          "repeat": 0,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.24,
+          "identical_pcm": false,
+          "max_absolute_error": 0.74896240234375,
+          "rms_error": 0.06303744193225652,
+          "cosine_over_common_samples": 0.7591038722616196
+        },
+        {
+          "repeat": 0,
+          "index": 2,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": false,
+          "max_absolute_error": 0.02490234375,
+          "rms_error": 0.001350517532883088,
+          "cosine_over_common_samples": 0.9998633964830081
+        },
+        {
+          "repeat": 0,
+          "index": 3,
+          "control_seconds": 1.12,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.004058837890625,
+          "rms_error": 0.000339078606074959,
+          "cosine_over_common_samples": 0.9999837229816444
+        },
+        {
+          "repeat": 0,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": false,
+          "max_absolute_error": 0.037689208984375,
+          "rms_error": 0.0015102404330164518,
+          "cosine_over_common_samples": 0.9997179741016505
+        },
+        {
+          "repeat": 0,
+          "index": 5,
+          "control_seconds": 3.92,
+          "variant_seconds": 3.92,
+          "identical_pcm": false,
+          "max_absolute_error": 0.018035888671875,
+          "rms_error": 0.000712019563083593,
+          "cosine_over_common_samples": 0.9999710154675836
+        },
+        {
+          "repeat": 0,
+          "index": 6,
+          "control_seconds": 1.12,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.124542236328125,
+          "rms_error": 0.0048270524728452205,
+          "cosine_over_common_samples": 0.9978841843649573
+        },
+        {
+          "repeat": 0,
+          "index": 7,
+          "control_seconds": 1.12,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.44561767578125,
+          "rms_error": 0.022192578401614916,
+          "cosine_over_common_samples": 0.9338192680672749
+        },
+        {
+          "repeat": 1,
+          "index": 0,
+          "control_seconds": 2.8,
+          "variant_seconds": 2.8,
+          "identical_pcm": false,
+          "max_absolute_error": 0.221527099609375,
+          "rms_error": 0.007890173765991207,
+          "cosine_over_common_samples": 0.9955767016001958
+        },
+        {
+          "repeat": 1,
+          "index": 1,
+          "control_seconds": 2.16,
+          "variant_seconds": 2.24,
+          "identical_pcm": false,
+          "max_absolute_error": 0.74896240234375,
+          "rms_error": 0.06304176359652039,
+          "cosine_over_common_samples": 0.7590724668003579
+        },
+        {
+          "repeat": 1,
+          "index": 2,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": false,
+          "max_absolute_error": 0.02490234375,
+          "rms_error": 0.0013505199134187743,
+          "cosine_over_common_samples": 0.9998633960384733
+        },
+        {
+          "repeat": 1,
+          "index": 3,
+          "control_seconds": 1.12,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.004058837890625,
+          "rms_error": 0.000339078606074959,
+          "cosine_over_common_samples": 0.9999837229816444
+        },
+        {
+          "repeat": 1,
+          "index": 4,
+          "control_seconds": 3.44,
+          "variant_seconds": 3.44,
+          "identical_pcm": false,
+          "max_absolute_error": 0.037689208984375,
+          "rms_error": 0.0015102404330164518,
+          "cosine_over_common_samples": 0.9997179741016505
+        },
+        {
+          "repeat": 1,
+          "index": 5,
+          "control_seconds": 3.92,
+          "variant_seconds": 3.92,
+          "identical_pcm": false,
+          "max_absolute_error": 0.018035888671875,
+          "rms_error": 0.000712018381321157,
+          "cosine_over_common_samples": 0.9999710155639535
+        },
+        {
+          "repeat": 1,
+          "index": 6,
+          "control_seconds": 1.12,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.124542236328125,
+          "rms_error": 0.0048270524728452205,
+          "cosine_over_common_samples": 0.9978841843649573
+        },
+        {
+          "repeat": 1,
+          "index": 7,
+          "control_seconds": 1.12,
+          "variant_seconds": 1.12,
+          "identical_pcm": false,
+          "max_absolute_error": 0.44561767578125,
+          "rms_error": 0.022192578401614916,
+          "cosine_over_common_samples": 0.9338192680672749
+        }
+      ]
+    }
+  },
+  "replays": {
+    "limit128-v1": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 149.14833573899978,
+        "remaining_pids_before_cleanup": []
+      },
+      "caption_record_count": 336,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.0003733634948730469,
+        "p95": 0.0035872459411621094,
+        "max": 0.006376028060913086
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.09758114814758301,
+        "p95": 0.188798189163208,
+        "max": 0.20033669471740723
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.347,
+        "p95": 2.085,
+        "max": 3.65
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.7313754558563232,
+        "p95": 2.747819662094116,
+        "max": 3.815931797027588
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 15,
+      "job_states": {
+        "completed": 20
+      },
+      "job_count": 20,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 1
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 20,
+        "median": 9.934242248535156,
+        "p95": 23.768430948257446,
+        "max": 23.768430948257446
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 20,
+        "median": 10.479151010513306,
+        "p95": 24.094258546829224,
+        "max": 24.094258546829224
+      },
+      "first_piece_compute_seconds": {
+        "count": 20,
+        "median": 1.785158394000291,
+        "p95": 3.8431044399999337,
+        "max": 3.8431044399999337
+      },
+      "played_piece_count": 48,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.195289611816406,
+      "cpu_all_cores_percent": {
+        "count": 144,
+        "median": 42.950380198840534,
+        "p95": 53.67047308319739,
+        "max": 55.696202531645575
+      },
+      "max_swap_used_bytes": 0,
+      "swapin_pages": 0,
+      "gpu_percent": {
+        "count": 148,
+        "median": 0.0,
+        "p95": 93,
+        "max": 99
+      },
+      "gpu_mean_percent": 11.871621621621621,
+      "gpu_nonzero_sample_fraction": 0.14189189189189189,
+      "gpu_temperature_C": {
+        "count": 148,
+        "median": 53.375,
+        "p95": 54.968,
+        "max": 56.062
+      },
+      "max_buffered_audio_seconds": 9.73654680252075,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "wave_validation": {
+        "checked": 20,
+        "parent_matches_pieces": true,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "8e610e0",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/limit128-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/limit128-v1/speech"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824278,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "18acebddb4f09061d56aab3da372fb50702c05ff94571ecbbba9283ad0c76047",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "60c12f2fe165c77eb567473333c1332d54dc81a004d6f080b0dffae4de329b06",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "36a161cc06f3cf83438f4f0c8a5ed35d329d3779b35159e5efb7573bfe544807",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "b94788a7dbcfbefa3352280e426b52429d301d580c98c8a9de9378f0ca226e56"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "rejected_speech_sequences": [
+        21
+      ],
+      "within_job_playback_gaps_seconds": {
+        "count": 28,
+        "median": 0.0014972925186158559,
+        "mean": 0.0016072661536080113,
+        "max": 0.0034632778167722478,
+        "min": 0.0012416839599609375
+      },
+      "within_job_gaps_over_20ms": 0
+    },
+    "gpu-v1": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 154.0263538399995,
+        "remaining_pids_before_cleanup": []
+      },
+      "caption_record_count": 336,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.00038886070251464844,
+        "p95": 0.0007548332214355469,
+        "max": 0.0015707015991210938
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.10016918182373047,
+        "p95": 0.19141387939453125,
+        "max": 0.20070719718933105
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.623,
+        "p95": 3.474,
+        "max": 3.723
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.9793205261230469,
+        "p95": 3.6138293743133545,
+        "max": 3.884467124938965
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 17,
+      "job_states": {
+        "completed": 18
+      },
+      "job_count": 18,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 3
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 18,
+        "median": 12.062951564788818,
+        "p95": 25.774555444717407,
+        "max": 25.774555444717407
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 18,
+        "median": 12.888505935668945,
+        "p95": 26.18655514717102,
+        "max": 26.18655514717102
+      },
+      "first_piece_compute_seconds": {
+        "count": 18,
+        "median": 2.511376820500118,
+        "p95": 5.356888149999577,
+        "max": 5.356888149999577
+      },
+      "played_piece_count": 46,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 3.22613525390625,
+      "cpu_all_cores_percent": {
+        "count": 149,
+        "median": 17.868852459016395,
+        "p95": 25.08196721311475,
+        "max": 51.88834154351396
+      },
+      "max_swap_used_bytes": 176201728,
+      "swapin_pages": 130,
+      "gpu_percent": {
+        "count": 153,
+        "median": 62,
+        "p95": 99,
+        "max": 99
+      },
+      "gpu_mean_percent": 58.169934640522875,
+      "gpu_nonzero_sample_fraction": 0.8300653594771242,
+      "gpu_temperature_C": {
+        "count": 153,
+        "median": 51.843,
+        "p95": 53.25,
+        "max": 53.812
+      },
+      "max_buffered_audio_seconds": 5.944046220779419,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "wave_validation": {
+        "checked": 18,
+        "parent_matches_pieces": true,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "23ca984",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/gpu-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/gpu-v1/speech",
+          "--tts-provider",
+          "cuda",
+          "--tts-precision",
+          "float32",
+          "--model",
+          "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/sherpa-onnx-pocket-tts-2026-01-26",
+          "--tts-pythonpath",
+          "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/python"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "tts_model_sha256": {
+          "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+          "decoder.onnx": "f267880fde6c58b17b0a8f3647eaf8dcfad321f833f32d583ebc2fb2d1a15f10",
+          "lm_main.onnx": "255d1a9263c5abdf36034abfc19c11d21cc5f40f0f87d8361288e972cbd5c578",
+          "lm_flow.onnx": "79c013a554a54e63319c33c0cc8830cbbedc9b7e448ae7e26f7923ae11f9873e",
+          "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1"
+        },
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.282428,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "f00e8b71ab902031fc69cf0303c74a2b87d2a5468bbcb923b0b900a41f4c7750",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "19f0767b8a0b5ee9eb3e8c059f0bf59ae79341d35b2ffa5c8bc44be331b7a1bb",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "b94788a7dbcfbefa3352280e426b52429d301d580c98c8a9de9378f0ca226e56"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "rejected_speech_sequences": [
+        19,
+        20,
+        21
+      ],
+      "within_job_playback_gaps_seconds": {
+        "count": 28,
+        "median": 0.00174579620361337,
+        "mean": 0.0426574158668518,
+        "max": 0.5714723587036135,
+        "min": 0.0009886550903321911
+      },
+      "within_job_gaps_over_20ms": 4
+    },
+    "threads3-v1": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 147.42556963100105,
+        "remaining_pids_before_cleanup": []
+      },
+      "caption_record_count": 336,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.0003666877746582031,
+        "p95": 0.003577709197998047,
+        "max": 0.008740663528442383
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.09676146507263184,
+        "p95": 0.1862785816192627,
+        "max": 0.2051100730895996
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.353,
+        "p95": 2.057,
+        "max": 3.683
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.7488257884979248,
+        "p95": 2.8093321323394775,
+        "max": 3.8585779666900635
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 15,
+      "job_states": {
+        "completed": 20
+      },
+      "job_count": 20,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 1
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 20,
+        "median": 8.843687653541565,
+        "p95": 19.877642393112183,
+        "max": 19.877642393112183
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 20,
+        "median": 9.443986058235168,
+        "p95": 20.26001286506653,
+        "max": 20.26001286506653
+      },
+      "first_piece_compute_seconds": {
+        "count": 20,
+        "median": 1.6012291300003199,
+        "p95": 3.695382891999543,
+        "max": 3.695382891999543
+      },
+      "played_piece_count": 48,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.306037902832031,
+      "cpu_all_cores_percent": {
+        "count": 142,
+        "median": 65.79631298080255,
+        "p95": 80.44871794871796,
+        "max": 82.06785137318255
+      },
+      "max_swap_used_bytes": 172531712,
+      "swapin_pages": 1,
+      "gpu_percent": {
+        "count": 146,
+        "median": 0.0,
+        "p95": 90,
+        "max": 99
+      },
+      "gpu_mean_percent": 11.623287671232877,
+      "gpu_nonzero_sample_fraction": 0.1506849315068493,
+      "gpu_temperature_C": {
+        "count": 146,
+        "median": 51.218,
+        "p95": 52.562,
+        "max": 53.875
+      },
+      "max_buffered_audio_seconds": 9.737123708724976,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "wave_validation": {
+        "checked": 20,
+        "parent_matches_pieces": true,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "c8b3ef2",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/threads3-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/threads3-v1/speech",
+          "--tts-provider",
+          "cpu",
+          "--tts-precision",
+          "int8",
+          "--tts-threads",
+          "3"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "tts_model_sha256": null,
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.282428,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "f00e8b71ab902031fc69cf0303c74a2b87d2a5468bbcb923b0b900a41f4c7750",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "92630cf5bab2275d8ce0b92886a97b50b9d6c721e7c6aa14cd00ed9f1bafcf11",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "b94788a7dbcfbefa3352280e426b52429d301d580c98c8a9de9378f0ca226e56"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "application_source_hashes_match_commit": true,
+      "rejected_speech_sequences": [
+        19
+      ],
+      "within_job_playback_gaps_seconds": {
+        "count": 28,
+        "median": 0.0015038728713987481,
+        "mean": 0.0018325431006294929,
+        "max": 0.004936008453368945,
+        "min": 0.0008401966094968571
+      },
+      "within_job_gaps_over_20ms": 0
+    },
+    "threads4-v1": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 147.4185639770003,
+        "remaining_pids_before_cleanup": []
+      },
+      "caption_record_count": 336,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.00036644935607910156,
+        "p95": 0.00561070442199707,
+        "max": 0.009575605392456055
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.11043167114257812,
+        "p95": 0.1936185359954834,
+        "max": 0.20725297927856445
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.387,
+        "p95": 2.076,
+        "max": 3.657
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.7332541942596436,
+        "p95": 2.781604051589966,
+        "max": 3.8320930004119873
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 16,
+      "job_states": {
+        "completed": 20
+      },
+      "job_count": 20,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 1
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 20,
+        "median": 9.929785013198853,
+        "p95": 19.63411784172058,
+        "max": 19.63411784172058
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 20,
+        "median": 10.519908547401428,
+        "p95": 19.999379873275757,
+        "max": 19.999379873275757
+      },
+      "first_piece_compute_seconds": {
+        "count": 20,
+        "median": 1.6925067455003955,
+        "p95": 3.93777818000126,
+        "max": 3.93777818000126
+      },
+      "played_piece_count": 48,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.307430267333984,
+      "cpu_all_cores_percent": {
+        "count": 141,
+        "median": 82.17665615141956,
+        "p95": 96.19651347068145,
+        "max": 98.08612440191388
+      },
+      "max_swap_used_bytes": 172531712,
+      "swapin_pages": 12,
+      "gpu_percent": {
+        "count": 146,
+        "median": 0.0,
+        "p95": 89,
+        "max": 99
+      },
+      "gpu_mean_percent": 10.60958904109589,
+      "gpu_nonzero_sample_fraction": 0.14383561643835616,
+      "gpu_temperature_C": {
+        "count": 146,
+        "median": 52.843,
+        "p95": 54.125,
+        "max": 55.5
+      },
+      "max_buffered_audio_seconds": 9.398890476226807,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "wave_validation": {
+        "checked": 20,
+        "parent_matches_pieces": true,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "c8b3ef2",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/threads4-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/threads4-v1/speech",
+          "--tts-provider",
+          "cpu",
+          "--tts-precision",
+          "int8",
+          "--tts-threads",
+          "4"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "tts_model_sha256": null,
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824304,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "f00e8b71ab902031fc69cf0303c74a2b87d2a5468bbcb923b0b900a41f4c7750",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "92630cf5bab2275d8ce0b92886a97b50b9d6c721e7c6aa14cd00ed9f1bafcf11",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "b94788a7dbcfbefa3352280e426b52429d301d580c98c8a9de9378f0ca226e56"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "application_source_hashes_match_commit": true,
+      "rejected_speech_sequences": [
+        19
+      ],
+      "within_job_playback_gaps_seconds": {
+        "count": 28,
+        "median": 0.0016004514694214489,
+        "mean": 0.0027247595787047957,
+        "max": 0.007955236434936452,
+        "min": 0.0007056427001952414
+      },
+      "within_job_gaps_over_20ms": 0
+    }
+  },
+  "cpu_replay_comparison": {
+    "threads3-v1": {
+      "same_final_source_text": true,
+      "same_final_translations": true,
+      "common_completed_count": 19,
+      "submit_to_play_delta_seconds": {
+        "count": 19,
+        "median": -1.5794458389282227,
+        "mean": -1.1720064941205477,
+        "max": 0.553983211517334,
+        "min": -4.2042927742004395
+      },
+      "audio_pairs": [
+        {
+          "seq": 1,
+          "control_samples": 268800,
+          "variant_samples": 261120,
+          "same_pcm": false,
+          "cosine_common_samples": 0.6265664962083992,
+          "max_error_common_samples": 0.99395751953125
+        },
+        {
+          "seq": 3,
+          "control_samples": 51840,
+          "variant_samples": 53760,
+          "same_pcm": false,
+          "cosine_common_samples": 0.18821132666396195,
+          "max_error_common_samples": 0.790435791015625
+        },
+        {
+          "seq": 4,
+          "control_samples": 76800,
+          "variant_samples": 76800,
+          "same_pcm": false,
+          "cosine_common_samples": 0.9274623893917137,
+          "max_error_common_samples": 0.4229736328125
+        },
+        {
+          "seq": 6,
+          "control_samples": 28800,
+          "variant_samples": 28800,
+          "same_pcm": false,
+          "cosine_common_samples": 0.9740100218508784,
+          "max_error_common_samples": 0.170074462890625
+        },
+        {
+          "seq": 7,
+          "control_samples": 261120,
+          "variant_samples": 261120,
+          "same_pcm": false,
+          "cosine_common_samples": 0.673827577717627,
+          "max_error_common_samples": 1.0836181640625
+        },
+        {
+          "seq": 8,
+          "control_samples": 316800,
+          "variant_samples": 297600,
+          "same_pcm": false,
+          "cosine_common_samples": 0.029300222572377743,
+          "max_error_common_samples": 0.966888427734375
+        },
+        {
+          "seq": 9,
+          "control_samples": 26880,
+          "variant_samples": 26880,
+          "same_pcm": false,
+          "cosine_common_samples": 0.7997497187184084,
+          "max_error_common_samples": 0.642852783203125
+        },
+        {
+          "seq": 10,
+          "control_samples": 32640,
+          "variant_samples": 32640,
+          "same_pcm": false,
+          "cosine_common_samples": 0.8916216884585206,
+          "max_error_common_samples": 0.42913818359375
+        },
+        {
+          "seq": 11,
+          "control_samples": 161280,
+          "variant_samples": 161280,
+          "same_pcm": false,
+          "cosine_common_samples": 0.7400181171703868,
+          "max_error_common_samples": 0.73223876953125
+        },
+        {
+          "seq": 12,
+          "control_samples": 26880,
+          "variant_samples": 26880,
+          "same_pcm": false,
+          "cosine_common_samples": 0.9572917988829274,
+          "max_error_common_samples": 0.336822509765625
+        },
+        {
+          "seq": 13,
+          "control_samples": 57600,
+          "variant_samples": 57600,
+          "same_pcm": false,
+          "cosine_common_samples": 0.8547166058796357,
+          "max_error_common_samples": 0.716094970703125
+        },
+        {
+          "seq": 14,
+          "control_samples": 249600,
+          "variant_samples": 249600,
+          "same_pcm": false,
+          "cosine_common_samples": 0.5267549066899786,
+          "max_error_common_samples": 0.8115234375
+        },
+        {
+          "seq": 15,
+          "control_samples": 165120,
+          "variant_samples": 172800,
+          "same_pcm": false,
+          "cosine_common_samples": 0.2781123376592908,
+          "max_error_common_samples": 0.96875
+        },
+        {
+          "seq": 16,
+          "control_samples": 299520,
+          "variant_samples": 309120,
+          "same_pcm": false,
+          "cosine_common_samples": 0.12096376468901436,
+          "max_error_common_samples": 0.81842041015625
+        },
+        {
+          "seq": 17,
+          "control_samples": 192000,
+          "variant_samples": 201600,
+          "same_pcm": false,
+          "cosine_common_samples": 0.19679177418942537,
+          "max_error_common_samples": 0.922454833984375
+        },
+        {
+          "seq": 18,
+          "control_samples": 416640,
+          "variant_samples": 416640,
+          "same_pcm": false,
+          "cosine_common_samples": 0.618706844370689,
+          "max_error_common_samples": 1.058868408203125
+        },
+        {
+          "seq": 20,
+          "control_samples": 44160,
+          "variant_samples": 44160,
+          "same_pcm": false,
+          "cosine_common_samples": 0.9693453271481204,
+          "max_error_common_samples": 0.239898681640625
+        },
+        {
+          "seq": 22,
+          "control_samples": 63360,
+          "variant_samples": 63360,
+          "same_pcm": false,
+          "cosine_common_samples": 0.8677225515746753,
+          "max_error_common_samples": 0.480224609375
+        },
+        {
+          "seq": 23,
+          "control_samples": 57600,
+          "variant_samples": 57600,
+          "same_pcm": false,
+          "cosine_common_samples": 0.8754913154706716,
+          "max_error_common_samples": 0.44049072265625
+        }
+      ]
+    },
+    "threads4-v1": {
+      "same_final_source_text": true,
+      "same_final_translations": true,
+      "common_completed_count": 19,
+      "submit_to_play_delta_seconds": {
+        "count": 19,
+        "median": 0.06032586097717285,
+        "mean": -0.4645552258742483,
+        "max": 0.1988234519958496,
+        "min": -4.627778053283691
+      },
+      "audio_pairs": [
+        {
+          "seq": 1,
+          "control_samples": 268800,
+          "variant_samples": 268800,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 3,
+          "control_samples": 51840,
+          "variant_samples": 51840,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 4,
+          "control_samples": 76800,
+          "variant_samples": 76800,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 6,
+          "control_samples": 28800,
+          "variant_samples": 28800,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 7,
+          "control_samples": 261120,
+          "variant_samples": 261120,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 8,
+          "control_samples": 316800,
+          "variant_samples": 316800,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 9,
+          "control_samples": 26880,
+          "variant_samples": 26880,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 10,
+          "control_samples": 32640,
+          "variant_samples": 32640,
+          "same_pcm": false,
+          "cosine_common_samples": 0.9999999999946432,
+          "max_error_common_samples": 3.0517578125e-05
+        },
+        {
+          "seq": 11,
+          "control_samples": 161280,
+          "variant_samples": 161280,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 12,
+          "control_samples": 26880,
+          "variant_samples": 26880,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 13,
+          "control_samples": 57600,
+          "variant_samples": 57600,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 14,
+          "control_samples": 249600,
+          "variant_samples": 249600,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 15,
+          "control_samples": 165120,
+          "variant_samples": 165120,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 16,
+          "control_samples": 299520,
+          "variant_samples": 299520,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 17,
+          "control_samples": 192000,
+          "variant_samples": 192000,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 18,
+          "control_samples": 416640,
+          "variant_samples": 416640,
+          "same_pcm": false,
+          "cosine_common_samples": 0.9999999999997335,
+          "max_error_common_samples": 3.0517578125e-05
+        },
+        {
+          "seq": 20,
+          "control_samples": 44160,
+          "variant_samples": 44160,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 22,
+          "control_samples": 63360,
+          "variant_samples": 63360,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        },
+        {
+          "seq": 23,
+          "control_samples": 57600,
+          "variant_samples": 57600,
+          "same_pcm": true,
+          "cosine_common_samples": 1.0,
+          "max_error_common_samples": 0.0
+        }
+      ]
+    }
+  },
+  "experiment_script_sha256": {
+    "rvc-golden/realtime-patches-20261008/unroll_pocket_flow.py": "e3df00f01552c4a21f91941c03cbbe1058b68bb40e0878cc71a54e6e6206252c",
+    "rvc-golden/realtime-patches-20261008/pocket_gpu_probe.py": "60ba8e28b09e9e4f4a430708d909e101420e0e46ab676e9826682304011b78a0"
+  }
+}

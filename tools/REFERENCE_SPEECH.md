@@ -110,6 +110,14 @@ The [2026-10-08 Orin report](../reports/realtime-patches-20261008/GPU.md) contai
 In that test, CUDA float32 took more time than the existing CPU int8 configuration.
 Keep CPU int8 as the default until another test shows a benefit.
 
+### Speech threads
+
+The supervisor accepts `--tts-threads`. The default value is 2.
+This option changes only the speech worker. The translator keeps its existing thread settings.
+The [continuity report](../reports/realtime-patches-20261008/CONTINUITY.md) compares one, two, three, and four speech threads on Orin.
+Four threads reduced first-piece synthesis time in that test. The complete playback delay did not clearly decrease.
+Use `--tts-threads 4` for another test with CPU int8.
+
 ## Translation memory settings
 
 The supervisor limits the prompt-state cache to 128 MiB.
