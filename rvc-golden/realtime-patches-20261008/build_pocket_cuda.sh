@@ -52,6 +52,14 @@ if 'MOZART_POCKET_BUILD' not in source:
     source = source.replace(anchor, 'elseif(onnxruntime_DISABLE_CONTRIB_OPS AND NOT onnxruntime_CUDA_MINIMAL AND NOT MOZART_POCKET_BUILD)')
 source = source.replace('if(onnxruntime_cuda_flash_attention_srcs)',
                         'if(onnxruntime_cuda_flash_attention_srcs AND NOT MOZART_POCKET_BUILD)')
+if 'mozart_pocket_cuda=2' not in source:
+    source += '''
+if(MOZART_POCKET_BUILD)
+  set_property(GLOBAL APPEND PROPERTY JOB_POOLS mozart_pocket_cuda=2)
+  set_property(TARGET onnxruntime_providers_cuda PROPERTY JOB_POOL_COMPILE mozart_pocket_cuda)
+  set_property(TARGET onnxruntime_providers_cuda PROPERTY CUDA_COMPILER_LAUNCHER "")
+endif()
+'''
 if source != cuda_cmake.read_text():
     cuda_cmake.write_text(source)
 PY
@@ -61,7 +69,6 @@ exec "$python_bin" "$runtime_root/onnxruntime/tools/ci_build/build.py" \
   --build_shared_lib --use_cuda --cuda_home /usr/local/cuda --cudnn_home /usr \
   --disable_cuda_nhwc_ops --disable_contrib_ops --disable_ml_ops --include_ops_by_config "$runtime_root/pocket-ops.config" \
   --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=87 \
-  "CMAKE_CUDA_COMPILER_LAUNCHER=flock;${runtime_root}/cuda-compile.lock" \
   MOZART_POCKET_BUILD=ON \
   onnxruntime_USE_FLASH_ATTENTION=OFF onnxruntime_USE_MEMORY_EFFICIENT_ATTENTION=OFF \
   onnxruntime_USE_TRT_FUSED_ATTENTION=OFF \

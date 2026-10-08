@@ -3,7 +3,9 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
+import sys
 
 
 def main():
@@ -53,8 +55,17 @@ extern "C" const void* OrtGetApiBase() {
     subprocess.run(['g++', '-std=c++17', '-shared', '-fPIC', '-O2', str(cpp), '-ldl',
                     '-Wl,--version-script='+str(versions), '-Wl,-soname,libonnxruntime.so',
                     '-o', str(target)], check=True)
+    project = Path(__file__).resolve().parents[2]
+    command = [sys.executable, str(project/'tools/run_translated_speech.py'),
+               '--backend-config', str(project/'state/translated-speech.yaml'),
+               '--model', str(root/'sherpa-onnx-pocket-tts-2026-01-26'),
+               '--tts-provider', 'cuda', '--tts-precision', 'float32',
+               '--tts-pythonpath', str(package.parent)]
+    launcher = root/'run-realtime.sh'
+    launcher.write_text('#!/usr/bin/env bash\nset -euo pipefail\nexec '+shlex.join(command)+' "$@"\n')
+    launcher.chmod(0o755)
     print(json.dumps({'pythonpath': str(package.parent), 'cuda_library': str(library),
-                      'loader_library': str(target)}))
+                      'loader_library': str(target), 'launcher': str(launcher)}))
 
 
 if __name__ == '__main__':
