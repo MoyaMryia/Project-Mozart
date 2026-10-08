@@ -62,6 +62,7 @@ def main():
     parser.add_argument('--tts-provider', choices=('cpu', 'cuda'), default='cpu')
     parser.add_argument('--tts-precision', choices=('int8', 'float32'), default='int8')
     parser.add_argument('--tts-pythonpath', type=Path)
+    parser.add_argument('--tts-threads', type=int, default=2)
     args = parser.parse_args()
     if args.tts_provider == 'cuda' and args.tts_model is None:
         parser.error('CUDA replay requires --tts-model')
@@ -79,7 +80,8 @@ def main():
         '--reference-name', 'Qiqi realtime patch test', '--input', str(source), '--seconds', str(args.seconds),
         '--no-rnnoise', '--playback-device', 'null', '--archive-utterances',
         '--run-dir', str(output/'runtime'), '--data-dir', str(output/'speech')]
-    command += ['--tts-provider', args.tts_provider, '--tts-precision', args.tts_precision]
+    command += ['--tts-provider', args.tts_provider, '--tts-precision', args.tts_precision,
+                '--tts-threads', str(args.tts_threads)]
     if args.tts_model:
         command += ['--model', str(args.tts_model)]
     if args.tts_pythonpath:
