@@ -22,10 +22,14 @@ def main():
         records = result['records']
         complete = [r for r in records if 'error' not in r['result']]
         warm = [r for r in complete if r['repeat'] == 1]
+        first = {r['index']: r for r in complete if r['repeat'] == 0}
+        pairs = [r for r in warm if r['index'] in first]
         report['variants'][label] = {
             'runtime': result.get('runtime'), 'startup_seconds': result.get('startup_seconds'),
             'complete': len(complete), 'submitted': len(records), 'exit_code': result.get('exit_code'),
             'errors': [r for r in records if 'error' in r['result']],
+            'repeat_pairs_compared': len(pairs),
+            'identical_repeat_wavs': sum(r['audio']['sha256'] == first[r['index']]['audio']['sha256'] for r in pairs),
             'warm_synthesis_seconds': summary([r['result']['synthesis_seconds'] for r in warm]),
             'warm_callback_seconds': summary([r['result']['first_callback_seconds'] for r in warm
                                                if r['result']['first_callback_seconds'] is not None]),
