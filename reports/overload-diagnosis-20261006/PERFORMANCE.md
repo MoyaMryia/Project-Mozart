@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Mozart performance limits — 2026-10-06
 
 For the user's target of translated speech in a reference voice, the strongest demonstrated limits are output duration, whole-sentence processing, and shared queue admission. PocketTTS has a meaningful CPU cost, but measured generation capacity fits the tested input's average rate. The board was not generally saturated in the controlled full-stack probes. Increasing the TTS thread count produced a small isolated improvement; it does not resolve playback demand or scheduling.

@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../../README.md)为准。
+
 # Qiqi reference-conditioned TTS — Jetson check, 2026-10-04
 
 **The existing Qiqi Golden verification passes. Cloning its saved audio fits the Jetson, but English voice fidelity is not ready to approve. ZipVoice's Chinese output is the more promising result.** Pocket remains the English performance prototype, rather than a validated choice for every reference voice.

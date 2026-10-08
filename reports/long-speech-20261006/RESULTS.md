@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Mozart 30-minute translated reference speech test — October 6, 2026
 
 The run completed with supervisor exit 0 and all 90,000 native input frames sent without overruns. It retained all 244 completed WAVs, totaling **1,358.64 seconds (22 minutes 38.64 seconds)**. Runtime stability passed this workload, but **only 244 of 407 caption finals (59.95%) completed speech playback**. The system remains a development prototype for continuous translation.

@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Smaller speech pieces — 2026-10-06
 
 **Status: completed and fully collected/verified. Smaller-piece runtime validation passed: 365/379 valid jobs completed with no failures, expiry or overruns. Both repaired phrases passed targeted transcription. Remaining translation/term-pronunciation issues and a possible extra romanized-term repetition are documented; this bounded campaign has ended without another automatic rerun.**

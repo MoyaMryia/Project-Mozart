@@ -1,62 +1,65 @@
-# USB 支持最终决策（锁死）
+# USB 音频输出决策
 
-> 2026-09-06 定案。本文档取代 STATUS.md 中所有"gadget 还能救"的开放性问题。
-> 结论经过：两次 panic、七八次重启、ramoops 栈回溯、DMA/completion 候选修复、
-> 以及 NVIDIA 文档盖章，不再重开。
+决策日期：2026-09-06。本文取代 [STATUS.md](STATUS.md) 中仍开放的 gadget 调查问题。
+项目停止在当前 Tegra234 XUDC 平台上进行 UAC gadget 实验。
+调查包含 panic、ramoops、DMA/completion 修复候选和 ISO 流测试；原始证据保留在本目录。
 
-## 决策
+## 当前方案
 
-Mozart 对电脑的音频输出采用：
-
-```
-Jetson USB-A host 口
-  └─ USB→3.5mm 声卡小尾巴（标准 UAC 类设备，snd-usb-audio 免驱）
-       └─ 3.5mm 音频线 → 电脑 3.5mm 麦克风输入口
-```
-
-音频链路：
-
-```
-USB 麦(card 0) → mozart-pre(降噪/VAD) ──UDP──► rvc-backend(TRT 变声)
-                                                  │ UDP 回包
-     小尾巴 ◄── plughw:<小尾巴卡号> ◄── mozart-pre -o
-       └─ 3.5mm ──► 电脑麦克风（模拟）
+```text
+Jetson USB-A host
+  -> 外接 USB 声卡（UAC、snd-usb-audio）
+  -> 3.5 mm 模拟音频线
+  -> 电脑音频输入
 ```
 
-## 为什么是它
+板端音频路径：
 
-- **Tegra234 XUDC device mode 不支持 ISO 端点**（NVIDIA 文档明示，且实测
-  ISO 流 3.45ms 内 ring underrun 0xe，所有软件修复候选同样失败）。
-  标准 UAC1/UAC2 gadget 在本机无解，已盖棺。
-- 小尾巴与已验证的 USB 麦（card 0 "USB PnP Sound Device"）同类，
-  Jetson 侧零新代码、零内核改动、零签名问题。
-- 电脑端是模拟 3.5mm，不存在驱动概念。
-- 比赛评分不要求 USB 传输介质，"对方听到变声"成立。
-
-## 硬件采购/验收标准
-
-1. 商品为 **USB→3.5mm 声卡**（免驱、UAC 描述）；不要 A-to-A 线、
-   不要只有耳机口的线、不要需要厂商驱动的型号
-2. 到货先裸测：Jetson `lsusb -t` 见 Audio Class；
-   `aplay -l` 有播放节点（本方案不需要它的录音节点）
-3. Windows 端验收：录音设备里出现对应输入，录到的波形核对
-   时长/音量/连续性，不只看电平条
-
-## 联调时板端操作（仅三步）
-
-```sh
-aplay -l                              # 找到小尾巴卡号 X
-# mozart-pre 起链路时加: -o plughw:X,0
-# 电脑端录一段核对波形
+```text
+USB 麦克风 -> mozart-pre -> UDP -> mozart_stated RVC
+                 ^                      |
+                 +------ UDP 输出 ------+
+                 -> ALSA 外接声卡 -> 模拟音频线 -> 电脑
 ```
 
-调音：小尾巴音量 20–30% 起步；PC 端麦克风加强默认关。
+历史测试和供应商资料支持关闭当前平台的 XUDC ISO/UAC 路线。
+该决策限定到本项目使用的平台，不据此推断其他 NVIDIA 平台。
+标准 USB 声卡连接 Jetson host 口，使用现有 ALSA 播放路径，不需要修改内核。
+电脑收到模拟输入；是否有兼容输入插孔需要在采购前确认。
 
-## 禁止事项
+## 硬件验收
 
-- 禁止再在 3550000.usb 上做任何 UAC gadget 实验（含 `usb-gadget/`
-  下的 candidate 模块、initrd 替换）
-- 禁止带主机线热卸载/重绑 UDC 或 gadget（历史事故见
-  `crash-20260905-serial-test/`）
-- 自定义 USB 驱动路线（bulk 协议 + WinUSB）仅作为纸面备选，除非
-  对录线方案被证伪，否则不启动
+1. 确认外接声卡提供 UAC 播放功能。
+2. 确认电脑输入接口、线缆插头和电平匹配。
+3. 在 Jetson 用 `lsusb -t` 确认 Audio Class。
+4. 用 `aplay -l` 和 `aplay -L` 确认播放设备。
+5. 使用稳定 ALSA 名称配置输出。
+6. 在电脑录音，核对时长、音量、连续性和失真。
+
+设备枚举成功或电平条变化不能代替录音验收。
+电脑接口可能需要 TRRS 转接、线路输入或衰减；具体连接以实际设备为准。
+
+## 板端联调
+
+先列出设备：
+
+```bash
+aplay -l
+aplay -L
+```
+
+在已有 `mozart-pre` 命令中增加播放设备，例如：
+
+```text
+-o plughw:CARD=Device,DEV=0
+```
+
+从较低输出音量开始，结合电脑录音调整。默认关闭电脑麦克风加强后再测量。
+卡号只用于临时诊断，长期配置使用稳定设备名称。
+
+## 路线约束
+
+- 保持当前 3550000.usb 的 UAC gadget 实验关闭，包括 candidate 模块和 initrd 替换。
+- 不带主机线热卸载或重绑 UDC/gadget；事故记录见 [串口测试](crash-20260905-serial-test/README.md)。
+- bulk/WinUSB 自定义协议保留为备选设计，当前没有实施任务。
+- 历史系统恢复步骤见 [RESTORE-20260906.md](RESTORE-20260906.md)，不作为当前部署步骤执行。

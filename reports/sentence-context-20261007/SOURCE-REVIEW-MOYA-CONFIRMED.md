@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Confirmed Chinese source review
 
 Reviewer: **MoyaMryia**. All 24 Chinese passages are confirmed by the explicit message: “Yes I reviewed, result is what I gave”. That confirmation supersedes the earlier checkbox states.

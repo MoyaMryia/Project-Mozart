@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # PR #2 review — 2026-10-02
 
 Reviewed https://github.com/MoyaMryia/Project-Mozart/pull/2 against main `a506fdd30bfc879ba2dc20d36c0ba910fffce0a0`. The tested review head is `c06cbae`; PR #2 was merged as `0fb19e22f3ffe5424c2ebf6c163f9b84a7b15939`. Local and Jetson main checkouts were fast-forwarded to that merge. The production `~/Mozart/build-gpu` rebuild and its 5/5 backend tests also passed after synchronization.

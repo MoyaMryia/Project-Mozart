@@ -1,5 +1,39 @@
 # Agent Instructions
 
+## Language and Communication
+
+以下规则适用于用户对话、进度更新、最终答复、文档、提交说明和新增代码注释。
+默认使用用户当前使用的语言。完整规则与项目术语见 [docs/WRITING.md](docs/WRITING.md)。
+
+### English
+
+- Obey the writing rules and controlled dictionary of ASD-STE100 Issue 9.
+- Write instructions in the imperative form. Give one instruction per sentence. Use a maximum of 20 words per sentence.
+- Use a maximum of 25 words per descriptive sentence. Keep each paragraph to one topic and a maximum of six sentences.
+- Use active voice, clear subjects, and consistent terms. Use each word with its approved meaning and part of speech.
+- Use project technical nouns and technical verbs as specified in the glossary. Do not add exceptions without a technical reason.
+- Give conditions before instructions. Do not use figurative language, contractions, or unclear pronouns.
+
+### 中文
+
+中文采用简明技术表达。参考 GB/T 19678.1—2018 的使用说明编制要求、
+GB/T 15834—2011 的标点规则，以及 GB/T 1.1—2020 中适用的结构和表述规则。
+这些规范用途不同，不称为“中文版 ASD-STE100”，也不声称存在对应的通用受控词表。
+
+- 使用短句。一句说明一件事；一句操作只包含一个主要动作。
+- 写明主体、条件、动作和结果，避免含糊指代。
+- 同一概念使用同一术语。首次出现缩写或必要英文术语时说明含义。
+- 先给结论，再给必要证据。删除重复、宣传措辞和没有依据的保证。
+- 明确区分实测结果、代码确认、推断和未验证项。
+- 性能数字注明配置、计时起止点和统计范围；完成率注明分母。
+- 中文正文使用中文标点；数值与单位之间留空格，例如 `320 ms`、`8 GB`。
+
+### Accuracy and Source Text
+
+技术准确性优先。命令、路径、标识符、接口字段、日志、引用和人工确认原文保持准确。
+不为满足语言规则修改其含义。历史证据保留原文，并标明日期和适用范围。
+句长检查不能替代词义、词性和技术审查；未经完整审核，不宣称全文符合性或认证。
+
 ## RVC Debugging Workflow
 
 When investigating RVC quality, correctness, or export regressions, use the

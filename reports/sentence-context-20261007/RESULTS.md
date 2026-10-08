@@ -1,3 +1,5 @@
+> 历史记录：本文保留当时的测量、日志与审查原文。当前部署和接口以[维护文档](../../README.md)为准。
+
 # Source-context and explicit-meaning reliability work
 
 The user authorized this stage with “go and make your decision.” The decision is to retain the bounded speech queue and add measured explicit-source correctness checks, while rejecting blanket endpoint merging. Source changes and prior campaign evidence are preserved; nothing is committed or pushed.
