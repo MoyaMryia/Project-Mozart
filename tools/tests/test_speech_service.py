@@ -1,4 +1,5 @@
 import json
+import sqlite3
 from pathlib import Path
 import sys
 import tempfile
@@ -220,5 +221,86 @@ class SpeechTests(unittest.TestCase):
         child=self.service.child
         self.service.close()
         self.assertIsNotNone(child.poll())
+
+class CoverageSpeechTests(unittest.TestCase):
+    submit = SpeechTests.submit
+    wait = SpeechTests.wait
+    tearDown = SpeechTests.tearDown
+
+    def setUp(self):
+        SpeechTests.setUp(self)
+        command, voices = self.service.command, self.service.voices
+        self.service.close()
+        self.service = SpeechService(self.temp.name, command, timeout=.5,
+                                     history_limit=8, delivery_policy='coverage', playback_device='null')
+        self.service.voices = voices
+        (self.service.root/'voices/test.json').write_text(json.dumps(voices['test']))
+
+    def test_disk_backlog_exceeds_old_limits_without_retaining_all_payloads(self):
+        with self.service.lock:
+            jobs = [self.submit(utterance_id=f'source:{i}', live=True, playback=True) for i in range(200)]
+            status = self.service.status()
+            self.assertEqual(status['unfinished_jobs'], 200)
+            self.assertEqual(status['pending_jobs'], 200)
+            self.assertLessEqual(len(status['jobs']), 8)
+            self.assertLessEqual(len(self.service.jobs.cache), 8)
+            self.assertEqual(self.submit(utterance_id='source:0')['id'], jobs[0]['id'])
+            with self.assertRaises(ApiError):
+                self.service.delete_voice('test')
+            self.assertFalse(self.service.expire_before_first_audio({**jobs[0], 'created_at': 0}))
+
+    def test_old_tasks_play_in_order_without_deadline_expiry(self):
+        with self.service.lock:
+            jobs = [self.submit(live=True, playback=True) for _ in range(6)]
+            for job in jobs:
+                self.service.jobs[job['id']]['created_at'] -= 600
+                self.service.save_job(self.service.jobs[job['id']])
+        results = [self.wait(j['id']) for j in jobs]
+        self.assertTrue(all(j['status'] == 'completed' for j in results))
+        self.assertEqual([j['playback_started_at'] for j in results],
+                         sorted(j['playback_started_at'] for j in results))
+
+    def test_shutdown_and_restart_keep_waiting_tasks_and_deduplication(self):
+        command = self.service.command
+        self.service.close()
+        with patch.object(SpeechService, 'run'):
+            self.service = SpeechService(self.temp.name, command, delivery_policy='coverage')
+        jobs = [self.submit(utterance_id=f'persist:{i}', live=True, playback=True) for i in range(6)]
+        self.service.close()
+        self.service = SpeechService(self.temp.name, command, delivery_policy='coverage', playback_device='null')
+        for job in jobs:
+            self.assertEqual(self.wait(job['id'])['status'], 'completed')
+            self.assertEqual(self.submit(utterance_id=job['utterance_id'])['id'], job['id'])
+
+    def test_explicit_stop_cancels_disk_backlog(self):
+        with self.service.lock:
+            jobs = [self.submit(live=True, playback=True) for _ in range(12)]
+            self.service.route('POST', '/api/speech/stop', {})
+            self.assertEqual(self.service.jobs.unfinished(), 0)
+            self.assertEqual(len(self.service.pending), 0)
+            self.assertTrue(all(j['status'] == 'cancelled' for j in self.service.status()['jobs']))
+            self.assertEqual(len(self.service.jobs), 8)
+
+    def test_two_services_cannot_consume_the_same_disk_queue(self):
+        with self.assertRaisesRegex(RuntimeError, 'owns this disk queue'):
+            SpeechService(self.temp.name, self.service.command, delivery_policy='coverage')
+
+    def test_restart_reports_interrupted_playback_without_replaying_it(self):
+        command = self.service.command
+        self.service.close()
+        with patch.object(SpeechService, 'run'):
+            self.service = SpeechService(self.temp.name, command, delivery_policy='coverage')
+        job = self.submit(live=True, playback=True)
+        self.service.close()
+        job.update(status='playing', playback_started_at=time.time())
+        with sqlite3.connect(str(Path(self.temp.name)/'speech-jobs.sqlite3')) as database:
+            database.execute('UPDATE jobs SET payload=?, status=?, pending=0 WHERE id=?',
+                             (json.dumps(job), 'playing', job['id']))
+        self.service = SpeechService(self.temp.name, command, delivery_policy='coverage')
+        recovered = self.service.route('GET', f"/api/speech/jobs/{job['id']}", {})
+        self.assertEqual(recovered['status'], 'failed')
+        self.assertIn('Playback was interrupted', recovered['error'])
+        self.assertIsNone(self.service.child)
+
 
 if __name__=='__main__': unittest.main()

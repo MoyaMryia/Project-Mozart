@@ -53,7 +53,8 @@ Speech engine warmup and reference selection run in a background thread.
 During model startup, translation can fail and speech can skip. The bridge reports these outcomes without replaying earlier utterances.
 Translation and speech service failures keep source captions running.
 Native API or ASR failures still stop the stack. The 768 MiB available-memory guard remains active.
-The supervisor drains captions within the shutdown deadline and stops its children on exit.
+With the default coverage policy, the supervisor waits for queued translation and speech after file input ends.
+An explicit stop still ends capture and playback. Waiting tasks remain on disk.
 It does not start the frontend or optional RVC monitor.
 
 In a different terminal, start the frontend:
@@ -164,9 +165,10 @@ A failed translation publishes the source caption and an error.
 It does not use source-language speech as a substitute.
 Partial Zipformer captions reach the frontend before endpoint detection.
 One background worker translates final utterances in order.
-Four final utterances can wait behind the active request.
-When this queue is full, the bridge keeps the source caption and reports a skipped translation.
-These skipped utterances count as missing translated coverage.
+The default coverage policy stores waiting final utterances in a disk queue.
+The bridge keeps only 128 recent caption records in memory. It retrieves older waiting records from disk.
+With `--delivery-policy realtime`, four final utterances can wait behind the active request.
+For that policy, a full queue produces an explicit skipped translation.
 The subtitle revision increases for each update; fixed revision numbers do not identify processing stages.
 
 ### Numeric checks
@@ -240,10 +242,33 @@ The [source review report](../reports/sentence-context-20261007/RESULTS.md) give
 
 Job states are `queued`, `processing`, `ready`, `playing`, `completed`, `failed`, `cancelled`, and `expired`.
 Duplicate utterance IDs return the previous logical job.
-The service stores up to 128 logical results.
-A 64-job limit bounds unfinished work.
+The service keeps up to 128 finished logical results.
+With the coverage policy, waiting tasks remain in the disk queue until processing or explicit cancellation.
+The status contains recent jobs and active jobs. It does not list every waiting task.
+Use `unfinished_jobs` and `pending_jobs` for the full queue counts.
+Use the job route to retrieve an older waiting job by ID.
 
 ## Admission and deadlines
+
+The default `--delivery-policy coverage` gives coverage priority over playback delay.
+The supervisor sends this policy to both the caption bridge and the speech service.
+Waiting speech does not expire after 30 seconds. Queue delay and estimated duration do not cause HTTP 429 refusal.
+The service accepts waiting text before audio capacity becomes available.
+The existing 12-second audio buffer limit still controls synthesis. The service keeps generated WAV files on disk.
+Delay can increase when the output duration exceeds the input duration.
+Invalid text, translation checks, engine errors, and explicit cancellation can still prevent speech.
+
+Speech tasks use `speech-jobs.sqlite3` in the speech data directory.
+Translation tasks use `captions/translation-queue.sqlite3` in that directory.
+SQLite commits waiting tasks before the service returns success. The service keeps a limited cache of speech records.
+JSON result files remain available as snapshots. SQLite remains the task source if a JSON snapshot write fails.
+The `storage_warning` status field reports that failure.
+A task storage failure returns HTTP 507. Existing stored tasks remain available.
+Only one process can own each disk queue.
+The system can still use its configured swap. The application does not change system swap settings.
+
+For the previous delay limits, select `--delivery-policy realtime`.
+The following limits apply only to that policy.
 
 Live playback uses an estimated 24-second audio budget.
 This budget includes the remainder of active playback.
@@ -264,8 +289,9 @@ The projected first-play time includes earlier deferred text.
 Admission rejects a sentence whose projected start exceeds its deadline.
 Such refusal counts as unspoken coverage.
 
-Engine load has a 90-second timeout.
-Live piece synthesis has a 20-second timeout.
+Engine load and coverage piece synthesis have a 90-second timeout.
+With the realtime policy, live piece synthesis has a 20-second timeout.
+These limits detect failed engine requests. They do not limit time in the coverage queue.
 Cancellation terminates active synthesis or playback and removes queued pieces.
 
 ## Pieces and playback
@@ -315,7 +341,11 @@ The worker rejects that output.
 
 Reference profiles use `~/.local/share/mozart/speech/voices`.
 Completed jobs use the adjacent `results` directory.
-A restart marks interrupted jobs as failed and keeps completed downloads.
+With the coverage policy, a restart resumes waiting tasks and tasks that have not started playback.
+The service reports interrupted playback as failed. It does not automatically repeat audio that might have reached the speaker.
+An explicit stop cancels queued speech. Normal service shutdown keeps waiting tasks for a later start.
+Completed downloads remain available within the history limit.
+With the realtime policy, a restart marks interrupted jobs as failed.
 A new profile is necessary for a different engine.
 
 The optional `--engine zipvoice --vocoder PATH` adapter accepts Chinese and English with an exact reference transcript.

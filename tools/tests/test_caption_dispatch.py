@@ -5,6 +5,7 @@ import struct
 import sys
 import threading
 import types
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -13,6 +14,56 @@ from subtitle_bridge import CaptionDispatcher
 
 
 class CaptionDispatchTests(unittest.TestCase):
+    def test_disk_queue_keeps_evicted_captions_and_all_translation_requests(self):
+        entered, release = threading.Event(), threading.Event()
+        rows, translated = [], []
+        def translate(url, event, **kwargs):
+            translated.append(event['seq'])
+            entered.set()
+            self.assertTrue(release.wait(5))
+            return 'Hello.', .1
+        with tempfile.TemporaryDirectory() as directory, \
+                patch('subtitle_bridge.translate_recognized_event', side_effect=translate):
+            dispatcher = CaptionDispatcher(rows.append, 'session', 'http://example',
+                spool_path=pathlib.Path(directory)/'queue.sqlite3')
+            try:
+                dispatcher.accept({'type': 'final', 'seq': 1, 'text': '第一句。'})
+                self.assertTrue(entered.wait(3))
+                for seq in range(2, 151):
+                    dispatcher.accept({'type': 'final', 'seq': seq, 'text': '后续句子。'})
+                self.assertLessEqual(len(dispatcher.latest), 128)
+                self.assertEqual(sum(r['translation_status'] == 'pending' for r in rows), 150)
+            finally:
+                release.set()
+                self.assertTrue(dispatcher.close())
+        self.assertEqual(translated, list(range(1, 151)))
+        complete = [r for r in rows if r['translation_status'] == 'completed']
+        self.assertEqual(len(complete), 150)
+        self.assertTrue(all(r['revision'] > 0 for r in complete))
+
+    def test_interrupted_disk_translation_resumes_with_original_utterance_id(self):
+        entered, release = threading.Event(), threading.Event()
+        rows = []
+        def translate(*args, **kwargs):
+            entered.set()
+            release.wait(3)
+            return 'Hello.', .1
+        with tempfile.TemporaryDirectory() as directory, \
+                patch('subtitle_bridge.translate_recognized_event', side_effect=translate):
+            path = pathlib.Path(directory)/'queue.sqlite3'
+            dispatcher = CaptionDispatcher(rows.append, 'original', 'http://example', spool_path=path)
+            dispatcher.accept({'type': 'final', 'seq': 7, 'text': '你好。'})
+            self.assertTrue(entered.wait(3))
+            self.assertFalse(dispatcher.close(0))
+            count = len(rows)
+            release.set()
+            dispatcher.worker.join(3)
+            self.assertEqual(len(rows), count)
+            resumed = CaptionDispatcher(rows.append, 'new-session', 'http://example', spool_path=path)
+            self.assertTrue(resumed.close())
+        self.assertEqual(rows[-1]['utterance_id'], 'original:7')
+        self.assertEqual(rows[-1]['translation_status'], 'completed')
+
     def test_slow_translation_does_not_hold_next_source_or_partial(self):
         entered, release = threading.Event(), threading.Event()
         rows = []

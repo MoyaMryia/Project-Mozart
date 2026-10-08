@@ -3,7 +3,7 @@
 
 Captions are always published. Speech admission failures are explicit and never
 fall back to reading Chinese through an English voice. The speech service owns
-its bounded queue and playback device.
+its queue and playback device.
 """
 import argparse
 import json
@@ -17,6 +17,7 @@ import urllib.request
 import uuid
 import threading
 import queue
+from durable_jobs import DiskFifo
 from collections import OrderedDict
 from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles
 import re
@@ -172,12 +173,14 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
 
 
 class CaptionDispatcher:
-    """Publish source captions while one worker processes a bounded translation queue."""
+    """Publish source captions while one worker processes queued translations."""
 
-    def __init__(self, publish, session_id, llama_url, speech_url=None, pending_limit=4):
+    def __init__(self, publish, session_id, llama_url, speech_url=None, pending_limit=4,
+                 spool_path=None):
         self.publish, self.session_id = publish, session_id
         self.llama_url, self.speech_url = llama_url, speech_url
-        self.pending = queue.Queue(maxsize=pending_limit)
+        self.durable = spool_path is not None
+        self.pending = DiskFifo(spool_path) if self.durable else queue.Queue(maxsize=pending_limit)
         self.latest = OrderedDict()
         self.lock = threading.RLock()
         self.closing = threading.Event()
@@ -187,16 +190,21 @@ class CaptionDispatcher:
 
     def update(self, key, changes, create=False):
         with self.lock:
-            if self.aborted or (key not in self.latest and not create):
+            saved = self.pending.record(key) if self.durable and key not in self.latest else None
+            if self.aborted or (key not in self.latest and not create and saved is None):
                 return
-            previous = self.latest.get(key, {})
+            previous = self.latest.get(key, saved or {})
             record = {**previous, **changes, 'revision': previous.get('revision', -1)+1}
             self.latest[key] = record
             while len(self.latest) > 128:
                 self.latest.popitem(last=False)
+            if self.durable:
+                self.pending.save_record(key, record)
             self.publish(dict(record))
 
     def accept(self, event):
+        if self.closing.is_set():
+            return
         if event.get('type') == 'refined':
             changes = {'refinement_status': event['refinement_status']}
             for source, target in (('refined_text', 'refined_zh'), ('refinement_error', 'refinement_error'),
@@ -218,20 +226,34 @@ class CaptionDispatcher:
             if not record['final']:
                 return
             try:
-                self.pending.put_nowait(dict(event))
+                item = {'event': dict(event), 'session_id': self.session_id,
+                        'record': dict(self.latest[key])} if self.durable else dict(event)
+                self.pending.put_nowait(item)
             except queue.Full:
                 self.update(key, {'translation_status': 'skipped',
                     'translation_error': 'Translation queue is full; source caption remains available'})
+            except Exception as error:
+                self.update(key, {'translation_status': 'failed',
+                    'translation_error': f'Translation task storage failed: {error}'})
 
     def run(self):
+        try:
+            self.process_pending()
+        finally:
+            if self.durable:
+                self.pending.close()
+
+    def process_pending(self):
         while not self.aborted and (not self.closing.is_set() or not self.pending.empty()):
             try:
-                event = self.pending.get(timeout=.1)
+                item = self.pending.get(timeout=.1)
             except queue.Empty:
                 continue
-            key = f'{self.session_id}:{event["seq"]}'
+            event = item['event'] if self.durable else item
+            session_id = item['session_id'] if self.durable else self.session_id
+            key = f'{session_id}:{event["seq"]}'
             try:
-                updates = caption_updates(event, event['seq'], self.session_id,
+                updates = caption_updates(event, event['seq'], session_id,
                                           self.llama_url, self.speech_url)
                 next(updates)
                 for record in updates:
@@ -245,14 +267,19 @@ class CaptionDispatcher:
             except Exception as error:
                 self.update(key, {'translation_status': 'failed', 'translation_error': str(error)})
             finally:
-                self.pending.task_done()
+                if self.durable:
+                    self.pending.task_done(retain=self.aborted)
+                else:
+                    self.pending.task_done()
 
-    def close(self, timeout=20):
+    def close(self, timeout=None):
         self.closing.set()
+        if timeout is None and not self.durable:
+            timeout = 20
         self.worker.join(timeout=timeout)
         with self.lock:
             if self.worker.is_alive():
-                for key, record in list(self.latest.items()):
+                for key, record in ([] if self.durable else list(self.latest.items())):
                     if record.get('translation_status') == 'pending':
                         self.update(key, {'translation_status': 'skipped',
                             'translation_error': 'Translation stopped at the shutdown deadline'})
@@ -271,6 +298,8 @@ def main():
     parser.add_argument('--speech-url', default='http://127.0.0.1:18080',
                         help='Speech-session API; speech is enabled in the control UI')
     parser.add_argument('--speak', action='store_true', help='Submit translated text to an enabled speech session')
+    parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
+    parser.add_argument('--queue-dir', type=Path, default=Path.home()/'.local/share/mozart/speech/captions')
     args = parser.parse_args()
     Path(args.jsonl).parent.mkdir(parents=True, exist_ok=True)
     session_id = uuid.uuid4().hex
@@ -297,7 +326,9 @@ def main():
                 captions.write(line+'\n')
                 captions.flush()
             dispatcher = CaptionDispatcher(publish, session_id, args.llama_url,
-                                           args.speech_url if args.speak else None)
+                args.speech_url if args.speak else None,
+                spool_path=(args.queue_dir/'translation-queue.sqlite3')
+                if args.delivery_policy == 'coverage' else None)
             try:
                 for line in stt.stdout:
                     try:

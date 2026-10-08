@@ -80,6 +80,9 @@ class RunnerDegradedTests(unittest.TestCase):
         self.assertEqual(speech_command[speech_command.index('--threads')+1], str(threads))
         translator_command = commands['translation'][0]
         self.assertEqual(translator_command[translator_command.index('-t')+1], '2')
+        self.assertEqual(speech_command[speech_command.index('--delivery-policy')+1], 'coverage')
+        caption_command = commands['captions'][0]
+        self.assertEqual(caption_command[caption_command.index('--delivery-policy')+1], 'coverage')
         if gpu:
             command, settings = commands['speech']
             self.assertEqual(command[command.index('--provider')+1], 'cuda')
@@ -111,6 +114,10 @@ class RunnerDegradedTests(unittest.TestCase):
                 runner.main()
         self.assertEqual(error.exception.code, 2)
         launch.assert_not_called()
+
+    def test_disk_backlog_is_not_hidden_by_recent_job_list(self):
+        self.assertEqual(runner.unfinished_speech({'jobs': [], 'unfinished_jobs': 200}), 200)
+        self.assertEqual(runner.unfinished_speech({'jobs': [{'status': 'completed'}]}), 0)
 
 
 if __name__ == '__main__':

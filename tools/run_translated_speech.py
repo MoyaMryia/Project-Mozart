@@ -51,6 +51,12 @@ def check_services(processes, available_kib=None, optional_names=(), degraded=No
         raise RuntimeError('Available memory fell below 768 MiB')
 
 
+def unfinished_speech(status):
+    if 'unfinished_jobs' in status:
+        return status['unfinished_jobs']
+    return sum(j['status'] not in ['completed', 'failed', 'cancelled', 'expired'] for j in status.get('jobs', []))
+
+
 def main():
     home = Path.home()
     assets = home/'models/sherpa-onnx'
@@ -61,6 +67,7 @@ def main():
     parser.add_argument('--tts-precision', choices=['int8', 'float32'], default='int8')
     parser.add_argument('--tts-pythonpath', type=Path, help='Independent sherpa package directory for the speech service')
     parser.add_argument('--tts-threads', type=int, default=2)
+    parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     parser.add_argument('--tts-provider-config', type=Path)
     parser.add_argument('--stt-model', type=Path, default=assets/'zipformer-zh-14M')
     parser.add_argument('--final-model', type=Path, default=None, help='Optional SenseVoice final-utterance model')
@@ -185,7 +192,7 @@ def main():
         speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
             '--provider', args.tts_provider, '--precision', args.tts_precision,
-            '--threads', args.tts_threads]
+            '--threads', args.tts_threads, '--delivery-policy', args.delivery_policy]
         if args.tts_provider_config:
             speech_command += ['--provider-config', args.tts_provider_config]
         speech_environment = os.environ.copy()
@@ -201,7 +208,8 @@ def main():
             '-b',args.translation_batch_size,'-ub',args.translation_ubatch_size,'--cache-ram',args.translation_cache_mib,
             '-ngl','99','-np','1','-t','2','-tb','2','--host','127.0.0.1','--port','18200','--jinja'], env)
         bridge_command = [sys.executable, ROOT/'tools/subtitle_bridge.py',
-            '--stt-model', args.stt_model, '--jsonl', args.run_dir/'subtitles.jsonl', '--speak']
+            '--stt-model', args.stt_model, '--jsonl', args.run_dir/'subtitles.jsonl', '--speak',
+            '--delivery-policy', args.delivery_policy, '--queue-dir', args.data_dir/'captions']
         if args.final_model:
             bridge_command += ['--final-model', args.final_model]
         if args.archive_utterances:
@@ -237,10 +245,16 @@ def main():
             finish(pre)
             # Terminate only the bridge first. It drains its STT child's final output.
             bridge.terminate()
-            bridge.wait(timeout=30)
+            if args.delivery_policy == 'coverage':
+                while bridge.poll() is None and not stopped:
+                    check_services([entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')],
+                                   optional_names=optional_names, degraded=degraded)
+                    time.sleep(.2)
+            else:
+                bridge.wait(timeout=30)
             if not stopped:
-                end = time.monotonic()+120
-                while time.monotonic() < end:
+                end = None if args.delivery_policy == 'coverage' else time.monotonic()+120
+                while not stopped and (end is None or time.monotonic() < end):
                     remaining = [entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')]
                     check_services(remaining, optional_names=optional_names, degraded=degraded)
                     try:
@@ -249,7 +263,7 @@ def main():
                         optional_failure('speech', error)
                         status = {'available': False, 'error': str(error), 'jobs': []}
                         break
-                    if all(j['status'] in ['completed','failed','cancelled','expired'] for j in status['jobs']): break
+                    if not unfinished_speech(status): break
                     time.sleep(.2)
                 (args.run_dir/'speech-results.json').write_text(json.dumps(status, ensure_ascii=False, indent=2))
             if args.keep_open and not stopped:
