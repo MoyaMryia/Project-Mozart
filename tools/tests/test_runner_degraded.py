@@ -11,7 +11,7 @@ import run_translated_speech as runner
 
 
 class RunnerDegradedTests(unittest.TestCase):
-    def run_stack(self, missing_optional=False, gpu=False):
+    def run_stack(self, missing_optional=False, gpu=False, threads=2):
         capture_started, speech_ready = threading.Event(), threading.Event()
         launches, processes, commands = [], [], {}
         def popen(command, **kwargs):
@@ -56,6 +56,8 @@ class RunnerDegradedTests(unittest.TestCase):
         sock.bind.side_effect = OSError('ASR is listening')
         options = ['--tts-provider', 'cuda', '--tts-precision', 'float32',
                    '--tts-pythonpath', '/isolated/gpu', '--tts-provider-config', '/isolated/provider.conf'] if gpu else []
+        if threads != 2:
+            options += ['--tts-threads', str(threads)]
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]+options), \
                 patch.object(runner, 'assert_ports_available'), \
@@ -74,6 +76,10 @@ class RunnerDegradedTests(unittest.TestCase):
         self.assertIn('capture', launches)
         for process in processes:
             self.assertEqual(process.poll(), 0)
+        speech_command = commands['speech'][0]
+        self.assertEqual(speech_command[speech_command.index('--threads')+1], str(threads))
+        translator_command = commands['translation'][0]
+        self.assertEqual(translator_command[translator_command.index('-t')+1], '2')
         if gpu:
             command, settings = commands['speech']
             self.assertEqual(command[command.index('--provider')+1], 'cuda')
@@ -94,6 +100,17 @@ class RunnerDegradedTests(unittest.TestCase):
 
     def test_gpu_runtime_is_isolated_from_captions_and_translation(self):
         self.run_stack(gpu=True)
+
+    def test_speech_threads_do_not_change_translation_threads(self):
+        self.run_stack(threads=3)
+
+    def test_invalid_speech_threads_fail_before_launch(self):
+        with patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--tts-threads', '0']), \
+                patch.object(runner.subprocess, 'Popen') as launch, patch.object(sys, 'stderr'):
+            with self.assertRaises(SystemExit) as error:
+                runner.main()
+        self.assertEqual(error.exception.code, 2)
+        launch.assert_not_called()
 
 
 if __name__ == '__main__':

@@ -60,6 +60,7 @@ def main():
     parser.add_argument('--tts-provider', choices=['cpu', 'cuda'], default='cpu')
     parser.add_argument('--tts-precision', choices=['int8', 'float32'], default='int8')
     parser.add_argument('--tts-pythonpath', type=Path, help='Independent sherpa package directory for the speech service')
+    parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--tts-provider-config', type=Path)
     parser.add_argument('--stt-model', type=Path, default=assets/'zipformer-zh-14M')
     parser.add_argument('--final-model', type=Path, default=None, help='Optional SenseVoice final-utterance model')
@@ -84,6 +85,8 @@ def main():
     parser.add_argument('--no-rnnoise', action='store_true')
     parser.add_argument('--archive-utterances',action='store_true',help='Save processed source utterances for diagnosis')
     args = parser.parse_args()
+    if args.tts_threads < 1:
+        parser.error('tts-threads must be positive')
     if args.keep_open and not args.input:
         parser.error('--keep-open requires file input; microphone capture already runs until stopped')
     if args.seconds <= 0 or args.start < 0:
@@ -181,7 +184,8 @@ def main():
         ready('http://127.0.0.1:18080/api/status', backend)
         speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
-            '--provider', args.tts_provider, '--precision', args.tts_precision]
+            '--provider', args.tts_provider, '--precision', args.tts_precision,
+            '--threads', args.tts_threads]
         if args.tts_provider_config:
             speech_command += ['--provider-config', args.tts_provider_config]
         speech_environment = os.environ.copy()
