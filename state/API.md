@@ -155,6 +155,7 @@ A full queue produces `translation_status: skipped`; source captions continue.
 Partial captions do not start translation or speech.
 Optional refinement runs after online ASR. The original `zh` remains the translation source.
 The frontend shows a different `refined_zh` separately.
+If a newer partial caption arrives, the frontend keeps the most recent completed translation in a separate, labeled line.
 Refinement audits use `refinement_numeric_audit` and `refinement_polarity_audit`.
 Shutdown allows 20 seconds for background work. Pending translations then receive an explicit skipped status.
 

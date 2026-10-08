@@ -1,5 +1,12 @@
 import type { SubtitleEvent } from './api';
 
+export function latestTranslation(events: SubtitleEvent[]): SubtitleEvent | null {
+  for (let i = events.length-1; i >= 0; i--) {
+    if (events[i].en && events[i].translation_status !== 'failed') return events[i];
+  }
+  return null;
+}
+
 export function upsertSubtitle(events: SubtitleEvent[], caption: SubtitleEvent): void {
   const index = caption.utterance_id
     ? events.findIndex(item => item.utterance_id === caption.utterance_id) : -1;

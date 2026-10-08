@@ -235,6 +235,8 @@ class CaptionDispatcher:
                                           self.llama_url, self.speech_url)
                 next(updates)
                 for record in updates:
+                    if self.aborted:
+                        break
                     changes = {name: value for name, value in record.items()
                                if name.startswith(('translation_', 'speech')) or name in
                                ('en', 'translate_ms', 'translated_at')}

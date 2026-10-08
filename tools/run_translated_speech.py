@@ -16,6 +16,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,10 +33,17 @@ def assert_ports_available(ports):
                 check.listen(1)
 
 
-def check_services(processes, available_kib=None):
+def check_services(processes, available_kib=None, optional_names=(), degraded=None):
+    if degraded is None:
+        degraded = set()
     for name, process, _ in processes:
-        if process.poll() is not None:
-            raise RuntimeError(f'{name} exited ({process.returncode})')
+        code = process.poll()
+        if code is not None:
+            if name not in optional_names:
+                raise RuntimeError(f'{name} exited ({code})')
+            if name not in degraded:
+                degraded.add(name)
+                print(f'[stack] {name} unavailable ({code}); source captions continue', file=sys.stderr, flush=True)
     if available_kib is None:
         available_kib = next(int(line.split()[1]) for line in Path('/proc/meminfo').read_text().splitlines()
                              if line.startswith('MemAvailable:'))
@@ -81,6 +89,9 @@ def main():
     args.run_dir.mkdir(parents=True, exist_ok=True)
     owned = []
     stopped = False
+    speech_startup = None
+    degraded = set()
+    optional_names = {'speech', 'translation'}
     def stop(*_):
         nonlocal stopped
         stopped = True
@@ -88,10 +99,23 @@ def main():
     signal.signal(signal.SIGINT, stop)
     def launch(name, command, env=None):
         log = (args.run_dir/f'{name}.log').open('w')
-        process = subprocess.Popen([str(x) for x in command], cwd=ROOT, env=env,
-            stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            process = subprocess.Popen([str(x) for x in command], cwd=ROOT, env=env,
+                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        except Exception:
+            log.close()
+            raise
         owned.append((name, process, log))
         return process
+    def optional_failure(name, error):
+        degraded.add(name)
+        print(f'[stack] {name} unavailable: {error}; source captions continue', file=sys.stderr, flush=True)
+    def launch_optional(name, command, env=None):
+        try:
+            return launch(name, command, env)
+        except OSError as error:
+            optional_failure(name, error)
+            return None
     def finish(process):
         if process.poll() is None:
             os.killpg(process.pid, signal.SIGTERM)
@@ -118,6 +142,31 @@ def main():
                 pass
             time.sleep(.2)
         raise RuntimeError(f'Readiness timeout: {url}')
+    def prepare_speech(process):
+        try:
+            ready('http://127.0.0.1:18080/api/speech/status', process)
+            deadline = time.monotonic()+90
+            while time.monotonic() < deadline and not stopped:
+                status = request('/api/speech/status')
+                if status.get('warmup_error'):
+                    raise RuntimeError(status['warmup_error'])
+                if status.get('runtime'):
+                    break
+                if process.poll() is not None:
+                    raise RuntimeError('Speech service exited during warmup')
+                time.sleep(.2)
+            else:
+                if stopped:
+                    return
+                raise RuntimeError('Speech warmup readiness timeout')
+            if args.reference and not stopped:
+                voice = request('/api/voices', {'name': args.reference_name,
+                    'audio_base64': base64.b64encode(args.reference.read_bytes()).decode()})
+                request('/api/speech/session', {'enabled': True, 'voice_id': voice['id'],
+                    'language': 'en', 'playback': not args.no_playback})
+        except Exception as error:
+            if not stopped:
+                optional_failure('speech', error)
     # Refuse to share unrelated service ports; this invocation owns cleanup.
     assert_ports_available([(18080,socket.SOCK_STREAM),(18081,socket.SOCK_STREAM),
                             (18200,socket.SOCK_STREAM),(18100,socket.SOCK_DGRAM)])
@@ -126,29 +175,16 @@ def main():
         env['MOZART_SUBTITLES_JSONL'] = str(args.run_dir/'subtitles.jsonl')
         backend = launch('backend', [ROOT/'build-gpu/state/mozart_stated', args.backend_config.resolve()], env)
         ready('http://127.0.0.1:18080/api/status', backend)
-        speech = launch('speech', [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
+        speech = launch_optional('speech', [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device])
-        ready('http://127.0.0.1:18080/api/speech/status', speech)
-        warmup_deadline=time.monotonic()+90
-        while time.monotonic()<warmup_deadline and not stopped:
-            status=request('/api/speech/status')
-            if status.get('warmup_error'):
-                raise RuntimeError('Speech warmup failed: '+status['warmup_error'])
-            if status.get('runtime',{}):break
-            if speech.poll() is not None:raise RuntimeError('Speech service exited during warmup')
-            time.sleep(.2)
-        else:raise RuntimeError('Speech warmup readiness timeout')
-        if args.reference:
-            voice = request('/api/voices', {'name':args.reference_name,
-                'audio_base64':base64.b64encode(args.reference.read_bytes()).decode()})
-            request('/api/speech/session', {'enabled':True, 'voice_id':voice['id'],
-                'language':'en', 'playback':not args.no_playback})
+        if speech is not None:
+            speech_startup = threading.Thread(target=prepare_speech, args=(speech,), daemon=True)
+            speech_startup.start()
         env = os.environ.copy()
         env['LD_LIBRARY_PATH'] = str(args.llama_server.parent)+':'+env.get('LD_LIBRARY_PATH','')
-        llm = launch('translation', [args.llama_server, '-m', args.llama_model, '-c', '2048',
+        launch_optional('translation', [args.llama_server, '-m', args.llama_model, '-c', '2048',
             '-b',args.translation_batch_size,'-ub',args.translation_ubatch_size,'--cache-ram',args.translation_cache_mib,
             '-ngl','99','-np','1','-t','2','-tb','2','--host','127.0.0.1','--port','18200','--jinja'], env)
-        ready('http://127.0.0.1:18200/health', llm)
         bridge_command = [sys.executable, ROOT/'tools/subtitle_bridge.py',
             '--stt-model', args.stt_model, '--jsonl', args.run_dir/'subtitles.jsonl', '--speak']
         if args.final_model:
@@ -178,7 +214,8 @@ def main():
             pre = launch('microphone', pre_args)
             print(f'[stack] running; API port 18080, logs {args.run_dir}', flush=True)
             while not stopped and pre.poll() is None:
-                check_services([entry for entry in owned if entry[1] is not pre])
+                check_services([entry for entry in owned if entry[1] is not pre],
+                               optional_names=optional_names, degraded=degraded)
                 time.sleep(.2)
             if pre.poll() not in [None, 0]:
                 raise RuntimeError(f'Preprocessor exited ({pre.returncode})')
@@ -189,7 +226,14 @@ def main():
             if not stopped:
                 end = time.monotonic()+120
                 while time.monotonic() < end:
-                    status = request('/api/speech/status')
+                    remaining = [entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')]
+                    check_services(remaining, optional_names=optional_names, degraded=degraded)
+                    try:
+                        status = request('/api/speech/status') if speech is not None else {'available': False, 'jobs': []}
+                    except (OSError, ValueError) as error:
+                        optional_failure('speech', error)
+                        status = {'available': False, 'error': str(error), 'jobs': []}
+                        break
                     if all(j['status'] in ['completed','failed','cancelled','expired'] for j in status['jobs']): break
                     time.sleep(.2)
                 (args.run_dir/'speech-results.json').write_text(json.dumps(status, ensure_ascii=False, indent=2))
@@ -197,12 +241,15 @@ def main():
                 print('[stack] mock input finished; API and voice previews remain available until stopped', flush=True)
                 remaining = [entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')]
                 while not stopped:
-                    check_services(remaining)
+                    check_services(remaining, optional_names=optional_names, degraded=degraded)
                     time.sleep(.2)
     finally:
+        stopped = True
         for _, process, log in reversed(owned):
             finish(process)
             log.close()
+        if speech_startup:
+            speech_startup.join(timeout=6)
 
 
 if __name__ == '__main__':

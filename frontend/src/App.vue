@@ -3,7 +3,7 @@
 // UI 模板从原 vanilla 控制中心 1:1 平移（class/结构未动），逻辑从原 vanilla
 // main.ts 移植为组合式状态。新增：SUB 字幕条（SSE 订阅）。
 import SpeechPanel from './SpeechPanel.vue';
-import { upsertSubtitle } from './subtitles';
+import { latestTranslation, upsertSubtitle } from './subtitles';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
@@ -84,6 +84,7 @@ const filteredLogs = computed(() => {
 });
 const latestSubtitle = computed<SubtitleEvent | null>(
   () => subtitleEvents.value[subtitleEvents.value.length - 1] ?? null);
+const latestTranslatedSubtitle = computed(() => latestTranslation(subtitleEvents.value));
 
 const statLatency = computed(() => monitor.value
   ? (monitor.value.cpu_percent === null
@@ -577,6 +578,7 @@ onUnmounted(() => {
         <div class="min-w-0 flex-1 text-left">
           <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音输入…' }}</div>
           <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : latestSubtitle?.en || '' }}</div>
+          <div v-if="latestTranslatedSubtitle && latestTranslatedSubtitle.utterance_id !== latestSubtitle?.utterance_id" class="text-[11px] text-gray-500 leading-4" :title="latestTranslatedSubtitle.zh">前文译文：{{ latestTranslatedSubtitle.en }}</div>
           <div v-if="latestSubtitle?.refined_zh && latestSubtitle.refined_zh !== latestSubtitle.zh" class="text-[11px] text-gray-500 leading-4">复核：{{ latestSubtitle.refined_zh }}</div>
           <p v-if="latestSubtitle?.translation_error || latestSubtitle?.speech_error" class="text-[11px] text-amber-700 leading-4" role="status">{{ latestSubtitle.translation_error || latestSubtitle.speech_error }}</p>
         </div>

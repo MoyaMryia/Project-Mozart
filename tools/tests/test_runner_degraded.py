@@ -1,0 +1,85 @@
+import json
+from pathlib import Path
+import sys
+import tempfile
+import threading
+import unittest
+from unittest.mock import Mock, patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import run_translated_speech as runner
+
+
+class RunnerDegradedTests(unittest.TestCase):
+    def run_stack(self, missing_optional=False):
+        capture_started, speech_ready = threading.Event(), threading.Event()
+        launches, processes = [], []
+        def popen(command, **kwargs):
+            if any('mozart_stated' in word for word in command):
+                name = 'backend'
+            elif any('speech_service.py' in word for word in command):
+                name = 'speech'
+            elif any('llama-server' in word for word in command):
+                name = 'translation'
+            elif any('subtitle_bridge.py' in word for word in command):
+                name = 'captions'
+                self.assertFalse(speech_ready.is_set())
+            else:
+                name = 'capture'
+                capture_started.set()
+            launches.append(name)
+            if missing_optional and name in ('speech', 'translation'):
+                raise FileNotFoundError(name)
+            process = Mock(pid=1000+len(processes))
+            process.poll.return_value = 0 if name == 'capture' else None
+            def finish(*args, **kwargs):
+                process.poll.return_value = 0
+                return 0
+            process.wait.side_effect = finish
+            process.terminate.side_effect = finish
+            processes.append(process)
+            return process
+        def urlopen(request, **kwargs):
+            url = request if isinstance(request, str) else request.full_url
+            if '/api/speech/status' in url and not isinstance(request, str) and threading.current_thread() is not threading.main_thread():
+                self.assertTrue(capture_started.wait(3), 'Capture must start before speech warmup completes')
+                speech_ready.set()
+            response = Mock(status=200)
+            response.read.return_value = json.dumps({'runtime': {'engine': 'fake'}, 'jobs': []}).encode()
+            response.__enter__ = Mock(return_value=response)
+            response.__exit__ = Mock(return_value=False)
+            return response
+        sock = Mock()
+        sock.__enter__ = Mock(return_value=sock)
+        sock.__exit__ = Mock(return_value=False)
+        sock.bind.side_effect = OSError('ASR is listening')
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]), \
+                patch.object(runner, 'assert_ports_available'), \
+                patch.object(runner.subprocess, 'Popen', side_effect=popen), \
+                patch.object(runner.urllib.request, 'urlopen', side_effect=urlopen), \
+                patch.object(runner.socket, 'socket', return_value=sock), \
+                patch.object(runner.signal, 'signal'), \
+                patch.object(runner.os, 'killpg'), \
+                patch.object(runner, 'print'):
+            try:
+                runner.main()
+                status = json.loads((Path(directory)/'speech-results.json').read_text())
+            finally:
+                capture_started.set()
+        self.assertIn('captions', launches)
+        self.assertIn('capture', launches)
+        for process in processes:
+            self.assertEqual(process.poll(), 0)
+        return status
+
+    def test_capture_starts_while_speech_is_still_warming(self):
+        self.run_stack()
+
+    def test_missing_translation_and_speech_keep_source_stack_running(self):
+        status = self.run_stack(missing_optional=True)
+        self.assertFalse(status['available'])
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { SubtitleEvent } from '../src/api.ts';
-import { upsertSubtitle } from '../src/subtitles.ts';
+import { latestTranslation, upsertSubtitle } from '../src/subtitles.ts';
 
 const source = (id: string): SubtitleEvent => ({
   seq: 1, utterance_id: id, revision: 0, zh: '你好。', en: '',
@@ -65,4 +65,14 @@ test('late translation cannot restore an old row after history eviction', () => 
   assert.equal(events.length, 50);
   assert.equal(events[0].seq, 2);
   assert.equal(events[49].seq, 51);
+});
+
+test('a newer partial keeps the latest completed translation available separately', () => {
+  const events: SubtitleEvent[] = [];
+  upsertSubtitle(events, {...source('session:1'), seq: 1});
+  upsertSubtitle(events, {...source('session:2'), seq: 2, final: false, translation_status: 'recognizing'});
+  upsertSubtitle(events, {...source('session:1'), seq: 1, revision: 1, en: 'Hello.', translation_status: 'completed'});
+  assert.equal(events[events.length-1].utterance_id, 'session:2');
+  assert.equal(latestTranslation(events)?.utterance_id, 'session:1');
+  assert.equal(latestTranslation(events)?.en, 'Hello.');
 });

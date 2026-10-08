@@ -69,8 +69,9 @@ class CaptionDispatchTests(unittest.TestCase):
             entered.set()
             release.wait(3)
             return 'Hello.', .1
-        with patch('subtitle_bridge.translate_recognized_event', side_effect=translate):
-            dispatcher = CaptionDispatcher(rows.append, 'session', 'http://example')
+        with patch('subtitle_bridge.translate_recognized_event', side_effect=translate), \
+                patch('subtitle_bridge.request_json') as speech_call:
+            dispatcher = CaptionDispatcher(rows.append, 'session', 'http://example', 'http://speech')
             try:
                 dispatcher.accept({'type': 'final', 'seq': 1, 'text': '你好。'})
                 self.assertTrue(entered.wait(3))
@@ -81,6 +82,7 @@ class CaptionDispatchTests(unittest.TestCase):
                 release.set()
                 dispatcher.worker.join(3)
         self.assertEqual(len(rows), count)
+        speech_call.assert_not_called()
 
     def test_stt_partial_and_final_have_the_same_sequence(self):
         import importlib.util
