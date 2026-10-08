@@ -60,7 +60,8 @@ export interface SubtitleEvent {
   seq: number;
   utterance_id?: string;
   revision?: number;
-  translation_status?: 'pending' | 'completed' | 'failed';
+  final?: boolean;
+  translation_status?: 'recognizing' | 'pending' | 'completed' | 'failed' | 'skipped';
   zh: string;
   en: string;
   translate_ms?: number;

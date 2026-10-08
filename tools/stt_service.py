@@ -97,6 +97,7 @@ def main():
     last_report = time.monotonic()
     last_packet = 0.0
     last_partial = ""
+    last_partial_emit = 0.0
     cut_offset = 0       # 已切出 final 的累计字符位置（get_result 是全连接累计文本）
     transcript_f = open(args.transcript, "a", encoding="utf-8") if args.transcript else None
 
@@ -175,12 +176,20 @@ def main():
         current_seg = None
 
     def show_partial():
-        nonlocal last_partial
+        nonlocal last_partial, last_partial_emit
         text = recognizer.get_result(stream)
         delta = text[cut_offset:]
-        if delta != last_partial:
+        now = time.monotonic()
+        if delta != last_partial and now-last_partial_emit >= .1:
             last_partial = delta
-            print("\r[PART] " + delta, end="", flush=True)
+            last_partial_emit = now
+            if args.json:
+                if delta.strip():
+                    print(json.dumps({'type': 'partial', 'seq': finals+1, 'text': delta,
+                        'emitted_at': time.time(), 'audio_start_pts_ns': utterance_start_pts,
+                        'audio_end_pts_ns': utterance_end_pts}, ensure_ascii=False), flush=True)
+            else:
+                print("\r[PART] " + delta, end="", flush=True)
 
     try:
         while True:

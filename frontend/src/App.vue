@@ -576,7 +576,7 @@ onUnmounted(() => {
         </div>
         <div class="min-w-0 flex-1 text-left">
           <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音输入…' }}</div>
-          <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.translation_status === 'pending' ? '翻译中…' : latestSubtitle?.en || '' }}</div>
+          <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : latestSubtitle?.en || '' }}</div>
           <p v-if="latestSubtitle?.translation_error || latestSubtitle?.speech_error" class="text-[11px] text-amber-700 leading-4" role="status">{{ latestSubtitle.translation_error || latestSubtitle.speech_error }}</p>
         </div>
         <span v-if="latestSubtitle?.translate_ms !== undefined" class="shrink-0 font-mono text-[9px] text-gray-400 tabular-nums self-center">{{ latestSubtitle.translate_ms }}ms</span>

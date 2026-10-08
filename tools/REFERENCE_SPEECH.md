@@ -101,6 +101,12 @@ The bridge uses `--speak` for speech requests.
 It uses the selected speech session and accepts only translated text for speech.
 A failed translation publishes the source caption and an error.
 It does not use source-language speech as a substitute.
+Partial Zipformer captions reach the frontend before endpoint detection.
+One background worker translates final utterances in order.
+Four final utterances can wait behind the active request.
+When this queue is full, the bridge keeps the source caption and reports a skipped translation.
+These skipped utterances count as missing translated coverage.
+The subtitle revision increases for each update; fixed revision numbers do not identify processing stages.
 
 ### Numeric checks
 
