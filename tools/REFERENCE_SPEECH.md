@@ -125,17 +125,21 @@ These checks do not prove semantic accuracy.
 
 ### Recognition uncertainty
 
+Optional SenseVoice refinement runs in one background worker.
+The online Zipformer result starts translation before refinement finishes.
+Two utterances can wait behind the active refinement task.
+A full queue, initialization failure, or shutdown deadline produces an explicit refinement status.
+
 SenseVoice uses a second decode for explicit amounts or years of at least 100.
 Both decodes use the same PCM and one loaded model.
 The second decode uses the literal-number mode.
-Conflicting values or ambiguous repeated units produce `asr_numeric_audit` and `speech_skipped_reason=asr_numeric_uncertainty`.
-The bridge keeps both readings and sends no translation or speech request.
+Conflicting values produce `refinement_numeric_audit`; strict 可能/不可能 conflicts produce `refinement_polarity_audit`.
+These later audits do not cancel or replace speech from the online result.
+The frontend shows a different refinement separately. It does not replace the original translation source.
 Agreement between readings does not prove transcript accuracy.
 
-Strict 可能/不可能 conflicts produce `asr_polarity_audit` and `speech_skipped_reason=asr_polarity_uncertainty`.
-The bridge keeps the original streaming and final readings.
-Their endpoint spans can differ.
-Other negation, names, pronouns, and domain terms are outside this check.
+External final records with `asr_numeric_audit` or `asr_polarity_audit` still use the existing rejection rules.
+Those rules can prevent translation and speech when the supplied audit contains an issue.
 
 Two reproduced boundary forms produce `asr_boundary_audit` and `speech_skipped_reason=asr_boundary_uncertainty`.
 The forms are a clause ending after 不管自己…在 and the ambiguous repeated mother-doubt subject.
@@ -263,7 +267,9 @@ The supervisor accepts this final-model option:
 --final-model ~/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17
 ```
 
-SenseVoice decodes the PCM span of each final Zipformer utterance.
+SenseVoice decodes accepted PCM spans after each final Zipformer result.
+Model initialization and decoding run outside the online recognition loop.
+Refinement updates do not start another translation or repeat speech.
 The bundle comes from the [official sherpa-onnx ASR release](https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2).
 The recorded hashes are:
 

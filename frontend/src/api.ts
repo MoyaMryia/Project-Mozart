@@ -62,6 +62,8 @@ export interface SubtitleEvent {
   revision?: number;
   final?: boolean;
   translation_status?: 'recognizing' | 'pending' | 'completed' | 'failed' | 'skipped';
+  refined_zh?: string;
+  refinement_status?: 'disabled' | 'pending' | 'completed' | 'failed' | 'skipped';
   zh: string;
   en: string;
   translate_ms?: number;
