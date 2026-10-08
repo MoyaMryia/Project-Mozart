@@ -11,9 +11,9 @@ import run_translated_speech as runner
 
 
 class RunnerDegradedTests(unittest.TestCase):
-    def run_stack(self, missing_optional=False):
+    def run_stack(self, missing_optional=False, gpu=False):
         capture_started, speech_ready = threading.Event(), threading.Event()
-        launches, processes = [], []
+        launches, processes, commands = [], [], {}
         def popen(command, **kwargs):
             if any('mozart_stated' in word for word in command):
                 name = 'backend'
@@ -28,6 +28,7 @@ class RunnerDegradedTests(unittest.TestCase):
                 name = 'capture'
                 capture_started.set()
             launches.append(name)
+            commands[name] = (command, kwargs)
             if missing_optional and name in ('speech', 'translation'):
                 raise FileNotFoundError(name)
             process = Mock(pid=1000+len(processes))
@@ -53,8 +54,10 @@ class RunnerDegradedTests(unittest.TestCase):
         sock.__enter__ = Mock(return_value=sock)
         sock.__exit__ = Mock(return_value=False)
         sock.bind.side_effect = OSError('ASR is listening')
+        options = ['--tts-provider', 'cuda', '--tts-precision', 'float32',
+                   '--tts-pythonpath', '/isolated/gpu', '--tts-provider-config', '/isolated/provider.conf'] if gpu else []
         with tempfile.TemporaryDirectory() as directory, \
-                patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]), \
+                patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]+options), \
                 patch.object(runner, 'assert_ports_available'), \
                 patch.object(runner.subprocess, 'Popen', side_effect=popen), \
                 patch.object(runner.urllib.request, 'urlopen', side_effect=urlopen), \
@@ -71,6 +74,15 @@ class RunnerDegradedTests(unittest.TestCase):
         self.assertIn('capture', launches)
         for process in processes:
             self.assertEqual(process.poll(), 0)
+        if gpu:
+            command, settings = commands['speech']
+            self.assertEqual(command[command.index('--provider')+1], 'cuda')
+            self.assertEqual(command[command.index('--precision')+1], 'float32')
+            self.assertEqual(command[command.index('--provider-config')+1], '/isolated/provider.conf')
+            self.assertTrue(settings['env']['PYTHONPATH'].startswith('/isolated/gpu:'))
+            for name in ('backend', 'translation', 'captions', 'capture'):
+                environment = commands[name][1].get('env') or {}
+                self.assertNotIn('/isolated/gpu', environment.get('PYTHONPATH', ''))
         return status
 
     def test_capture_starts_while_speech_is_still_warming(self):
@@ -79,6 +91,9 @@ class RunnerDegradedTests(unittest.TestCase):
     def test_missing_translation_and_speech_keep_source_stack_running(self):
         status = self.run_stack(missing_optional=True)
         self.assertFalse(status['available'])
+
+    def test_gpu_runtime_is_isolated_from_captions_and_translation(self):
+        self.run_stack(gpu=True)
 
 
 if __name__ == '__main__':
