@@ -62,6 +62,15 @@ endif()
 '''
 if source != cuda_cmake.read_text():
     cuda_cmake.write_text(source)
+cpu_cmake = root/'onnxruntime/cmake/onnxruntime_providers_cpu.cmake'
+source = cpu_cmake.read_text()
+if 'MOZART_POCKET_BUILD' not in source:
+    source += '''
+if(MOZART_POCKET_BUILD AND onnxruntime_DISABLE_CONTRIB_OPS)
+  target_sources(onnxruntime_providers PRIVATE "${ONNXRUNTIME_ROOT}/contrib_ops/cpu/fused_activation.cc")
+endif()
+'''
+    cpu_cmake.write_text(source)
 PY
 exec "$python_bin" "$runtime_root/onnxruntime/tools/ci_build/build.py" \
   --build_dir "$runtime_root/build" --config Release --update --build \
