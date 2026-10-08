@@ -106,6 +106,10 @@ The [dated CUDA setup script](../rvc-golden/realtime-patches-20261008/install_cu
 This launcher supplies the installed CUDA paths and float32 settings.
 Use the launcher with the usual reference and capture options.
 
+The [2026-10-08 Orin report](../reports/realtime-patches-20261008/GPU.md) contains the measured results and test conditions.
+In that test, CUDA float32 took more time than the existing CPU int8 configuration.
+Keep CPU int8 as the default until another test shows a benefit.
+
 ## Translation memory settings
 
 The supervisor limits the prompt-state cache to 128 MiB.

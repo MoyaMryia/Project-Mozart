@@ -39,17 +39,22 @@ def main():
             'all_audio_finite': all(r['audio']['finite'] for r in complete) if complete else None,
             'max_audio_peak': max((r['audio']['peak'] for r in complete), default=None)}
     providers, operations = Counter(), defaultdict(Counter)
+    sessions = []
     files = sorted((args.root/'cuda-profile').glob('ort*.json'))
     for path in files:
+        session_providers = Counter()
         for event in json.loads(path.read_text()):
             fields = event.get('args', {})
             provider = fields.get('provider')
             if provider:
                 providers[provider] += 1
+                session_providers[provider] += 1
                 operations[provider][fields.get('op_name', 'unknown')] += 1
-    report['profile'] = {'files': [str(p) for p in files], 'node_events': dict(providers),
+        sessions.append({'file': path.name, 'node_events': dict(session_providers)})
+    report['profile'] = {'files': [str(p) for p in files], 'sessions': sessions,
+                         'node_events': dict(providers),
                          'operations': {p: dict(ops) for p, ops in operations.items()},
-                         'scope': 'Profile files can collide because five sessions use the same prefix.'}
+                         'scope': 'Counts cover retained files only. Five sessions use one prefix; filenames can collide.'}
     args.output.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report, indent=2))
 

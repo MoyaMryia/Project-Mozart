@@ -38,7 +38,8 @@ for path in list(models.glob('*.onnx'))+list((root/'sherpa-onnx-pocket-tts-2026-
 contrib = ['BiasGelu', 'DynamicQuantizeMatMul', 'FastGelu', 'FusedConv', 'FusedMatMul',
            'Gelu', 'LayerNormalization', 'MatMulIntegerToFloat', 'SimplifiedLayerNormalization',
            'SkipLayerNormalization', 'SkipSimplifiedLayerNormalization']
-(root/'pocket-ops.config').write_text('ai.onnx;14;'+','.join(sorted(ops))+'\ncom.microsoft;1;'+','.join(contrib)+'\n')
+(root/'pocket-ops.config').write_text('ai.onnx;14;'+','.join(sorted(ops))+
+    '\nai.onnx;1;MemcpyFromHost,MemcpyToHost\ncom.microsoft;1;'+','.join(contrib)+'\n')
 assert not {'Attention', 'RotaryEmbedding'} & ops
 cuda_cmake = root/'onnxruntime/cmake/onnxruntime_providers_cuda.cmake'
 source = cuda_cmake.read_text()
