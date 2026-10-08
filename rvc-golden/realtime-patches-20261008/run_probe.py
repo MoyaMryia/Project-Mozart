@@ -57,6 +57,7 @@ def main():
     parser.add_argument('label')
     parser.add_argument('--mode', choices=('base', 'refine', 'failure'), default='base')
     parser.add_argument('--seconds', type=int, default=120)
+    parser.add_argument('--commit', required=True)
     args = parser.parse_args()
     root = args.root.resolve()
     original = Path.home()/'Mozart'
@@ -74,7 +75,7 @@ def main():
         '--run-dir', str(output/'runtime'), '--data-dir', str(output/'speech')]
     if args.mode == 'refine':
         command += ['--final-model', str(Path.home()/'models/sherpa-onnx/clone-test-downloads/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17')]
-    save(output/'protocol.json', {'commit': '8bf2a46', 'command': command, 'mode': args.mode,
+    save(output/'protocol.json', {'commit': args.commit, 'command': command, 'mode': args.mode,
         'source_sha256': digest(source), 'reference_sha256': digest(reference), 'translator_sha256': digest(translator),
         'source_note': 'Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.',
         'output_note': 'Paced ALSA null; no physical-speaker test; RVC disabled.',

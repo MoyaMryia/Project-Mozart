@@ -1,0 +1,1150 @@
+{
+  "tested_commit": "8e610e0",
+  "source_hashes_match_commit": true,
+  "latency_model": {
+    "model_note": "Zero synthesis time. Fixed completed jobs, submission times, audio durations, and FIFO playback. This lower bound is not a GPU measurement.",
+    "runs": {
+      "base-v1": {
+        "accepted_jobs": 20,
+        "completed_jobs": 20,
+        "per_job": [
+          {
+            "seq": 1,
+            "queue_seconds": 0.000812530517578125,
+            "start_to_first_ready_seconds": 2.2506277561187744,
+            "first_ready_to_play_seconds": 0.0006616115570068359,
+            "submit_to_play_seconds": 2.2521018981933594,
+            "first_piece_compute_seconds": 2.2496681190000345,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.2521018981933594
+          },
+          {
+            "seq": 3,
+            "queue_seconds": 4.400610685348511,
+            "start_to_first_ready_seconds": 1.62617826461792,
+            "first_ready_to_play_seconds": 3.310136318206787,
+            "submit_to_play_seconds": 9.336925268173218,
+            "first_piece_compute_seconds": 1.6252319210000223,
+            "zero_compute_fifo_wait_seconds": 7.077782392501831,
+            "zero_compute_reduction_seconds": 2.2591428756713867
+          },
+          {
+            "seq": 4,
+            "queue_seconds": 3.175687313079834,
+            "start_to_first_ready_seconds": 2.362473249435425,
+            "first_ready_to_play_seconds": 3.107471466064453,
+            "submit_to_play_seconds": 8.645632028579712,
+            "first_piece_compute_seconds": 2.3616570189999493,
+            "zero_compute_fifo_wait_seconds": 6.384735584259033,
+            "zero_compute_reduction_seconds": 2.2608964443206787
+          },
+          {
+            "seq": 6,
+            "queue_seconds": 0.0007274150848388672,
+            "start_to_first_ready_seconds": 0.9382836818695068,
+            "first_ready_to_play_seconds": 0.564507007598877,
+            "submit_to_play_seconds": 1.5035181045532227,
+            "first_piece_compute_seconds": 0.9374135930002012,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 1.5035181045532227
+          },
+          {
+            "seq": 7,
+            "queue_seconds": 0.0008332729339599609,
+            "start_to_first_ready_seconds": 2.512582302093506,
+            "first_ready_to_play_seconds": 0.0006570816040039062,
+            "submit_to_play_seconds": 2.5140726566314697,
+            "first_piece_compute_seconds": 2.5116239589999623,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.5140726566314697
+          },
+          {
+            "seq": 8,
+            "queue_seconds": 0.0009315013885498047,
+            "start_to_first_ready_seconds": 2.584737539291382,
+            "first_ready_to_play_seconds": 0.0006079673767089844,
+            "submit_to_play_seconds": 2.5862770080566406,
+            "first_piece_compute_seconds": 2.5837137840001105,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.5862770080566406
+          },
+          {
+            "seq": 9,
+            "queue_seconds": 9.232850551605225,
+            "start_to_first_ready_seconds": 0.8983416557312012,
+            "first_ready_to_play_seconds": 5.449430465698242,
+            "submit_to_play_seconds": 15.580622673034668,
+            "first_piece_compute_seconds": 0.8975482529999681,
+            "zero_compute_fifo_wait_seconds": 12.987282514572144,
+            "zero_compute_reduction_seconds": 2.5933401584625244
+          },
+          {
+            "seq": 10,
+            "queue_seconds": 9.968824625015259,
+            "start_to_first_ready_seconds": 1.073948860168457,
+            "first_ready_to_play_seconds": 5.49447774887085,
+            "submit_to_play_seconds": 16.537251234054565,
+            "first_piece_compute_seconds": 1.0731801620001988,
+            "zero_compute_fifo_wait_seconds": 13.941585779190063,
+            "zero_compute_reduction_seconds": 2.595665454864502
+          },
+          {
+            "seq": 11,
+            "queue_seconds": 6.931424379348755,
+            "start_to_first_ready_seconds": 2.575652837753296,
+            "first_ready_to_play_seconds": 4.279118776321411,
+            "submit_to_play_seconds": 13.786195993423462,
+            "first_piece_compute_seconds": 2.5748554169999807,
+            "zero_compute_fifo_wait_seconds": 11.188853979110718,
+            "zero_compute_reduction_seconds": 2.597342014312744
+          },
+          {
+            "seq": 12,
+            "queue_seconds": 10.80314326286316,
+            "start_to_first_ready_seconds": 0.9082129001617432,
+            "first_ready_to_play_seconds": 7.713548421859741,
+            "submit_to_play_seconds": 19.424904584884644,
+            "first_piece_compute_seconds": 0.9073921829999563,
+            "zero_compute_fifo_wait_seconds": 16.823598623275757,
+            "zero_compute_reduction_seconds": 2.6013059616088867
+          },
+          {
+            "seq": 13,
+            "queue_seconds": 8.650925636291504,
+            "start_to_first_ready_seconds": 1.747758150100708,
+            "first_ready_to_play_seconds": 7.0861711502075195,
+            "submit_to_play_seconds": 17.48485493659973,
+            "first_piece_compute_seconds": 1.646390300000121,
+            "zero_compute_fifo_wait_seconds": 14.881580591201782,
+            "zero_compute_reduction_seconds": 2.603274345397949
+          },
+          {
+            "seq": 14,
+            "queue_seconds": 1.0709118843078613,
+            "start_to_first_ready_seconds": 3.1312520503997803,
+            "first_ready_to_play_seconds": 6.354946851730347,
+            "submit_to_play_seconds": 10.557110786437988,
+            "first_piece_compute_seconds": 1.6267558229999395,
+            "zero_compute_fifo_wait_seconds": 7.952275991439819,
+            "zero_compute_reduction_seconds": 2.604834794998169
+          },
+          {
+            "seq": 15,
+            "queue_seconds": 1.034261703491211,
+            "start_to_first_ready_seconds": 2.2253122329711914,
+            "first_ready_to_play_seconds": 7.031267881393433,
+            "submit_to_play_seconds": 10.290841817855835,
+            "first_piece_compute_seconds": 1.7229807700000492,
+            "zero_compute_fifo_wait_seconds": 7.67914891242981,
+            "zero_compute_reduction_seconds": 2.6116929054260254
+          },
+          {
+            "seq": 16,
+            "queue_seconds": 0.0007812976837158203,
+            "start_to_first_ready_seconds": 3.8534762859344482,
+            "first_ready_to_play_seconds": 3.310800075531006,
+            "submit_to_play_seconds": 7.16505765914917,
+            "first_piece_compute_seconds": 3.85250896499997,
+            "zero_compute_fifo_wait_seconds": 4.546211242675781,
+            "zero_compute_reduction_seconds": 2.6188464164733887
+          },
+          {
+            "seq": 17,
+            "queue_seconds": 4.2733917236328125,
+            "start_to_first_ready_seconds": 1.1907076835632324,
+            "first_ready_to_play_seconds": 8.433047771453857,
+            "submit_to_play_seconds": 13.897147178649902,
+            "first_piece_compute_seconds": 1.1898866809999618,
+            "zero_compute_fifo_wait_seconds": 11.27158236503601,
+            "zero_compute_reduction_seconds": 2.6255648136138916
+          },
+          {
+            "seq": 18,
+            "queue_seconds": 7.1237733364105225,
+            "start_to_first_ready_seconds": 1.9092531204223633,
+            "first_ready_to_play_seconds": 1.1286802291870117,
+            "submit_to_play_seconds": 10.161706686019897,
+            "first_piece_compute_seconds": 1.9079946370000016,
+            "zero_compute_fifo_wait_seconds": 7.530347108840942,
+            "zero_compute_reduction_seconds": 2.631359577178955
+          },
+          {
+            "seq": 20,
+            "queue_seconds": 14.74423098564148,
+            "start_to_first_ready_seconds": 1.394261360168457,
+            "first_ready_to_play_seconds": 6.129750967025757,
+            "submit_to_play_seconds": 22.268243312835693,
+            "first_piece_compute_seconds": 1.3933201990000725,
+            "zero_compute_fifo_wait_seconds": 19.62517476081848,
+            "zero_compute_reduction_seconds": 2.643068552017212
+          },
+          {
+            "seq": 21,
+            "queue_seconds": 14.582836151123047,
+            "start_to_first_ready_seconds": 1.4980549812316895,
+            "first_ready_to_play_seconds": 6.472227573394775,
+            "submit_to_play_seconds": 22.55311870574951,
+            "first_piece_compute_seconds": 1.4972868339998513,
+            "zero_compute_fifo_wait_seconds": 19.90805172920227,
+            "zero_compute_reduction_seconds": 2.645066976547241
+          },
+          {
+            "seq": 22,
+            "queue_seconds": 13.428113222122192,
+            "start_to_first_ready_seconds": 1.9463839530944824,
+            "first_ready_to_play_seconds": 6.5262956619262695,
+            "submit_to_play_seconds": 21.900792837142944,
+            "first_piece_compute_seconds": 1.9456303599999956,
+            "zero_compute_fifo_wait_seconds": 19.25381350517273,
+            "zero_compute_reduction_seconds": 2.646979331970215
+          },
+          {
+            "seq": 23,
+            "queue_seconds": 13.397908687591553,
+            "start_to_first_ready_seconds": 1.7729582786560059,
+            "first_ready_to_play_seconds": 7.393762111663818,
+            "submit_to_play_seconds": 22.564629077911377,
+            "first_piece_compute_seconds": 1.7721877629999199,
+            "zero_compute_fifo_wait_seconds": 19.915651082992554,
+            "zero_compute_reduction_seconds": 2.6489779949188232
+          }
+        ],
+        "summary": {
+          "queue_seconds": {
+            "count": 20,
+            "mean": 6.141149008274079,
+            "median": 5.666017532348633,
+            "max": 14.74423098564148
+          },
+          "start_to_first_ready_seconds": {
+            "count": 20,
+            "mean": 1.9200228571891784,
+            "median": 1.8411056995391846,
+            "max": 3.8534762859344482
+          },
+          "first_ready_to_play_seconds": {
+            "count": 20,
+            "mean": 4.489378356933594,
+            "median": 5.471954107284546,
+            "max": 8.433047771453857
+          },
+          "submit_to_play_seconds": {
+            "count": 20,
+            "mean": 12.55055022239685,
+            "median": 12.171653389930725,
+            "max": 22.564629077911377
+          },
+          "first_piece_compute_seconds": {
+            "count": 20,
+            "mean": 1.8138613371000134,
+            "median": 1.684685535000085,
+            "max": 3.85250896499997
+          },
+          "zero_compute_fifo_wait_seconds": {
+            "count": 20,
+            "mean": 10.048383808135986,
+            "median": 9.570564985275269,
+            "max": 19.915651082992554
+          },
+          "zero_compute_reduction_seconds": {
+            "count": 20,
+            "mean": 2.502166414260864,
+            "median": 2.602290153503418,
+            "max": 2.6489779949188232
+          }
+        }
+      },
+      "refine-v1": {
+        "accepted_jobs": 20,
+        "completed_jobs": 20,
+        "per_job": [
+          {
+            "seq": 1,
+            "queue_seconds": 0.0010042190551757812,
+            "start_to_first_ready_seconds": 2.2127223014831543,
+            "first_ready_to_play_seconds": 0.0006968975067138672,
+            "submit_to_play_seconds": 2.214423418045044,
+            "first_piece_compute_seconds": 2.211671977000151,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.214423418045044
+          },
+          {
+            "seq": 3,
+            "queue_seconds": 4.295559644699097,
+            "start_to_first_ready_seconds": 1.5902187824249268,
+            "first_ready_to_play_seconds": 3.4758784770965576,
+            "submit_to_play_seconds": 9.361656904220581,
+            "first_piece_compute_seconds": 1.5893533440000738,
+            "zero_compute_fifo_wait_seconds": 7.140227794647217,
+            "zero_compute_reduction_seconds": 2.2214291095733643
+          },
+          {
+            "seq": 4,
+            "queue_seconds": 2.991899013519287,
+            "start_to_first_ready_seconds": 2.3007497787475586,
+            "first_ready_to_play_seconds": 3.3389458656311035,
+            "submit_to_play_seconds": 8.63159465789795,
+            "first_piece_compute_seconds": 2.2999480559999483,
+            "zero_compute_fifo_wait_seconds": 6.4048378467559814,
+            "zero_compute_reduction_seconds": 2.2267568111419678
+          },
+          {
+            "seq": 6,
+            "queue_seconds": 0.0009784698486328125,
+            "start_to_first_ready_seconds": 0.9201829433441162,
+            "first_ready_to_play_seconds": 0.5883293151855469,
+            "submit_to_play_seconds": 1.509490728378296,
+            "first_piece_compute_seconds": 0.9192636289999427,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 1.509490728378296
+          },
+          {
+            "seq": 7,
+            "queue_seconds": 0.0011103153228759766,
+            "start_to_first_ready_seconds": 2.500204563140869,
+            "first_ready_to_play_seconds": 0.0010275840759277344,
+            "submit_to_play_seconds": 2.502342462539673,
+            "first_piece_compute_seconds": 2.499144978000004,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.502342462539673
+          },
+          {
+            "seq": 8,
+            "queue_seconds": 0.0008616447448730469,
+            "start_to_first_ready_seconds": 2.5764029026031494,
+            "first_ready_to_play_seconds": 0.0009050369262695312,
+            "submit_to_play_seconds": 2.578169584274292,
+            "first_piece_compute_seconds": 2.5753969009999764,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.578169584274292
+          },
+          {
+            "seq": 9,
+            "queue_seconds": 9.290695667266846,
+            "start_to_first_ready_seconds": 0.9022951126098633,
+            "first_ready_to_play_seconds": 5.384395599365234,
+            "submit_to_play_seconds": 15.577386379241943,
+            "first_piece_compute_seconds": 0.901492793999978,
+            "zero_compute_fifo_wait_seconds": 12.991379499435425,
+            "zero_compute_reduction_seconds": 2.5860068798065186
+          },
+          {
+            "seq": 10,
+            "queue_seconds": 10.021738767623901,
+            "start_to_first_ready_seconds": 1.0819449424743652,
+            "first_ready_to_play_seconds": 5.42276406288147,
+            "submit_to_play_seconds": 16.526447772979736,
+            "first_piece_compute_seconds": 1.0811404129999573,
+            "zero_compute_fifo_wait_seconds": 13.938695192337036,
+            "zero_compute_reduction_seconds": 2.5877525806427
+          },
+          {
+            "seq": 11,
+            "queue_seconds": 6.941149473190308,
+            "start_to_first_ready_seconds": 2.5771331787109375,
+            "first_ready_to_play_seconds": 4.2055323123931885,
+            "submit_to_play_seconds": 13.723814964294434,
+            "first_piece_compute_seconds": 2.576205955999967,
+            "zero_compute_fifo_wait_seconds": 11.134454488754272,
+            "zero_compute_reduction_seconds": 2.589360475540161
+          },
+          {
+            "seq": 12,
+            "queue_seconds": 10.800161123275757,
+            "start_to_first_ready_seconds": 0.9062731266021729,
+            "first_ready_to_play_seconds": 7.667851209640503,
+            "submit_to_play_seconds": 19.374285459518433,
+            "first_piece_compute_seconds": 0.9054576510000061,
+            "zero_compute_fifo_wait_seconds": 16.781566381454468,
+            "zero_compute_reduction_seconds": 2.592719078063965
+          },
+          {
+            "seq": 13,
+            "queue_seconds": 8.651874780654907,
+            "start_to_first_ready_seconds": 1.7108361721038818,
+            "first_ready_to_play_seconds": 7.076984167098999,
+            "submit_to_play_seconds": 17.439695119857788,
+            "first_piece_compute_seconds": 1.609617013000161,
+            "zero_compute_fifo_wait_seconds": 14.845222234725952,
+            "zero_compute_reduction_seconds": 2.594472885131836
+          },
+          {
+            "seq": 14,
+            "queue_seconds": 1.0291452407836914,
+            "start_to_first_ready_seconds": 3.1238510608673096,
+            "first_ready_to_play_seconds": 6.353905916213989,
+            "submit_to_play_seconds": 10.50690221786499,
+            "first_piece_compute_seconds": 1.6169510619999983,
+            "zero_compute_fifo_wait_seconds": 7.910181045532227,
+            "zero_compute_reduction_seconds": 2.5967211723327637
+          },
+          {
+            "seq": 15,
+            "queue_seconds": 1.0563364028930664,
+            "start_to_first_ready_seconds": 2.0946648120880127,
+            "first_ready_to_play_seconds": 7.059647083282471,
+            "submit_to_play_seconds": 10.21064829826355,
+            "first_piece_compute_seconds": 1.6926120379998792,
+            "zero_compute_fifo_wait_seconds": 7.607755899429321,
+            "zero_compute_reduction_seconds": 2.6028923988342285
+          },
+          {
+            "seq": 16,
+            "queue_seconds": 0.0007519721984863281,
+            "start_to_first_ready_seconds": 3.798560619354248,
+            "first_ready_to_play_seconds": 3.37432599067688,
+            "submit_to_play_seconds": 7.173638582229614,
+            "first_piece_compute_seconds": 3.7976167500000884,
+            "zero_compute_fifo_wait_seconds": 4.566137790679932,
+            "zero_compute_reduction_seconds": 2.6075007915496826
+          },
+          {
+            "seq": 17,
+            "queue_seconds": 4.218612909317017,
+            "start_to_first_ready_seconds": 1.1890475749969482,
+            "first_ready_to_play_seconds": 8.457861185073853,
+            "submit_to_play_seconds": 13.865521669387817,
+            "first_piece_compute_seconds": 1.188154220000115,
+            "zero_compute_fifo_wait_seconds": 11.251652717590332,
+            "zero_compute_reduction_seconds": 2.6138689517974854
+          },
+          {
+            "seq": 18,
+            "queue_seconds": 6.979363918304443,
+            "start_to_first_ready_seconds": 1.9238708019256592,
+            "first_ready_to_play_seconds": 1.1829962730407715,
+            "submit_to_play_seconds": 10.086230993270874,
+            "first_piece_compute_seconds": 1.9226251380000576,
+            "zero_compute_fifo_wait_seconds": 7.465213298797607,
+            "zero_compute_reduction_seconds": 2.6210176944732666
+          },
+          {
+            "seq": 20,
+            "queue_seconds": 14.76193618774414,
+            "start_to_first_ready_seconds": 1.405452013015747,
+            "first_ready_to_play_seconds": 6.052820444107056,
+            "submit_to_play_seconds": 22.220208644866943,
+            "first_piece_compute_seconds": 1.4046256229999017,
+            "zero_compute_fifo_wait_seconds": 19.58733081817627,
+            "zero_compute_reduction_seconds": 2.632877826690674
+          },
+          {
+            "seq": 21,
+            "queue_seconds": 14.628674030303955,
+            "start_to_first_ready_seconds": 1.511653184890747,
+            "first_ready_to_play_seconds": 6.38184118270874,
+            "submit_to_play_seconds": 22.522168397903442,
+            "first_piece_compute_seconds": 1.5109258180000325,
+            "zero_compute_fifo_wait_seconds": 19.887127161026,
+            "zero_compute_reduction_seconds": 2.6350412368774414
+          },
+          {
+            "seq": 22,
+            "queue_seconds": 13.473721265792847,
+            "start_to_first_ready_seconds": 1.9670417308807373,
+            "first_ready_to_play_seconds": 6.415260553359985,
+            "submit_to_play_seconds": 21.85602355003357,
+            "first_piece_compute_seconds": 1.96627403399998,
+            "zero_compute_fifo_wait_seconds": 19.219021558761597,
+            "zero_compute_reduction_seconds": 2.6370019912719727
+          },
+          {
+            "seq": 23,
+            "queue_seconds": 13.626916646957397,
+            "start_to_first_ready_seconds": 1.7867059707641602,
+            "first_ready_to_play_seconds": 7.268945217132568,
+            "submit_to_play_seconds": 22.682567834854126,
+            "first_piece_compute_seconds": 1.7858913699999448,
+            "zero_compute_fifo_wait_seconds": 20.04362392425537,
+            "zero_compute_reduction_seconds": 2.638943910598755
+          }
+        ],
+        "summary": {
+          "queue_seconds": {
+            "count": 20,
+            "mean": 6.138624584674835,
+            "median": 5.618354558944702,
+            "max": 14.76193618774414
+          },
+          "start_to_first_ready_seconds": {
+            "count": 20,
+            "mean": 1.9039905786514282,
+            "median": 1.8552883863449097,
+            "max": 3.798560619354248
+          },
+          "first_ready_to_play_seconds": {
+            "count": 20,
+            "mean": 4.485545718669892,
+            "median": 5.403579831123352,
+            "max": 8.457861185073853
+          },
+          "submit_to_play_seconds": {
+            "count": 20,
+            "mean": 12.528160881996154,
+            "median": 12.115358591079712,
+            "max": 22.682567834854126
+          },
+          "first_piece_compute_seconds": {
+            "count": 20,
+            "mean": 1.802718438250008,
+            "median": 1.6547815499999388,
+            "max": 3.7976167500000884
+          },
+          "zero_compute_fifo_wait_seconds": {
+            "count": 20,
+            "mean": 10.03872138261795,
+            "median": 9.52231776714325,
+            "max": 20.04362392425537
+          },
+          "zero_compute_reduction_seconds": {
+            "count": 20,
+            "mean": 2.4894394993782045,
+            "median": 2.5935959815979004,
+            "max": 2.638943910598755
+          }
+        }
+      },
+      "limit128-v1": {
+        "accepted_jobs": 20,
+        "completed_jobs": 20,
+        "per_job": [
+          {
+            "seq": 1,
+            "queue_seconds": 0.0010218620300292969,
+            "start_to_first_ready_seconds": 2.2376508712768555,
+            "first_ready_to_play_seconds": 0.0006661415100097656,
+            "submit_to_play_seconds": 2.2393388748168945,
+            "first_piece_compute_seconds": 2.2366594280001664,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.2393388748168945
+          },
+          {
+            "seq": 3,
+            "queue_seconds": 4.346404552459717,
+            "start_to_first_ready_seconds": 1.6155855655670166,
+            "first_ready_to_play_seconds": 3.3862948417663574,
+            "submit_to_play_seconds": 9.34828495979309,
+            "first_piece_compute_seconds": 1.6148038660003294,
+            "zero_compute_fifo_wait_seconds": 7.101725339889526,
+            "zero_compute_reduction_seconds": 2.2465596199035645
+          },
+          {
+            "seq": 4,
+            "queue_seconds": 3.0841712951660156,
+            "start_to_first_ready_seconds": 2.3481814861297607,
+            "first_ready_to_play_seconds": 3.1986753940582275,
+            "submit_to_play_seconds": 8.631028175354004,
+            "first_piece_compute_seconds": 2.347402908999811,
+            "zero_compute_fifo_wait_seconds": 6.3824462890625,
+            "zero_compute_reduction_seconds": 2.248581886291504
+          },
+          {
+            "seq": 6,
+            "queue_seconds": 0.0007963180541992188,
+            "start_to_first_ready_seconds": 0.9395298957824707,
+            "first_ready_to_play_seconds": 0.5460078716278076,
+            "submit_to_play_seconds": 1.4863340854644775,
+            "first_piece_compute_seconds": 0.9384870829999272,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 1.4863340854644775
+          },
+          {
+            "seq": 7,
+            "queue_seconds": 0.0009539127349853516,
+            "start_to_first_ready_seconds": 2.508671998977661,
+            "first_ready_to_play_seconds": 0.0006771087646484375,
+            "submit_to_play_seconds": 2.510303020477295,
+            "first_piece_compute_seconds": 2.5076648229996863,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.510303020477295
+          },
+          {
+            "seq": 8,
+            "queue_seconds": 0.0009107589721679688,
+            "start_to_first_ready_seconds": 2.6187374591827393,
+            "first_ready_to_play_seconds": 0.0006060600280761719,
+            "submit_to_play_seconds": 2.6202542781829834,
+            "first_piece_compute_seconds": 2.6177615380001953,
+            "zero_compute_fifo_wait_seconds": 0.0,
+            "zero_compute_reduction_seconds": 2.6202542781829834
+          },
+          {
+            "seq": 9,
+            "queue_seconds": 9.270883321762085,
+            "start_to_first_ready_seconds": 0.8959400653839111,
+            "first_ready_to_play_seconds": 5.452824592590332,
+            "submit_to_play_seconds": 15.619647979736328,
+            "first_piece_compute_seconds": 0.8951409830001467,
+            "zero_compute_fifo_wait_seconds": 12.990322589874268,
+            "zero_compute_reduction_seconds": 2.6293253898620605
+          },
+          {
+            "seq": 10,
+            "queue_seconds": 9.839079856872559,
+            "start_to_first_ready_seconds": 1.0823161602020264,
+            "first_ready_to_play_seconds": 5.49085545539856,
+            "submit_to_play_seconds": 16.412251472473145,
+            "first_piece_compute_seconds": 1.0815242290000242,
+            "zero_compute_fifo_wait_seconds": 13.781168699264526,
+            "zero_compute_reduction_seconds": 2.631082773208618
+          },
+          {
+            "seq": 11,
+            "queue_seconds": 3.6690802574157715,
+            "start_to_first_ready_seconds": 2.6121771335601807,
+            "first_ready_to_play_seconds": 4.2389421463012695,
+            "submit_to_play_seconds": 10.520199537277222,
+            "first_piece_compute_seconds": 2.611418556999979,
+            "zero_compute_fifo_wait_seconds": 7.887397527694702,
+            "zero_compute_reduction_seconds": 2.6328020095825195
+          },
+          {
+            "seq": 12,
+            "queue_seconds": 7.6009368896484375,
+            "start_to_first_ready_seconds": 0.8966176509857178,
+            "first_ready_to_play_seconds": 7.6946282386779785,
+            "submit_to_play_seconds": 16.192182779312134,
+            "first_piece_compute_seconds": 0.8958121949999622,
+            "zero_compute_fifo_wait_seconds": 13.555132627487183,
+            "zero_compute_reduction_seconds": 2.637050151824951
+          },
+          {
+            "seq": 13,
+            "queue_seconds": 5.450183868408203,
+            "start_to_first_ready_seconds": 1.8969566822052002,
+            "first_ready_to_play_seconds": 6.918079614639282,
+            "submit_to_play_seconds": 14.265220165252686,
+            "first_piece_compute_seconds": 1.795691817000261,
+            "zero_compute_fifo_wait_seconds": 11.626415967941284,
+            "zero_compute_reduction_seconds": 2.6388041973114014
+          },
+          {
+            "seq": 14,
+            "queue_seconds": 0.0007765293121337891,
+            "start_to_first_ready_seconds": 1.602858066558838,
+            "first_ready_to_play_seconds": 5.6970534324646,
+            "submit_to_play_seconds": 7.300688028335571,
+            "first_piece_compute_seconds": 1.6019406579998758,
+            "zero_compute_fifo_wait_seconds": 4.659968137741089,
+            "zero_compute_reduction_seconds": 2.6407198905944824
+          },
+          {
+            "seq": 15,
+            "queue_seconds": 0.0007503032684326172,
+            "start_to_first_ready_seconds": 1.726564645767212,
+            "first_ready_to_play_seconds": 5.300623893737793,
+            "submit_to_play_seconds": 7.0279388427734375,
+            "first_piece_compute_seconds": 1.7256412660003662,
+            "zero_compute_fifo_wait_seconds": 4.378791570663452,
+            "zero_compute_reduction_seconds": 2.6491472721099854
+          },
+          {
+            "seq": 16,
+            "queue_seconds": 0.0007541179656982422,
+            "start_to_first_ready_seconds": 3.844043016433716,
+            "first_ready_to_play_seconds": 0.07722210884094238,
+            "submit_to_play_seconds": 3.9220192432403564,
+            "first_piece_compute_seconds": 3.8431044399999337,
+            "zero_compute_fifo_wait_seconds": 1.2677223682403564,
+            "zero_compute_reduction_seconds": 2.654296875
+          },
+          {
+            "seq": 17,
+            "queue_seconds": 3.4370956420898438,
+            "start_to_first_ready_seconds": 1.176248550415039,
+            "first_ready_to_play_seconds": 6.056264877319336,
+            "submit_to_play_seconds": 10.669609069824219,
+            "first_piece_compute_seconds": 1.1753805190001003,
+            "zero_compute_fifo_wait_seconds": 8.008697748184204,
+            "zero_compute_reduction_seconds": 2.6609113216400146
+          },
+          {
+            "seq": 18,
+            "queue_seconds": 3.9116153717041016,
+            "start_to_first_ready_seconds": 1.9342634677886963,
+            "first_ready_to_play_seconds": 1.1864464282989502,
+            "submit_to_play_seconds": 7.032325267791748,
+            "first_piece_compute_seconds": 1.933014286999878,
+            "zero_compute_fifo_wait_seconds": 4.364637136459351,
+            "zero_compute_reduction_seconds": 2.6676881313323975
+          },
+          {
+            "seq": 19,
+            "queue_seconds": 14.593037843704224,
+            "start_to_first_ready_seconds": 3.418806791305542,
+            "first_ready_to_play_seconds": 4.042317152023315,
+            "submit_to_play_seconds": 22.05416178703308,
+            "first_piece_compute_seconds": 3.4179007450002246,
+            "zero_compute_fifo_wait_seconds": 19.375200986862183,
+            "zero_compute_reduction_seconds": 2.6789608001708984
+          },
+          {
+            "seq": 20,
+            "queue_seconds": 15.005648136138916,
+            "start_to_first_ready_seconds": 1.3970024585723877,
+            "first_ready_to_play_seconds": 7.365780353546143,
+            "submit_to_play_seconds": 23.768430948257446,
+            "first_piece_compute_seconds": 1.3956261759999506,
+            "zero_compute_fifo_wait_seconds": 21.087388038635254,
+            "zero_compute_reduction_seconds": 2.6810429096221924
+          },
+          {
+            "seq": 22,
+            "queue_seconds": 12.192912578582764,
+            "start_to_first_ready_seconds": 2.0714941024780273,
+            "first_ready_to_play_seconds": 7.135395526885986,
+            "submit_to_play_seconds": 21.399802207946777,
+            "first_piece_compute_seconds": 1.9702942720000465,
+            "zero_compute_fifo_wait_seconds": 18.716153383255005,
+            "zero_compute_reduction_seconds": 2.6836488246917725
+          },
+          {
+            "seq": 23,
+            "queue_seconds": 12.450885772705078,
+            "start_to_first_ready_seconds": 2.076235055923462,
+            "first_ready_to_play_seconds": 7.699528694152832,
+            "submit_to_play_seconds": 22.226649522781372,
+            "first_piece_compute_seconds": 1.7746249710003212,
+            "zero_compute_fifo_wait_seconds": 19.541107654571533,
+            "zero_compute_reduction_seconds": 2.685541868209839
+          }
+        ],
+        "summary": {
+          "queue_seconds": {
+            "count": 20,
+            "mean": 5.242894959449768,
+            "median": 3.7903478145599365,
+            "max": 15.005648136138916
+          },
+          "start_to_first_ready_seconds": {
+            "count": 20,
+            "mean": 1.944994056224823,
+            "median": 1.9156100749969482,
+            "max": 3.844043016433716
+          },
+          "first_ready_to_play_seconds": {
+            "count": 20,
+            "mean": 4.074444496631623,
+            "median": 4.769783020019531,
+            "max": 7.699528694152832
+          },
+          "submit_to_play_seconds": {
+            "count": 20,
+            "mean": 11.262333512306213,
+            "median": 9.934242248535156,
+            "max": 23.768430948257446
+          },
+          "first_piece_compute_seconds": {
+            "count": 20,
+            "mean": 1.9189947381000594,
+            "median": 1.785158394000291,
+            "max": 3.8431044399999337
+          },
+          "zero_compute_fifo_wait_seconds": {
+            "count": 20,
+            "mean": 8.73621380329132,
+            "median": 7.494561433792114,
+            "max": 21.087388038635254
+          },
+          "zero_compute_reduction_seconds": {
+            "count": 20,
+            "mean": 2.5261197090148926,
+            "median": 2.6379271745681763,
+            "max": 2.685541868209839
+          }
+        }
+      }
+    }
+  },
+  "translation_probe": {
+    "profiles": [
+      {
+        "name": "original",
+        "max_tokens": 300,
+        "prompt": "Translate the Chinese utterance into English. Return only the translation. Preserve names, years, numbers, negation and uncertainty exactly. Use Arabic numerals for years and large quantities. Do not invent context, people, relationships or events.",
+        "attempts": 23,
+        "passed": 21,
+        "failed_sequences": [
+          2,
+          5
+        ],
+        "median_success_seconds": 0.31318367699986993,
+        "max_success_seconds": 6.90233067600002,
+        "max_all_seconds": 6.90233067600002,
+        "total_success_words": 396,
+        "retried_utterances": 4,
+        "identical_outputs_and_statuses": 23,
+        "seq8": {
+          "seconds": 6.90233067600002,
+          "requests": [
+            {
+              "seconds": 5.833360023000296,
+              "usage": {
+                "completion_tokens": 300,
+                "prompt_tokens": 93,
+                "total_tokens": 393,
+                "prompt_tokens_details": {
+                  "cached_tokens": 52
+                }
+              },
+              "timings": {
+                "cache_n": 52,
+                "prompt_n": 41,
+                "prompt_ms": 84.918,
+                "prompt_per_token_ms": 2.0711707317073174,
+                "prompt_per_second": 482.8187192350267,
+                "predicted_n": 300,
+                "predicted_ms": 5719.204,
+                "predicted_per_token_ms": 19.127772575250834,
+                "predicted_per_second": 52.280002601760664
+              }
+            },
+            {
+              "seconds": 1.0620877460000884,
+              "usage": {
+                "completion_tokens": 48,
+                "prompt_tokens": 116,
+                "total_tokens": 164,
+                "prompt_tokens_details": {
+                  "cached_tokens": 0
+                }
+              },
+              "timings": {
+                "cache_n": 0,
+                "prompt_n": 116,
+                "prompt_ms": 126.004,
+                "prompt_per_token_ms": 1.086241379310345,
+                "prompt_per_second": 920.6056950572997,
+                "predicted_n": 48,
+                "predicted_ms": 908.185,
+                "predicted_per_token_ms": 19.323085106382976,
+                "predicted_per_second": 51.75157043994341
+              }
+            }
+          ],
+          "en": "Wanting to advance but you are doing gambling. You are borrowing me for a loan. You are on a dating app. You are all using this to get money. It is nothing left after you get rid of the first line."
+        }
+      },
+      {
+        "name": "concise-128",
+        "max_tokens": 128,
+        "prompt": "Translate the Chinese utterance into English. Return only the translation. Preserve names, years, numbers, negation and uncertainty exactly. Use Arabic numerals for years and large quantities. Do not invent context, people, relationships or events. Use concise English. Do not add explanations or repeat the same point.",
+        "attempts": 23,
+        "passed": 21,
+        "failed_sequences": [
+          2,
+          5
+        ],
+        "median_success_seconds": 0.3719545779999862,
+        "max_success_seconds": 1.0070454440001413,
+        "max_all_seconds": 1.377854949000266,
+        "total_success_words": 325,
+        "retried_utterances": 2,
+        "identical_outputs_and_statuses": 10,
+        "seq8": {
+          "seconds": 0.5634646299999986,
+          "requests": [
+            {
+              "seconds": 0.5622451999997793,
+              "usage": {
+                "completion_tokens": 25,
+                "prompt_tokens": 107,
+                "total_tokens": 132,
+                "prompt_tokens_details": {
+                  "cached_tokens": 66
+                }
+              },
+              "timings": {
+                "cache_n": 66,
+                "prompt_n": 41,
+                "prompt_ms": 84.045,
+                "prompt_per_token_ms": 2.0498780487804877,
+                "prompt_per_second": 487.83389850675235,
+                "predicted_n": 25,
+                "predicted_ms": 467.611,
+                "predicted_per_token_ms": 19.483791666666665,
+                "predicted_per_second": 51.32471220736895
+              }
+            }
+          ],
+          "en": "You are gambling and borrowing money from me through online dating. You are using this to get money and remove the line."
+        }
+      },
+      {
+        "name": "limit-128",
+        "max_tokens": 128,
+        "prompt": "Translate the Chinese utterance into English. Return only the translation. Preserve names, years, numbers, negation and uncertainty exactly. Use Arabic numerals for years and large quantities. Do not invent context, people, relationships or events.",
+        "attempts": 23,
+        "passed": 21,
+        "failed_sequences": [
+          2,
+          5
+        ],
+        "median_success_seconds": 0.31454607000023316,
+        "max_success_seconds": 3.6389792290001424,
+        "max_all_seconds": 3.6389792290001424,
+        "total_success_words": 396,
+        "retried_utterances": 4,
+        "identical_outputs_and_statuses": 23,
+        "seq8": {
+          "seconds": 3.6389792290001424,
+          "requests": [
+            {
+              "seconds": 2.56196069500038,
+              "usage": {
+                "completion_tokens": 128,
+                "prompt_tokens": 93,
+                "total_tokens": 221,
+                "prompt_tokens_details": {
+                  "cached_tokens": 52
+                }
+              },
+              "timings": {
+                "cache_n": 52,
+                "prompt_n": 41,
+                "prompt_ms": 84.726,
+                "prompt_per_token_ms": 2.0664878048780486,
+                "prompt_per_second": 483.9128484762646,
+                "predicted_n": 128,
+                "predicted_ms": 2448.23,
+                "predicted_per_token_ms": 19.27740157480315,
+                "predicted_per_second": 51.87421116480069
+              }
+            },
+            {
+              "seconds": 1.0728350989998034,
+              "usage": {
+                "completion_tokens": 48,
+                "prompt_tokens": 116,
+                "total_tokens": 164,
+                "prompt_tokens_details": {
+                  "cached_tokens": 0
+                }
+              },
+              "timings": {
+                "cache_n": 0,
+                "prompt_n": 116,
+                "prompt_ms": 126.784,
+                "prompt_per_token_ms": 1.0929655172413795,
+                "prompt_per_second": 914.9419485108531,
+                "predicted_n": 48,
+                "predicted_ms": 918.604,
+                "predicted_per_token_ms": 19.54476595744681,
+                "predicted_per_second": 51.164593230597724
+              }
+            }
+          ],
+          "en": "Wanting to advance but you are doing gambling. You are borrowing me for a loan. You are on a dating app. You are all using this to get money. It is nothing left after you get rid of the first line."
+        }
+      }
+    ]
+  },
+  "replay": {
+    "mode": "base",
+    "exit": {
+      "exit_code": 0,
+      "failure": null,
+      "elapsed_seconds": 149.14833573899978,
+      "remaining_pids_before_cleanup": [],
+      "injection": null
+    },
+    "caption_record_count": 336,
+    "unique_utterances": 23,
+    "final_utterances": 23,
+    "partial_updates": 269,
+    "revision_violations": [],
+    "translation_status": {
+      "completed": 21,
+      "failed": 2
+    },
+    "refinement_status": {
+      "disabled": 23
+    },
+    "partial_asr_emit_to_bridge_seconds": {
+      "count": 269,
+      "median": 0.0003733634948730469,
+      "p95": 0.0035872459411621094,
+      "max": 0.006376028060913086
+    },
+    "partial_asr_emit_to_sse_seconds": {
+      "count": 269,
+      "median": 0.09758114814758301,
+      "p95": 0.188798189163208,
+      "max": 0.20033669471740723
+    },
+    "translation_compute_seconds": {
+      "count": 21,
+      "median": 0.347,
+      "p95": 2.085,
+      "max": 3.65
+    },
+    "final_emit_to_translation_seconds": {
+      "count": 21,
+      "median": 0.7313754558563232,
+      "p95": 2.747819662094116,
+      "max": 3.815931797027588
+    },
+    "refinement_compute_seconds": null,
+    "translations_with_other_partial_updates_while_pending": 15,
+    "job_states": {
+      "completed": 20
+    },
+    "job_count": 20,
+    "source_to_speech_errors": {
+      "HTTP Error 429: Too Many Requests": 1
+    },
+    "translation_errors": {
+      "Translation rejected: required numerals missing: 12000": 1,
+      "Translation rejected: untranslated Chinese in English output": 1
+    },
+    "submit_to_first_play_seconds": {
+      "count": 20,
+      "median": 9.934242248535156,
+      "p95": 23.768430948257446,
+      "max": 23.768430948257446
+    },
+    "final_emit_to_first_play_seconds": {
+      "count": 20,
+      "median": 10.479151010513306,
+      "p95": 24.094258546829224,
+      "max": 24.094258546829224
+    },
+    "first_piece_compute_seconds": {
+      "count": 20,
+      "median": 1.785158394000291,
+      "p95": 3.8431044399999337,
+      "max": 3.8431044399999337
+    },
+    "played_piece_count": 48,
+    "playback_order_preserved": true,
+    "native_frames": 6000,
+    "native_overruns": 0,
+    "minimum_available_GiB": 4.195289611816406,
+    "cpu_all_cores_percent": {
+      "count": 144,
+      "median": 42.950380198840534,
+      "p95": 53.67047308319739,
+      "max": 55.696202531645575
+    },
+    "max_swap_used_bytes": 0,
+    "swapin_pages": 0,
+    "gpu_percent": {
+      "count": 148,
+      "median": 0.0,
+      "p95": 93,
+      "max": 99
+    },
+    "gpu_mean_percent": 11.871621621621621,
+    "gpu_nonzero_sample_fraction": 0.14189189189189189,
+    "gpu_temperature_C": {
+      "count": 148,
+      "median": 53.375,
+      "p95": 54.968,
+      "max": 56.062
+    },
+    "max_buffered_audio_seconds": 9.73654680252075,
+    "finals_after_failure": null,
+    "partial_updates_after_failure": null,
+    "completed_audio_checks": {
+      "count": 20,
+      "all_parents_match_ordered_pieces": true,
+      "clipped_samples": 0
+    }
+  },
+  "comparison": {
+    "shared_spoken_sequences": [
+      1,
+      3,
+      4,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      20,
+      22,
+      23
+    ],
+    "old_only_sequences": [
+      21
+    ],
+    "new_only_sequences": [
+      19
+    ],
+    "shared_wavs_byte_identical": true,
+    "shared_submit_to_play_reduction_seconds": {
+      "count": 19,
+      "mean": 1.3297566991103322,
+      "median": 0.3379795551300049,
+      "min": -1.500187635421753,
+      "max": 3.2659964561462402
+    },
+    "base_audio_seconds": 118.56,
+    "new_audio_seconds": 121.28
+  },
+  "protocol": {
+    "commit": "8e610e0",
+    "command": [
+      "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+      "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+      "--backend-config",
+      "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+      "--reference",
+      "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+      "--reference-name",
+      "Qiqi realtime patch test",
+      "--input",
+      "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+      "--seconds",
+      "120",
+      "--no-rnnoise",
+      "--playback-device",
+      "null",
+      "--archive-utterances",
+      "--run-dir",
+      "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/limit128-v1/runtime",
+      "--data-dir",
+      "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/limit128-v1/speech"
+    ],
+    "mode": "base",
+    "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+    "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+    "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+    "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+    "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+    "wall_minus_monotonic_seconds": 1791455391.2824278,
+    "source_files": {
+      "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+      "tools/clone_worker.py": "18acebddb4f09061d56aab3da372fb50702c05ff94571ecbbba9283ad0c76047",
+      "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+      "tools/speech_service.py": "60c12f2fe165c77eb567473333c1332d54dc81a004d6f080b0dffae4de329b06",
+      "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+      "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+      "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+      "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+      "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+      "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+      "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+      "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+      "tools/run_translated_speech.py": "36a161cc06f3cf83438f4f0c8a5ed35d329d3779b35159e5efb7573bfe544807",
+      "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+      "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+      "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+      "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+      "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+      "tools/subtitle_bridge.py": "b94788a7dbcfbefa3352280e426b52429d301d580c98c8a9de9378f0ca226e56"
+    },
+    "binary_hashes": {
+      "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+      "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+    }
+  }
+}
