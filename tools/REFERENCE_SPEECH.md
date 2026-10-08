@@ -84,7 +84,7 @@ The ASR and translator keep their existing environments.
 The worker reports `provider_requested`, `precision`, `onnxruntime_library`, `onnxruntime_version`, and `available_providers` in the speech status `runtime` object.
 The `onnxruntime_library` field identifies the C API implementation library.
 The `onnxruntime_loader_library` field identifies the library that the sherpa binding loaded.
-These paths can differ when a compatibility interface forwards the C API.
+These paths can differ when a compatibility interface sends C API calls to another library.
 They do not prove GPU kernel execution or satisfactory performance.
 If the loaded runtime has no CUDA provider, a CUDA request fails before model initialization.
 The worker does not silently change that request to CPU.
@@ -101,6 +101,10 @@ ProfilingFilePrefix=/absolute/path/to/profile
 
 Profiling and verbose logs add work to inference.
 Use a separate run for performance measurements.
+
+The [dated CUDA setup script](../rvc-golden/realtime-patches-20261008/install_cuda_overlay.py) creates `gpu-runtime/run-realtime.sh` after runtime compilation.
+This launcher supplies the installed CUDA paths and float32 settings.
+Use the launcher with the usual reference and capture options.
 
 ## Translation memory settings
 
