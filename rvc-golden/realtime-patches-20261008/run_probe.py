@@ -58,7 +58,13 @@ def main():
     parser.add_argument('--mode', choices=('base', 'refine', 'failure'), default='base')
     parser.add_argument('--seconds', type=int, default=120)
     parser.add_argument('--commit', required=True)
+    parser.add_argument('--tts-model', type=Path)
+    parser.add_argument('--tts-provider', choices=('cpu', 'cuda'), default='cpu')
+    parser.add_argument('--tts-precision', choices=('int8', 'float32'), default='int8')
+    parser.add_argument('--tts-pythonpath', type=Path)
     args = parser.parse_args()
+    if args.tts_provider == 'cuda' and args.tts_model is None:
+        parser.error('CUDA replay requires --tts-model')
     root = args.root.resolve()
     original = Path.home()/'Mozart'
     output = root/'rvc-golden/realtime-patches-20261008'/args.label
@@ -73,10 +79,16 @@ def main():
         '--reference-name', 'Qiqi realtime patch test', '--input', str(source), '--seconds', str(args.seconds),
         '--no-rnnoise', '--playback-device', 'null', '--archive-utterances',
         '--run-dir', str(output/'runtime'), '--data-dir', str(output/'speech')]
+    command += ['--tts-provider', args.tts_provider, '--tts-precision', args.tts_precision]
+    if args.tts_model:
+        command += ['--model', str(args.tts_model)]
+    if args.tts_pythonpath:
+        command += ['--tts-pythonpath', str(args.tts_pythonpath)]
     if args.mode == 'refine':
         command += ['--final-model', str(Path.home()/'models/sherpa-onnx/clone-test-downloads/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17')]
     save(output/'protocol.json', {'commit': args.commit, 'command': command, 'mode': args.mode,
         'source_sha256': digest(source), 'reference_sha256': digest(reference), 'translator_sha256': digest(translator),
+        'tts_model_sha256': {p.name: digest(p) for p in args.tts_model.glob('*.onnx')} if args.tts_model else None,
         'source_note': 'Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.',
         'output_note': 'Paced ALSA null; no physical-speaker test; RVC disabled.',
         'wall_minus_monotonic_seconds': time.time()-time.monotonic(),

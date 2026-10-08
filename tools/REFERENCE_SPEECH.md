@@ -62,6 +62,46 @@ In a different terminal, start the frontend:
 npm --prefix frontend run dev
 ```
 
+### CUDA speech
+
+The speech service accepts `--provider cuda` and `--precision float32`.
+The supervisor uses `--tts-provider cuda` and `--tts-precision float32`.
+The default settings remain `cpu` and `int8`.
+CUDA speech needs a compatible sherpa ONNX Runtime library and the float32 Pocket assets.
+
+For an independent CUDA runtime directory, add these supervisor options:
+
+```text
+--model /path/to/sherpa-onnx-pocket-tts-2026-01-26
+--tts-provider cuda --tts-precision float32
+--tts-pythonpath /path/to/gpu-runtime/python
+```
+
+The directory must contain `sherpa_onnx` and its necessary shared libraries.
+The supervisor sets this Python path only for the speech service.
+The ASR and translator keep their existing environments.
+
+The worker reports `provider_requested`, `precision`, `onnxruntime_library`, `onnxruntime_version`, and `available_providers` in the speech status `runtime` object.
+The `onnxruntime_library` field identifies the C API implementation library.
+The `onnxruntime_loader_library` field identifies the library that the sherpa binding loaded.
+These paths can differ when a compatibility interface forwards the C API.
+They do not prove GPU kernel execution or satisfactory performance.
+If the loaded runtime has no CUDA provider, a CUDA request fails before model initialization.
+The worker does not silently change that request to CPU.
+
+For ONNX Runtime diagnostics, add `--tts-provider-config /path/to/provider.conf`.
+An independent service uses `--provider-config` for the same file.
+The file uses the [sherpa session configuration](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.6/sherpa-onnx/csrc/session.cc) format.
+For example:
+
+```text
+LogSeverityLevel=0
+ProfilingFilePrefix=/absolute/path/to/profile
+```
+
+Profiling and verbose logs add work to inference.
+Use a separate run for performance measurements.
+
 ## Translation memory settings
 
 The supervisor limits the prompt-state cache to 128 MiB.

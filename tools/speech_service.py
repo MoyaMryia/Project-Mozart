@@ -641,13 +641,19 @@ def main():
     parser.add_argument('--engine', choices=['pocket', 'zipvoice'], default='pocket')
     parser.add_argument('--vocoder', default='')
     parser.add_argument('--threads', type=int, default=2)
+    parser.add_argument('--provider', choices=['cpu', 'cuda'], default='cpu')
+    parser.add_argument('--precision', choices=['int8', 'float32'], default='int8')
+    parser.add_argument('--provider-config', type=Path)
     parser.add_argument('--port', type=int, default=18081)
     parser.add_argument('--data-dir', type=Path, default=Path.home()/'.local/share/mozart/speech')
     parser.add_argument('--playback-device', default='default')
     parser.add_argument('--preload',action='store_true',help='Initialize the worker before admitting live input')
     args = parser.parse_args()
     command = [sys.executable, str(Path(__file__).with_name('clone_worker.py')),
-        '--model', args.model, '--engine', args.engine, '--threads', str(args.threads), '--vocoder', args.vocoder]
+        '--model', args.model, '--engine', args.engine, '--threads', str(args.threads), '--vocoder', args.vocoder,
+        '--provider', args.provider, '--precision', args.precision]
+    if args.provider_config:
+        command += ['--provider-config', str(args.provider_config)]
     service = SpeechService(args.data_dir, command, args.engine, args.playback_device,preload=args.preload)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(service))
     server.daemon_threads = True

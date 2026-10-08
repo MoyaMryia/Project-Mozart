@@ -57,6 +57,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--backend-config', type=Path, required=True)
     parser.add_argument('--model', type=Path, default=assets/'clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26')
+    parser.add_argument('--tts-provider', choices=['cpu', 'cuda'], default='cpu')
+    parser.add_argument('--tts-precision', choices=['int8', 'float32'], default='int8')
+    parser.add_argument('--tts-pythonpath', type=Path, help='Independent sherpa package directory for the speech service')
+    parser.add_argument('--tts-provider-config', type=Path)
     parser.add_argument('--stt-model', type=Path, default=assets/'zipformer-zh-14M')
     parser.add_argument('--final-model', type=Path, default=None, help='Optional SenseVoice final-utterance model')
     parser.add_argument('--llama-server', type=Path, default=home/'mozart-archive/qwen35/llama.cpp/build-cuda-bin/llama-server')
@@ -175,8 +179,15 @@ def main():
         env['MOZART_SUBTITLES_JSONL'] = str(args.run_dir/'subtitles.jsonl')
         backend = launch('backend', [ROOT/'build-gpu/state/mozart_stated', args.backend_config.resolve()], env)
         ready('http://127.0.0.1:18080/api/status', backend)
-        speech = launch_optional('speech', [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
-            '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device])
+        speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
+            '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
+            '--provider', args.tts_provider, '--precision', args.tts_precision]
+        if args.tts_provider_config:
+            speech_command += ['--provider-config', args.tts_provider_config]
+        speech_environment = os.environ.copy()
+        if args.tts_pythonpath:
+            speech_environment['PYTHONPATH'] = str(args.tts_pythonpath)+os.pathsep+speech_environment.get('PYTHONPATH', '')
+        speech = launch_optional('speech', speech_command, speech_environment)
         if speech is not None:
             speech_startup = threading.Thread(target=prepare_speech, args=(speech,), daemon=True)
             speech_startup.start()

@@ -6,6 +6,7 @@ import re
 import sys
 import time
 from pathlib import Path
+from onnxruntime_info import require_cuda, sherpa_runtime_info
 
 
 def pocket_input_text(text):
@@ -36,16 +37,33 @@ def main():
     parser.add_argument('--model', type=Path, required=True)
     parser.add_argument('--vocoder', default='')
     parser.add_argument('--threads', type=int, default=2)
+    parser.add_argument('--provider', choices=['cpu', 'cuda'], default='cpu')
+    parser.add_argument('--precision', choices=['int8', 'float32'], default='int8')
+    parser.add_argument('--provider-config', type=Path)
     args = parser.parse_args()
+    if args.engine != 'pocket' and args.precision != 'int8':
+        parser.error('--precision float32 requires the pocket engine')
     import numpy as np
     import soundfile as sf
     import sherpa_onnx as so
+    try:
+        runtime = sherpa_runtime_info(so)
+    except (OSError, RuntimeError) as error:
+        if args.provider == 'cuda':
+            raise
+        runtime = {'runtime_probe_error': str(error)}
+    if args.provider == 'cuda':
+        require_cuda(runtime)
+    provider = args.provider
+    if args.provider_config:
+        provider += ':'+str(args.provider_config.resolve())
     m = args.model
     if args.engine == 'pocket':
+        suffix = '.int8.onnx' if args.precision == 'int8' else '.onnx'
         model = so.OfflineTtsPocketModelConfig(**{
             key: str(m / filename) for key, filename in {
-                'lm_flow': 'lm_flow.int8.onnx', 'lm_main': 'lm_main.int8.onnx',
-                'encoder': 'encoder.onnx', 'decoder': 'decoder.int8.onnx',
+                'lm_flow': 'lm_flow'+suffix, 'lm_main': 'lm_main'+suffix,
+                'encoder': 'encoder.onnx', 'decoder': 'decoder'+suffix,
                 'text_conditioner': 'text_conditioner.onnx', 'vocab_json': 'vocab.json',
                 'token_scores_json': 'token_scores.json'}.items()})
     else:
@@ -54,8 +72,9 @@ def main():
             tokens=str(m/'tokens.txt'), lexicon=str(m/'lexicon.txt'),
             data_dir=str(m/'espeak-ng-data'), vocoder=args.vocoder)
     tts = so.OfflineTts(so.OfflineTtsConfig(model=so.OfflineTtsModelConfig(
-        **{args.engine: model}, num_threads=args.threads, provider='cpu')))
-    print(json.dumps({'ready': True, 'runtime': so.__version__, 'engine': args.engine}), flush=True)
+        **{args.engine: model}, num_threads=args.threads, provider=provider)))
+    print(json.dumps({'ready': True, 'runtime': so.__version__, 'engine': args.engine,
+                      'provider_requested': args.provider, 'precision': args.precision, **runtime}), flush=True)
     for line in sys.stdin:
         job = json.loads(line)
         start = time.monotonic()
