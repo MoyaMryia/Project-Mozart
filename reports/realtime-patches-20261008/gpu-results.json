@@ -1,0 +1,2364 @@
+{
+  "variants": {
+    "cpu-int8": {
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cpu",
+        "precision": "int8",
+        "onnxruntime_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_loader_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.27.1",
+        "available_providers": [
+          "CPUExecutionProvider"
+        ]
+      },
+      "startup_seconds": 1.291829793000943,
+      "complete": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "errors": [],
+      "repeat_pairs_compared": 8,
+      "identical_repeat_wavs": 8,
+      "warm_synthesis_seconds": {
+        "count": 8,
+        "median": 1.7785539070000596,
+        "mean": 1.6600264808751035,
+        "min": 0.829368054999577,
+        "max": 2.4964750390008703
+      },
+      "warm_callback_seconds": {
+        "count": 8,
+        "median": 1.5271314675001122,
+        "mean": 1.440317504875111,
+        "min": 0.8238819449998118,
+        "max": 2.0423817780010722
+      },
+      "warm_roundtrip_seconds": {
+        "count": 8,
+        "median": 1.7789888050010632,
+        "mean": 1.6605186475005667,
+        "min": 0.8298972419997881,
+        "max": 2.497023458001422
+      },
+      "warm_duration_seconds": {
+        "count": 8,
+        "median": 2.4000000000000004,
+        "mean": 2.23,
+        "min": 1.04,
+        "max": 3.44
+      },
+      "warm_rtf": {
+        "count": 8,
+        "median": 0.7411474456650256,
+        "mean": 0.7543290162137665,
+        "min": 0.7257194880816483,
+        "max": 0.7974692836534394
+      },
+      "all_audio_finite": true,
+      "max_audio_peak": 0.725616455078125
+    },
+    "cpu-float": {
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cpu",
+        "precision": "float32",
+        "onnxruntime_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_loader_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.27.1",
+        "available_providers": [
+          "CPUExecutionProvider"
+        ]
+      },
+      "startup_seconds": 1.8763178290009819,
+      "complete": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "errors": [],
+      "repeat_pairs_compared": 8,
+      "identical_repeat_wavs": 8,
+      "warm_synthesis_seconds": {
+        "count": 8,
+        "median": 2.772351374000209,
+        "mean": 2.5621261522499026,
+        "min": 1.262701190998996,
+        "max": 4.024545868000132
+      },
+      "warm_callback_seconds": {
+        "count": 8,
+        "median": 2.453487198999028,
+        "mean": 2.2667721932500626,
+        "min": 1.2576091749997431,
+        "max": 3.3759216150010616
+      },
+      "warm_roundtrip_seconds": {
+        "count": 8,
+        "median": 2.7729077630001484,
+        "mean": 2.5625893922501746,
+        "min": 1.2630610010000964,
+        "max": 4.024900462000005
+      },
+      "warm_duration_seconds": {
+        "count": 8,
+        "median": 2.52,
+        "mean": 2.4,
+        "min": 1.12,
+        "max": 3.92
+      },
+      "warm_rtf": {
+        "count": 8,
+        "median": 1.1008565656697198,
+        "mean": 1.0878364895874184,
+        "min": 1.026669864285748,
+        "max": 1.1420454312493737
+      },
+      "all_audio_finite": true,
+      "max_audio_peak": 0.62689208984375
+    },
+    "cpu-float-new-runtime": {
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cpu",
+        "precision": "float32",
+        "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/build/Release/libonnxruntime.so.1.29.0",
+        "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/python/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.29.0",
+        "available_providers": [
+          "CUDAExecutionProvider",
+          "CPUExecutionProvider"
+        ]
+      },
+      "startup_seconds": 1.7812397510006122,
+      "complete": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "errors": [],
+      "repeat_pairs_compared": 8,
+      "identical_repeat_wavs": 8,
+      "warm_synthesis_seconds": {
+        "count": 8,
+        "median": 2.797671333000835,
+        "mean": 2.6723639118756637,
+        "min": 1.3305059530011931,
+        "max": 4.252798419000101
+      },
+      "warm_callback_seconds": {
+        "count": 8,
+        "median": 2.4796746195006563,
+        "mean": 2.377339096375408,
+        "min": 1.3253664390013,
+        "max": 3.6043598220003332
+      },
+      "warm_roundtrip_seconds": {
+        "count": 8,
+        "median": 2.7981486179996864,
+        "mean": 2.672902213999805,
+        "min": 1.3310928079990845,
+        "max": 4.253391481999643
+      },
+      "warm_duration_seconds": {
+        "count": 8,
+        "median": 2.52,
+        "mean": 2.4,
+        "min": 1.12,
+        "max": 3.92
+      },
+      "warm_rtf": {
+        "count": 8,
+        "median": 1.1106770177235603,
+        "mean": 1.1350749757185135,
+        "min": 1.0848975558673726,
+        "max": 1.2034183785723533
+      },
+      "all_audio_finite": true,
+      "max_audio_peak": 0.62689208984375
+    },
+    "cuda-float": {
+      "runtime": {
+        "ready": true,
+        "runtime": "1.13.6",
+        "engine": "pocket",
+        "provider_requested": "cuda",
+        "precision": "float32",
+        "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/build/Release/libonnxruntime.so.1.29.0",
+        "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/python/sherpa_onnx/lib/libonnxruntime.so",
+        "onnxruntime_version": "1.29.0",
+        "available_providers": [
+          "CUDAExecutionProvider",
+          "CPUExecutionProvider"
+        ]
+      },
+      "startup_seconds": 1.51233938400037,
+      "complete": 16,
+      "submitted": 16,
+      "exit_code": 0,
+      "errors": [],
+      "repeat_pairs_compared": 8,
+      "identical_repeat_wavs": 5,
+      "warm_synthesis_seconds": {
+        "count": 8,
+        "median": 2.5057972860004156,
+        "mean": 2.3301252399999157,
+        "min": 1.2160842510002112,
+        "max": 3.599381841999275
+      },
+      "warm_callback_seconds": {
+        "count": 8,
+        "median": 2.012314692500695,
+        "mean": 1.9166784840001583,
+        "min": 1.2065673930010234,
+        "max": 2.6285752339990722
+      },
+      "warm_roundtrip_seconds": {
+        "count": 8,
+        "median": 2.506286572001045,
+        "mean": 2.330630658500013,
+        "min": 1.2166975719992479,
+        "max": 3.5997517670002708
+      },
+      "warm_duration_seconds": {
+        "count": 8,
+        "median": 2.48,
+        "mean": 2.39,
+        "min": 1.12,
+        "max": 3.92
+      },
+      "warm_rtf": {
+        "count": 8,
+        "median": 1.0116676880689766,
+        "mean": 1.0079436769773022,
+        "min": 0.9182096535712436,
+        "max": 1.0948548758928414
+      },
+      "all_audio_finite": true,
+      "max_audio_peak": 0.603546142578125
+    }
+  },
+  "profile": {
+    "files": [
+      "rvc-golden/realtime-patches-20261008/pocket-gpu-v2/cuda-profile/ort_2026-10-08_21-45-40_983.json",
+      "rvc-golden/realtime-patches-20261008/pocket-gpu-v2/cuda-profile/ort_2026-10-08_21-45-41_124.json",
+      "rvc-golden/realtime-patches-20261008/pocket-gpu-v2/cuda-profile/ort_2026-10-08_21-45-41_915.json",
+      "rvc-golden/realtime-patches-20261008/pocket-gpu-v2/cuda-profile/ort_2026-10-08_21-45-42_117.json",
+      "rvc-golden/realtime-patches-20261008/pocket-gpu-v2/cuda-profile/ort_2026-10-08_21-45-42_309.json"
+    ],
+    "sessions": [
+      {
+        "file": "ort_2026-10-08_21-45-40_983.json",
+        "node_events": {
+          "CUDAExecutionProvider": 242400,
+          "CPUExecutionProvider": 50400
+        }
+      },
+      {
+        "file": "ort_2026-10-08_21-45-41_124.json",
+        "node_events": {
+          "CUDAExecutionProvider": 217800,
+          "CPUExecutionProvider": 78672
+        }
+      },
+      {
+        "file": "ort_2026-10-08_21-45-41_915.json",
+        "node_events": {
+          "CUDAExecutionProvider": 277,
+          "CPUExecutionProvider": 132
+        }
+      },
+      {
+        "file": "ort_2026-10-08_21-45-42_117.json",
+        "node_events": {
+          "CUDAExecutionProvider": 6822,
+          "CPUExecutionProvider": 2016
+        }
+      },
+      {
+        "file": "ort_2026-10-08_21-45-42_309.json",
+        "node_events": {
+          "CUDAExecutionProvider": 8
+        }
+      }
+    ],
+    "node_events": {
+      "CUDAExecutionProvider": 467307,
+      "CPUExecutionProvider": 131220
+    },
+    "operations": {
+      "CUDAExecutionProvider": {
+        "Gemm": 31464,
+        "Mul": 77910,
+        "Sin": 4022,
+        "Cos": 4022,
+        "Concat": 9511,
+        "Sigmoid": 10800,
+        "Shape": 29272,
+        "MemcpyFromHost": 9772,
+        "ReduceMean": 28616,
+        "Sub": 17752,
+        "Div": 19530,
+        "Add": 67815,
+        "Sqrt": 14308,
+        "Slice": 34147,
+        "Identity": 2286,
+        "IsNaN": 264,
+        "Where": 1959,
+        "MatMul": 9997,
+        "Pow": 3508,
+        "Reshape": 14743,
+        "Split": 1622,
+        "Squeeze": 4866,
+        "Cast": 1622,
+        "Range": 4904,
+        "Exp": 1622,
+        "Gather": 13240,
+        "Unsqueeze": 17652,
+        "Expand": 12710,
+        "ScatterND": 3240,
+        "Transpose": 6600,
+        "LessOrEqual": 1620,
+        "ConstantOfShape": 1860,
+        "Softmax": 1622,
+        "Erf": 1622,
+        "Pad": 1,
+        "Conv": 174,
+        "Elu": 190,
+        "Less": 38,
+        "GreaterOrEqual": 112,
+        "And": 76,
+        "ConvTranspose": 72,
+        "Mod": 72,
+        "ScatterElements": 72
+      },
+      "CPUExecutionProvider": {
+        "Gather": 31463,
+        "ReduceProd": 2400,
+        "Cast": 8888,
+        "Sub": 2401,
+        "Add": 15108,
+        "Div": 11644,
+        "Mul": 17278,
+        "Neg": 264,
+        "Unsqueeze": 17132,
+        "Concat": 11592,
+        "Reciprocal": 1622,
+        "Slice": 1623,
+        "Sqrt": 3244,
+        "Equal": 3206,
+        "Where": 3206,
+        "Reshape": 112,
+        "Transpose": 1,
+        "ScatterND": 36
+      }
+    },
+    "scope": "Counts cover retained files only. Five sessions use one prefix; filenames can collide."
+  },
+  "date": "2026-10-08",
+  "application_commit": "23ca984",
+  "build_note": "The runtime includes later CMake fixes and internal copy operators. See build_provenance.",
+  "build_provenance": {
+    "files": {
+      "build/Release/libonnxruntime.so.1.29.0": {
+        "sha256": "c969db5b3a0a0d7df42a2afe2bc4c1dba330238cac8861f5b09fb4533b3225bc",
+        "bytes": 15365832
+      },
+      "build/Release/libonnxruntime_providers_cuda.so": {
+        "sha256": "54b647d5248772738c2c52eb725e2388dc5f75ca84e748b412154f6b5e6e1daf",
+        "bytes": 18184856
+      },
+      "build/Release/libonnxruntime_providers_shared.so": {
+        "sha256": "ec5466a571b44718e64b7e62605b7a87045df08bbaa2b7d67804208f22ab32d2",
+        "bytes": 69608
+      },
+      "python/sherpa_onnx/lib/libonnxruntime.so": {
+        "sha256": "9ea9f29bb4bb569ed305aece143d7fd8254200682b6dd7ee64920a8687f1f301",
+        "bytes": 70656
+      },
+      "pocket-ops.config": {
+        "sha256": "a3a21b04aa1252e5944ed15b82b8cc5a70592cf090d395c296637b17904cd714",
+        "bytes": 630
+      },
+      "ort-api-compat.cc": {
+        "sha256": "9b5ced38581629309a6bf1894cd7b1de630fdd60248ee400b1d50873b1aa9234",
+        "bytes": 620
+      },
+      "ort-api-compat.map": {
+        "sha256": "bf589c7aeb2a26fd0aa117aff77b7c8f7be8ce3485647ae3e631f35977b90541",
+        "bytes": 50
+      },
+      "run-realtime.sh": {
+        "sha256": "67fcf5bb25473ba7bb16767a977f8a2f92b82d383c6cf4f3bbc38d1b9b1255ff",
+        "bytes": 521
+      }
+    },
+    "runtime_source_commit": "2e2543fbe9fae542f921d47a72d21d5a4ef0b710",
+    "cmake_source_patch": "diff --git a/cmake/onnxruntime_providers_cpu.cmake b/cmake/onnxruntime_providers_cpu.cmake\nindex 8d03ebd..b086f61 100644\n--- a/cmake/onnxruntime_providers_cpu.cmake\n+++ b/cmake/onnxruntime_providers_cpu.cmake\n@@ -253,3 +253,7 @@ if (NOT onnxruntime_BUILD_SHARED_LIB)\n           RUNTIME   DESTINATION ${CMAKE_INSTALL_BINDIR}\n           FRAMEWORK DESTINATION ${CMAKE_INSTALL_BINDIR})\n endif()\n+\n+if(MOZART_POCKET_BUILD AND onnxruntime_DISABLE_CONTRIB_OPS)\n+  target_sources(onnxruntime_providers PRIVATE \"${ONNXRUNTIME_ROOT}/contrib_ops/cpu/fused_activation.cc\")\n+endif()\ndiff --git a/cmake/onnxruntime_providers_cuda.cmake b/cmake/onnxruntime_providers_cuda.cmake\nindex 535b79b..c1f82f7 100644\n--- a/cmake/onnxruntime_providers_cuda.cmake\n+++ b/cmake/onnxruntime_providers_cuda.cmake\n@@ -24,6 +24,9 @@\n   endif()\n   # Exclude plugin directory if it was picked up by GLOB_RECURSE\n   list(FILTER onnxruntime_providers_cuda_cc_srcs EXCLUDE REGEX \"core/providers/cuda/plugin/.*\")\n+  if(MOZART_POCKET_BUILD)\n+    list(FILTER onnxruntime_providers_cuda_cc_srcs EXCLUDE REGEX \"core/providers/cuda/llm/.*\")\n+  endif()\n \n   # Remove pch files\n   list(REMOVE_ITEM onnxruntime_providers_cuda_cc_srcs\n@@ -51,6 +54,9 @@\n   endif()\n   # Exclude plugin directory if it was picked up by GLOB_RECURSE\n   list(FILTER onnxruntime_providers_cuda_cu_srcs EXCLUDE REGEX \"core/providers/cuda/plugin/.*\")\n+  if(MOZART_POCKET_BUILD)\n+    list(FILTER onnxruntime_providers_cuda_cu_srcs EXCLUDE REGEX \"core/providers/cuda/llm/.*\")\n+  endif()\n   source_group(TREE ${ONNXRUNTIME_ROOT}/core FILES ${onnxruntime_providers_cuda_cc_srcs} ${onnxruntime_providers_cuda_shared_srcs} ${onnxruntime_providers_cuda_cu_srcs})\n   set(onnxruntime_providers_cuda_src ${onnxruntime_providers_cuda_cc_srcs} ${onnxruntime_providers_cuda_shared_srcs} ${onnxruntime_providers_cuda_cu_srcs})\n \n@@ -112,7 +118,7 @@\n     endif()\n     # add using ONNXRUNTIME_ROOT so they show up under the 'contrib_ops' folder in Visual Studio\n     list(APPEND onnxruntime_providers_cuda_src ${onnxruntime_cuda_contrib_ops_cc_srcs} ${onnxruntime_cuda_contrib_ops_cu_srcs})\n-  elseif(onnxruntime_DISABLE_CONTRIB_OPS AND NOT onnxruntime_CUDA_MINIMAL)\n+  elseif(onnxruntime_DISABLE_CONTRIB_OPS AND NOT onnxruntime_CUDA_MINIMAL AND NOT MOZART_POCKET_BUILD)\n     # The ONNX domain CUDA Attention kernel (core/providers/cuda/llm/attention.cc) depends on\n     # attention infrastructure in contrib_ops/cuda/bert/ (flash attention, memory efficient\n     # attention, unfused attention helpers, etc.). Include the bert attention infrastructure\n@@ -551,7 +557,7 @@\n     # kernel depends on flash attention infrastructure in contrib_ops/cuda/bert/.\n     set(onnxruntime_FLASH_NVCC_THREADS \"1\" CACHE STRING\n         \"Number of NVCC threads for Flash Attention compilation (memory-intensive, keep low).\")\n-    if(onnxruntime_cuda_flash_attention_srcs)\n+    if(onnxruntime_cuda_flash_attention_srcs AND NOT MOZART_POCKET_BUILD)\n       onnxruntime_filter_cuda_archs(_ort_flash_cuda_architectures MIN_SM 80)\n       if(_ort_flash_cuda_architectures)\n         onnxruntime_add_cuda_object_library(\n@@ -677,3 +683,9 @@\n           ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}\n           LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}\n           RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR})\n+\n+if(MOZART_POCKET_BUILD)\n+  set_property(GLOBAL APPEND PROPERTY JOB_POOLS mozart_pocket_cuda=2)\n+  set_property(TARGET onnxruntime_providers_cuda PROPERTY JOB_POOL_COMPILE mozart_pocket_cuda)\n+  set_property(TARGET onnxruntime_providers_cuda PROPERTY CUDA_COMPILER_LAUNCHER \"\")\n+endif()\n",
+    "operator_config": "ai.onnx;14;Add,And,Cast,Concat,Constant,ConstantOfShape,Conv,ConvTranspose,Cos,Div,DynamicQuantizeLinear,Elu,Equal,Erf,Exp,Expand,Gather,Gemm,GreaterOrEqual,Identity,IsNaN,Less,LessOrEqual,MatMul,MatMulInteger,Mod,Mul,Neg,Pad,Pow,Range,Reciprocal,ReduceMean,ReduceProd,Reshape,ScatterElements,ScatterND,Shape,Sigmoid,Sin,Slice,Softmax,Split,Sqrt,Squeeze,Sub,Transpose,Unsqueeze,Where\ncom.microsoft;1;BiasGelu,DynamicQuantizeMatMul,FastGelu,FusedConv,FusedMatMul,Gelu,LayerNormalization,MatMulIntegerToFloat,SimplifiedLayerNormalization,SkipLayerNormalization,SkipSimplifiedLayerNormalization\nai.onnx;1;MemcpyFromHost,MemcpyToHost\n",
+    "launcher": "#!/usr/bin/env bash\nset -euo pipefail\nexec /home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python /home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py --backend-config /home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml --model /home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/sherpa-onnx-pocket-tts-2026-01-26 --tts-provider cuda --tts-precision float32 --tts-pythonpath /home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/python \"$@\"\n",
+    "display_manager": "active",
+    "power_mode": {
+      "exit_code": 0,
+      "output": "NV Power Mode: MAXN_SUPER\n2\n"
+    },
+    "clock_status": {
+      "exit_code": 1,
+      "output": "SOC family:tegra234  Machine:NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super\nError: Run this script(/usr/bin/jetson_clocks) as a root user\n"
+    }
+  },
+  "assets": {
+    "commit": "56763a2",
+    "platform": "Linux-6.8.12-1021-tegra-aarch64-with-glibc2.39",
+    "models": {
+      "int8": {
+        "decoder.int8.onnx": {
+          "sha256": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+          "bytes": 22693618
+        },
+        "encoder.onnx": {
+          "sha256": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+          "bytes": 72713165
+        },
+        "lm_flow.int8.onnx": {
+          "sha256": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+          "bytes": 9962530
+        },
+        "text_conditioner.onnx": {
+          "sha256": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+          "bytes": 16388343
+        },
+        "lm_main.int8.onnx": {
+          "sha256": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e",
+          "bytes": 76341079
+        }
+      },
+      "float32": {
+        "encoder.onnx": {
+          "sha256": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+          "bytes": 72713165
+        },
+        "decoder.onnx": {
+          "sha256": "f267880fde6c58b17b0a8f3647eaf8dcfad321f833f32d583ebc2fb2d1a15f10",
+          "bytes": 41478706
+        },
+        "lm_main.onnx": {
+          "sha256": "255d1a9263c5abdf36034abfc19c11d21cc5f40f0f87d8361288e972cbd5c578",
+          "bytes": 302742148
+        },
+        "lm_flow.onnx": {
+          "sha256": "79c013a554a54e63319c33c0cc8830cbbedc9b7e448ae7e26f7923ae11f9873e",
+          "bytes": 39097094
+        },
+        "text_conditioner.onnx": {
+          "sha256": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+          "bytes": 16388343
+        }
+      }
+    },
+    "shared_model_files": [
+      "encoder.onnx",
+      "text_conditioner.onnx"
+    ],
+    "source_commit": "2e2543fbe9fae542f921d47a72d21d5a4ef0b710",
+    "cuda_version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Thu_Mar_19_11:11:41_PM_PDT_2026\nCuda compilation tools, release 13.2, V13.2.78\nBuild cuda_13.2.r13.2/compiler.37668154_0\n",
+    "l4t": "# R39 (release), REVISION: 2.0, GCID: 45755727, BOARD: generic, EABI: aarch64, DATE: Mon Jun  1 09:28:48 PM UTC 2026\n# KERNEL_VARIANT: oot\nTARGET_USERSPACE_LIB_DIR=nvidia\nTARGET_USERSPACE_LIB_DIR_PATH=usr/lib/aarch64-linux-gnu/nvidia\n",
+    "python": "3.12.3",
+    "commit_note": "The asset manifest was captured at 56763a2. The replay application used 23ca984."
+  },
+  "fixed_piece_inputs": {
+    "texts": [
+      "Mother told me that during the summer vacation,",
+      "Your mother is thinking about the house.",
+      "My son is studying for a graduate exam at school.",
+      "My son",
+      "Now preparing for the graduate entrance exam,",
+      "Wanting to advance but you are doing gambling.",
+      "That is you.",
+      "Repay the loan"
+    ],
+    "generation_steps": 5,
+    "seed": 42,
+    "threads": 2,
+    "display_manager": "stopped",
+    "measurement": "Worker task start through WAV write completion. Includes reference read, inference, and write. Warm sample is pass two, n=8.",
+    "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+    "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add"
+  },
+  "fixed_piece_records": {
+    "cpu-int8": [
+      {
+        "repeat": 0,
+        "index": 0,
+        "roundtrip_seconds": 2.283732889000021,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.283300696000879,
+          "first_callback_seconds": 1.9458318220004003,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5982621908187866,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "c174cdb967ab546e7cea4e5a6d482745e9e0a2c8e5c82423e2b0a935549f5536",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.10422389209270477,
+          "peak": 0.5982666015625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 1,
+        "roundtrip_seconds": 1.6176841140004399,
+        "result": {
+          "duration_seconds": 2.16,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.6172511210006633,
+          "first_callback_seconds": 1.4152504980011145,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.5721380710601807,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "98068196fca8a33206fa181dbdfbce975bacb2e9efc6bd0ae6a9c7f592819d72",
+          "sample_rate": 24000,
+          "samples": 51840,
+          "rms": 0.09338095039129257,
+          "peak": 0.5721435546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 2,
+        "roundtrip_seconds": 2.3565626010004053,
+        "result": {
+          "duration_seconds": 3.2,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.3561934789995576,
+          "first_callback_seconds": 1.9451822669998364,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5621156096458435,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "ca326b401ffa03b257cb52ae8435b11406276cfdf8ac05aac896838c104f30dc",
+          "sample_rate": 24000,
+          "samples": 76800,
+          "rms": 0.0959714874625206,
+          "peak": 0.562103271484375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 3,
+        "roundtrip_seconds": 0.9411359370005812,
+        "result": {
+          "duration_seconds": 1.2,
+          "sample_rate": 24000,
+          "synthesis_seconds": 0.9407962229997793,
+          "first_callback_seconds": 0.9353056389991252,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4406973123550415,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "49bd2cd276cd8b3e0b8af1211775ee288947430d192ea26f25415e632775af54",
+          "sample_rate": 24000,
+          "samples": 28800,
+          "rms": 0.06341113895177841,
+          "peak": 0.440673828125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 4,
+        "roundtrip_seconds": 2.4969983989994944,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.496420412999214,
+          "first_callback_seconds": 2.042687199998909,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.556294858455658,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "0090967697834a99700516e434a4145325f85334a033e453e9a906e5d087fc51",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.07123932242393494,
+          "peak": 0.5562744140625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 5,
+        "roundtrip_seconds": 1.9425322509996477,
+        "result": {
+          "duration_seconds": 2.64,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.9419874790000904,
+          "first_callback_seconds": 1.6385388800008513,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.7256258726119995,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "1d2d4cbabbb24503ac41ac6af2351489989aa0f45299483f2fe13b0557c184c1",
+          "sample_rate": 24000,
+          "samples": 63360,
+          "rms": 0.1117866188287735,
+          "peak": 0.725616455078125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 6,
+        "roundtrip_seconds": 0.8356002220007213,
+        "result": {
+          "duration_seconds": 1.04,
+          "sample_rate": 24000,
+          "synthesis_seconds": 0.8352563160005957,
+          "first_callback_seconds": 0.8304138929997862,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.4341430366039276,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "d4d524b928b30ef5e93df1e17a1dfc9e2f626bd4763cbac265c3799040810404",
+          "sample_rate": 24000,
+          "samples": 24960,
+          "rms": 0.09882111847400665,
+          "peak": 0.43414306640625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 7,
+        "roundtrip_seconds": 1.0641243739992206,
+        "result": {
+          "duration_seconds": 1.36,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.0637903240003652,
+          "first_callback_seconds": 1.0159987389997696,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.6271693706512451,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "1350e03bb8a7f18d152e28b8a124061cd673ddd3d9794e33495ad3250f3186ac",
+          "sample_rate": 24000,
+          "samples": 32640,
+          "rms": 0.07181476056575775,
+          "peak": 0.627166748046875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 0,
+        "roundtrip_seconds": 2.0614687289998983,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.0609326619996864,
+          "first_callback_seconds": 1.7282693319993996,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5982621908187866,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "c174cdb967ab546e7cea4e5a6d482745e9e0a2c8e5c82423e2b0a935549f5536",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.10422389209270477,
+          "peak": 0.5982666015625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 1,
+        "roundtrip_seconds": 1.6030195880011888,
+        "result": {
+          "duration_seconds": 2.16,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.6026781460004713,
+          "first_callback_seconds": 1.40232798299985,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.5721380710601807,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "98068196fca8a33206fa181dbdfbce975bacb2e9efc6bd0ae6a9c7f592819d72",
+          "sample_rate": 24000,
+          "samples": 51840,
+          "rms": 0.09338095039129257,
+          "peak": 0.5721435546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 2,
+        "roundtrip_seconds": 2.3355747500008874,
+        "result": {
+          "duration_seconds": 3.2,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.3350022670001636,
+          "first_callback_seconds": 1.9250064810003096,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5621156096458435,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "ca326b401ffa03b257cb52ae8435b11406276cfdf8ac05aac896838c104f30dc",
+          "sample_rate": 24000,
+          "samples": 76800,
+          "rms": 0.0959714874625206,
+          "peak": 0.562103271484375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 3,
+        "roundtrip_seconds": 0.9373965009999665,
+        "result": {
+          "duration_seconds": 1.2,
+          "sample_rate": 24000,
+          "synthesis_seconds": 0.9368662899996707,
+          "first_callback_seconds": 0.9316296229990257,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4406973123550415,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "49bd2cd276cd8b3e0b8af1211775ee288947430d192ea26f25415e632775af54",
+          "sample_rate": 24000,
+          "samples": 28800,
+          "rms": 0.06341113895177841,
+          "peak": 0.440673828125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 4,
+        "roundtrip_seconds": 2.497023458001422,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.4964750390008703,
+          "first_callback_seconds": 2.0423817780010722,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.556294858455658,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "0090967697834a99700516e434a4145325f85334a033e453e9a906e5d087fc51",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.07123932242393494,
+          "peak": 0.5562744140625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 5,
+        "roundtrip_seconds": 1.9549580220009375,
+        "result": {
+          "duration_seconds": 2.64,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.9544296679996478,
+          "first_callback_seconds": 1.6519349520003743,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.7256258726119995,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "1d2d4cbabbb24503ac41ac6af2351489989aa0f45299483f2fe13b0557c184c1",
+          "sample_rate": 24000,
+          "samples": 63360,
+          "rms": 0.1117866188287735,
+          "peak": 0.725616455078125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 6,
+        "roundtrip_seconds": 0.8298972419997881,
+        "result": {
+          "duration_seconds": 1.04,
+          "sample_rate": 24000,
+          "synthesis_seconds": 0.829368054999577,
+          "first_callback_seconds": 0.8238819449998118,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.4341430366039276,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "d4d524b928b30ef5e93df1e17a1dfc9e2f626bd4763cbac265c3799040810404",
+          "sample_rate": 24000,
+          "samples": 24960,
+          "rms": 0.09882111847400665,
+          "peak": 0.43414306640625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 7,
+        "roundtrip_seconds": 1.0648108900004445,
+        "result": {
+          "duration_seconds": 1.36,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.064459720000741,
+          "first_callback_seconds": 1.0171079450010438,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.6271693706512451,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "1350e03bb8a7f18d152e28b8a124061cd673ddd3d9794e33495ad3250f3186ac",
+          "sample_rate": 24000,
+          "samples": 32640,
+          "rms": 0.07181476056575775,
+          "peak": 0.627166748046875,
+          "finite": true
+        }
+      }
+    ],
+    "cpu-float": [
+      {
+        "repeat": 0,
+        "index": 0,
+        "roundtrip_seconds": 3.165410633000647,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.1649653499989654,
+          "first_callback_seconds": 2.7744112469990796,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5691559314727783,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "59899203e32198d11a81059b0f8ad9f138481d3efd974adbc1c759eec5a20550",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.08395595103502274,
+          "peak": 0.56915283203125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 1,
+        "roundtrip_seconds": 2.478414918999988,
+        "result": {
+          "duration_seconds": 2.24,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.4779945319987746,
+          "first_callback_seconds": 2.226214289999916,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.6268931031227112,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "6c7d48d5660c74efc3fcea5da7c75236c711a2cdc08c1a890ce5ef4f022cccbc",
+          "sample_rate": 24000,
+          "samples": 53760,
+          "rms": 0.08899792283773422,
+          "peak": 0.62689208984375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 2,
+        "roundtrip_seconds": 3.714234072000181,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.7136306109987345,
+          "first_callback_seconds": 3.182657177998408,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5499444007873535,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "a59d72447620d56c19881736e9b0ba3b73334d5f5c3a4fd4a1dfe70eae4e2266",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.0816858634352684,
+          "peak": 0.5499267578125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 3,
+        "roundtrip_seconds": 1.3338004469987936,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.3332126980003522,
+          "first_callback_seconds": 1.3272306969993224,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4661934971809387,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "ac70edadf597eff873f3d1906e70b58984e00b1ac5f4d4e8ad7895cd49a19000",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.05936086177825928,
+          "peak": 0.4661865234375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 4,
+        "roundtrip_seconds": 3.7146159730000363,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.7140199360001134,
+          "first_callback_seconds": 3.182803147999948,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.5158287882804871,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "bdfb59573e0603b1ea2924fa487acc2b0c133baf261b646bc0ec027cb42c6469",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.06355065852403641,
+          "peak": 0.51580810546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 5,
+        "roundtrip_seconds": 4.206819981000081,
+        "result": {
+          "duration_seconds": 3.92,
+          "sample_rate": 24000,
+          "synthesis_seconds": 4.2062463450001815,
+          "first_callback_seconds": 3.556717444000242,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.6022882461547852,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "0d73aae794f8f59092b65faf8e0cc6d8cac2899921e5e53c8c380694dbf4c633",
+          "sample_rate": 24000,
+          "samples": 94080,
+          "rms": 0.09354174137115479,
+          "peak": 0.602264404296875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 6,
+        "roundtrip_seconds": 1.322200509999675,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.3216017850008939,
+          "first_callback_seconds": 1.3155493480007863,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.3848575949668884,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "68f457ec1c076d986324b8616f2c602f50aa131d3d8f250181cfcb8fa965d6d0",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.07248887419700623,
+          "peak": 0.3848876953125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 7,
+        "roundtrip_seconds": 1.3359017059992766,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.3353455090000352,
+          "first_callback_seconds": 1.3292628330000298,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.3384091258049011,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "bb4e617eb033adefae5d9f9b2ba669cb1c5f37be56292977fd0a8061d483090f",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.0619637593626976,
+          "peak": 0.338409423828125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 0,
+        "roundtrip_seconds": 3.0648881460001576,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.0643266690003657,
+          "first_callback_seconds": 2.6777938939994783,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5691559314727783,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "59899203e32198d11a81059b0f8ad9f138481d3efd974adbc1c759eec5a20550",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.08395595103502274,
+          "peak": 0.56915283203125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 1,
+        "roundtrip_seconds": 2.4809273800001392,
+        "result": {
+          "duration_seconds": 2.24,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.4803760790000524,
+          "first_callback_seconds": 2.2291805039985775,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.6268931031227112,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "6c7d48d5660c74efc3fcea5da7c75236c711a2cdc08c1a890ce5ef4f022cccbc",
+          "sample_rate": 24000,
+          "samples": 53760,
+          "rms": 0.08899792283773422,
+          "peak": 0.62689208984375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 2,
+        "roundtrip_seconds": 3.5600876709995646,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.559718354999859,
+          "first_callback_seconds": 3.0297683750013675,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5499444007873535,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "a59d72447620d56c19881736e9b0ba3b73334d5f5c3a4fd4a1dfe70eae4e2266",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.0816858634352684,
+          "peak": 0.5499267578125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 3,
+        "roundtrip_seconds": 1.2744244660007098,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.2738654849999875,
+          "first_callback_seconds": 1.2680273839996516,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4661934971809387,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "ac70edadf597eff873f3d1906e70b58984e00b1ac5f4d4e8ad7895cd49a19000",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.05936086177825928,
+          "peak": 0.4661865234375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 4,
+        "roundtrip_seconds": 3.552951382000174,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.5523846880005294,
+          "first_callback_seconds": 3.022667948000162,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.5158287882804871,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "bdfb59573e0603b1ea2924fa487acc2b0c133baf261b646bc0ec027cb42c6469",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.06355065852403641,
+          "peak": 0.51580810546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 5,
+        "roundtrip_seconds": 4.024900462000005,
+        "result": {
+          "duration_seconds": 3.92,
+          "sample_rate": 24000,
+          "synthesis_seconds": 4.024545868000132,
+          "first_callback_seconds": 3.3759216150010616,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.6022882461547852,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "0d73aae794f8f59092b65faf8e0cc6d8cac2899921e5e53c8c380694dbf4c633",
+          "sample_rate": 24000,
+          "samples": 94080,
+          "rms": 0.09354174137115479,
+          "peak": 0.602264404296875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 6,
+        "roundtrip_seconds": 1.2630610010000964,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.262701190998996,
+          "first_callback_seconds": 1.2576091749997431,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.3848575949668884,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "68f457ec1c076d986324b8616f2c602f50aa131d3d8f250181cfcb8fa965d6d0",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.07248887419700623,
+          "peak": 0.3848876953125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 7,
+        "roundtrip_seconds": 1.27947463000055,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.2790908829992986,
+          "first_callback_seconds": 1.2732086510004592,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.3384091258049011,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "bb4e617eb033adefae5d9f9b2ba669cb1c5f37be56292977fd0a8061d483090f",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.0619637593626976,
+          "peak": 0.338409423828125,
+          "finite": true
+        }
+      }
+    ],
+    "cpu-float-new-runtime": [
+      {
+        "repeat": 0,
+        "index": 0,
+        "roundtrip_seconds": 3.3244070330001705,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.3240012690002914,
+          "first_callback_seconds": 2.9329116869994323,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5691561102867126,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "e3b4b7b75db9b1bc6042d62c032f65e9de96675bd5dd84ab97bd8b07cde5c705",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.08395591378211975,
+          "peak": 0.56915283203125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 1,
+        "roundtrip_seconds": 2.5022830629986856,
+        "result": {
+          "duration_seconds": 2.24,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.5018931070007966,
+          "first_callback_seconds": 2.2505170830008865,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.6269081234931946,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "30a3bd96b6130e450eb19739ca265e680d09087b1f3e3e8f4d71bd023461f24e",
+          "sample_rate": 24000,
+          "samples": 53760,
+          "rms": 0.08899759501218796,
+          "peak": 0.62689208984375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 2,
+        "roundtrip_seconds": 3.752696458999708,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.7521068530004413,
+          "first_callback_seconds": 3.2227497340008995,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5499439835548401,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "5c5b9c3c36446932110459e264d0bff97c2fb98fade48384769598bbf5f09533",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.08168580383062363,
+          "peak": 0.5499267578125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 3,
+        "roundtrip_seconds": 1.347300235000148,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.346691684999314,
+          "first_callback_seconds": 1.340185539000231,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4661836624145508,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "7f5ef10cba19dad760cac522cd56fc1ae1facf929d230542b7907d71bea78236",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.059360571205616,
+          "peak": 0.466156005859375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 4,
+        "roundtrip_seconds": 3.7551568239996413,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.754572754000037,
+          "first_callback_seconds": 3.2257773830006045,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.5158288478851318,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "15a1791e3d1c17b35f77383f16981bd69699a1b9c2cf36ed9b0f17393b17bbd4",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.063550665974617,
+          "peak": 0.51580810546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 5,
+        "roundtrip_seconds": 4.257540715001596,
+        "result": {
+          "duration_seconds": 3.92,
+          "sample_rate": 24000,
+          "synthesis_seconds": 4.256938469001398,
+          "first_callback_seconds": 3.6070204630013905,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.6022769808769226,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "83d1c69b2718811f9427dbabe796c576e4b2371dd6cf49c408ef75cc368f16a5",
+          "sample_rate": 24000,
+          "samples": 94080,
+          "rms": 0.09354186058044434,
+          "peak": 0.602264404296875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 6,
+        "roundtrip_seconds": 1.3325819010005944,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.3319851270007348,
+          "first_callback_seconds": 1.326120137999169,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.38485705852508545,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "3a43a2fbe542af6dd48930d33a7a9b5ddb04a6dfb8fe491aff88ba74f3dfd6b5",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.07248843461275101,
+          "peak": 0.384857177734375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 7,
+        "roundtrip_seconds": 1.3508105840010103,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.350243123000837,
+          "first_callback_seconds": 1.345118844999888,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.3384076654911041,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "b680538d192804e532d7735e8d70ec11570927dd6edcdec1df63acbbf4d30a58",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.06196552515029907,
+          "peak": 0.338409423828125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 0,
+        "roundtrip_seconds": 3.097904104999543,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.0975481330006005,
+          "first_callback_seconds": 2.7104627580010856,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5691561102867126,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "e3b4b7b75db9b1bc6042d62c032f65e9de96675bd5dd84ab97bd8b07cde5c705",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.08395591378211975,
+          "peak": 0.56915283203125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 1,
+        "roundtrip_seconds": 2.4983931309998297,
+        "result": {
+          "duration_seconds": 2.24,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.49779453300107,
+          "first_callback_seconds": 2.248886481000227,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.6269081234931946,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "30a3bd96b6130e450eb19739ca265e680d09087b1f3e3e8f4d71bd023461f24e",
+          "sample_rate": 24000,
+          "samples": 53760,
+          "rms": 0.08899759501218796,
+          "peak": 0.62689208984375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 2,
+        "roundtrip_seconds": 3.7556174060009653,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.7550044390009134,
+          "first_callback_seconds": 3.225668840999788,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5499439835548401,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "5c5b9c3c36446932110459e264d0bff97c2fb98fade48384769598bbf5f09533",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.08168580383062363,
+          "peak": 0.5499267578125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 3,
+        "roundtrip_seconds": 1.3450803409996297,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.3444870860002993,
+          "first_callback_seconds": 1.3388613600000099,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4661836624145508,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "7f5ef10cba19dad760cac522cd56fc1ae1facf929d230542b7907d71bea78236",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.059360571205616,
+          "peak": 0.466156005859375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 4,
+        "roundtrip_seconds": 3.7535227139997005,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.752944148000097,
+          "first_callback_seconds": 3.2231782649996603,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.5158288478851318,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "15a1791e3d1c17b35f77383f16981bd69699a1b9c2cf36ed9b0f17393b17bbd4",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.063550665974617,
+          "peak": 0.51580810546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 5,
+        "roundtrip_seconds": 4.253391481999643,
+        "result": {
+          "duration_seconds": 3.92,
+          "sample_rate": 24000,
+          "synthesis_seconds": 4.252798419000101,
+          "first_callback_seconds": 3.6043598220003332,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.6022769808769226,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "83d1c69b2718811f9427dbabe796c576e4b2371dd6cf49c408ef75cc368f16a5",
+          "sample_rate": 24000,
+          "samples": 94080,
+          "rms": 0.09354186058044434,
+          "peak": 0.602264404296875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 6,
+        "roundtrip_seconds": 1.3310928079990845,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.3305059530011931,
+          "first_callback_seconds": 1.3253664390013,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.38485705852508545,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "3a43a2fbe542af6dd48930d33a7a9b5ddb04a6dfb8fe491aff88ba74f3dfd6b5",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.07248843461275101,
+          "peak": 0.384857177734375,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 7,
+        "roundtrip_seconds": 1.3482157250000455,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.3478285840010358,
+          "first_callback_seconds": 1.3419288050008618,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.3384076654911041,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "b680538d192804e532d7735e8d70ec11570927dd6edcdec1df63acbbf4d30a58",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.06196552515029907,
+          "peak": 0.338409423828125,
+          "finite": true
+        }
+      }
+    ],
+    "cuda-float": [
+      {
+        "repeat": 0,
+        "index": 0,
+        "roundtrip_seconds": 3.5389451350001764,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.538502122999489,
+          "first_callback_seconds": 2.881571525000254,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5703286528587341,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "c7a37cb114728e6c25685abea8cc5da7567f2e9590b33d5eca2ce9d155329021",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.08388498425483704,
+          "peak": 0.5703125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 1,
+        "roundtrip_seconds": 2.230299040000318,
+        "result": {
+          "duration_seconds": 2.16,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.229608248000659,
+          "first_callback_seconds": 1.8871853680011554,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.541522741317749,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "7ba0cd56a229246c4c82e483788503b183225f8f70954fad98ceaf3f2833a4ef",
+          "sample_rate": 24000,
+          "samples": 51840,
+          "rms": 0.09097504615783691,
+          "peak": 0.54150390625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 2,
+        "roundtrip_seconds": 3.234876007998537,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.234342049001498,
+          "first_callback_seconds": 2.5664384570009133,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5500246286392212,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "d4811ae89b734356466e7594a42cfaea13ac4bf0b3da8a69084b8a9236c171f1",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.08170472085475922,
+          "peak": 0.550018310546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 3,
+        "roundtrip_seconds": 1.222640333999152,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.2218305000005785,
+          "first_callback_seconds": 1.2122920509991673,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4646792709827423,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "c429ffe429387ba3175a4d936a657b2b0cbe95088059f4d0edff2e9a78b6a635",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.059366948902606964,
+          "peak": 0.46466064453125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 4,
+        "roundtrip_seconds": 3.00706239900137,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.006617209999604,
+          "first_callback_seconds": 2.3474880770008895,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.5161779522895813,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "249c19a8b26c9c85c1cf5c9d671b0a35f7a518cdcc6c72d0f8ed8c0e78313f99",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.06359413266181946,
+          "peak": 0.51617431640625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 5,
+        "roundtrip_seconds": 3.7635927529991022,
+        "result": {
+          "duration_seconds": 3.92,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.7630929710012424,
+          "first_callback_seconds": 2.7899949600014224,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.6035716533660889,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "fbe1c8c5453852ae28911c90b7b964bba6d3b82b9d3347cf657ced1af29b8997",
+          "sample_rate": 24000,
+          "samples": 94080,
+          "rms": 0.09351633489131927,
+          "peak": 0.603546142578125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 6,
+        "roundtrip_seconds": 1.2189324610008043,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.2184683599989512,
+          "first_callback_seconds": 1.209065044999079,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.38596662878990173,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "50a61f4e2fe1f28510c06a0c61e7a7ca28f6db44449befb95f78724d52183dfb",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.07361285388469696,
+          "peak": 0.385986328125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 0,
+        "index": 7,
+        "roundtrip_seconds": 1.122585610999522,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.1220644210006867,
+          "first_callback_seconds": 1.1117834950000542,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.3146553039550781,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "4e539087164ca2766e48ded05383bc5d4c496c0f5a1a615e39d79f325dfa4d0d",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.060210250318050385,
+          "peak": 0.314666748046875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 0,
+        "roundtrip_seconds": 2.805653961000644,
+        "result": {
+          "duration_seconds": 2.8,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.8052069479999773,
+          "first_callback_seconds": 2.153829502000008,
+          "synthesis_text": "Mother told me that during the summer vacation.",
+          "raw_peak": 0.5703286528587341,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "ad7cccdbe57c6ae7037c5d925656656e475b0bf63bc4a34da467abe703a06985",
+          "sample_rate": 24000,
+          "samples": 67200,
+          "rms": 0.08388497680425644,
+          "peak": 0.5703125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 1,
+        "roundtrip_seconds": 2.206919183001446,
+        "result": {
+          "duration_seconds": 2.16,
+          "sample_rate": 24000,
+          "synthesis_seconds": 2.206387624000854,
+          "first_callback_seconds": 1.8707998830013821,
+          "synthesis_text": "Your mother is thinking about the house.",
+          "raw_peak": 0.541522741317749,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "c3c0b721f91d9893ac07656f39513d90f9d7c42db53b3a21c522f1e68875fb42",
+          "sample_rate": 24000,
+          "samples": 51840,
+          "rms": 0.09097520262002945,
+          "peak": 0.54150390625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 2,
+        "roundtrip_seconds": 3.1971804269996937,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.19670384499841,
+          "first_callback_seconds": 2.535473533998811,
+          "synthesis_text": "My son is studying for a graduate exam at school.",
+          "raw_peak": 0.5500246286392212,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "d4811ae89b734356466e7594a42cfaea13ac4bf0b3da8a69084b8a9236c171f1",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.08170472085475922,
+          "peak": 0.550018310546875,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 3,
+        "roundtrip_seconds": 1.2221355929996207,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.221656707000875,
+          "first_callback_seconds": 1.2127322110009118,
+          "synthesis_text": "My son.",
+          "raw_peak": 0.4646792709827423,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "c429ffe429387ba3175a4d936a657b2b0cbe95088059f4d0edff2e9a78b6a635",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.059366948902606964,
+          "peak": 0.46466064453125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 4,
+        "roundtrip_seconds": 3.1699634739998146,
+        "result": {
+          "duration_seconds": 3.44,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.1693432419997407,
+          "first_callback_seconds": 2.5080266240001947,
+          "synthesis_text": "Now preparing for the graduate entrance exam.",
+          "raw_peak": 0.5161779522895813,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "249c19a8b26c9c85c1cf5c9d671b0a35f7a518cdcc6c72d0f8ed8c0e78313f99",
+          "sample_rate": 24000,
+          "samples": 82560,
+          "rms": 0.06359413266181946,
+          "peak": 0.51617431640625,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 5,
+        "roundtrip_seconds": 3.5997517670002708,
+        "result": {
+          "duration_seconds": 3.92,
+          "sample_rate": 24000,
+          "synthesis_seconds": 3.599381841999275,
+          "first_callback_seconds": 2.6285752339990722,
+          "synthesis_text": "Wanting to advance but you are doing gambling.",
+          "raw_peak": 0.6035716533660889,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "fbe1c8c5453852ae28911c90b7b964bba6d3b82b9d3347cf657ced1af29b8997",
+          "sample_rate": 24000,
+          "samples": 94080,
+          "rms": 0.09351633489131927,
+          "peak": 0.603546142578125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 6,
+        "roundtrip_seconds": 1.2166975719992479,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.2160842510002112,
+          "first_callback_seconds": 1.2065673930010234,
+          "synthesis_text": "That is you.",
+          "raw_peak": 0.38596662878990173,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "50a61f4e2fe1f28510c06a0c61e7a7ca28f6db44449befb95f78724d52183dfb",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.07361285388469696,
+          "peak": 0.385986328125,
+          "finite": true
+        }
+      },
+      {
+        "repeat": 1,
+        "index": 7,
+        "roundtrip_seconds": 1.2267432909993659,
+        "result": {
+          "duration_seconds": 1.12,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.2262374609999824,
+          "first_callback_seconds": 1.2174234909998631,
+          "synthesis_text": "Repay the loan.",
+          "raw_peak": 0.31468284130096436,
+          "output_gain": 1.0
+        },
+        "audio": {
+          "sha256": "6770172d34da004ce1e389ad6b0decc30157f8a30e799f594cecc8b630f917d1",
+          "sample_rate": 24000,
+          "samples": 26880,
+          "rms": 0.06021028757095337,
+          "peak": 0.314697265625,
+          "finite": true
+        }
+      }
+    ]
+  },
+  "full_replay": {
+    "limit128-v1": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 149.14833573899978,
+        "remaining_pids_before_cleanup": []
+      },
+      "caption_record_count": 336,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.0003733634948730469,
+        "p95": 0.0035872459411621094,
+        "max": 0.006376028060913086
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.09758114814758301,
+        "p95": 0.188798189163208,
+        "max": 0.20033669471740723
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.347,
+        "p95": 2.085,
+        "max": 3.65
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.7313754558563232,
+        "p95": 2.747819662094116,
+        "max": 3.815931797027588
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 15,
+      "job_states": {
+        "completed": 20
+      },
+      "job_count": 20,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 1
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 20,
+        "median": 9.934242248535156,
+        "p95": 23.768430948257446,
+        "max": 23.768430948257446
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 20,
+        "median": 10.479151010513306,
+        "p95": 24.094258546829224,
+        "max": 24.094258546829224
+      },
+      "first_piece_compute_seconds": {
+        "count": 20,
+        "median": 1.785158394000291,
+        "p95": 3.8431044399999337,
+        "max": 3.8431044399999337
+      },
+      "played_piece_count": 48,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.195289611816406,
+      "cpu_all_cores_percent": {
+        "count": 144,
+        "median": 42.950380198840534,
+        "p95": 53.67047308319739,
+        "max": 55.696202531645575
+      },
+      "max_swap_used_bytes": 0,
+      "swapin_pages": 0,
+      "gpu_percent": {
+        "count": 148,
+        "median": 0.0,
+        "p95": 93,
+        "max": 99
+      },
+      "gpu_mean_percent": 11.871621621621621,
+      "gpu_nonzero_sample_fraction": 0.14189189189189189,
+      "gpu_temperature_C": {
+        "count": 148,
+        "median": 53.375,
+        "p95": 54.968,
+        "max": 56.062
+      },
+      "max_buffered_audio_seconds": 9.73654680252075,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "wave_validation": {
+        "completed_checked": 20,
+        "all_parent_pcm_matches_ordered_pieces": true,
+        "max_peak_int16": 28010,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "8e610e0",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/limit128-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/limit128-v1/speech"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824278,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "18acebddb4f09061d56aab3da372fb50702c05ff94571ecbbba9283ad0c76047",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "60c12f2fe165c77eb567473333c1332d54dc81a004d6f080b0dffae4de329b06",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "36a161cc06f3cf83438f4f0c8a5ed35d329d3779b35159e5efb7573bfe544807",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "b94788a7dbcfbefa3352280e426b52429d301d580c98c8a9de9378f0ca226e56"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "rejected_speech_sequences": [
+        21
+      ],
+      "swap_initial_bytes": 0,
+      "swap_final_bytes": 0,
+      "swapout_pages": 0,
+      "completed_audio_seconds": 121.28,
+      "display_manager": "running"
+    },
+    "gpu-v1": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 154.0263538399995,
+        "remaining_pids_before_cleanup": []
+      },
+      "caption_record_count": 336,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 21,
+        "failed": 2
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.00038886070251464844,
+        "p95": 0.0007548332214355469,
+        "max": 0.0015707015991210938
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.10016918182373047,
+        "p95": 0.19141387939453125,
+        "max": 0.20070719718933105
+      },
+      "translation_compute_seconds": {
+        "count": 21,
+        "median": 0.623,
+        "p95": 3.474,
+        "max": 3.723
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 21,
+        "median": 0.9793205261230469,
+        "p95": 3.6138293743133545,
+        "max": 3.884467124938965
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 17,
+      "job_states": {
+        "completed": 18
+      },
+      "job_count": 18,
+      "source_to_speech_errors": {
+        "HTTP Error 429: Too Many Requests": 3
+      },
+      "translation_errors": {
+        "Translation rejected: required numerals missing: 12000": 1,
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 18,
+        "median": 12.062951564788818,
+        "p95": 25.774555444717407,
+        "max": 25.774555444717407
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 18,
+        "median": 12.888505935668945,
+        "p95": 26.18655514717102,
+        "max": 26.18655514717102
+      },
+      "first_piece_compute_seconds": {
+        "count": 18,
+        "median": 2.511376820500118,
+        "p95": 5.356888149999577,
+        "max": 5.356888149999577
+      },
+      "played_piece_count": 46,
+      "playback_order_preserved": true,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 3.22613525390625,
+      "cpu_all_cores_percent": {
+        "count": 149,
+        "median": 17.868852459016395,
+        "p95": 25.08196721311475,
+        "max": 51.88834154351396
+      },
+      "max_swap_used_bytes": 176201728,
+      "swapin_pages": 130,
+      "gpu_percent": {
+        "count": 153,
+        "median": 62,
+        "p95": 99,
+        "max": 99
+      },
+      "gpu_mean_percent": 58.169934640522875,
+      "gpu_nonzero_sample_fraction": 0.8300653594771242,
+      "gpu_temperature_C": {
+        "count": 153,
+        "median": 51.843,
+        "p95": 53.25,
+        "max": 53.812
+      },
+      "max_buffered_audio_seconds": 5.944046220779419,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "wave_validation": {
+        "completed_checked": 18,
+        "all_parent_pcm_matches_ordered_pieces": true,
+        "max_peak_int16": 26341,
+        "clipped_samples": 0
+      },
+      "protocol": {
+        "commit": "23ca984",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/gpu-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/gpu-v1/speech",
+          "--tts-provider",
+          "cuda",
+          "--tts-precision",
+          "float32",
+          "--model",
+          "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/sherpa-onnx-pocket-tts-2026-01-26",
+          "--tts-pythonpath",
+          "/home/moyamryia/mozart-realtime-patches-20261008/gpu-runtime/python"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "tts_model_sha256": {
+          "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+          "decoder.onnx": "f267880fde6c58b17b0a8f3647eaf8dcfad321f833f32d583ebc2fb2d1a15f10",
+          "lm_main.onnx": "255d1a9263c5abdf36034abfc19c11d21cc5f40f0f87d8361288e972cbd5c578",
+          "lm_flow.onnx": "79c013a554a54e63319c33c0cc8830cbbedc9b7e448ae7e26f7923ae11f9873e",
+          "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1"
+        },
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.282428,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "a345604c9b8fa71d691e3865f5e92ea369aceb536ecf2dca43e3cbad8c2a6007",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "f00e8b71ab902031fc69cf0303c74a2b87d2a5468bbcb923b0b900a41f4c7750",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "f971f989eb6f354808b1f2de2db0e5e715bdfe99239ae499a14547db74e6babf",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "19f0767b8a0b5ee9eb3e8c059f0bf59ae79341d35b2ffa5c8bc44be331b7a1bb",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "b94788a7dbcfbefa3352280e426b52429d301d580c98c8a9de9378f0ca226e56"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "rejected_speech_sequences": [
+        19,
+        20,
+        21
+      ],
+      "swap_initial_bytes": 176201728,
+      "swap_final_bytes": 176201728,
+      "swapout_pages": 0,
+      "completed_audio_seconds": 123.36,
+      "display_manager": "stopped"
+    }
+  },
+  "replay_comparison": {
+    "same_final_source_text": true,
+    "same_final_translations": true,
+    "same_input_assets_and_native_binaries": true,
+    "common_completed_count": 18,
+    "common_job_submit_to_play_delta_seconds": [
+      {
+        "seq": 1,
+        "cuda_minus_cpu": 1.4256253242492676
+      },
+      {
+        "seq": 3,
+        "cuda_minus_cpu": 3.1027307510375977
+      },
+      {
+        "seq": 4,
+        "cuda_minus_cpu": 3.0438592433929443
+      },
+      {
+        "seq": 6,
+        "cuda_minus_cpu": 2.8164596557617188
+      },
+      {
+        "seq": 7,
+        "cuda_minus_cpu": 0.4497666358947754
+      },
+      {
+        "seq": 8,
+        "cuda_minus_cpu": 1.0872528553009033
+      },
+      {
+        "seq": 9,
+        "cuda_minus_cpu": 1.6213350296020508
+      },
+      {
+        "seq": 10,
+        "cuda_minus_cpu": 1.6989803314208984
+      },
+      {
+        "seq": 11,
+        "cuda_minus_cpu": 0.825523853302002
+      },
+      {
+        "seq": 12,
+        "cuda_minus_cpu": 2.204343318939209
+      },
+      {
+        "seq": 13,
+        "cuda_minus_cpu": 2.1224842071533203
+      },
+      {
+        "seq": 14,
+        "cuda_minus_cpu": 1.7548165321350098
+      },
+      {
+        "seq": 15,
+        "cuda_minus_cpu": 2.397078275680542
+      },
+      {
+        "seq": 16,
+        "cuda_minus_cpu": 3.367507219314575
+      },
+      {
+        "seq": 17,
+        "cuda_minus_cpu": 5.542990446090698
+      },
+      {
+        "seq": 18,
+        "cuda_minus_cpu": 5.972774028778076
+      },
+      {
+        "seq": 22,
+        "cuda_minus_cpu": 3.3922410011291504
+      },
+      {
+        "seq": 23,
+        "cuda_minus_cpu": 3.547905921936035
+      }
+    ],
+    "note": "One replay per configuration. Different admitted jobs, model precision, and desktop service state. This is not a controlled device-only comparison."
+  },
+  "application_source_hashes_match_commit": true,
+  "build_script_sha256": "8a04c895760fdcc3871ca85cc50cb5f755d84e0f3e28d67488fd7fb5f5d40846"
+}
