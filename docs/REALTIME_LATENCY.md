@@ -5,10 +5,12 @@
 
 ## 1. 先拆开字幕、翻译和播报提交
 
-代码确认：`tools/subtitle_bridge.py` 在同一循环读取 ASR、同步翻译、同步提交播报，最后才写字幕 JSONL。
-因此原文也要等待翻译和播报 API；翻译时不能继续读取后续 ASR 结果。
+补丁前，`tools/subtitle_bridge.py` 在同一循环读取 ASR、同步翻译、同步提交播报，最后才写字幕 JSONL。
+本轮小补丁改为原文先发布，译文在播报请求前发布，播报提交结果最后发布。
+前端按同一 `utterance_id` 和递增 `revision` 更新原行，并显示翻译中或失败状态。
+Python 88 项回归、前端字幕四项回归和生产构建通过；尚无新的 Jetson 延迟测量。
+读取、翻译与播报提交仍串行执行；翻译时不能继续读取后续 ASR 结果。
 `tools/stt_service.py` 的 partial 目前是终端文本，桥接进程只接收 final JSON。
-`frontend/src/App.vue` 遇到已有 `utterance_id` 会丢弃事件，不能直接接收同一句的后续译文更新。
 
 建议按以下顺序改造：
 

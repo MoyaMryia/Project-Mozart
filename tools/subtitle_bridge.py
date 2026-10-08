@@ -111,6 +111,55 @@ def translate_recognized_event(url, event, audit=None):
     return translate(url, event['text'].strip(), audit=audit)
 
 
+def caption_updates(event, seq, session_id, llama_url, speech_url=None):
+    """Publish source text, then translation, then the speech request result."""
+    text = event['text'].strip()
+    record = {'seq': seq, 'utterance_id': f'{session_id}:{event["seq"]}',
+        'zh': text, 'en': '', 'asr_engine': event.get('final_engine', 'zipformer'),
+        'received_at': time.time(), 'asr_emitted_at': event.get('emitted_at'),
+        'online_text': event.get('online_text', text),
+        'final_decode_ms': event.get('final_decode_ms', 0),
+        'ts': time.strftime('%H:%M:%S'), 'final': True,
+        'revision': 0, 'translation_status': 'pending'}
+    for name in ('source_audio','source_audio_sha256','source_audio_seconds',
+                 'audio_start_pts_ns','audio_end_pts_ns','asr_numeric_audit','asr_polarity_audit'):
+        if name in event:
+            record[name] = event[name]
+    boundary = boundary_fragment_audit(text)
+    if boundary is not None:
+        record['asr_boundary_audit'] = boundary
+    yield dict(record)
+
+    translating = time.monotonic()
+    try:
+        record['translation_audit'] = []
+        record['en'], _ = translate_recognized_event(llama_url, event, audit=record['translation_audit'])
+        record['translation_status'] = 'completed'
+    except Exception as error:
+        record.update(translation_error=str(error), translation_status='failed')
+        if record.get('asr_numeric_audit', {}).get('issues'):
+            record['speech_skipped_reason'] = 'asr_numeric_uncertainty'
+        elif record.get('asr_polarity_audit', {}).get('issues'):
+            record['speech_skipped_reason'] = 'asr_polarity_uncertainty'
+        elif record.get('asr_boundary_audit', {}).get('issues'):
+            record['speech_skipped_reason'] = 'asr_boundary_uncertainty'
+        print(f'[bridge] translate failed: {error}', file=sys.stderr, flush=True)
+    record.update(translate_ms=round((time.monotonic()-translating)*1000),
+                  translated_at=time.time(), revision=1)
+    yield dict(record)
+
+    if speech_url and record['en']:
+        try:
+            result = request_json(speech_url+'/api/speech/events', {
+                'text': record['en'], 'source_text': text,
+                'utterance_id': record['utterance_id']}, timeout=3)
+            record['speech'] = result.get('id', result.get('skipped', ''))
+        except Exception as error:
+            record['speech_error'] = str(error)
+        record['revision'] = 2
+        yield dict(record)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stt-model', required=True)
@@ -151,46 +200,11 @@ def main():
                 if event.get('type') != 'final' or not event.get('text', '').strip():
                     continue
                 seq += 1
-                text = event['text'].strip()
-                record = {'seq': seq, 'utterance_id': f'{session_id}:{event["seq"]}',
-                    'zh': text, 'en': '', 'asr_engine': event.get('final_engine', 'zipformer'),
-                    'received_at': time.time(),
-                    'asr_emitted_at':event.get('emitted_at'),
-                    'online_text': event.get('online_text', text), 'final_decode_ms': event.get('final_decode_ms', 0),
-                    'ts': time.strftime('%H:%M:%S'), 'final': True}
-                for name in ('source_audio','source_audio_sha256','source_audio_seconds','audio_start_pts_ns','audio_end_pts_ns','asr_numeric_audit','asr_polarity_audit'):
-                    if name in event:record[name]=event[name]
-                boundary = boundary_fragment_audit(text)
-                if boundary is not None:
-                    record['asr_boundary_audit'] = boundary
-                translating = time.monotonic()
-                try:
-                    record['translation_audit'] = []
-                    record['en'], elapsed = translate_recognized_event(args.llama_url, event, audit=record['translation_audit'])
-                    record['translate_ms'] = int(elapsed*1000)
-                except Exception as error:
-                    record['translation_error'] = str(error)
-                    if record.get('asr_numeric_audit', {}).get('issues'):
-                        record['speech_skipped_reason'] = 'asr_numeric_uncertainty'
-                    elif record.get('asr_polarity_audit', {}).get('issues'):
-                        record['speech_skipped_reason'] = 'asr_polarity_uncertainty'
-                    elif record.get('asr_boundary_audit', {}).get('issues'):
-                        record['speech_skipped_reason'] = 'asr_boundary_uncertainty'
-                    print(f'[bridge] translate failed: {error}', file=sys.stderr, flush=True)
-                finally:
-                    record['translate_ms'] = round((time.monotonic()-translating)*1000)
-                    record['translated_at'] = time.time()
-                if args.speak and record['en']:
-                    try:
-                        result = request_json(args.speech_url+'/api/speech/events', {
-                            'text': record['en'], 'source_text': text,
-                            'utterance_id': record['utterance_id']}, timeout=3)
-                        record['speech'] = result.get('id', result.get('skipped', ''))
-                    except Exception as error:
-                        record['speech_error'] = str(error)
-                print(json.dumps(record, ensure_ascii=False), flush=True)
-                captions.write(json.dumps(record, ensure_ascii=False)+'\n')
-                captions.flush()
+                for record in caption_updates(event, seq, session_id, args.llama_url,
+                                              args.speech_url if args.speak else None):
+                    print(json.dumps(record, ensure_ascii=False), flush=True)
+                    captions.write(json.dumps(record, ensure_ascii=False)+'\n')
+                    captions.flush()
         stt.wait(timeout=5)
         if stt.returncode:
             raise RuntimeError(f'STT exited with status {stt.returncode}')

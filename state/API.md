@@ -134,6 +134,20 @@ It waits for incomplete JSONL lines to finish.
 The first connection starts at the file end; it does not replay earlier captions.
 Each SSE connection uses a thread, with no configured connection limit.
 
+For each utterance, the bridge sends complete records with the same `utterance_id`:
+
+| `revision` | Record content |
+| --- | --- |
+| `0` | Source text with `translation_status: pending`, before translation starts. |
+| `1` | Translation result with status `completed` or `failed`, before the speech request. |
+| `2` | Speech request result or error, if translated text was submitted for speech. |
+
+Use `utterance_id` to update the same caption. Accept only a newer revision.
+Treat a missing revision as `0` for older producers.
+Count utterances by ID, not by JSONL line count.
+The `final` field marks final ASR text. It does not mean translation or speech has finished.
+Translation and speech requests still use serial processing in this small patch.
+
 Reference speech uses translated text and does not use the Zero-Shot VC mode enum.
 A missing speech service returns HTTP 503.
 The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes and queue limits.
