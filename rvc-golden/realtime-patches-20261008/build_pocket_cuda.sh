@@ -39,6 +39,21 @@ contrib = ['BiasGelu', 'DynamicQuantizeMatMul', 'FastGelu', 'FusedConv', 'FusedM
            'Gelu', 'LayerNormalization', 'MatMulIntegerToFloat', 'SimplifiedLayerNormalization',
            'SkipLayerNormalization', 'SkipSimplifiedLayerNormalization']
 (root/'pocket-ops.config').write_text('ai.onnx;14;'+','.join(sorted(ops))+'\ncom.microsoft;1;'+','.join(contrib)+'\n')
+assert not {'Attention', 'RotaryEmbedding'} & ops
+cuda_cmake = root/'onnxruntime/cmake/onnxruntime_providers_cuda.cmake'
+source = cuda_cmake.read_text()
+if 'MOZART_POCKET_BUILD' not in source:
+    for variable in ['onnxruntime_providers_cuda_cc_srcs', 'onnxruntime_providers_cuda_cu_srcs']:
+        anchor = f'  list(FILTER {variable} EXCLUDE REGEX "core/providers/cuda/plugin/.*")'
+        assert source.count(anchor) == 1
+        source = source.replace(anchor, anchor+f'\n  if(MOZART_POCKET_BUILD)\n    list(FILTER {variable} EXCLUDE REGEX "core/providers/cuda/llm/.*")\n  endif()')
+    anchor = 'elseif(onnxruntime_DISABLE_CONTRIB_OPS AND NOT onnxruntime_CUDA_MINIMAL)'
+    assert source.count(anchor) == 1
+    source = source.replace(anchor, 'elseif(onnxruntime_DISABLE_CONTRIB_OPS AND NOT onnxruntime_CUDA_MINIMAL AND NOT MOZART_POCKET_BUILD)')
+source = source.replace('if(onnxruntime_cuda_flash_attention_srcs)',
+                        'if(onnxruntime_cuda_flash_attention_srcs AND NOT MOZART_POCKET_BUILD)')
+if source != cuda_cmake.read_text():
+    cuda_cmake.write_text(source)
 PY
 exec "$python_bin" "$runtime_root/onnxruntime/tools/ci_build/build.py" \
   --build_dir "$runtime_root/build" --config Release --update --build \
@@ -47,6 +62,7 @@ exec "$python_bin" "$runtime_root/onnxruntime/tools/ci_build/build.py" \
   --disable_cuda_nhwc_ops --disable_contrib_ops --disable_ml_ops --include_ops_by_config "$runtime_root/pocket-ops.config" \
   --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=87 \
   "CMAKE_CUDA_COMPILER_LAUNCHER=flock;${runtime_root}/cuda-compile.lock" \
+  MOZART_POCKET_BUILD=ON \
   onnxruntime_USE_FLASH_ATTENTION=OFF onnxruntime_USE_MEMORY_EFFICIENT_ATTENTION=OFF \
   onnxruntime_USE_TRT_FUSED_ATTENTION=OFF \
   onnxruntime_BUILD_UNIT_TESTS=OFF onnxruntime_USE_TELEMETRY=OFF
