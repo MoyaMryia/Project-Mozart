@@ -137,6 +137,7 @@ The build uses sherpa-onnx 1.13.6 and CPU ONNX Runtime 1.27.1.
 The script verifies the archive hashes and stores a runtime manifest.
 It does not install into the existing Python environment.
 The build needs CMake, Ninja, a C++ compiler, Python development headers, and access to GitHub.
+The Python environment must contain sherpa-onnx 1.13.6. This build uses aarch64 Linux libraries.
 
 For early playback, add these supervisor options:
 
@@ -160,6 +161,10 @@ It cannot withdraw audio that has reached the device.
 The restart rules still prevent automatic repetition of interrupted playback.
 For a physical device, block timestamps describe pipe delivery. They do not measure when the speaker produces sound.
 The null device keeps paced block timestamps for timing comparisons.
+
+The [2026-10-09 early-audio report](../reports/realtime-patches-20261008/EARLY_AUDIO.md) gives the measured results and limits.
+Its replay compares both modes within the same independent runtime.
+The new runtime produced different PCM samples from the existing installed package.
 
 ## Translation memory settings
 

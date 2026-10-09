@@ -160,7 +160,7 @@ def main():
             config.silence_scale = 1
             maximum_frames = None
             if args.engine == 'pocket':
-                # Pocket callbacks run during decoding, after its latent loop.
+                # Standard Pocket decoding starts after the complete latent loop.
                 maximum_frames = configure_pocket(config, job, limit)
                 if blocks:
                     config.extra = {**config.extra, 'early_decode': '1'}

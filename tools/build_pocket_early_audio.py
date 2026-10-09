@@ -15,6 +15,7 @@ import zipfile
 
 SOURCE_SHA256 = '78f5d10f957d2de1867a1e08395e9ec2ec388911c853dd141887396667f3ff34'
 ORT_SHA256 = '7c0dc460a78745792ee3c339f2369549a1396d60e79cef0b6616e3948205bda6'
+HEADER_SHA256 = '7593017c702926b31ab16c3aa21d366d1164fe713d992fe695720bf011da2cd4'
 
 
 def digest(path):
@@ -57,6 +58,8 @@ def main():
     header = source/'sherpa-onnx/csrc/offline-tts-pocket-impl.h'
     if 'const bool early_decode =' not in header.read_text():
         subprocess.run(['patch', '-p1', '-i', str(patch.resolve())], cwd=source, check=True)
+    if digest(header) != HEADER_SHA256:
+        raise RuntimeError('Patched Pocket header does not match the required source')
     # Use GitHub directly. Preserve upstream dependency archive hashes.
     for path in [source/'CMakeLists.txt', *source.glob('cmake/*.cmake')]:
         text = path.read_text()
@@ -77,6 +80,8 @@ def main():
         env=environment, check=True)
     subprocess.run(['cmake', '--build', str(build), '--target', '_sherpa_onnx', '-j', str(args.jobs)], check=True)
     import sherpa_onnx
+    if sherpa_onnx.__version__ != '1.13.6':
+        raise RuntimeError('The Python environment requires sherpa-onnx 1.13.6')
     package = root/'python/sherpa_onnx'
     shutil.copytree(Path(sherpa_onnx.__file__).parent, package, dirs_exist_ok=True,
                     ignore=shutil.ignore_patterns('lib', '__pycache__'))
