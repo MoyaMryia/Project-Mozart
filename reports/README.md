@@ -9,6 +9,8 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-09 | [realtime-patches-20261008/STABLE_CLAUSES.md](realtime-patches-20261008/STABLE_CLAUSES.md) | 稳定从句提交实验；覆盖与连续性通过，当前规则没有降低首播等待 |
+| 2026-10-09 | [realtime-patches-20261008/EARLY_AUDIO.md](realtime-patches-20261008/EARLY_AUDIO.md) | 提前输出音频的固定文本对照与实时回放 |
 | 2026-10-08 | [repository-audit-20261008/RESULTS.md](repository-audit-20261008/RESULTS.md) | 代码审查、HTTP/资产探针、回归结果与文档整理 |
 | 2026-10-07 | [demo-20261007/RESULTS.md](demo-20261007/RESULTS.md) | 模拟音频演示与界面检查 |
 | 2026-10-07 | [sentence-context-20261007/RESULTS.md](sentence-context-20261007/RESULTS.md) | 用户确认源文、人称与跨句语义限制 |

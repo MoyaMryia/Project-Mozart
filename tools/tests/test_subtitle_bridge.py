@@ -7,6 +7,18 @@ def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
 
 class BridgeChecks(unittest.TestCase):
+    def test_context_copy_retries_without_previous_source_or_translation(self):
+        audit=[]
+        context=[{'source':'最后的结果一定是输','translation':'The result is a loss.'}]
+        with patch('subtitle_bridge.request_json',side_effect=[answer('The result is a loss.'),answer('Nobody can escape this cycle.')]) as request:
+            result,_=translate('translator','没有人能逃掉这个循环',context=context,audit=audit)
+        self.assertEqual(result,'Nobody can escape this cycle.')
+        self.assertTrue(audit[0]['repeated_context_translation'])
+        first,retry=[c.args[1]['messages'][0]['content'] for c in request.call_args_list]
+        self.assertIn('最后的结果一定是输',first)
+        self.assertNotIn('The result is a loss.',first)
+        self.assertNotIn('最后的结果一定是输',retry)
+
     def test_rejected_translation_remains_visible_and_requests_speech(self):
         for source, candidate, finish, reason in [
                 ('这个叫跑分', 'This is called 跑分.', 'stop', 'untranslated Chinese'),

@@ -1,0 +1,2087 @@
+{
+  "control": {
+    "protocol": {
+      "commit": "bd3b9cb-stable-clauses-working-snapshot",
+      "command": [
+        "/home/moyamryia/mozart-stable-clauses-20261009/.venv/bin/python",
+        "/home/moyamryia/mozart-stable-clauses-20261009/tools/run_translated_speech.py",
+        "--backend-config",
+        "/home/moyamryia/mozart-stable-clauses-20261009/state/translated-speech.yaml",
+        "--reference",
+        "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+        "--reference-name",
+        "Qiqi realtime patch test",
+        "--input",
+        "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+        "--seconds",
+        "120",
+        "--no-rnnoise",
+        "--playback-device",
+        "null",
+        "--archive-utterances",
+        "--run-dir",
+        "/home/moyamryia/mozart-stable-clauses-20261009/rvc-golden/realtime-patches-20261008/clauses-control-v1/runtime",
+        "--data-dir",
+        "/home/moyamryia/mozart-stable-clauses-20261009/rvc-golden/realtime-patches-20261008/clauses-control-v1/speech",
+        "--tts-provider",
+        "cpu",
+        "--tts-precision",
+        "int8",
+        "--tts-threads",
+        "2",
+        "--early-audio",
+        "--tts-pythonpath",
+        "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python"
+      ],
+      "mode": "base",
+      "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+      "tts_model_sha256": null,
+      "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+      "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+      "wall_minus_monotonic_seconds": 1791455391.2824283,
+      "source_files": {
+        "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+        "tools/clone_worker.py": "e1176eff564791b20ee423a0d9dbc4e31ffffbe5c0e1cd8594cbb1e4d8161553",
+        "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+        "tools/speech_service.py": "81feab2099ab25bdd51cb75eb4a7247b1463b15983f2459013c78dfc974ff200",
+        "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+        "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+        "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+        "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+        "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+        "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+        "tools/translation_checks.py": "b98b1834ee8ba4261ef6ee4b409b5bb69926243a66eaacfde50bbc6ee3b5d393",
+        "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+        "tools/stable_clauses.py": "b043d1b40f506cf00b4881bba42a935420f21c606a14d4326184f6009f7400c1",
+        "tools/run_translated_speech.py": "b168576d01bad605c56cb2077f03e05922d75a7f61c83e9b5e4ea11628886c5e",
+        "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+        "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+        "tools/durable_jobs.py": "8f7a65d37d2f836356fd4de296d260ef631d3944ddf20765be32338c96ea5fb1",
+        "tools/build_pocket_early_audio.py": "ab155556af5301821bfdd3b3009be1bc56c4bd861a8a8a61353cfbffb85ab78b",
+        "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+        "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+        "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+        "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+        "tools/subtitle_bridge.py": "63c13469cbee81a8a42b91c86befae5143b35f22c1c4772ced7adfc29128535f"
+      },
+      "binary_hashes": {
+        "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+        "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+      }
+    },
+    "exit": {
+      "exit_code": 0,
+      "failure": null,
+      "elapsed_seconds": 150.5091637410078,
+      "remaining_pids_before_cleanup": [],
+      "injection": null
+    },
+    "parent_count": 23,
+    "final_parents": 23,
+    "translation_parent_states": {
+      "completed": 22,
+      "failed": 1
+    },
+    "source_covered_parents": 23,
+    "completed_speech_parents": 23,
+    "job_states": {
+      "completed": 23
+    },
+    "early_segments": 0,
+    "early_submit_lead_seconds": null,
+    "first_play_minus_final_emit_seconds": {
+      "count": 23,
+      "median": 10.558979034423828,
+      "max": 23.381214141845703,
+      "min": 2.6396567821502686
+    },
+    "speech_before_final_parents": 0,
+    "revision_violations": [],
+    "playback_order_preserved": true,
+    "parent_internal_gaps_seconds": {
+      "count": 103,
+      "median": 0.003214120864868164,
+      "max": 0.008902788162231445,
+      "min": 0.0021157264709472656
+    },
+    "parent_internal_gaps_above_20ms": 0,
+    "output_duration_seconds": 130.8,
+    "output_words": 423,
+    "wave_checks": [
+      {
+        "job_id": "569fa93c02ee483bb2b68249877fa058",
+        "duration_seconds": 11.04,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "022041d555255a31e67be4cc36a03e4a34adee11da560284aea2a33a0641cf60"
+      },
+      {
+        "job_id": "c4bf59b03e8844fe81bf9258487e8089",
+        "duration_seconds": 2.64,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "f6d5aacb61d48cfa9573caba81cb8af3c11f0d9882d3ed0bc5bf4fc1bc81008a"
+      },
+      {
+        "job_id": "5ce4f087fc3345dea491593561211f0e",
+        "duration_seconds": 2.16,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "ece40c7c4980246f7f4cd8703f92e0a2369eaa3b8edfcf85d7622646914288de"
+      },
+      {
+        "job_id": "b9da18da32eb44c6bc746bba42175c6b",
+        "duration_seconds": 3.2,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "37914c027ecf7b255951d3188684b407b7cde1108f63cfc502f125019ebfa887"
+      },
+      {
+        "job_id": "03c292ec40ea45a381578289d11309cd",
+        "duration_seconds": 4.72,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "667a4d71833b9b787f912fb6bc9f65108808b1493f1de173523fff97651c1c12"
+      },
+      {
+        "job_id": "67fa14dc40384b6780a495ee0e5c7350",
+        "duration_seconds": 1.2,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "209903d9e32cda7d2bd61ae506f12a3f23dba9ac0f8a56ff78dc3c08aeed5c27"
+      },
+      {
+        "job_id": "9a4bffd2649949819a16ecf008cdacbf",
+        "duration_seconds": 10.88,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "ab76697195fecf7cdf6be8b03dba928fd73d82c97717149938cc6c121ecea082"
+      },
+      {
+        "job_id": "810e66aece0d46059c795a3312d6540e",
+        "duration_seconds": 13.2,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "ae16517e553650d593515b93cb76dfae2354a7f3b2e5af3840c50ecff7e616e6"
+      },
+      {
+        "job_id": "f7610d31bf4a4bfe8f57981dfdac34ef",
+        "duration_seconds": 1.12,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "599ba913b3ca1cb5a42eb333612f0eee3dff3822570f4242764a4a03fd94475e"
+      },
+      {
+        "job_id": "a4d7b0d5ff8f4e5490889f8bb9254b55",
+        "duration_seconds": 1.36,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "34b08765393cbe93982ac8910bdc85b231adadd25ddd77ca2e75ff1cd7f35078"
+      },
+      {
+        "job_id": "5a68f491b9cd49a89902d581b1b6a0e7",
+        "duration_seconds": 6.72,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "9f1b8f7c1bff2321d3c1859269c833f49f27b060ea9ecc05d2b67653bbd0eb97"
+      },
+      {
+        "job_id": "c5ce5ea839f24b02b5a25265935269b2",
+        "duration_seconds": 1.12,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "4cb1183516d32b1962c2b0dba73933c8cfc05cd9d9db959b2030652c64be4a09"
+      },
+      {
+        "job_id": "061d15a98cfe4052bae83d89037b0e42",
+        "duration_seconds": 2.4,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "7c8074d9d6d020a2763bd69ee8bd82a7803fa585a7563cf711e7eb536f863d59"
+      },
+      {
+        "job_id": "224dba70143c4b26ae692930ccf8fae8",
+        "duration_seconds": 10.4,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "9c83b9ef2fe6c5096470447e096b07f824f15db82d6d942735f43deb4f4eafe0"
+      },
+      {
+        "job_id": "1a734567858b4f7bb9c007d58accf09a",
+        "duration_seconds": 6.88,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "55dd7fcb6073a4dd00f653975d0ebaa889c93ff5ba40f68e8ae45743c5e3eb72"
+      },
+      {
+        "job_id": "5858061eb2994f73992704becd67c5ba",
+        "duration_seconds": 12.8,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "0d3d22a0e677368ac5fc9e4c1e9ac9b30a1e26c0544eed93cc16c3f6d186a28e"
+      },
+      {
+        "job_id": "74f2b5d1db32431187e0a5c31bd0f93d",
+        "duration_seconds": 8.0,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "d21ac8f9e5b973d08440dedda83ae07a5602b74ea965129dbddf5ebe7c3516d4"
+      },
+      {
+        "job_id": "76bceb8340ed45d7a36619a1320956a8",
+        "duration_seconds": 17.36,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "c7e4005578b43c6fba4f2655d5aa7520bebe3039ac9d9b29be336274325f43f8"
+      },
+      {
+        "job_id": "a46040cb3ce0475d87f01034100c86a6",
+        "duration_seconds": 4.72,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "aed7fe65fa83b59f38dc8cac279a2f4142597ff4011adbac2d7d7b3885be9d79"
+      },
+      {
+        "job_id": "9c633c05b9fc4fc283bcab83d7431204",
+        "duration_seconds": 1.84,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "177ebe783d4512108cd7651c64f8bd6f990e27085440a6bd661a9449850a1ed4"
+      },
+      {
+        "job_id": "c66e7ba3542f4da19067692dca8dce52",
+        "duration_seconds": 2.0,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "134b02472928a084d5d13c45eec972f8d837622ffee2ff87c5b0de770be0f713"
+      },
+      {
+        "job_id": "08eaccd2542e42cea62db3b94997b9f6",
+        "duration_seconds": 2.64,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "1b6526931f62732d6cb3f8ec882e054742d1816ce9cb063d572d7e3ef5397663"
+      },
+      {
+        "job_id": "eb4e985cab734a118bcfefa87f993982",
+        "duration_seconds": 2.4,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "86dd7ebb8b316cb4f484fe4237b8e4bfa5d27efcd0762d86d2141ee1d0ed6f08"
+      }
+    ],
+    "parents": [
+      {
+        "seq": 1,
+        "source": "妈妈说暑假考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀",
+        "translation": "Mother told me that during the summer vacation, I took a course to boost my grades and won a large sum of money. Now, you can use this money to pay for your own exam. How much money did you pay for it?",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 2.6396567821502686,
+        "segments": []
+      },
+      {
+        "seq": 2,
+        "source": "七千五千又是大几千",
+        "translation": "Seven thousand five thousand is a large number.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 11.171104431152344,
+        "segments": []
+      },
+      {
+        "seq": 3,
+        "source": "你妈妈在家里心想着",
+        "translation": "Your mother is thinking about the house.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 11.264452695846558,
+        "segments": []
+      },
+      {
+        "seq": 4,
+        "source": "我儿子在学校里面要考研",
+        "translation": "My son is studying for a graduate exam at school.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 10.558979034423828,
+        "segments": []
+      },
+      {
+        "seq": 5,
+        "source": "你妈妈跟龙虾大妈跳广场舞或者说女儿闷的时候人家会比较儿子现在怎么样你妈妈很骄傲地跟人家说",
+        "translation": "Your mother is dancing with the lobster大妈大妈 while your daughter is silent, and she is very proud of it.",
+        "translation_status": "failed",
+        "translation_error": "Translation rejected: untranslated Chinese in English output",
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 4.8191821575164795,
+        "segments": []
+      },
+      {
+        "seq": 6,
+        "source": "我儿子",
+        "translation": "My son",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 8.61929702758789,
+        "segments": []
+      },
+      {
+        "seq": 7,
+        "source": "现在准备考研准备弄个考个研究生你慢慢一边说一边内心还有点开心自己儿子",
+        "translation": "Now preparing for the graduate entrance exam, preparing to apply for a master's degree. You will say it slowly and with a bit of happiness in your heart that your son is there.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 2.7860770225524902,
+        "segments": []
+      },
+      {
+        "seq": 8,
+        "source": "想上进但是呢你在干嘛你在赌博你要借我网贷你在网恋你们老的都是通过这个博去引钱去掉一线就没东西装逼",
+        "translation": "Wanting to advance but you are doing gambling. You are borrowing me for a loan. You are on a dating app. You are all using this to get money. It is nothing left after you get rid of the first line.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 4.718397378921509,
+        "segments": []
+      },
+      {
+        "seq": 9,
+        "source": "这个就是你",
+        "translation": "That is you.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 16.69258713722229,
+        "segments": []
+      },
+      {
+        "seq": 10,
+        "source": "充值战备还贷款",
+        "translation": "Repay the loan",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 14.950162887573242,
+        "segments": []
+      },
+      {
+        "seq": 11,
+        "source": "过几天又年本代地的输回去这个是经典的流程是什么呢骗钱或者借钱",
+        "translation": "The next few days will bring the return of the original land, which is the classic process of scamming or borrowing money.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 9.596972227096558,
+        "segments": []
+      },
+      {
+        "seq": 12,
+        "source": "然后去充值",
+        "translation": "Then recharge.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 14.748959064483643,
+        "segments": []
+      },
+      {
+        "seq": 13,
+        "source": "只是补贴计划可能赢一段时间",
+        "translation": "Just the subsidy plan may win for a while.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 12.995203971862793,
+        "segments": []
+      },
+      {
+        "seq": 14,
+        "source": "就会有一天上头上头完全不全部输完之后又开始借钱或者骗钱然后又冲进去然后又补贴计划",
+        "translation": "It will be one day when the top of the top of the top will not be fully lost, and then it will start borrowing money or cheating money and then rushing in and then subsidizing the plan.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 6.757123947143555,
+        "segments": []
+      },
+      {
+        "seq": 15,
+        "source": "然后可能又赢或者说直接输反正最后的结果一定是输反正就是这个循环一直来一直来这个就是读狗的循环逃不掉的没有一个独狗能逃掉",
+        "translation": "Then it might be a win or a loss, but the result must be a loss. This is the cycle that dogs cannot escape.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 6.316277742385864,
+        "segments": []
+      },
+      {
+        "seq": 16,
+        "source": "比如说要上政治小生小课生班什么的又要到了一万块完了因为报精辟你就拿着你让学习",
+        "translation": "For example, to enroll in a Political Minor Class or a Specialized Class, you need to pay 10000 yuan. Once the payment is complete, you must hold on to your learning materials.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 4.586370944976807,
+        "segments": []
+      },
+      {
+        "seq": 17,
+        "source": "要跑研究要政治小朋友身班什么东西的你从通通往到这种事情去骗你妈妈钱",
+        "translation": "To run a research project, you need to get a political student's body. What you do from the public to the government is to deceive your mother for money.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 10.381530523300171,
+        "segments": []
+      },
+      {
+        "seq": 18,
+        "source": "你看看读这个真的什么谎都杀得出来一段为了骗钱什么话都杀得出来只要能骗到钱就行他不管对面是谁不管自己",
+        "translation": "Look at this, it's a lie that can kill any word, a lie that can kill any sentence, a lie that can kill any money, a lie that can kill any person, a lie that can kill any enemy, a lie that can kill any self. He doesn't care who is facing him, he doesn't care about himself.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 7.558725595474243,
+        "segments": []
+      },
+      {
+        "seq": 19,
+        "source": "在做了什么事情只要能要到钱只要能翻本",
+        "translation": "To earn money, to get a loan, to recover the original amount.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 21.464197635650635,
+        "segments": []
+      },
+      {
+        "seq": 20,
+        "source": "钱赢回来所有的谎话",
+        "translation": "Qian wins back all the lies.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 22.998295783996582,
+        "segments": []
+      },
+      {
+        "seq": 21,
+        "source": "就可以不当等伤害",
+        "translation": "can not be treated as a threat",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 23.256319284439087,
+        "segments": []
+      },
+      {
+        "seq": 22,
+        "source": "这个时候妈妈已经有点不相信了",
+        "translation": "At this point the mother has become doubtful.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 22.71635675430298,
+        "segments": []
+      },
+      {
+        "seq": 23,
+        "source": "妈妈还是怀疑了但是由于我",
+        "translation": "Mother still doubted me because of me.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": null,
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 23.381214141845703,
+        "segments": []
+      }
+    ],
+    "minimum_available_GiB": 4.289020538330078,
+    "native_frames": 6000,
+    "native_overruns": 0,
+    "final_speech_status": {
+      "unfinished_jobs": 0,
+      "pending_jobs": 0,
+      "storage_warning": null,
+      "warmup_error": null
+    }
+  },
+  "experiment": {
+    "protocol": {
+      "commit": "bd3b9cb-stable-clauses-v2-working-snapshot",
+      "command": [
+        "/home/moyamryia/mozart-stable-clauses-20261009/.venv/bin/python",
+        "/home/moyamryia/mozart-stable-clauses-20261009/tools/run_translated_speech.py",
+        "--backend-config",
+        "/home/moyamryia/mozart-stable-clauses-20261009/state/translated-speech.yaml",
+        "--reference",
+        "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+        "--reference-name",
+        "Qiqi realtime patch test",
+        "--input",
+        "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+        "--seconds",
+        "120",
+        "--no-rnnoise",
+        "--playback-device",
+        "null",
+        "--archive-utterances",
+        "--run-dir",
+        "/home/moyamryia/mozart-stable-clauses-20261009/rvc-golden/realtime-patches-20261008/clauses-v2/runtime",
+        "--data-dir",
+        "/home/moyamryia/mozart-stable-clauses-20261009/rvc-golden/realtime-patches-20261008/clauses-v2/speech",
+        "--tts-provider",
+        "cpu",
+        "--tts-precision",
+        "int8",
+        "--tts-threads",
+        "2",
+        "--early-audio",
+        "--stable-clauses",
+        "--tts-pythonpath",
+        "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python"
+      ],
+      "mode": "base",
+      "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+      "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+      "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+      "tts_model_sha256": null,
+      "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+      "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+      "wall_minus_monotonic_seconds": 1791455391.2824278,
+      "source_files": {
+        "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+        "tools/clone_worker.py": "e1176eff564791b20ee423a0d9dbc4e31ffffbe5c0e1cd8594cbb1e4d8161553",
+        "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+        "tools/speech_service.py": "81feab2099ab25bdd51cb75eb4a7247b1463b15983f2459013c78dfc974ff200",
+        "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+        "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+        "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+        "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+        "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+        "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+        "tools/translation_checks.py": "b98b1834ee8ba4261ef6ee4b409b5bb69926243a66eaacfde50bbc6ee3b5d393",
+        "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+        "tools/stable_clauses.py": "80cb76ef30252ab881bad9f5e38b2fd2d9ff8734202e8d5ca8d3ff0ff35abddb",
+        "tools/run_translated_speech.py": "b168576d01bad605c56cb2077f03e05922d75a7f61c83e9b5e4ea11628886c5e",
+        "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+        "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+        "tools/durable_jobs.py": "8f7a65d37d2f836356fd4de296d260ef631d3944ddf20765be32338c96ea5fb1",
+        "tools/build_pocket_early_audio.py": "ab155556af5301821bfdd3b3009be1bc56c4bd861a8a8a61353cfbffb85ab78b",
+        "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+        "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+        "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+        "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+        "tools/subtitle_bridge.py": "0e6ed389439d279bcda2f26b7696784df676860e5d7fa597a5966a2155aa7fa4"
+      },
+      "binary_hashes": {
+        "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+        "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+      }
+    },
+    "exit": {
+      "exit_code": 0,
+      "failure": null,
+      "elapsed_seconds": 153.8661910170049,
+      "remaining_pids_before_cleanup": [],
+      "injection": null
+    },
+    "parent_count": 23,
+    "final_parents": 23,
+    "translation_parent_states": {
+      "completed": 22,
+      "failed": 1
+    },
+    "source_covered_parents": 23,
+    "completed_speech_parents": 23,
+    "job_states": {
+      "completed": 27
+    },
+    "early_segments": 4,
+    "early_submit_lead_seconds": {
+      "count": 4,
+      "median": 3.5066113471984863,
+      "max": 7.0323169231414795,
+      "min": 1.2792422771453857
+    },
+    "first_play_minus_final_emit_seconds": {
+      "count": 23,
+      "median": 11.199198007583618,
+      "max": 26.495319366455078,
+      "min": 2.582270860671997
+    },
+    "speech_before_final_parents": 0,
+    "revision_violations": [],
+    "playback_order_preserved": true,
+    "parent_internal_gaps_seconds": {
+      "count": 106,
+      "median": 0.003129243850708008,
+      "max": 0.009238243103027344,
+      "min": 0.0018184185028076172
+    },
+    "parent_internal_gaps_above_20ms": 0,
+    "output_duration_seconds": 133.92,
+    "output_words": 436,
+    "wave_checks": [
+      {
+        "job_id": "02f93c21bb2d4bf2b7a4b00fd97adc52",
+        "duration_seconds": 11.04,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "022041d555255a31e67be4cc36a03e4a34adee11da560284aea2a33a0641cf60"
+      },
+      {
+        "job_id": "8cb36138349e400782ca8493f36d7d0e",
+        "duration_seconds": 2.64,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "f6d5aacb61d48cfa9573caba81cb8af3c11f0d9882d3ed0bc5bf4fc1bc81008a"
+      },
+      {
+        "job_id": "75c461a44b3c4449bb251ef40b6db063",
+        "duration_seconds": 2.16,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "ece40c7c4980246f7f4cd8703f92e0a2369eaa3b8edfcf85d7622646914288de"
+      },
+      {
+        "job_id": "739149dc222e4a4aa67d3af08e016896",
+        "duration_seconds": 3.2,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "37914c027ecf7b255951d3188684b407b7cde1108f63cfc502f125019ebfa887"
+      },
+      {
+        "job_id": "774d8a726aee42ccaa168e6e96e76a12",
+        "duration_seconds": 4.72,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "667a4d71833b9b787f912fb6bc9f65108808b1493f1de173523fff97651c1c12"
+      },
+      {
+        "job_id": "bab05fb6b05e45aea6645236fbd25572",
+        "duration_seconds": 1.2,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "209903d9e32cda7d2bd61ae506f12a3f23dba9ac0f8a56ff78dc3c08aeed5c27"
+      },
+      {
+        "job_id": "6d910b089070460b8de7e3c44d49ffa4",
+        "duration_seconds": 10.88,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "ab76697195fecf7cdf6be8b03dba928fd73d82c97717149938cc6c121ecea082"
+      },
+      {
+        "job_id": "e11211cf04f84f6aba0a2c1df7cb1e7c",
+        "duration_seconds": 13.2,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "ae16517e553650d593515b93cb76dfae2354a7f3b2e5af3840c50ecff7e616e6"
+      },
+      {
+        "job_id": "e614caf305934afab588cbdcf3224bad",
+        "duration_seconds": 1.12,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "599ba913b3ca1cb5a42eb333612f0eee3dff3822570f4242764a4a03fd94475e"
+      },
+      {
+        "job_id": "4edd16e08ef84518a48d542b078f4f2e",
+        "duration_seconds": 1.36,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "34b08765393cbe93982ac8910bdc85b231adadd25ddd77ca2e75ff1cd7f35078"
+      },
+      {
+        "job_id": "8dc729bc0e3c4bbab408e1eeb4300445",
+        "duration_seconds": 6.72,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "9f1b8f7c1bff2321d3c1859269c833f49f27b060ea9ecc05d2b67653bbd0eb97"
+      },
+      {
+        "job_id": "71fef3bca9aa495aa2967fe9d273de8e",
+        "duration_seconds": 1.12,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "4cb1183516d32b1962c2b0dba73933c8cfc05cd9d9db959b2030652c64be4a09"
+      },
+      {
+        "job_id": "12e568ba28d043838023a31df862ec69",
+        "duration_seconds": 2.4,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "7c8074d9d6d020a2763bd69ee8bd82a7803fa585a7563cf711e7eb536f863d59"
+      },
+      {
+        "job_id": "05eb07f91e654213bbb71f760845a9e4",
+        "duration_seconds": 6.88,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "83b7341e341cea64df60dca962474deb78e0d64ca64c1af253de0f672831faf3"
+      },
+      {
+        "job_id": "e80eeca4d0834b5f9f2061615be9d5bc",
+        "duration_seconds": 3.44,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "554eb12aac0f9ecab61e8165542a9510940fcda77a4638ec855c545e5a84798b"
+      },
+      {
+        "job_id": "2c208949883249d88102c978fd3cdd34",
+        "duration_seconds": 2.56,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "a1fab36f9b218e7d5ad4747eac293c2786c8914ae5d26c59b0aaaec1b905d88c"
+      },
+      {
+        "job_id": "8a357f118bfe4921918d2935bc569b4e",
+        "duration_seconds": 3.04,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "d842149e83352784c746bbf58229844e3ec333899098e310d3ee193a5e03191d"
+      },
+      {
+        "job_id": "aa4bc3a0dda644f99fb3ef364634b495",
+        "duration_seconds": 7.92,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "ab2c6e9896b4251255036160c9550ee60588e9c47e7e9979dc0be68acad399f3"
+      },
+      {
+        "job_id": "22a5d873d9ec454c894d45b570482d84",
+        "duration_seconds": 7.76,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "b9538948440bbf7933e05290446fdb55131bf4d3dc75fa11bfb2548b890bbd09"
+      },
+      {
+        "job_id": "f73c943ad6d343ec976a41f78aeaf2cf",
+        "duration_seconds": 2.4,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "f8c88bb47da34288820045d6c3e8dea7a47f25fe0bd5cbc4d024bbbb79eaa940"
+      },
+      {
+        "job_id": "472eb78113054838a55e2b46ead7d1b7",
+        "duration_seconds": 7.2,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "7725554ef49d424c8810229400985022e0d3041ab1864ad1d1e2f6fd4df591a0"
+      },
+      {
+        "job_id": "1cf4aaac597a456facc8a9654feeffca",
+        "duration_seconds": 17.36,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "c7e4005578b43c6fba4f2655d5aa7520bebe3039ac9d9b29be336274325f43f8"
+      },
+      {
+        "job_id": "5427d0a96bbf40ae89eea4f559a32b95",
+        "duration_seconds": 4.72,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "aed7fe65fa83b59f38dc8cac279a2f4142597ff4011adbac2d7d7b3885be9d79"
+      },
+      {
+        "job_id": "94a961f899d14c8bbb431957c89d9f0a",
+        "duration_seconds": 1.84,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "177ebe783d4512108cd7651c64f8bd6f990e27085440a6bd661a9449850a1ed4"
+      },
+      {
+        "job_id": "7bb19b9690be45129bc3ab5b5486e024",
+        "duration_seconds": 2.0,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "0579b88a2c8a5e393f25e21bee3cb9be1546325bf937bc42e2c248058fa1e4cd"
+      },
+      {
+        "job_id": "8aef82f8bfb54a1f804988907154fef8",
+        "duration_seconds": 2.64,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "1b6526931f62732d6cb3f8ec882e054742d1816ce9cb063d572d7e3ef5397663"
+      },
+      {
+        "job_id": "8c6fde882fc04f5b8ef475e0fff8e993",
+        "duration_seconds": 2.4,
+        "ordered_blocks_match": true,
+        "fullscale_samples": 0,
+        "pcm_sha256": "86dd7ebb8b316cb4f484fe4237b8e4bfa5d27efcd0762d86d2141ee1d0ed6f08"
+      }
+    ],
+    "parents": [
+      {
+        "seq": 1,
+        "source": "妈妈说暑假考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀",
+        "translation": "Mother told me that during the summer vacation, I took a course to boost my grades and won a large sum of money. Now, you can use this money to pay for your own exam. How much money did you pay for it?",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 2.582270860671997,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 37,
+            "source_text": "妈妈说暑假考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀",
+            "submitted_at": 1791522164.895407,
+            "asr_emitted_at": 1791522164.7628422,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Mother told me that during the summer vacation, I took a course to boost my grades and won a large sum of money. Now, you can use this money to pay for your own exam. How much money did you pay for it?",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Mother told me that during the summer vacation, I took a course to boost my grades and won a large sum of money. Now, you can use this money to pay for your own exam. How much money did you pay for it?",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "妈妈说暑假考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀"
+              }
+            ],
+            "translate_ms": 1248,
+            "translated_at": 1791522166.1504092,
+            "speech": "02f93c21bb2d4bf2b7a4b00fd97adc52"
+          }
+        ]
+      },
+      {
+        "seq": 2,
+        "source": "七千五千又是大几千",
+        "translation": "Seven thousand five thousand is a large number.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 11.110433578491211,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 9,
+            "source_text": "七千五千又是大几千",
+            "submitted_at": 1791522167.3546154,
+            "asr_emitted_at": 1791522167.3209522,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Seven thousand five thousand is a large number.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Seven thousand five thousand is a large number.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "七千五千又是大几千"
+              }
+            ],
+            "translate_ms": 337,
+            "translated_at": 1791522167.7007492,
+            "speech": "8cb36138349e400782ca8493f36d7d0e"
+          }
+        ]
+      },
+      {
+        "seq": 3,
+        "source": "你妈妈在家里心想着",
+        "translation": "Your mother is thinking about the house.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 11.210193395614624,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 9,
+            "source_text": "你妈妈在家里心想着",
+            "submitted_at": 1791522169.9167852,
+            "asr_emitted_at": 1791522169.8826063,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Your mother is thinking about the house.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Your mother is thinking about the house.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "你妈妈在家里心想着"
+              }
+            ],
+            "translate_ms": 262,
+            "translated_at": 1791522170.183648,
+            "speech": "75c461a44b3c4449bb251ef40b6db063"
+          }
+        ]
+      },
+      {
+        "seq": 4,
+        "source": "我儿子在学校里面要考研",
+        "translation": "My son is studying for a graduate exam at school.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 10.502674579620361,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 11,
+            "source_text": "我儿子在学校里面要考研",
+            "submitted_at": 1791522172.8015199,
+            "asr_emitted_at": 1791522172.7639098,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "My son is studying for a graduate exam at school.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "My son is studying for a graduate exam at school.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "我儿子在学校里面要考研"
+              }
+            ],
+            "translate_ms": 352,
+            "translated_at": 1791522173.1572056,
+            "speech": "739149dc222e4a4aa67d3af08e016896"
+          }
+        ]
+      },
+      {
+        "seq": 5,
+        "source": "你妈妈跟龙虾大妈跳广场舞或者说女儿闷的时候人家会比较儿子现在怎么样你妈妈很骄傲地跟人家说",
+        "translation": "Your mother is dancing with the lobster大妈大妈 while your daughter is silent, and she is very proud of it.",
+        "translation_status": "failed",
+        "translation_error": "Translation rejected: untranslated Chinese in English output",
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 4.756099462509155,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 44,
+            "source_text": "你妈妈跟龙虾大妈跳广场舞或者说女儿闷的时候人家会比较儿子现在怎么样你妈妈很骄傲地跟人家说",
+            "submitted_at": 1791522181.8528755,
+            "asr_emitted_at": 1791522181.722988,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "failed",
+            "en": "Your mother is dancing with the lobster大妈大妈 while your daughter is silent, and she is very proud of it.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Your mother is proud to say that while she dances with the lobster大妈 (lobster大妈) or when her daughter is quiet, her son is doing well.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": true,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "你妈妈跟龙虾大妈跳广场舞或者说女儿闷的时候人家会比较儿子现在怎么样你妈妈很骄傲地跟人家说"
+              },
+              {
+                "attempt": 2,
+                "content": "Your mother is dancing with the lobster大妈大妈 while your daughter is silent, and she is very proud of it.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": true,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "你妈妈跟龙虾大妈跳广场舞或者说女儿闷的时候人家会比较儿子现在怎么样你妈妈很骄傲地跟人家说"
+              }
+            ],
+            "translation_error": "Translation rejected: untranslated Chinese in English output",
+            "translate_ms": 1448,
+            "translated_at": 1791522183.3097532,
+            "speech_degraded": true,
+            "speech": "774d8a726aee42ccaa168e6e96e76a12"
+          }
+        ]
+      },
+      {
+        "seq": 6,
+        "source": "我儿子",
+        "translation": "My son",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 8.54335880279541,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 3,
+            "source_text": "我儿子",
+            "submitted_at": 1791522182.7004707,
+            "asr_emitted_at": 1791522182.6817582,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "My son",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "My son",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "我儿子"
+              }
+            ],
+            "translate_ms": 192,
+            "translated_at": 1791522183.5245755,
+            "speech": "bab05fb6b05e45aea6645236fbd25572"
+          }
+        ]
+      },
+      {
+        "seq": 7,
+        "source": "现在准备考研准备弄个考个研究生你慢慢一边说一边内心还有点开心自己儿子",
+        "translation": "Now preparing for the graduate entrance exam, preparing to apply for a master's degree. You will say it slowly and with a bit of happiness in your heart that your son is there.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 2.702620029449463,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 34,
+            "source_text": "现在准备考研准备弄个考个研究生你慢慢一边说一边内心还有点开心自己儿子",
+            "submitted_at": 1791522189.8467095,
+            "asr_emitted_at": 1791522189.7295296,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Now preparing for the graduate entrance exam, preparing to apply for a master's degree. You will say it slowly and with a bit of happiness in your heart that your son is there.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Now preparing for the graduate entrance exam, preparing to apply for a master's degree. You will say it slowly and with a bit of happiness in your heart that your son is there.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "现在准备考研准备弄个考个研究生你慢慢一边说一边内心还有点开心自己儿子"
+              }
+            ],
+            "translate_ms": 870,
+            "translated_at": 1791522190.7222931,
+            "speech": "6d910b089070460b8de7e3c44d49ffa4"
+          }
+        ]
+      },
+      {
+        "seq": 8,
+        "source": "想上进但是呢你在干嘛你在赌博你要借我网贷你在网恋你们老的都是通过这个博去引钱去掉一线就没东西装逼",
+        "translation": "Wanting to advance but you are doing gambling. You are borrowing me for a loan. You are on a dating app. You are all using this to get money. It is nothing left after you get rid of the first line.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 4.739156007766724,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 48,
+            "source_text": "想上进但是呢你在干嘛你在赌博你要借我网贷你在网恋你们老的都是通过这个博去引钱去掉一线就没东西装逼",
+            "submitted_at": 1791522201.7300043,
+            "asr_emitted_at": 1791522201.564027,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Wanting to advance but you are doing gambling. You are borrowing me for a loan. You are on a dating app. You are all using this to get money. It is nothing left after you get rid of the first line.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Wanting to advance, but you are gambling. You are borrowing me from the internet. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are using the internet to borrow money. You are",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "length",
+                "repeated_context_translation": false,
+                "translation_source": "想上进但是呢你在干嘛你在赌博你要借我网贷你在网恋你们老的都是通过这个博去引钱去掉一线就没东西装逼"
+              },
+              {
+                "attempt": 2,
+                "content": "Wanting to advance but you are doing gambling. You are borrowing me for a loan. You are on a dating app. You are all using this to get money. It is nothing left after you get rid of the first line.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "想上进但是呢你在干嘛你在赌博你要借我网贷你在网恋你们老的都是通过这个博去引钱去掉一线就没东西装逼"
+              }
+            ],
+            "translate_ms": 3746,
+            "translated_at": 1791522205.4850447,
+            "speech": "e11211cf04f84f6aba0a2c1df7cb1e7c"
+          }
+        ]
+      },
+      {
+        "seq": 9,
+        "source": "这个就是你",
+        "translation": "That is you.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 16.70728611946106,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 5,
+            "source_text": "这个就是你",
+            "submitted_at": 1791522202.867822,
+            "asr_emitted_at": 1791522202.8413677,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "That is you.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "That is you.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "这个就是你"
+              }
+            ],
+            "translate_ms": 200,
+            "translated_at": 1791522205.6968725,
+            "speech": "e614caf305934afab588cbdcf3224bad"
+          }
+        ]
+      },
+      {
+        "seq": 10,
+        "source": "充值战备还贷款",
+        "translation": "Repay the loan",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 14.954204797744751,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 7,
+            "source_text": "充值战备还贷款",
+            "submitted_at": 1791522205.761114,
+            "asr_emitted_at": 1791522205.7211406,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Repay the loan",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Repay the loan",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "充值战备 repay the loan "
+              }
+            ],
+            "translate_ms": 161,
+            "translated_at": 1791522205.9411485,
+            "speech": "4edd16e08ef84518a48d542b078f4f2e"
+          }
+        ]
+      },
+      {
+        "seq": 11,
+        "source": "过几天又年本代地的输回去这个是经典的流程是什么呢骗钱或者借钱",
+        "translation": "The next few days will bring the return of the original land, which is the classic process of scamming or borrowing money.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 9.602275133132935,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 30,
+            "source_text": "过几天又年本代地的输回去这个是经典的流程是什么呢骗钱或者借钱",
+            "submitted_at": 1791522212.5338073,
+            "asr_emitted_at": 1791522212.447484,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "The next few days will bring the return of the original land, which is the classic process of scamming or borrowing money.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "The next few days will bring the return of the original land, which is the classic process of scamming or borrowing money.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "过几天又年本代地的输回去这个是经典的流程是什么呢骗钱或者借钱"
+              }
+            ],
+            "translate_ms": 610,
+            "translated_at": 1791522213.1509647,
+            "speech": "8dc729bc0e3c4bbab408e1eeb4300445"
+          }
+        ]
+      },
+      {
+        "seq": 12,
+        "source": "然后去充值",
+        "translation": "Then recharge.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 14.751145601272583,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 5,
+            "source_text": "然后去充值",
+            "submitted_at": 1791522214.0689578,
+            "asr_emitted_at": 1791522214.047378,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Then recharge.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Then recharge.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "然后去充值"
+              }
+            ],
+            "translate_ms": 161,
+            "translated_at": 1791522214.2370622,
+            "speech": "71fef3bca9aa495aa2967fe9d273de8e"
+          }
+        ]
+      },
+      {
+        "seq": 13,
+        "source": "只是补贴计划可能赢一段时间",
+        "translation": "Just the subsidy plan may win for a while.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 13.007543563842773,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 13,
+            "source_text": "只是补贴计划可能赢一段时间",
+            "submitted_at": 1791522216.957731,
+            "asr_emitted_at": 1791522216.9198413,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Just the subsidy plan may win for a while.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Just the subsidy plan may win for a while.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "只是补贴计划可能赢一段时间"
+              }
+            ],
+            "translate_ms": 312,
+            "translated_at": 1791522217.2787786,
+            "speech": "12e568ba28d043838023a31df862ec69"
+          }
+        ]
+      },
+      {
+        "seq": 14,
+        "source": "就会有一天上头上头完全不全部输完之后又开始借钱或者骗钱然后又冲进去然后又补贴计划",
+        "translation": "It will be one day that the top will not be able to win all the way and then start borrowing money or cheating money. And then he entered again and then the subsidy plan",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 6.76658821105957,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 27,
+            "source_text": "就会有一天上头上头完全不全部输完之后又开始借钱或者骗钱",
+            "submitted_at": 1791522224.2909062,
+            "asr_emitted_at": 1791522224.286855,
+            "early": true,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "It will be one day that the top will not be able to win all the way and then start borrowing money or cheating money.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "It will be one day that the top will not be able to win all the way and then start borrowing money or cheating money.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "就会有一天上头上头完全不全部输完之后又开始借钱或者骗钱"
+              }
+            ],
+            "translate_ms": 641,
+            "translated_at": 1791522224.9458156,
+            "speech": "05eb07f91e654213bbb71f760845a9e4"
+          },
+          {
+            "index": 1,
+            "source_start": 27,
+            "source_end": 40,
+            "source_text": "然后又冲进去然后又补贴计划",
+            "submitted_at": 1791522225.6859558,
+            "asr_emitted_at": 1791522225.5701485,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "And then he entered again and then the subsidy plan",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "And then he entered again and then the subsidy plan",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "然后又冲进去然后又补贴计划"
+              }
+            ],
+            "translate_ms": 401,
+            "translated_at": 1791522226.1004698,
+            "speech": "e80eeca4d0834b5f9f2061615be9d5bc"
+          }
+        ]
+      },
+      {
+        "seq": 15,
+        "source": "然后可能又赢或者说直接输反正最后的结果一定是输反正就是这个循环一直来一直来这个就是读狗的循环逃不掉的没有一个独狗能逃掉",
+        "translation": "Then maybe they will win or lose directly. In the end, the result must be a loss. No matter what, this is the loop that keeps going on and on. This is the loop that dogs cannot escape. No single dog can escape it.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 6.254796981811523,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 12,
+            "source_text": "然后可能又赢或者说直接输",
+            "submitted_at": 1791522229.4110596,
+            "asr_emitted_at": 1791522229.4072182,
+            "early": true,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Then maybe they will win or lose directly.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Then maybe they will win or lose directly.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "然后可能又赢或者说直接输"
+              }
+            ],
+            "translate_ms": 359,
+            "translated_at": 1791522229.786631,
+            "speech": "2c208949883249d88102c978fd3cdd34"
+          },
+          {
+            "index": 1,
+            "source_start": 12,
+            "source_end": 23,
+            "source_text": "反正最后的结果一定是输",
+            "submitted_at": 1791522231.34871,
+            "asr_emitted_at": 1791522231.348074,
+            "early": true,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "In the end, the result must be a loss.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "In the end, the result must be a loss.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "反正最后的结果一定是输"
+              }
+            ],
+            "translate_ms": 379,
+            "translated_at": 1791522231.7370973,
+            "speech": "8a357f118bfe4921918d2935bc569b4e"
+          },
+          {
+            "index": 2,
+            "source_start": 23,
+            "source_end": 59,
+            "source_text": "反正就是这个循环一直来一直来这个就是读狗的循环逃不掉的没有一个独狗能逃掉",
+            "submitted_at": 1791522236.5960467,
+            "asr_emitted_at": 1791522236.4433765,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "No matter what, this is the loop that keeps going on and on. This is the loop that dogs cannot escape. No single dog can escape it.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "No matter what, this is the loop that keeps going on and on. This is the loop that dogs cannot escape. No single dog can escape it.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "反正就是这个循环一直来一直来这个就是读狗的循环逃不掉的没有一个独狗能逃掉"
+              }
+            ],
+            "translate_ms": 849,
+            "translated_at": 1791522237.4542146,
+            "speech": "aa4bc3a0dda644f99fb3ef364634b495"
+          }
+        ]
+      },
+      {
+        "seq": 16,
+        "source": "比如说要上政治小生小课生班什么的又要到了一万块完了因为报精辟你就拿着你让学习",
+        "translation": "For example, to enroll in a political class or a class for a small student, you need to pay 10000 yuan. Okay because you are holding on to your learning",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 11.199198007583618,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 23,
+            "source_text": "比如说要上政治小生小课生班什么的又要到了一万块",
+            "submitted_at": 1791522243.1686454,
+            "asr_emitted_at": 1791522243.1680372,
+            "early": true,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "For example, to enroll in a political class or a class for a small student, you need to pay 10000 yuan.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "For example, to enroll in a political class or a class for a small student, you need to pay 10000 yuan.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "比如说要上政治小生小课生班什么的又要到了10000块"
+              }
+            ],
+            "translate_ms": 763,
+            "translated_at": 1791522243.9377294,
+            "speech": "22a5d873d9ec454c894d45b570482d84"
+          },
+          {
+            "index": 1,
+            "source_start": 23,
+            "source_end": 38,
+            "source_text": "完了因为报精辟你就拿着你让学习",
+            "submitted_at": 1791522245.2025697,
+            "asr_emitted_at": 1791522245.0872016,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Okay because you are holding on to your learning",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Okay because you are holding on to your learning",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "完了因为报精辟你就拿着你让学习"
+              }
+            ],
+            "translate_ms": 390,
+            "translated_at": 1791522245.600383,
+            "speech": "f73c943ad6d343ec976a41f78aeaf2cf"
+          }
+        ]
+      },
+      {
+        "seq": 17,
+        "source": "要跑研究要政治小朋友身班什么东西的你从通通往到这种事情去骗你妈妈钱",
+        "translation": "To run a research project, you need to get a political student's body. What you do from the public to the government to get money from your mother.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 14.362497806549072,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 33,
+            "source_text": "要跑研究要政治小朋友身班什么东西的你从通通往到这种事情去骗你妈妈钱",
+            "submitted_at": 1791522252.2120898,
+            "asr_emitted_at": 1791522252.1218963,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "To run a research project, you need to get a political student's body. What you do from the public to the government to get money from your mother.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "To run a research project, you need to get a political student's body. What you do from the public to the government to get money from your mother.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "要跑研究要政治小朋友身班什么东西的你从通通往到这种事情去骗你妈妈钱"
+              }
+            ],
+            "translate_ms": 801,
+            "translated_at": 1791522253.016665,
+            "speech": "472eb78113054838a55e2b46ead7d1b7"
+          }
+        ]
+      },
+      {
+        "seq": 18,
+        "source": "你看看读这个真的什么谎都杀得出来一段为了骗钱什么话都杀得出来只要能骗到钱就行他不管对面是谁不管自己",
+        "translation": "Look at this, it's a lie that can kill any word, a lie that can kill any sentence, a lie that can kill any money, a lie that can kill any person, a lie that can kill any enemy, a lie that can kill any self. He doesn't care who is facing him, he doesn't care about himself.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 10.715791940689087,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 49,
+            "source_text": "你看看读这个真的什么谎都杀得出来一段为了骗钱什么话都杀得出来只要能骗到钱就行他不管对面是谁不管自己",
+            "submitted_at": 1791522263.1567485,
+            "asr_emitted_at": 1791522263.002749,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Look at this, it's a lie that can kill any word, a lie that can kill any sentence, a lie that can kill any money, a lie that can kill any person, a lie that can kill any enemy, a lie that can kill any self. He doesn't care who is facing him, he doesn't care about himself.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Look at this, it's a lie that can kill any word, a lie that can kill any sentence, a lie that can kill any money, a lie that can kill any person, a lie that can kill any enemy, a lie that can kill any self. He doesn't care who is facing him, he doesn't care about himself.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [
+                  "Keep the explicit 他不管 clause in third person (he/him or they/them); do not turn it into I/me."
+                ],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "你看看读这个真的什么谎都杀得出来一段为了骗钱什么话都杀得出来只要能骗到钱就行他不管对面是谁不管自己"
+              }
+            ],
+            "translate_ms": 1586,
+            "translated_at": 1791522264.7511718,
+            "speech": "1cf4aaac597a456facc8a9654feeffca"
+          }
+        ]
+      },
+      {
+        "seq": 19,
+        "source": "在做了什么事情只要能要到钱只要能翻本",
+        "translation": "To earn money, to get a loan, to recover the original amount.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 24.62177610397339,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 18,
+            "source_text": "在做了什么事情只要能要到钱只要能翻本",
+            "submitted_at": 1791522266.576121,
+            "asr_emitted_at": 1791522266.5281737,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "To earn money, to get a loan, to recover the original amount.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "To earn money, to get a loan, to recover the original amount.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "在做了什么事情只要能要到钱只要能翻本"
+              }
+            ],
+            "translate_ms": 482,
+            "translated_at": 1791522267.0636468,
+            "speech": "5427d0a96bbf40ae89eea4f559a32b95"
+          }
+        ]
+      },
+      {
+        "seq": 20,
+        "source": "钱赢回来所有的谎话",
+        "translation": "Qian wins back all the lies.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 26.156513452529907,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 9,
+            "source_text": "钱赢回来所有的谎话",
+            "submitted_at": 1791522269.772523,
+            "asr_emitted_at": 1791522269.7306926,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Qian wins back all the lies.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Qian wins back all the lies.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "钱赢回来所有的谎话"
+              }
+            ],
+            "translate_ms": 270,
+            "translated_at": 1791522270.048837,
+            "speech": "94a961f899d14c8bbb431957c89d9f0a"
+          }
+        ]
+      },
+      {
+        "seq": 21,
+        "source": "就可以不当等伤害",
+        "translation": "can not be treated as injury",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 26.41550922393799,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 8,
+            "source_text": "就可以不当等伤害",
+            "submitted_at": 1791522271.344353,
+            "asr_emitted_at": 1791522271.322643,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "can not be treated as injury",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "can not be treated as injury",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "就可以不当等伤害"
+              }
+            ],
+            "translate_ms": 222,
+            "translated_at": 1791522271.5690906,
+            "speech": "7bb19b9690be45129bc3ab5b5486e024"
+          }
+        ]
+      },
+      {
+        "seq": 22,
+        "source": "这个时候妈妈已经有点不相信了",
+        "translation": "At this point the mother has become doubtful.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 25.861140489578247,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 14,
+            "source_text": "这个时候妈妈已经有点不相信了",
+            "submitted_at": 1791522273.9258358,
+            "asr_emitted_at": 1791522273.8889465,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "At this point the mother has become doubtful.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "At this point the mother has become doubtful.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [
+                  "The mother-doubt clause has no explicit reflexive object. Do not add herself or invent what she doubts. Preserve any unfinished clause as unfinished."
+                ],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "这个时候妈妈已经有点不相信了"
+              }
+            ],
+            "translate_ms": 360,
+            "translated_at": 1791522274.288384,
+            "speech": "8aef82f8bfb54a1f804988907154fef8"
+          }
+        ]
+      },
+      {
+        "seq": 23,
+        "source": "妈妈还是怀疑了但是由于我",
+        "translation": "Mother still doubted me because of me.",
+        "translation_status": "completed",
+        "translation_error": null,
+        "source_revision_warning": "",
+        "source_covered": true,
+        "speech_completed": true,
+        "first_play_minus_final_emit_seconds": 26.495319366455078,
+        "segments": [
+          {
+            "index": 0,
+            "source_start": 0,
+            "source_end": 12,
+            "source_text": "妈妈还是怀疑了但是由于我",
+            "submitted_at": 1791522275.9379656,
+            "asr_emitted_at": 1791522275.9087183,
+            "early": false,
+            "source_correction": false,
+            "translation_status": "completed",
+            "en": "Mother still doubted me because of me.",
+            "translation_audit": [
+              {
+                "attempt": 1,
+                "content": "Mother still doubted me because of me.",
+                "missing_numbers": [],
+                "repeated_numbers": [],
+                "added_large_numbers": [],
+                "values_changed_to_item_counts": [],
+                "loan_repayment_changed": false,
+                "explicit_role_issues": [],
+                "source_role_constraints": [],
+                "untranslated_chinese": false,
+                "finish_reason": "stop",
+                "repeated_context_translation": false,
+                "translation_source": "妈妈还是怀疑了但是由于我"
+              }
+            ],
+            "translate_ms": 341,
+            "translated_at": 1791522276.2831826,
+            "speech": "8c6fde882fc04f5b8ef475e0fff8e993"
+          }
+        ]
+      }
+    ],
+    "minimum_available_GiB": 4.288646697998047,
+    "native_frames": 6000,
+    "native_overruns": 0,
+    "final_speech_status": {
+      "unfinished_jobs": 0,
+      "pending_jobs": 0,
+      "storage_warning": null,
+      "warmup_error": null
+    }
+  },
+  "paired_parent_delay_deltas_seconds": {
+    "count": 23,
+    "median": 0.009464263916015625,
+    "max": 6.6128270626068115,
+    "min": -0.08345699310302734
+  }
+}

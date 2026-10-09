@@ -177,7 +177,7 @@ class DiskFifo:
     def put_nowait(self, item):
         with self.lock, self.database:
             self.database.execute('INSERT OR IGNORE INTO work(key,payload) VALUES (?,?)',
-                                  (item['record']['utterance_id'], json.dumps(item, ensure_ascii=False)))
+                                  (item.get('work_key', item['record']['utterance_id']), json.dumps(item, ensure_ascii=False)))
 
     def get(self, timeout=.1):
         deadline = time.monotonic()+timeout
