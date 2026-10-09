@@ -65,6 +65,9 @@ def main():
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
     parser.add_argument('--stable-clauses', action='store_true')
+    parser.add_argument('--boundary-model', type=Path)
+    parser.add_argument('--boundary-threshold', type=float, default=.5)
+    parser.add_argument('--clause-max-chars', type=int, default=24)
     args = parser.parse_args()
     if args.tts_provider == 'cuda' and args.tts_model is None:
         parser.error('CUDA replay requires --tts-model')
@@ -88,6 +91,9 @@ def main():
         command += ['--early-audio']
     if args.stable_clauses:
         command += ['--stable-clauses']
+    if args.boundary_model:
+        command += ['--boundary-model', str(args.boundary_model),
+                    '--boundary-threshold', str(args.boundary_threshold), '--clause-max-chars', str(args.clause_max_chars)]
     if args.tts_model:
         command += ['--model', str(args.tts_model)]
     if args.tts_pythonpath:
@@ -96,6 +102,7 @@ def main():
         command += ['--final-model', str(Path.home()/'models/sherpa-onnx/clone-test-downloads/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17')]
     save(output/'protocol.json', {'commit': args.commit, 'command': command, 'mode': args.mode,
         'source_sha256': digest(source), 'reference_sha256': digest(reference), 'translator_sha256': digest(translator),
+        'boundary_model_sha256': digest(args.boundary_model) if args.boundary_model else None,
         'tts_model_sha256': {p.name: digest(p) for p in args.tts_model.glob('*.onnx')} if args.tts_model else None,
         'source_note': 'Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.',
         'output_note': 'Paced ALSA null; no physical-speaker test; RVC disabled.',

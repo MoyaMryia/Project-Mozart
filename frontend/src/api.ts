@@ -71,6 +71,7 @@ export interface SubtitleEvent {
   speech_degraded?: boolean;
   speech_error?: string;
   source_revision_warning?: string;
+  boundary_classifier_warning?: string;
   ts: string;
 }
 

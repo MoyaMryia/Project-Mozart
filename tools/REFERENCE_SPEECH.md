@@ -64,6 +64,21 @@ The default remains disabled.
 The [experiment guide](../docs/SIMULTANEOUS.md) gives the conditions, source revision behavior, and rollback procedure.
 The option does not change playback speed.
 
+For the Chinese boundary classifier experiment, download the fixed model:
+
+```bash
+.venv/bin/python tools/fetch_boundary_model.py
+```
+
+Add `--boundary-model /absolute/path/to/nnsplit-zh.onnx` to the supervisor command.
+This option enables segment submission with the coverage policy.
+The model uses one CPU thread through ONNX Runtime.
+The Python environment needs `numpy` and `onnxruntime`.
+
+The default boundary threshold is `0.5`. The source length limit is 24 characters.
+The classifier can divide incomplete statements. The final recognition result submits the remaining source text.
+The [experiment guide](../docs/SIMULTANEOUS.md#小型句界分类器实验) gives the parameters, model source, and rollback procedure.
+
 In a different terminal, start the frontend:
 
 ```bash

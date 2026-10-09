@@ -9,6 +9,8 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-09 | [realtime-patches-20261008/BOUNDARY_CLASSIFIER.md](realtime-patches-20261008/BOUNDARY_CLASSIFIER.md) | 小型中文句界分类器；单次对照降低首播等待，仍有播放积压与质量限制 |
+| 2026-10-09 | [realtime-patches-20261008/SEMANTIC_GATE.md](realtime-patches-20261008/SEMANTIC_GATE.md) | 同声传译提交策略调研；0.8B 原文完整性判断短测未通过可用性检查 |
 | 2026-10-09 | [realtime-patches-20261008/STABLE_CLAUSES.md](realtime-patches-20261008/STABLE_CLAUSES.md) | 稳定从句提交实验；覆盖与连续性通过，当前规则没有降低首播等待 |
 | 2026-10-09 | [realtime-patches-20261008/EARLY_AUDIO.md](realtime-patches-20261008/EARLY_AUDIO.md) | 提前输出音频的固定文本对照与实时回放 |
 | 2026-10-08 | [repository-audit-20261008/RESULTS.md](repository-audit-20261008/RESULTS.md) | 代码审查、HTTP/资产探针、回归结果与文档整理 |
