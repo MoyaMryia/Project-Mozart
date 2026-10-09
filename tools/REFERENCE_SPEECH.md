@@ -119,6 +119,48 @@ The [continuity report](../reports/realtime-patches-20261008/CONTINUITY.md) comp
 Four threads reduced first-piece synthesis time in that test. The complete playback delay did not clearly decrease.
 Use `--tts-threads 4` for another test with CPU int8.
 
+### Early audio output
+
+Early audio needs an independent Pocket runtime with the project native patch.
+The patch decodes each group of 15 latent frames during generation and keeps the decoder state.
+It keeps the existing text pieces, five generation steps, seed, and decoder block size.
+The worker publishes each PCM block before the complete text piece returns.
+One raw ALSA playback process receives all blocks of a logical job in order.
+
+On the configured Jetson, build the independent CPU runtime:
+
+```bash
+.venv/bin/python tools/build_pocket_early_audio.py rvc-golden/early-audio-runtime
+```
+
+The build uses sherpa-onnx 1.13.6 and CPU ONNX Runtime 1.27.1.
+The script verifies the archive hashes and stores a runtime manifest.
+It does not install into the existing Python environment.
+The build needs CMake, Ninja, a C++ compiler, Python development headers, and access to GitHub.
+
+For early playback, add these supervisor options:
+
+```text
+--early-audio --tts-pythonpath /absolute/path/to/rvc-golden/early-audio-runtime/python
+```
+
+Keep CPU int8 and two speech threads for the initial comparison.
+Without the manifest, an early-audio request fails during worker startup.
+Without `--early-audio`, the service keeps complete-piece output.
+Download-only jobs also keep complete-piece output.
+
+Early output cannot use a peak value from samples that have not arrived.
+This mode uses unit gain and limits individual samples to the range [-0.98, 0.98].
+The result reports `limited_samples`. Nonfinite samples and peaks above 4 still fail.
+For samples within that range, this mode does not change the sample amplitude.
+Complete-piece output keeps its existing whole-piece gain calculation.
+
+An engine error can occur after playback starts. The service then reports the job as failed and stops the remaining output.
+It cannot withdraw audio that has reached the device.
+The restart rules still prevent automatic repetition of interrupted playback.
+For a physical device, block timestamps describe pipe delivery. They do not measure when the speaker produces sound.
+The null device keeps paced block timestamps for timing comparisons.
+
 ## Translation memory settings
 
 The supervisor limits the prompt-state cache to 128 MiB.
@@ -320,7 +362,8 @@ Numeric ranges count both endpoints.
 
 Each piece is a full WAV.
 Playback can start while later pieces synthesize.
-The engine does not produce a token audio stream.
+With early audio enabled, each text piece produces ordered audio blocks before complete synthesis.
+Otherwise, the engine returns the complete text piece before playback.
 A completed logical job has one downloadable WAV with the pieces in order.
 
 Played or live pieces have a 12-second generated duration limit.
@@ -359,7 +402,8 @@ A new profile is necessary for a different engine.
 
 The optional `--engine zipvoice --vocoder PATH` adapter accepts Chinese and English with an exact reference transcript.
 Its English quality has not passed the Qiqi evaluation.
-Neither engine claims native streaming playback.
+Early Pocket playback requires the independent runtime described above.
+ZipVoice keeps complete-piece output.
 
 ## Optional final ASR refinement
 

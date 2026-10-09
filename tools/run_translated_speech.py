@@ -67,6 +67,7 @@ def main():
     parser.add_argument('--tts-precision', choices=['int8', 'float32'], default='int8')
     parser.add_argument('--tts-pythonpath', type=Path, help='Independent sherpa package directory for the speech service')
     parser.add_argument('--tts-threads', type=int, default=2)
+    parser.add_argument('--early-audio', action='store_true')
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     parser.add_argument('--tts-provider-config', type=Path)
     parser.add_argument('--stt-model', type=Path, default=assets/'zipformer-zh-14M')
@@ -195,6 +196,8 @@ def main():
             '--threads', args.tts_threads, '--delivery-policy', args.delivery_policy]
         if args.tts_provider_config:
             speech_command += ['--provider-config', args.tts_provider_config]
+        if args.early_audio:
+            speech_command += ['--early-audio']
         speech_environment = os.environ.copy()
         if args.tts_pythonpath:
             speech_environment['PYTHONPATH'] = str(args.tts_pythonpath)+os.pathsep+speech_environment.get('PYTHONPATH', '')

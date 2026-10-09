@@ -11,7 +11,7 @@ import run_translated_speech as runner
 
 
 class RunnerDegradedTests(unittest.TestCase):
-    def run_stack(self, missing_optional=False, gpu=False, threads=2):
+    def run_stack(self, missing_optional=False, gpu=False, threads=2, early=False):
         capture_started, speech_ready = threading.Event(), threading.Event()
         launches, processes, commands = [], [], {}
         def popen(command, **kwargs):
@@ -58,6 +58,8 @@ class RunnerDegradedTests(unittest.TestCase):
                    '--tts-pythonpath', '/isolated/gpu', '--tts-provider-config', '/isolated/provider.conf'] if gpu else []
         if threads != 2:
             options += ['--tts-threads', str(threads)]
+        if early:
+            options += ['--early-audio']
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]+options), \
                 patch.object(runner, 'assert_ports_available'), \
@@ -77,6 +79,7 @@ class RunnerDegradedTests(unittest.TestCase):
         for process in processes:
             self.assertEqual(process.poll(), 0)
         speech_command = commands['speech'][0]
+        self.assertEqual('--early-audio' in speech_command, early)
         self.assertEqual(speech_command[speech_command.index('--threads')+1], str(threads))
         translator_command = commands['translation'][0]
         self.assertEqual(translator_command[translator_command.index('-t')+1], '2')
@@ -106,6 +109,9 @@ class RunnerDegradedTests(unittest.TestCase):
 
     def test_speech_threads_do_not_change_translation_threads(self):
         self.run_stack(threads=3)
+
+    def test_early_audio_reaches_only_the_speech_service(self):
+        self.run_stack(early=True)
 
     def test_invalid_speech_threads_fail_before_launch(self):
         with patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--tts-threads', '0']), \

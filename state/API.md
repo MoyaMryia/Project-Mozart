@@ -170,6 +170,11 @@ An interrupted process can resume stored requests with their original utterance 
 With the realtime policy, shutdown allows 20 seconds. Remaining translations then receive an explicit skipped status.
 
 Reference speech uses translated text and does not use the Zero-Shot VC mode enum.
+With the independent early-audio runtime, speech status reports `streaming_playback: true`.
+For early playback jobs, `chunks` contains audio blocks and each block identifies its `text_chunk_index`.
+The `chunk_count` grows until `generation_done` becomes true. The `text_chunk_count` identifies the original text-piece count.
+The `text_part_results` field keeps complete synthesis results for each text piece.
+Physical playback timestamps describe pipe delivery. Null playback timestamps use the audio duration.
 A missing speech service returns HTTP 503.
 The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes, disk queues, and delivery policies.
 

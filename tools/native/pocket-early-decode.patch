@@ -1,0 +1,62 @@
+--- a/sherpa-onnx/csrc/offline-tts-pocket-impl.h
++++ b/sherpa-onnx/csrc/offline-tts-pocket-impl.h
+@@ -360,6 +360,29 @@
+     std::vector<float> latent_list;
+     int32_t eos_step = -1;
+     int32_t frame_size = -1;
++    const bool early_decode = gen_config.GetExtraInt("early_decode", 0) != 0;
++    const int32_t early_chunk_size = gen_config.GetExtraInt("chunk_size", 15);
++    if (early_chunk_size <= 0) {
++      SHERPA_ONNX_LOGE("chunk_size must be positive");
++      return {};
++    }
++    auto early_decoder_state = model_->GetMimiDecoderInitState();
++    std::vector<float> early_audio;
++    int32_t decoded_frames = 0;
++    auto decode_early = [&](int32_t count, float progress) {
++      std::array<int64_t, 3> shape = {1, count, frame_size};
++      float *data = latent_list.data() + decoded_frames * frame_size;
++      Ort::Value tensor = Ort::Value::CreateTensor(
++          memory_info, data, count * frame_size, shape.data(), shape.size());
++      Ort::Value out = RunMimiDecoder(std::move(tensor), early_decoder_state);
++      int64_t n = out.GetTensorTypeAndShapeInfo().GetShape().back();
++      if (callback) {
++        should_continue = callback(out.GetTensorData<float>(), n, progress);
++      }
++      early_audio.insert(early_audio.end(), out.GetTensorData<float>(),
++                         out.GetTensorData<float>() + n);
++      decoded_frames += count;
++    };
+     for (int32_t step = 0; step < max_frames; ++step) {
+       Ort::Value cur_tensor =
+           Ort::Value::CreateTensor(memory_info, cur.data(), cur.size(),
+@@ -391,9 +414,29 @@
+ 
+       latent_list.insert(latent_list.end(), latent.GetTensorData<float>(),
+                          latent.GetTensorData<float>() + n);
++      if (early_decode &&
++          static_cast<int32_t>(latent_list.size() / frame_size) - decoded_frames >=
++              early_chunk_size) {
++        // The final frame count is unknown until EOS or the frame limit.
++        decode_early(early_chunk_size, 0.0f);
++        if (!should_continue) {
++          break;
++        }
++      }
+     }
+ 
+     lm_main_state.values.clear();
++
++    if (early_decode) {
++      const int32_t remaining = latent_list.size() / frame_size - decoded_frames;
++      if (remaining > 0 && should_continue) {
++        decode_early(remaining, 1.0f);
++      }
++      GeneratedAudio ans;
++      ans.sample_rate = SampleRate();
++      ans.samples = std::move(early_audio);
++      return ans;
++    }
+ 
+     auto decoder_state = model_->GetMimiDecoderInitState();
+ 
