@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--threads', type=int, default=2)
     parser.add_argument('--profile', action='store_true')
     parser.add_argument('--repeats', type=int, default=2)
+    parser.add_argument('--early-audio', action='store_true')
     args = parser.parse_args()
     if args.threads < 1:
         parser.error('--threads must be positive')
@@ -44,6 +45,8 @@ def main():
     command = [sys.executable, str(worker), '--engine', 'pocket',
                '--model', str(args.model), '--threads', str(args.threads), '--provider', args.provider,
                '--precision', args.precision]
+    if args.early_audio:
+        command += ['--early-audio']
     if args.profile:
         config = args.output/'provider.conf'
         config.write_text('LogSeverityLevel=0\nProfilingFilePrefix='+str((args.output/'ort').resolve())+'\n')
@@ -69,7 +72,7 @@ def main():
         with (args.output/'worker.log').open('w') as log:
             started = time.monotonic()
             process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                       stderr=log, env=environment, cwd=args.root)
+                                       stderr=log, env=environment, cwd=args.root, bufsize=0)
             report['runtime'] = read_result()
             report['startup_seconds'] = time.monotonic()-started
             save()
@@ -77,14 +80,20 @@ def main():
                 for index, text in enumerate(json.loads(args.texts.read_text())):
                     output = args.output/f'{repeat:02d}-{index:02d}.wav'
                     request = {'text': text, 'reference': str(args.reference), 'output': str(output),
-                               'live': True, 'chunk_count': 2,
+                               'live': True, 'chunk_count': 2, 'early_audio': args.early_audio,
                                'max_duration_seconds': min(12, max(4, estimated_audio_seconds(text, 'en')*2.5+2))}
                     started = time.monotonic()
                     process.stdin.write(json.dumps(request).encode()+b'\n')
                     process.stdin.flush()
                     result = read_result()
+                    blocks = []
+                    while result.get('type') == 'audio':
+                        blocks.append({**result, 'observed_seconds': time.monotonic()-started})
+                        result = read_result()
                     record = {'repeat': repeat, 'index': index, 'request': request,
-                              'roundtrip_seconds': time.monotonic()-started, 'result': result}
+                              'roundtrip_seconds': time.monotonic()-started, 'result': result,
+                              'audio_blocks': blocks,
+                              'first_audio_seconds': blocks[0]['observed_seconds'] if blocks else time.monotonic()-started}
                     if output.exists():
                         pcm, rate = sf.read(output, dtype='float32')
                         record['audio'] = {'sha256': digest(output), 'sample_rate': rate,

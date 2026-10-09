@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from clone_worker import configure_pocket, pocket_input_text
 import clone_worker
 import re
+import tempfile
+import hashlib
 
 
 class NativeOptions:
@@ -27,6 +29,48 @@ class NativeOptions:
 
 
 class WorkerOptionsTests(unittest.TestCase):
+    def test_early_runtime_manifest_rejects_a_changed_extension(self):
+        with tempfile.TemporaryDirectory() as directory:
+            package = Path(directory)
+            (package/'lib').mkdir()
+            extension = package/'lib/_sherpa_onnx-test.so'
+            extension.write_bytes(b'first build')
+            manifest = {'protocol': 1, 'extension_sha256': hashlib.sha256(extension.read_bytes()).hexdigest()}
+            (package/'mozart_early_decode.json').write_text(json.dumps(manifest))
+            module = SimpleNamespace(__file__=str(package/'__init__.py'))
+            self.assertEqual(clone_worker.early_runtime(module), manifest)
+            extension.write_bytes(b'other build')
+            with self.assertRaisesRegex(RuntimeError, 'build manifest'):
+                clone_worker.early_runtime(module)
+
+    def test_early_blocks_keep_order_and_limit_samples_before_publication(self):
+        import numpy as np
+        writes = []
+        def write(path, pcm, *args, **kwargs):
+            writes.append(pcm.copy())
+            path.write_bytes(b'encoded PCM')
+        with tempfile.TemporaryDirectory() as directory, patch.object(sys, 'stdout', io.StringIO()) as output:
+            blocks = clone_worker.AudioBlocks(Path(directory)/'part.tmp', 24000, 1,
+                __import__('time').monotonic(), np, SimpleNamespace(write=write))
+            self.assertTrue(blocks.emit([.1, -.2]))
+            self.assertTrue(blocks.emit([1.5, -1.5]))
+            self.assertFalse(blocks.emit([float('nan')]))
+            events = [json.loads(line) for line in output.getvalue().splitlines()]
+            self.assertEqual([row['block_index'] for row in events], [0, 1])
+            self.assertEqual(blocks.limited, 2)
+            np.testing.assert_allclose(writes[0], [.1, -.2])
+            np.testing.assert_allclose(writes[1], [.98, -.98])
+            self.assertIn('nonfinite', blocks.error)
+
+    def test_early_duration_limit_keeps_an_explicit_error(self):
+        import numpy as np
+        with tempfile.TemporaryDirectory() as directory, patch.object(sys, 'stdout', io.StringIO()) as output:
+            blocks = clone_worker.AudioBlocks(Path(directory)/'part.tmp', 24000, .01,
+                0, np, SimpleNamespace(write=Mock()))
+            self.assertFalse(blocks.emit(np.zeros(241)))
+            self.assertIn('duration limit', blocks.error)
+            self.assertEqual(output.getvalue(), '')
+
     def native_stub(self):
         return SimpleNamespace(__version__='test', OfflineTts=Mock(), OfflineTtsConfig=Mock(),
                                OfflineTtsModelConfig=Mock(), OfflineTtsPocketModelConfig=Mock())

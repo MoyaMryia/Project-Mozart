@@ -106,7 +106,7 @@ class SpeechService:
                 'resident_jobs': len(self.jobs.cache) if coverage else len(self.jobs),
                 'warmup_error':self.warmup_error,
                 'languages': ['en'] if self.engine == 'pocket' else ['en', 'zh'],
-                'reference_tts': True, 'streaming_playback': False,
+                'reference_tts': True, 'streaming_playback': bool(self.runtime and self.runtime.get('audio_stream_protocol') == 1),
                 'chunked_playback': True, 'chunk_target_words': 12,
                 'live_audio_budget_seconds': self.live_audio_budget_seconds,
                 'audio_backlog_seconds': self.audio_backlog_seconds(),
@@ -131,10 +131,12 @@ class SpeechService:
     def reset_waiting(self, job):
         for name in ('error', 'finished_at', 'started_at', 'queue_seconds', 'admitted_at',
                      'audio_ready_at', 'generation_finished_at', 'duration_seconds',
-                     'synthesis_seconds', 'sample_rate', 'first_callback_seconds', 'expired_stage'):
+                     'synthesis_seconds', 'sample_rate', 'first_callback_seconds',
+                     'first_text_part_synthesis_seconds', 'expired_stage'):
             job.pop(name, None)
         job.update(status='queued', chunks=[], generated_chunks=0, played_chunks=0,
-                   generation_done=False, played_duration_seconds=0, admission_pending=False)
+                   generation_done=False, played_duration_seconds=0, admission_pending=False,
+                   text_part_results=[])
         self.save_job(job)
         self.pending.append(job['id'])
 
@@ -420,6 +422,11 @@ class SpeechService:
                 temporary = output.with_suffix('.tmp')
                 try:
                     self.ensure_child()
+                    job['early_audio'] = self.runtime.get('audio_stream_protocol') == 1 and job['playback']
+                    job['text_part_results'] = []
+                    if job['early_audio']:
+                        job['text_chunk_count'] = len(job['chunk_texts'])
+                        job['chunk_count'] = 0
                     for index, text in enumerate(job['chunk_texts']):
                         with self.lock:
                             # Backpressure before computing, rather than discarding
@@ -443,40 +450,58 @@ class SpeechService:
                         try:
                             self.child.stdin.write(json.dumps(request).encode()+b'\n')
                             self.child.stdin.flush()
-                            result = self.read_child(timeout=20 if job['live'] and self.delivery_policy != 'coverage' else None)
+                            timeout = min(self.timeout, 20) if job['live'] and self.delivery_policy != 'coverage' else self.timeout
+                            deadline = time.monotonic()+timeout
+                            blocks = 0
+                            result = self.read_child(timeout=deadline-time.monotonic())
+                            while result.get('type') == 'audio':
+                                filename = f"{job['id']}-part-{index:03d}-block-{blocks:05d}.wav"
+                                if not job['early_audio'] or result.get('block_index') != blocks or result.get('filename') != filename:
+                                    raise RuntimeError('Early audio block order or filename is invalid')
+                                block_path = self.root/'results'/filename
+                                with wave.open(str(block_path), 'rb') as source:
+                                    rate = source.getframerate()
+                                    duration = source.getnframes()/rate
+                                    if (source.getnchannels(), source.getsampwidth(), rate) != (1, 2, result['sample_rate']):
+                                        raise RuntimeError('Early audio WAV format is invalid')
+                                if abs(duration-result['duration_seconds']) > 1/rate:
+                                    raise RuntimeError('Early audio WAV duration is invalid')
+                                if duration <= 0 or duration > limit:
+                                    raise RuntimeError('Early audio block duration exceeds its limit')
+                                chunk = {**result, 'job_id': job['id'], 'index': len(job['chunks']),
+                                    'text_chunk_index': index, 'text': text, 'streamed': True,
+                                    'filename': filename, 'status': 'ready', 'audio_ready_at': time.time()}
+                                if not self.queue_audio(job, chunk):
+                                    break
+                                blocks += 1
+                                result = self.read_child(timeout=deadline-time.monotonic())
                             if 'error' in result:
                                 raise RuntimeError(result['error'])
-                            with self.lock:
-                                # Estimates are imperfect. Hold the completed piece
-                                # until its actual duration fits; never drop it just
-                                # because playback is temporarily ahead of synthesis.
-                                while (job['playback'] and self.buffered_audio_seconds()+
-                                       result['duration_seconds'] > self.playback_limit_seconds):
-                                    if job['status'] in TERMINAL or self.closed or self.expire_before_first_audio(job):
+                            if job['early_audio']:
+                                with self.lock:
+                                    if job['status'] in TERMINAL or self.closed:
                                         break
-                                    self.lock.wait(timeout=.1)
+                                    if result.get('type') != 'complete' or result.get('stream_blocks') != blocks or not blocks:
+                                        raise RuntimeError('Early audio completion does not match the received blocks')
+                                    partial.replace(path)
+                                    job['text_part_results'].append({**result, 'text_chunk_index': index})
+                                    job['synthesis_seconds'] = sum(p['synthesis_seconds'] for p in job['text_part_results'])
+                                    if index == 0:
+                                        job['first_text_part_synthesis_seconds'] = result['synthesis_seconds']
+                                        job['first_callback_seconds'] = result.get('first_callback_seconds')
+                                    self.save_job(job)
+                                continue
+                            with self.lock:
                                 if job['status'] in TERMINAL or self.closed:
-                                    break
-                                if self.expire_before_first_audio(job):
                                     break
                                 partial.replace(path)
                                 chunk = {**result, 'job_id': job['id'], 'index': index,
                                     'text': text, 'filename': path.name, 'status': 'ready',
                                     'audio_ready_at': time.time()}
-                                job['chunks'].append(chunk)
-                                job['generated_chunks'] += 1
-                                job['duration_seconds'] = sum(p['duration_seconds'] for p in job['chunks'])
-                                job['synthesis_seconds'] = sum(p.get('synthesis_seconds', 0) for p in job['chunks'])
-                                job['sample_rate'] = result['sample_rate']
-                                job.setdefault('audio_ready_at', chunk['audio_ready_at'])
                                 if index == 0:
                                     job['first_callback_seconds'] = result.get('first_callback_seconds')
-                                if job['playback']:
-                                    self.play_pending.append(chunk)
-                                    if 'playback_started_at' not in job:
-                                        job['status'] = 'ready'
-                                    self.lock.notify_all()
-                                self.save_job(job)
+                            if not self.queue_audio(job, chunk):
+                                break
                         finally:
                             partial.unlink(missing_ok=True)
                     with self.lock:
@@ -502,7 +527,7 @@ class SpeechService:
                         temporary.replace(output)
                         job['generation_done'] = True
                         job['generation_finished_at'] = time.time()
-                        if not job['playback'] or job['played_chunks'] == job['chunk_count']:
+                        if not job['playback'] or (not job['early_audio'] and job['played_chunks'] == job['chunk_count']):
                             self.complete(job)
                 except Exception as error:
                     self.kill(self.child)
@@ -521,6 +546,32 @@ class SpeechService:
                         self.active = None
                         self.prune()
                         self.lock.notify_all()
+
+    def queue_audio(self, job, chunk):
+        with self.lock:
+            while (job['playback'] and self.buffered_audio_seconds()+
+                   chunk['duration_seconds'] > self.playback_limit_seconds):
+                if job['status'] in TERMINAL or self.closed or self.expire_before_first_audio(job):
+                    return False
+                self.lock.wait(timeout=.1)
+            if job['status'] in TERMINAL or self.closed or self.expire_before_first_audio(job):
+                return False
+            job['chunks'].append(chunk)
+            job['generated_chunks'] += 1
+            if chunk.get('streamed'):
+                job['chunk_count'] = len(job['chunks'])
+            job['duration_seconds'] = sum(p['duration_seconds'] for p in job['chunks'])
+            if not chunk.get('streamed'):
+                job['synthesis_seconds'] = sum(p.get('synthesis_seconds', 0) for p in job['chunks'])
+            job['sample_rate'] = chunk['sample_rate']
+            job.setdefault('audio_ready_at', chunk['audio_ready_at'])
+            if job['playback']:
+                self.play_pending.append(chunk)
+                if 'playback_started_at' not in job:
+                    job['status'] = 'ready'
+            self.save_job(job)
+            self.lock.notify_all()
+            return True
 
     def expire_before_first_audio(self, job):
         if self.delivery_policy == 'coverage':
@@ -544,6 +595,98 @@ class SpeechService:
         voice['status'] = 'preview_available'
         atomic_json(self.root/'voices'/f"{voice['id']}.json", voice)
 
+    def play_stream(self, job, first, log):
+        with self.lock:
+            if self.closed or job['status'] in TERMINAL:
+                return
+            self.active_play = job['id']
+        try:
+            with self.lock:
+                if self.closed or job['status'] in TERMINAL:
+                    return
+                self.player = subprocess.Popen(['aplay', '-q', '-D', self.device,
+                    '-t', 'raw', '-f', 'S16_LE', '-r', str(first['sample_rate']), '-c', '1'],
+                    stdin=subprocess.PIPE, stderr=log, bufsize=0)
+                os.set_blocking(self.player.stdin.fileno(), False)
+            chunk = first
+            while True:
+                with self.lock:
+                    if self.closed or job['status'] in TERMINAL:
+                        return
+                    self.active_play_piece = chunk
+                    chunk.update(status='playing', playback_started_at=time.time(),
+                        playback_timing='null_paced' if self.device == 'null' else 'pipe_delivery')
+                    job['status'] = 'playing'
+                    job.setdefault('playback_started_at', chunk['playback_started_at'])
+                    self.save_job(job)
+                with wave.open(str(self.root/'results'/chunk['filename']), 'rb') as source:
+                    if (source.getnchannels(), source.getsampwidth(), source.getframerate()) != (1, 2, first['sample_rate']):
+                        raise RuntimeError('Early audio playback formats differ')
+                    pcm = memoryview(source.readframes(source.getnframes()))
+                deadline = time.monotonic()+chunk['duration_seconds']+10
+                while pcm:
+                    if self.closed or job['status'] in TERMINAL:
+                        return
+                    if self.player.poll() is not None:
+                        raise RuntimeError('Early audio playback process exited before the final block')
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError('Early audio playback pipe timed out')
+                    if select.select([], [self.player.stdin], [], .1)[1]:
+                        try:
+                            count = os.write(self.player.stdin.fileno(), pcm)
+                            pcm = pcm[count:]
+                        except BlockingIOError:
+                            pass
+                if self.device == 'null':
+                    remaining = chunk['duration_seconds']-(time.time()-chunk['playback_started_at'])
+                    if remaining > 0:
+                        with self.lock:
+                            self.lock.wait_for(lambda: self.closed or job['status'] in TERMINAL, timeout=remaining)
+                with self.lock:
+                    if self.closed or job['status'] in TERMINAL:
+                        return
+                    chunk.update(status='completed', finished_at=time.time())
+                    job['played_chunks'] += 1
+                    job['played_duration_seconds'] += chunk['duration_seconds']
+                    self.active_play_piece = None
+                    self.save_job(job)
+                    self.lock.notify_all()
+                    self.lock.wait_for(lambda: self.closed or job['status'] in TERMINAL or
+                        self.play_pending or job['generation_done'])
+                    if self.closed or job['status'] in TERMINAL:
+                        return
+                    if self.play_pending and self.play_pending[0]['job_id'] == job['id']:
+                        chunk = self.play_pending.popleft()
+                    elif job['generation_done']:
+                        break
+                    else:
+                        raise RuntimeError('Early audio playback order changed before completion')
+            self.player.stdin.close()
+            code = self.player.wait(timeout=self.playback_limit_seconds+10)
+            if code:
+                raise RuntimeError(f'Early audio playback failed (aplay exit {code})')
+            with self.lock:
+                if not self.closed and job['status'] not in TERMINAL:
+                    self.complete(job)
+        except Exception as error:
+            with self.lock:
+                if job['status'] not in TERMINAL:
+                    job.update(status='failed', error=str(error))
+                    self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job['id'])
+                    if getattr(self, 'active', None) == job['id']:
+                        self.kill(self.child)
+        finally:
+            self.kill(self.player)
+            if self.player and self.player.stdin and not self.player.stdin.closed:
+                self.player.stdin.close()
+            with self.lock:
+                if job['status'] in TERMINAL:
+                    job['finished_at'] = time.time()
+                self.save_job(job)
+                self.active_play = self.active_play_piece = None
+                self.prune()
+                self.lock.notify_all()
+
     def play_loop(self):
         with (self.root/'playback.log').open('a') as log:
             while True:
@@ -554,6 +697,12 @@ class SpeechService:
                     chunk = self.play_pending.popleft()
                     job = self.jobs[chunk['job_id']]
                     if job['status'] in TERMINAL or self.expire_before_first_audio(job):
+                        continue
+                if chunk.get('streamed'):
+                    self.play_stream(job, chunk, log)
+                    continue
+                with self.lock:
+                    if self.closed or job['status'] in TERMINAL:
                         continue
                     self.active_play = job['id']
                     self.active_play_piece = chunk
@@ -732,6 +881,7 @@ def main():
     parser.add_argument('--data-dir', type=Path, default=Path.home()/'.local/share/mozart/speech')
     parser.add_argument('--playback-device', default='default')
     parser.add_argument('--preload',action='store_true',help='Initialize the worker before admitting live input')
+    parser.add_argument('--early-audio', action='store_true', help='Use the independent early Pocket audio runtime')
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     args = parser.parse_args()
     command = [sys.executable, str(Path(__file__).with_name('clone_worker.py')),
@@ -739,6 +889,8 @@ def main():
         '--provider', args.provider, '--precision', args.precision]
     if args.provider_config:
         command += ['--provider-config', str(args.provider_config)]
+    if args.early_audio:
+        command += ['--early-audio']
     service = SpeechService(args.data_dir, command, args.engine, args.playback_device,
                             preload=args.preload, delivery_policy=args.delivery_policy)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(service))
