@@ -1,0 +1,2086 @@
+{
+  "date": "2026-10-09",
+  "application_commit": "91100e4",
+  "fixed": {
+    "variants": {
+      "installed": {
+        "runtime": {
+          "ready": true,
+          "runtime": "1.13.6",
+          "engine": "pocket",
+          "provider_requested": "cpu",
+          "precision": "int8",
+          "audio_stream_protocol": 0,
+          "early_decode_runtime": null,
+          "onnxruntime_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+          "onnxruntime_loader_library": "/home/moyamryia/Mozart/.venv/lib/python3.12/site-packages/sherpa_onnx/lib/libonnxruntime.so",
+          "onnxruntime_version": "1.27.1",
+          "available_providers": [
+            "CPUExecutionProvider"
+          ]
+        },
+        "submitted": 16,
+        "provenance": {
+          "command": [
+            "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+            "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+            "--engine",
+            "pocket",
+            "--model",
+            "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+            "--threads",
+            "2",
+            "--provider",
+            "cpu",
+            "--precision",
+            "int8"
+          ],
+          "worker_sha256": "c11642b94503738bf41b31a00e41a78f89de62eaec6195209b0dfb776feee081",
+          "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+          "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+          "model_sha256": {
+            "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+            "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+            "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+            "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+            "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e"
+          },
+          "profile": false
+        },
+        "completed": 16,
+        "errors": [],
+        "exit_code": 0,
+        "startup_seconds": 1.3025103179970756,
+        "warm_first_available_seconds": {
+          "count": 8,
+          "median": 1.7540046580033959,
+          "min": 0.8198267589978059,
+          "max": 2.4630527059998713
+        },
+        "warm_full_result_seconds": {
+          "count": 8,
+          "median": 1.754003954003565,
+          "min": 0.8198259589989902,
+          "max": 2.4630516179968254
+        },
+        "warm_rtf": {
+          "count": 8,
+          "median": 0.7305088726235205,
+          "min": 0.7157184683142818,
+          "max": 0.7875098999997695
+        },
+        "limited_samples": 0,
+        "binary_provenance": {
+          "observed_via": "ssh jetson-wg",
+          "observed_date": "2026-10-09",
+          "git_sha1": "1cb484af",
+          "git_date": "Tue Aug 18 05:59:39 2026",
+          "extension_sha256": "ad224822feebc0fed2f104fbcbef155a1397c87bdec01236475cba70cef63a4a",
+          "onnxruntime_sha256": "d860f5968f5a1ed63533e9ed198aa747ca9fe289028129877f428556089f6874"
+        }
+      },
+      "patched": {
+        "runtime": {
+          "ready": true,
+          "runtime": "1.13.6",
+          "engine": "pocket",
+          "provider_requested": "cpu",
+          "precision": "int8",
+          "audio_stream_protocol": 0,
+          "early_decode_runtime": null,
+          "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_version": "1.27.1",
+          "available_providers": [
+            "CPUExecutionProvider"
+          ]
+        },
+        "submitted": 16,
+        "provenance": {
+          "command": [
+            "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+            "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+            "--engine",
+            "pocket",
+            "--model",
+            "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+            "--threads",
+            "2",
+            "--provider",
+            "cpu",
+            "--precision",
+            "int8"
+          ],
+          "worker_sha256": "c11642b94503738bf41b31a00e41a78f89de62eaec6195209b0dfb776feee081",
+          "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+          "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+          "model_sha256": {
+            "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+            "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+            "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+            "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+            "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e"
+          },
+          "profile": false
+        },
+        "completed": 16,
+        "errors": [],
+        "exit_code": 0,
+        "startup_seconds": 1.302096994004387,
+        "warm_first_available_seconds": {
+          "count": 8,
+          "median": 1.7424923349972232,
+          "min": 0.8142348090041196,
+          "max": 2.446515671996167
+        },
+        "warm_full_result_seconds": {
+          "count": 8,
+          "median": 1.7424913435024791,
+          "min": 0.8142335610027658,
+          "max": 2.4465145520007354
+        },
+        "warm_rtf": {
+          "count": 8,
+          "median": 0.7258168137430323,
+          "min": 0.7109478165698102,
+          "max": 0.7821282201943037
+        },
+        "limited_samples": 0
+      },
+      "early": {
+        "runtime": {
+          "ready": true,
+          "runtime": "1.13.6",
+          "engine": "pocket",
+          "provider_requested": "cpu",
+          "precision": "int8",
+          "audio_stream_protocol": 1,
+          "early_decode_runtime": {
+            "protocol": 1,
+            "sherpa_version": "1.13.6",
+            "source_sha256": "78f5d10f957d2de1867a1e08395e9ec2ec388911c853dd141887396667f3ff34",
+            "patch_sha256": "5f6ea76bd16b0ef2953987e6b907857071790f7a548750f312bec8def0fdd414",
+            "header_sha256": "7593017c702926b31ab16c3aa21d366d1164fe713d992fe695720bf011da2cd4",
+            "extension_sha256": "0228afe97aa0dbf89c9432315fa5501202365d725615c3bd250f6ddd9fad784f",
+            "onnxruntime_sha256": "d860f5968f5a1ed63533e9ed198aa747ca9fe289028129877f428556089f6874",
+            "pythonpath": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python"
+          },
+          "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_version": "1.27.1",
+          "available_providers": [
+            "CPUExecutionProvider"
+          ]
+        },
+        "submitted": 16,
+        "provenance": {
+          "command": [
+            "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+            "/home/moyamryia/mozart-realtime-patches-20261008/tools/clone_worker.py",
+            "--engine",
+            "pocket",
+            "--model",
+            "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+            "--threads",
+            "2",
+            "--provider",
+            "cpu",
+            "--precision",
+            "int8",
+            "--early-audio"
+          ],
+          "worker_sha256": "c11642b94503738bf41b31a00e41a78f89de62eaec6195209b0dfb776feee081",
+          "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+          "texts_sha256": "3e65834aaaec2fbaa0bd7aa39f60f70403e48e2ff5b762d7010b259b8ef68add",
+          "model_sha256": {
+            "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+            "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+            "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+            "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1",
+            "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e"
+          },
+          "profile": false
+        },
+        "completed": 16,
+        "errors": [],
+        "exit_code": 0,
+        "startup_seconds": 1.293683386000339,
+        "warm_first_available_seconds": {
+          "count": 8,
+          "median": 0.9131794499990065,
+          "min": 0.8226938090010663,
+          "max": 0.9274853949973476
+        },
+        "warm_full_result_seconds": {
+          "count": 8,
+          "median": 1.7772006724990206,
+          "min": 0.8265295879973564,
+          "max": 2.4917854049999733
+        },
+        "warm_rtf": {
+          "count": 8,
+          "median": 0.7406217400034696,
+          "min": 0.724201590405438,
+          "max": 0.794301797108906
+        },
+        "limited_samples": 0
+      }
+    },
+    "comparisons": [
+      {
+        "name": "00-00.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            67200,
+            67200
+          ],
+          "pcm_sha256": [
+            "bbbde2f30e8f841c265269a89f9287a79060cd298bd8e577f50988bb51a4cf51",
+            "017089fea41c63d7059a66c862257637a2ed551460ab568f0835886aafc1b6df"
+          ],
+          "max_absolute_error": 0.7877197265625,
+          "mean_absolute_error": 0.025414406004406156,
+          "cosine_similarity": 0.8168350672503166,
+          "rms_ratio": 0.9899263299092639
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            67200,
+            67200
+          ],
+          "pcm_sha256": [
+            "017089fea41c63d7059a66c862257637a2ed551460ab568f0835886aafc1b6df",
+            "017089fea41c63d7059a66c862257637a2ed551460ab568f0835886aafc1b6df"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 1.1392328729998553,
+        "full_result_seconds": 2.290545722004026
+      },
+      {
+        "name": "00-01.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            51840,
+            51840
+          ],
+          "pcm_sha256": [
+            "60c224962be262ba3eaf81b59e781a353a1f4198bd6f4fedaa2c92f47c882522",
+            "773259ea6e4d3db9e71abff52c6f3ac5f4ec4aeb33847c2a755370b17da095ea"
+          ],
+          "max_absolute_error": 0.2181396484375,
+          "mean_absolute_error": 0.006587317549152139,
+          "cosine_similarity": 0.9901552732872351,
+          "rms_ratio": 0.9997247986914348
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            51840,
+            51840
+          ],
+          "pcm_sha256": [
+            "773259ea6e4d3db9e71abff52c6f3ac5f4ec4aeb33847c2a755370b17da095ea",
+            "773259ea6e4d3db9e71abff52c6f3ac5f4ec4aeb33847c2a755370b17da095ea"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 0.9999999999999999,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 2,
+        "first_available_seconds": 0.9101741450067493,
+        "full_result_seconds": 1.6080155670060776
+      },
+      {
+        "name": "00-02.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            76800,
+            76800
+          ],
+          "pcm_sha256": [
+            "6c40adb914fe5d762cae2c2eeca0ec013857b3f0071cd268613b5e67a10aacfb",
+            "2862e8c5b4d4c457fbbb529c7a968ce2e5571e1ca169d0d657fb8bc1cd129b67"
+          ],
+          "max_absolute_error": 0.088043212890625,
+          "mean_absolute_error": 0.003007808526357015,
+          "cosine_similarity": 0.9979889740553278,
+          "rms_ratio": 0.9997583203070461
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            76800,
+            76800
+          ],
+          "pcm_sha256": [
+            "2862e8c5b4d4c457fbbb529c7a968ce2e5571e1ca169d0d657fb8bc1cd129b67",
+            "2862e8c5b4d4c457fbbb529c7a968ce2e5571e1ca169d0d657fb8bc1cd129b67"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 0.9204313329973957,
+        "full_result_seconds": 2.3380237270030193
+      },
+      {
+        "name": "00-03.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            28800,
+            28800
+          ],
+          "pcm_sha256": [
+            "ba42d36bd6aae12b717619b3bacb89d27848e980076102b6da79d3cc0966ccc1",
+            "239b5216436841e634e5765523d67530588827ca24c8166a495ff3dd1eed2c9d"
+          ],
+          "max_absolute_error": 0.0396728515625,
+          "mean_absolute_error": 0.001196348402235243,
+          "cosine_similarity": 0.9990284775810581,
+          "rms_ratio": 1.0015619632078356
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            28800,
+            28800
+          ],
+          "pcm_sha256": [
+            "239b5216436841e634e5765523d67530588827ca24c8166a495ff3dd1eed2c9d",
+            "239b5216436841e634e5765523d67530588827ca24c8166a495ff3dd1eed2c9d"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0000000000000002,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 1,
+        "first_available_seconds": 0.9012863789976109,
+        "full_result_seconds": 0.9389522950004903
+      },
+      {
+        "name": "00-04.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            82560,
+            82560
+          ],
+          "pcm_sha256": [
+            "1541930d96b514a060fbe445bf0a9480d1a2e7e9235b86758eaaaaefdb9cffcd",
+            "22f70ea69cda42350b11c26ff63c0073f391931e2f50a84acfdd8805ebd86655"
+          ],
+          "max_absolute_error": 0.2410888671875,
+          "mean_absolute_error": 0.0037776983985605165,
+          "cosine_similarity": 0.9916329505307057,
+          "rms_ratio": 0.9981386589661854
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            82560,
+            82560
+          ],
+          "pcm_sha256": [
+            "22f70ea69cda42350b11c26ff63c0073f391931e2f50a84acfdd8805ebd86655",
+            "22f70ea69cda42350b11c26ff63c0073f391931e2f50a84acfdd8805ebd86655"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 0.9148748939987854,
+        "full_result_seconds": 2.4896620159997838
+      },
+      {
+        "name": "00-05.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            63360,
+            63360
+          ],
+          "pcm_sha256": [
+            "4801e2912a761cbcc28d2921ebe1abe4a9d9d06eb234522f63410b1df31b0c48",
+            "e8e0e1494cb32f39c0c2545ba8024345cbe5d398f5a1f74678bc422fecd4d71d"
+          ],
+          "max_absolute_error": 0.2410888671875,
+          "mean_absolute_error": 0.005014014966560133,
+          "cosine_similarity": 0.9919191166474121,
+          "rms_ratio": 1.0026678798436535
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            63360,
+            63360
+          ],
+          "pcm_sha256": [
+            "e8e0e1494cb32f39c0c2545ba8024345cbe5d398f5a1f74678bc422fecd4d71d",
+            "e8e0e1494cb32f39c0c2545ba8024345cbe5d398f5a1f74678bc422fecd4d71d"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 0.9168793789940537,
+        "full_result_seconds": 1.951207597994653
+      },
+      {
+        "name": "00-06.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            24960,
+            24960
+          ],
+          "pcm_sha256": [
+            "7f36a370a243b4546d14ba8946909537382ab6e9d19934b4e18b158015321002",
+            "17855999bb09d5a213c524cc6b0c4738b5cbab89a285782679c0946b43e68933"
+          ],
+          "max_absolute_error": 3.0517578125e-05,
+          "mean_absolute_error": 9.781275040064103e-09,
+          "cosine_similarity": 0.9999999999847174,
+          "rms_ratio": 0.9999999626515319
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            24960,
+            24960
+          ],
+          "pcm_sha256": [
+            "17855999bb09d5a213c524cc6b0c4738b5cbab89a285782679c0946b43e68933",
+            "17855999bb09d5a213c524cc6b0c4738b5cbab89a285782679c0946b43e68933"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 1,
+        "first_available_seconds": 0.825164288005908,
+        "full_result_seconds": 0.8289399340064847
+      },
+      {
+        "name": "00-07.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            32640,
+            32640
+          ],
+          "pcm_sha256": [
+            "94cd96a28ee99e7c14af40580723cb21930015500fe03773ee3c47fe2f77d623",
+            "c501da1fdf7f93e1110af5cb9d52b8c2e1d01b18a31806dfebb42e06f4a20d75"
+          ],
+          "max_absolute_error": 0.13824462890625,
+          "mean_absolute_error": 0.0041315443375531365,
+          "cosine_similarity": 0.9920969480444216,
+          "rms_ratio": 1.0048331069095122
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            32640,
+            32640
+          ],
+          "pcm_sha256": [
+            "c501da1fdf7f93e1110af5cb9d52b8c2e1d01b18a31806dfebb42e06f4a20d75",
+            "c501da1fdf7f93e1110af5cb9d52b8c2e1d01b18a31806dfebb42e06f4a20d75"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 2,
+        "first_available_seconds": 0.9062485589965945,
+        "full_result_seconds": 1.0641941630019573
+      },
+      {
+        "name": "01-00.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            67200,
+            67200
+          ],
+          "pcm_sha256": [
+            "bbbde2f30e8f841c265269a89f9287a79060cd298bd8e577f50988bb51a4cf51",
+            "017089fea41c63d7059a66c862257637a2ed551460ab568f0835886aafc1b6df"
+          ],
+          "max_absolute_error": 0.7877197265625,
+          "mean_absolute_error": 0.025414406004406156,
+          "cosine_similarity": 0.8168350672503166,
+          "rms_ratio": 0.9899263299092639
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            67200,
+            67200
+          ],
+          "pcm_sha256": [
+            "017089fea41c63d7059a66c862257637a2ed551460ab568f0835886aafc1b6df",
+            "017089fea41c63d7059a66c862257637a2ed551460ab568f0835886aafc1b6df"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 0.915232498999103,
+        "full_result_seconds": 2.0571098910004366
+      },
+      {
+        "name": "01-01.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            51840,
+            51840
+          ],
+          "pcm_sha256": [
+            "60c224962be262ba3eaf81b59e781a353a1f4198bd6f4fedaa2c92f47c882522",
+            "773259ea6e4d3db9e71abff52c6f3ac5f4ec4aeb33847c2a755370b17da095ea"
+          ],
+          "max_absolute_error": 0.2181396484375,
+          "mean_absolute_error": 0.006587317549152139,
+          "cosine_similarity": 0.9901552732872351,
+          "rms_ratio": 0.9997247986914348
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            51840,
+            51840
+          ],
+          "pcm_sha256": [
+            "773259ea6e4d3db9e71abff52c6f3ac5f4ec4aeb33847c2a755370b17da095ea",
+            "773259ea6e4d3db9e71abff52c6f3ac5f4ec4aeb33847c2a755370b17da095ea"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 0.9999999999999999,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 2,
+        "first_available_seconds": 0.91112640099891,
+        "full_result_seconds": 1.6075213459989754
+      },
+      {
+        "name": "01-02.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            76800,
+            76800
+          ],
+          "pcm_sha256": [
+            "6c40adb914fe5d762cae2c2eeca0ec013857b3f0071cd268613b5e67a10aacfb",
+            "2862e8c5b4d4c457fbbb529c7a968ce2e5571e1ca169d0d657fb8bc1cd129b67"
+          ],
+          "max_absolute_error": 0.088043212890625,
+          "mean_absolute_error": 0.003007808526357015,
+          "cosine_similarity": 0.9979889740553278,
+          "rms_ratio": 0.9997583203070461
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            76800,
+            76800
+          ],
+          "pcm_sha256": [
+            "2862e8c5b4d4c457fbbb529c7a968ce2e5571e1ca169d0d657fb8bc1cd129b67",
+            "2862e8c5b4d4c457fbbb529c7a968ce2e5571e1ca169d0d657fb8bc1cd129b67"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 0.9274853949973476,
+        "full_result_seconds": 2.344871023000451
+      },
+      {
+        "name": "01-03.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            28800,
+            28800
+          ],
+          "pcm_sha256": [
+            "ba42d36bd6aae12b717619b3bacb89d27848e980076102b6da79d3cc0966ccc1",
+            "239b5216436841e634e5765523d67530588827ca24c8166a495ff3dd1eed2c9d"
+          ],
+          "max_absolute_error": 0.0396728515625,
+          "mean_absolute_error": 0.001196348402235243,
+          "cosine_similarity": 0.9990284775810581,
+          "rms_ratio": 1.0015619632078356
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            28800,
+            28800
+          ],
+          "pcm_sha256": [
+            "239b5216436841e634e5765523d67530588827ca24c8166a495ff3dd1eed2c9d",
+            "239b5216436841e634e5765523d67530588827ca24c8166a495ff3dd1eed2c9d"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0000000000000002,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 1,
+        "first_available_seconds": 0.8995633020022069,
+        "full_result_seconds": 0.9369834329991136
+      },
+      {
+        "name": "01-04.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            82560,
+            82560
+          ],
+          "pcm_sha256": [
+            "1541930d96b514a060fbe445bf0a9480d1a2e7e9235b86758eaaaaefdb9cffcd",
+            "22f70ea69cda42350b11c26ff63c0073f391931e2f50a84acfdd8805ebd86655"
+          ],
+          "max_absolute_error": 0.2410888671875,
+          "mean_absolute_error": 0.0037776983985605165,
+          "cosine_similarity": 0.9916329505307057,
+          "rms_ratio": 0.9981386589661854
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            82560,
+            82560
+          ],
+          "pcm_sha256": [
+            "22f70ea69cda42350b11c26ff63c0073f391931e2f50a84acfdd8805ebd86655",
+            "22f70ea69cda42350b11c26ff63c0073f391931e2f50a84acfdd8805ebd86655"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 0.9159040909944451,
+        "full_result_seconds": 2.4917854049999733
+      },
+      {
+        "name": "01-05.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            63360,
+            63360
+          ],
+          "pcm_sha256": [
+            "4801e2912a761cbcc28d2921ebe1abe4a9d9d06eb234522f63410b1df31b0c48",
+            "e8e0e1494cb32f39c0c2545ba8024345cbe5d398f5a1f74678bc422fecd4d71d"
+          ],
+          "max_absolute_error": 0.2410888671875,
+          "mean_absolute_error": 0.005014014966560133,
+          "cosine_similarity": 0.9919191166474121,
+          "rms_ratio": 1.0026678798436535
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            63360,
+            63360
+          ],
+          "pcm_sha256": [
+            "e8e0e1494cb32f39c0c2545ba8024345cbe5d398f5a1f74678bc422fecd4d71d",
+            "e8e0e1494cb32f39c0c2545ba8024345cbe5d398f5a1f74678bc422fecd4d71d"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 3,
+        "first_available_seconds": 0.9156347609969089,
+        "full_result_seconds": 1.9468799989990657
+      },
+      {
+        "name": "01-06.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            24960,
+            24960
+          ],
+          "pcm_sha256": [
+            "7f36a370a243b4546d14ba8946909537382ab6e9d19934b4e18b158015321002",
+            "17855999bb09d5a213c524cc6b0c4738b5cbab89a285782679c0946b43e68933"
+          ],
+          "max_absolute_error": 3.0517578125e-05,
+          "mean_absolute_error": 9.781275040064103e-09,
+          "cosine_similarity": 0.9999999999847174,
+          "rms_ratio": 0.9999999626515319
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            24960,
+            24960
+          ],
+          "pcm_sha256": [
+            "17855999bb09d5a213c524cc6b0c4738b5cbab89a285782679c0946b43e68933",
+            "17855999bb09d5a213c524cc6b0c4738b5cbab89a285782679c0946b43e68933"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 1,
+        "first_available_seconds": 0.8226938090010663,
+        "full_result_seconds": 0.8265295879973564
+      },
+      {
+        "name": "01-07.wav",
+        "installed_to_patched": {
+          "identical": false,
+          "samples": [
+            32640,
+            32640
+          ],
+          "pcm_sha256": [
+            "94cd96a28ee99e7c14af40580723cb21930015500fe03773ee3c47fe2f77d623",
+            "c501da1fdf7f93e1110af5cb9d52b8c2e1d01b18a31806dfebb42e06f4a20d75"
+          ],
+          "max_absolute_error": 0.13824462890625,
+          "mean_absolute_error": 0.0041315443375531365,
+          "cosine_similarity": 0.9920969480444216,
+          "rms_ratio": 1.0048331069095122
+        },
+        "patched_to_early": {
+          "identical": true,
+          "samples": [
+            32640,
+            32640
+          ],
+          "pcm_sha256": [
+            "c501da1fdf7f93e1110af5cb9d52b8c2e1d01b18a31806dfebb42e06f4a20d75",
+            "c501da1fdf7f93e1110af5cb9d52b8c2e1d01b18a31806dfebb42e06f4a20d75"
+          ],
+          "max_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "cosine_similarity": 1.0,
+          "rms_ratio": 1.0
+        },
+        "blocks_match_final": true,
+        "block_count": 2,
+        "first_available_seconds": 0.8989642200031085,
+        "full_result_seconds": 1.0563824440032477
+      }
+    ]
+  },
+  "replay": {
+    "control": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 152.26043948999722,
+        "remaining_pids_before_cleanup": [],
+        "injection": null
+      },
+      "caption_record_count": 338,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 22,
+        "failed": 1
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.0003733634948730469,
+        "p95": 0.004647731781005859,
+        "max": 0.00656580924987793
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.10152029991149902,
+        "p95": 0.18847918510437012,
+        "max": 0.20087933540344238
+      },
+      "translation_compute_seconds": {
+        "count": 22,
+        "median": 0.344,
+        "p95": 2.115,
+        "max": 3.731
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 22,
+        "median": 0.6272217035293579,
+        "p95": 2.8455724716186523,
+        "max": 3.90897536277771
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 15,
+      "job_states": {
+        "completed": 23
+      },
+      "job_count": 23,
+      "source_to_speech_errors": {},
+      "translation_errors": {
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 23,
+        "median": 11.219166278839111,
+        "p95": 24.55143690109253,
+        "max": 24.57668161392212
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 23,
+        "median": 12.066344499588013,
+        "p95": 24.838679552078247,
+        "max": 24.91617727279663
+      },
+      "first_piece_compute_seconds": {
+        "count": 23,
+        "median": 1.7759986809978727,
+        "p95": 3.3576712849971955,
+        "max": 4.014712559001055
+      },
+      "played_piece_count": 52,
+      "playback_order_preserved": true,
+      "completed_wave_checks": [
+        {
+          "job_id": "bf1c4edb3dc441c8969382470a38bad8",
+          "duration_seconds": 11.04,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 21399,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "52ffe16b4d11423d965a1a4b59f410f6",
+          "duration_seconds": 2.64,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 14655,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "683a9ac80a2d44f39b7f6834ea79b9f7",
+          "duration_seconds": 2.16,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 19345,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "681f98aadb89450ea8639bdd29446b47",
+          "duration_seconds": 3.2,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 18009,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "7fa2183f216340ce80765bb47325ee3b",
+          "duration_seconds": 4.72,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 18557,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "e05c35b392384cfd8b73276289303939",
+          "duration_seconds": 1.2,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 12129,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "fb7d6bbe03d54404bf3d38c96a092052",
+          "duration_seconds": 10.88,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 21614,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "2d4ae8163271460c9ecbeed2fe29289a",
+          "duration_seconds": 13.2,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 22764,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "88a0836103274070aa458480599507e6",
+          "duration_seconds": 1.12,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 15019,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "151954299fea468bacfc27320d603cf3",
+          "duration_seconds": 1.36,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 19827,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "62d0b49b9a5442a89fadcf7821fab3d1",
+          "duration_seconds": 6.72,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17912,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "b976d0a6cfb34d00be2d26dfc1574221",
+          "duration_seconds": 1.12,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 13493,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "34f61bb07307407eabf1aa996f6359e3",
+          "duration_seconds": 2.4,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 16841,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "69a233a5b50c42ff89f32f9f3064d9f0",
+          "duration_seconds": 10.4,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 22315,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "49754fce49be4097b24d2c25c5c0cbe8",
+          "duration_seconds": 6.88,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 23652,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "2f6f796a13b642f4ab1addc48299f147",
+          "duration_seconds": 12.8,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 20576,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "33799bff9f744ed6af3a2f9640c24fee",
+          "duration_seconds": 8.0,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 23275,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "d2eb255c659541da9757bc5af6be1e7f",
+          "duration_seconds": 17.36,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 26405,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "bfe3888f4663430c9cc574d929a0604f",
+          "duration_seconds": 4.72,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17081,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "87be1fe97aae43bcad5a54b6f76718cc",
+          "duration_seconds": 1.84,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17412,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "31d9544fa5504a5488cd4ac9d73950c6",
+          "duration_seconds": 2.0,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17531,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "0692222896284b8a9309c1dd0d689973",
+          "duration_seconds": 2.64,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 16932,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "44806c83fb78442db78e15050789f9dd",
+          "duration_seconds": 2.4,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 19483,
+          "clipped_samples": 0
+        }
+      ],
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.420127868652344,
+      "cpu_all_cores_percent": {
+        "count": 147,
+        "median": 45.52845528455285,
+        "p95": 53.3003300330033,
+        "max": 55.62805872756933
+      },
+      "max_swap_used_bytes": 147628032,
+      "swapin_pages": 4,
+      "gpu_percent": {
+        "count": 151,
+        "median": 0,
+        "p95": 90,
+        "max": 99
+      },
+      "gpu_mean_percent": 9.642384105960264,
+      "gpu_nonzero_sample_fraction": 0.11258278145695365,
+      "gpu_temperature_C": {
+        "count": 151,
+        "median": 49.937,
+        "p95": 51.5,
+        "max": 52.75
+      },
+      "max_buffered_audio_seconds": 9.895786714553834,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "protocol": {
+        "commit": "91100e4",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/early-audio-control-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/early-audio-control-v1/speech",
+          "--tts-provider",
+          "cpu",
+          "--tts-precision",
+          "int8",
+          "--tts-threads",
+          "2",
+          "--tts-pythonpath",
+          "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "tts_model_sha256": null,
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824268,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "c11642b94503738bf41b31a00e41a78f89de62eaec6195209b0dfb776feee081",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "81feab2099ab25bdd51cb75eb4a7247b1463b15983f2459013c78dfc974ff200",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "b98b1834ee8ba4261ef6ee4b409b5bb69926243a66eaacfde50bbc6ee3b5d393",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "f47032c6264ce8c9d467819e3299ca45ed415b332f77d23adea67520b84715da",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+          "tools/durable_jobs.py": "01119ef6425bc9e70cdd90b56ccbebe9255a857393f7021c8e08fa1904b4a0b4",
+          "tools/build_pocket_early_audio.py": "b91365a5263c5209337d6fe563d0b35b5301499ae0d224fabccd83c1cb8baa8e",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "5769f2b8f929b4b21ebad30ced4f1dfc0ab912941507032a22fa2cab133393f9"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "final_speech_status": {
+        "runtime": {
+          "ready": true,
+          "runtime": "1.13.6",
+          "engine": "pocket",
+          "provider_requested": "cpu",
+          "precision": "int8",
+          "audio_stream_protocol": 0,
+          "early_decode_runtime": null,
+          "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_version": "1.27.1",
+          "available_providers": [
+            "CPUExecutionProvider"
+          ]
+        },
+        "unfinished_jobs": 0,
+        "pending_jobs": 0,
+        "storage_warning": null,
+        "warmup_error": null,
+        "streaming_playback": false
+      },
+      "within_text_block_gaps_seconds": null,
+      "between_text_piece_gaps_seconds": {
+        "count": 29,
+        "median": 0.0031280517578125,
+        "min": 0.001516580581665039,
+        "max": 0.005820035934448242
+      },
+      "gaps_above_20ms": 0,
+      "limited_samples": 0,
+      "first_text_part_compute_seconds": null,
+      "generation_to_first_available_seconds": {
+        "count": 23,
+        "median": 1.9677016735076904,
+        "min": 0.8802027702331543,
+        "max": 4.278715133666992
+      },
+      "generation_to_first_play_seconds": {
+        "count": 23,
+        "median": 6.87136435508728,
+        "min": 2.358752727508545,
+        "max": 9.91946005821228
+      },
+      "ready_to_first_play_seconds": {
+        "count": 23,
+        "median": 5.44111442565918,
+        "min": 0.001684427261352539,
+        "max": 7.919654369354248
+      },
+      "ready_to_play_above_100ms": 20,
+      "text_piece_count": 52,
+      "early_play_before_first_text_complete": 0
+    },
+    "early": {
+      "mode": "base",
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 150.3913507479956,
+        "remaining_pids_before_cleanup": [],
+        "injection": null
+      },
+      "caption_record_count": 338,
+      "unique_utterances": 23,
+      "final_utterances": 23,
+      "partial_updates": 269,
+      "revision_violations": [],
+      "translation_status": {
+        "completed": 22,
+        "failed": 1
+      },
+      "refinement_status": {
+        "disabled": 23
+      },
+      "partial_asr_emit_to_bridge_seconds": {
+        "count": 269,
+        "median": 0.00040459632873535156,
+        "p95": 0.0034546852111816406,
+        "max": 0.006549835205078125
+      },
+      "partial_asr_emit_to_sse_seconds": {
+        "count": 269,
+        "median": 0.09826350212097168,
+        "p95": 0.19080615043640137,
+        "max": 0.20077896118164062
+      },
+      "translation_compute_seconds": {
+        "count": 22,
+        "median": 0.3545,
+        "p95": 2.116,
+        "max": 3.747
+      },
+      "final_emit_to_translation_seconds": {
+        "count": 22,
+        "median": 0.6126261949539185,
+        "p95": 2.8515121936798096,
+        "max": 3.9166133403778076
+      },
+      "refinement_compute_seconds": null,
+      "translations_with_other_partial_updates_while_pending": 15,
+      "job_states": {
+        "completed": 23
+      },
+      "job_count": 23,
+      "source_to_speech_errors": {},
+      "translation_errors": {
+        "Translation rejected: untranslated Chinese in English output": 1
+      },
+      "submit_to_first_play_seconds": {
+        "count": 23,
+        "median": 10.128844738006592,
+        "p95": 22.988649606704712,
+        "max": 22.99221897125244
+      },
+      "final_emit_to_first_play_seconds": {
+        "count": 23,
+        "median": 10.531975984573364,
+        "p95": 23.259459972381592,
+        "max": 23.352375745773315
+      },
+      "first_piece_compute_seconds": {
+        "count": 23,
+        "median": 0.9162574029978714,
+        "p95": 0.9466198899972369,
+        "max": 1.2007519269973272
+      },
+      "played_piece_count": 126,
+      "playback_order_preserved": true,
+      "completed_wave_checks": [
+        {
+          "job_id": "2d70643cf8b242feb78ebf90d86a9c8c",
+          "duration_seconds": 11.04,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 21399,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "3d61836f6d0745e795824bcc218ecd84",
+          "duration_seconds": 2.64,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 14655,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "ef699b19eaf949d1843842aec293f90e",
+          "duration_seconds": 2.16,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 19345,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "7b90c1c038484306bd37dca9512a1c54",
+          "duration_seconds": 3.2,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 18009,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "570c873cadbb4393a23d34f00a5a3b03",
+          "duration_seconds": 4.72,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 18557,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "4f624eb0589348ce936555e1494424c6",
+          "duration_seconds": 1.2,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 12129,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "29c8d1f8c23146edbc8bfef52fed4b3c",
+          "duration_seconds": 10.88,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 21614,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "737c58ea70d141e5a0e6949c223f9db3",
+          "duration_seconds": 13.2,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 22764,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "ae70f42824154b50be5fac109aaed42d",
+          "duration_seconds": 1.12,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 15019,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "91e60dee1581424e83d66622d546fa31",
+          "duration_seconds": 1.36,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 19827,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "651e07d5eaaa46cca0bd80e57ab61e58",
+          "duration_seconds": 6.72,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17912,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "402caaad91864817b9f3442814e06e12",
+          "duration_seconds": 1.12,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 13493,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "a63c2e59b53c4d0e86b6c5ee4f816f77",
+          "duration_seconds": 2.4,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 16841,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "2276f3f028f6468a9928e37f93d7b34b",
+          "duration_seconds": 10.4,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 22315,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "41e92c940f2f48068cc3e1a93e76e07a",
+          "duration_seconds": 6.88,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 23652,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "1f760bdb06884a829c05830c2f408ebf",
+          "duration_seconds": 12.8,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 20576,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "274e131699f74bc79c1b1be2122cbe88",
+          "duration_seconds": 8.0,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 23275,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "d55229c34276468088f459b2846a868d",
+          "duration_seconds": 17.36,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 26405,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "3c5e1f3861c64da5aebde414a1285cc5",
+          "duration_seconds": 4.72,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17081,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "170cec5540fc4e6f978b450e9940632f",
+          "duration_seconds": 1.84,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17412,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "6a28ff1050b24e4189334c5f70a65abf",
+          "duration_seconds": 2.0,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 17531,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "49288f9d390a4efd8475668aa6828e53",
+          "duration_seconds": 2.64,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 16932,
+          "clipped_samples": 0
+        },
+        {
+          "job_id": "c0bd2d3f7d2d4723a18a1911b3ae7bbe",
+          "duration_seconds": 2.4,
+          "parent_matches_ordered_pieces": true,
+          "peak_int16": 19483,
+          "clipped_samples": 0
+        }
+      ],
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "minimum_available_GiB": 4.3213043212890625,
+      "cpu_all_cores_percent": {
+        "count": 145,
+        "median": 47.30831973898858,
+        "p95": 51.21163166397415,
+        "max": 53.11475409836066
+      },
+      "max_swap_used_bytes": 148414464,
+      "swapin_pages": 0,
+      "gpu_percent": {
+        "count": 149,
+        "median": 0,
+        "p95": 90,
+        "max": 99
+      },
+      "gpu_mean_percent": 8.281879194630873,
+      "gpu_nonzero_sample_fraction": 0.10067114093959731,
+      "gpu_temperature_C": {
+        "count": 149,
+        "median": 51.093,
+        "p95": 52.312,
+        "max": 53.312
+      },
+      "max_buffered_audio_seconds": 10.024760437011718,
+      "finals_after_failure": null,
+      "partial_updates_after_failure": null,
+      "protocol": {
+        "commit": "91100e4",
+        "command": [
+          "/home/moyamryia/mozart-realtime-patches-20261008/.venv/bin/python",
+          "/home/moyamryia/mozart-realtime-patches-20261008/tools/run_translated_speech.py",
+          "--backend-config",
+          "/home/moyamryia/mozart-realtime-patches-20261008/state/translated-speech.yaml",
+          "--reference",
+          "/home/moyamryia/Mozart/rvc-golden/clone-tts/qiqi-20261004/reference-qiqi-natural-source.wav",
+          "--reference-name",
+          "Qiqi realtime patch test",
+          "--input",
+          "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+          "--seconds",
+          "120",
+          "--no-rnnoise",
+          "--playback-device",
+          "null",
+          "--archive-utterances",
+          "--run-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/early-audio-v1/runtime",
+          "--data-dir",
+          "/home/moyamryia/mozart-realtime-patches-20261008/rvc-golden/realtime-patches-20261008/early-audio-v1/speech",
+          "--tts-provider",
+          "cpu",
+          "--tts-precision",
+          "int8",
+          "--tts-threads",
+          "2",
+          "--early-audio",
+          "--tts-pythonpath",
+          "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python"
+        ],
+        "mode": "base",
+        "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+        "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba",
+        "translator_sha256": "b7a84ea0d96200003f73a64916d0fa522dd426c3f21442e37fec9f2aa9e1bb12",
+        "tts_model_sha256": null,
+        "source_note": "Retained processed 120-second source; no second RNNoise pass; not the original MP4 replay.",
+        "output_note": "Paced ALSA null; no physical-speaker test; RVC disabled.",
+        "wall_minus_monotonic_seconds": 1791455391.2824273,
+        "source_files": {
+          "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+          "tools/clone_worker.py": "c11642b94503738bf41b31a00e41a78f89de62eaec6195209b0dfb776feee081",
+          "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+          "tools/speech_service.py": "81feab2099ab25bdd51cb75eb4a7247b1463b15983f2459013c78dfc974ff200",
+          "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+          "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+          "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+          "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+          "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+          "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+          "tools/translation_checks.py": "b98b1834ee8ba4261ef6ee4b409b5bb69926243a66eaacfde50bbc6ee3b5d393",
+          "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+          "tools/run_translated_speech.py": "f47032c6264ce8c9d467819e3299ca45ed415b332f77d23adea67520b84715da",
+          "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+          "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+          "tools/durable_jobs.py": "01119ef6425bc9e70cdd90b56ccbebe9255a857393f7021c8e08fa1904b4a0b4",
+          "tools/build_pocket_early_audio.py": "b91365a5263c5209337d6fe563d0b35b5301499ae0d224fabccd83c1cb8baa8e",
+          "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+          "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+          "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+          "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+          "tools/subtitle_bridge.py": "5769f2b8f929b4b21ebad30ced4f1dfc0ab912941507032a22fa2cab133393f9"
+        },
+        "binary_hashes": {
+          "build-gpu/state/mozart_stated": "da1f65192b5d2d5b0720890a6e49b81de863af208a6e87f0fc1c6688ce8be41d",
+          "build-gpu/preprocessor/mozart-pre": "e7e327f165c636e97cff6db723067303f4f556cf6e1059a4f06e861c560d36cb"
+        }
+      },
+      "final_speech_status": {
+        "runtime": {
+          "ready": true,
+          "runtime": "1.13.6",
+          "engine": "pocket",
+          "provider_requested": "cpu",
+          "precision": "int8",
+          "audio_stream_protocol": 1,
+          "early_decode_runtime": {
+            "protocol": 1,
+            "sherpa_version": "1.13.6",
+            "source_sha256": "78f5d10f957d2de1867a1e08395e9ec2ec388911c853dd141887396667f3ff34",
+            "patch_sha256": "5f6ea76bd16b0ef2953987e6b907857071790f7a548750f312bec8def0fdd414",
+            "header_sha256": "7593017c702926b31ab16c3aa21d366d1164fe713d992fe695720bf011da2cd4",
+            "extension_sha256": "0228afe97aa0dbf89c9432315fa5501202365d725615c3bd250f6ddd9fad784f",
+            "onnxruntime_sha256": "d860f5968f5a1ed63533e9ed198aa747ca9fe289028129877f428556089f6874",
+            "pythonpath": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python"
+          },
+          "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+          "onnxruntime_version": "1.27.1",
+          "available_providers": [
+            "CPUExecutionProvider"
+          ]
+        },
+        "unfinished_jobs": 0,
+        "pending_jobs": 0,
+        "storage_warning": null,
+        "warmup_error": null,
+        "streaming_playback": true
+      },
+      "within_text_block_gaps_seconds": {
+        "count": 74,
+        "median": 0.00301361083984375,
+        "min": 0.002102375030517578,
+        "max": 0.005751371383666992
+      },
+      "between_text_piece_gaps_seconds": {
+        "count": 29,
+        "median": 0.003447294235229492,
+        "min": 0.002402782440185547,
+        "max": 0.004727840423583984
+      },
+      "gaps_above_20ms": 0,
+      "limited_samples": 0,
+      "first_text_part_compute_seconds": {
+        "count": 23,
+        "median": 1.8328734099995927,
+        "min": 0.8857416840037331,
+        "max": 4.051106871003867
+      },
+      "generation_to_first_available_seconds": {
+        "count": 23,
+        "median": 0.9180505275726318,
+        "min": 0.8096127510070801,
+        "max": 1.893779993057251
+      },
+      "generation_to_first_play_seconds": {
+        "count": 23,
+        "median": 4.900144100189209,
+        "min": 0.8120148181915283,
+        "max": 9.915460109710693
+      },
+      "ready_to_first_play_seconds": {
+        "count": 23,
+        "median": 3.975825786590576,
+        "min": 0.002402067184448242,
+        "max": 8.553538799285889
+      },
+      "ready_to_play_above_100ms": 21,
+      "text_piece_count": 52,
+      "early_play_before_first_text_complete": 4
+    }
+  },
+  "replay_comparisons": [
+    {
+      "source_text": "妈妈说暑假考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          264960,
+          264960
+        ],
+        "pcm_sha256": [
+          "022041d555255a31e67be4cc36a03e4a34adee11da560284aea2a33a0641cf60",
+          "022041d555255a31e67be4cc36a03e4a34adee11da560284aea2a33a0641cf60"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999999,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "七千五千又是大几千",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          63360,
+          63360
+        ],
+        "pcm_sha256": [
+          "f6d5aacb61d48cfa9573caba81cb8af3c11f0d9882d3ed0bc5bf4fc1bc81008a",
+          "f6d5aacb61d48cfa9573caba81cb8af3c11f0d9882d3ed0bc5bf4fc1bc81008a"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "你妈妈在家里心想着",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          51840,
+          51840
+        ],
+        "pcm_sha256": [
+          "ece40c7c4980246f7f4cd8703f92e0a2369eaa3b8edfcf85d7622646914288de",
+          "ece40c7c4980246f7f4cd8703f92e0a2369eaa3b8edfcf85d7622646914288de"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "我儿子在学校里面要考研",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          76800,
+          76800
+        ],
+        "pcm_sha256": [
+          "37914c027ecf7b255951d3188684b407b7cde1108f63cfc502f125019ebfa887",
+          "37914c027ecf7b255951d3188684b407b7cde1108f63cfc502f125019ebfa887"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "你妈妈跟龙虾大妈跳广场舞或者说女儿闷的时候人家会比较儿子现在怎么样你妈妈很骄傲地跟人家说",
+      "same_text": true,
+      "degraded": true,
+      "audio": {
+        "identical": true,
+        "samples": [
+          113280,
+          113280
+        ],
+        "pcm_sha256": [
+          "667a4d71833b9b787f912fb6bc9f65108808b1493f1de173523fff97651c1c12",
+          "667a4d71833b9b787f912fb6bc9f65108808b1493f1de173523fff97651c1c12"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "我儿子",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          28800,
+          28800
+        ],
+        "pcm_sha256": [
+          "209903d9e32cda7d2bd61ae506f12a3f23dba9ac0f8a56ff78dc3c08aeed5c27",
+          "209903d9e32cda7d2bd61ae506f12a3f23dba9ac0f8a56ff78dc3c08aeed5c27"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999998,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "现在准备考研准备弄个考个研究生你慢慢一边说一边内心还有点开心自己儿子",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          261120,
+          261120
+        ],
+        "pcm_sha256": [
+          "ab76697195fecf7cdf6be8b03dba928fd73d82c97717149938cc6c121ecea082",
+          "ab76697195fecf7cdf6be8b03dba928fd73d82c97717149938cc6c121ecea082"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0000000000000002,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "想上进但是呢你在干嘛你在赌博你要借我网贷你在网恋你们老的都是通过这个博去引钱去掉一线就没东西装逼",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          316800,
+          316800
+        ],
+        "pcm_sha256": [
+          "ae16517e553650d593515b93cb76dfae2354a7f3b2e5af3840c50ecff7e616e6",
+          "ae16517e553650d593515b93cb76dfae2354a7f3b2e5af3840c50ecff7e616e6"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "这个就是你",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          26880,
+          26880
+        ],
+        "pcm_sha256": [
+          "599ba913b3ca1cb5a42eb333612f0eee3dff3822570f4242764a4a03fd94475e",
+          "599ba913b3ca1cb5a42eb333612f0eee3dff3822570f4242764a4a03fd94475e"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999998,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "充值战备还贷款",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          32640,
+          32640
+        ],
+        "pcm_sha256": [
+          "34b08765393cbe93982ac8910bdc85b231adadd25ddd77ca2e75ff1cd7f35078",
+          "34b08765393cbe93982ac8910bdc85b231adadd25ddd77ca2e75ff1cd7f35078"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "过几天又年本代地的输回去这个是经典的流程是什么呢骗钱或者借钱",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          161280,
+          161280
+        ],
+        "pcm_sha256": [
+          "9f1b8f7c1bff2321d3c1859269c833f49f27b060ea9ecc05d2b67653bbd0eb97",
+          "9f1b8f7c1bff2321d3c1859269c833f49f27b060ea9ecc05d2b67653bbd0eb97"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "然后去充值",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          26880,
+          26880
+        ],
+        "pcm_sha256": [
+          "4cb1183516d32b1962c2b0dba73933c8cfc05cd9d9db959b2030652c64be4a09",
+          "4cb1183516d32b1962c2b0dba73933c8cfc05cd9d9db959b2030652c64be4a09"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "只是补贴计划可能赢一段时间",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          57600,
+          57600
+        ],
+        "pcm_sha256": [
+          "7c8074d9d6d020a2763bd69ee8bd82a7803fa585a7563cf711e7eb536f863d59",
+          "7c8074d9d6d020a2763bd69ee8bd82a7803fa585a7563cf711e7eb536f863d59"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999999,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "就会有一天上头上头完全不全部输完之后又开始借钱或者骗钱然后又冲进去然后又补贴计划",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          249600,
+          249600
+        ],
+        "pcm_sha256": [
+          "9c83b9ef2fe6c5096470447e096b07f824f15db82d6d942735f43deb4f4eafe0",
+          "9c83b9ef2fe6c5096470447e096b07f824f15db82d6d942735f43deb4f4eafe0"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "然后可能又赢或者说直接输反正最后的结果一定是输反正就是这个循环一直来一直来这个就是读狗的循环逃不掉的没有一个独狗能逃掉",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          165120,
+          165120
+        ],
+        "pcm_sha256": [
+          "55dd7fcb6073a4dd00f653975d0ebaa889c93ff5ba40f68e8ae45743c5e3eb72",
+          "55dd7fcb6073a4dd00f653975d0ebaa889c93ff5ba40f68e8ae45743c5e3eb72"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "比如说要上政治小生小课生班什么的又要到了一万块完了因为报精辟你就拿着你让学习",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          307200,
+          307200
+        ],
+        "pcm_sha256": [
+          "0d3d22a0e677368ac5fc9e4c1e9ac9b30a1e26c0544eed93cc16c3f6d186a28e",
+          "0d3d22a0e677368ac5fc9e4c1e9ac9b30a1e26c0544eed93cc16c3f6d186a28e"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999999,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "要跑研究要政治小朋友身班什么东西的你从通通往到这种事情去骗你妈妈钱",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          192000,
+          192000
+        ],
+        "pcm_sha256": [
+          "d21ac8f9e5b973d08440dedda83ae07a5602b74ea965129dbddf5ebe7c3516d4",
+          "d21ac8f9e5b973d08440dedda83ae07a5602b74ea965129dbddf5ebe7c3516d4"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999998,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "你看看读这个真的什么谎都杀得出来一段为了骗钱什么话都杀得出来只要能骗到钱就行他不管对面是谁不管自己",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          416640,
+          416640
+        ],
+        "pcm_sha256": [
+          "c7e4005578b43c6fba4f2655d5aa7520bebe3039ac9d9b29be336274325f43f8",
+          "c7e4005578b43c6fba4f2655d5aa7520bebe3039ac9d9b29be336274325f43f8"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999999,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "在做了什么事情只要能要到钱只要能翻本",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          113280,
+          113280
+        ],
+        "pcm_sha256": [
+          "aed7fe65fa83b59f38dc8cac279a2f4142597ff4011adbac2d7d7b3885be9d79",
+          "aed7fe65fa83b59f38dc8cac279a2f4142597ff4011adbac2d7d7b3885be9d79"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0000000000000002,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "钱赢回来所有的谎话",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          44160,
+          44160
+        ],
+        "pcm_sha256": [
+          "177ebe783d4512108cd7651c64f8bd6f990e27085440a6bd661a9449850a1ed4",
+          "177ebe783d4512108cd7651c64f8bd6f990e27085440a6bd661a9449850a1ed4"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "就可以不当等伤害",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          48000,
+          48000
+        ],
+        "pcm_sha256": [
+          "134b02472928a084d5d13c45eec972f8d837622ffee2ff87c5b0de770be0f713",
+          "134b02472928a084d5d13c45eec972f8d837622ffee2ff87c5b0de770be0f713"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 1.0,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "这个时候妈妈已经有点不相信了",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          63360,
+          63360
+        ],
+        "pcm_sha256": [
+          "1b6526931f62732d6cb3f8ec882e054742d1816ce9cb063d572d7e3ef5397663",
+          "1b6526931f62732d6cb3f8ec882e054742d1816ce9cb063d572d7e3ef5397663"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999999,
+        "rms_ratio": 1.0
+      }
+    },
+    {
+      "source_text": "妈妈还是怀疑了但是由于我",
+      "same_text": true,
+      "degraded": false,
+      "audio": {
+        "identical": true,
+        "samples": [
+          57600,
+          57600
+        ],
+        "pcm_sha256": [
+          "86dd7ebb8b316cb4f484fe4237b8e4bfa5d27efcd0762d86d2141ee1d0ed6f08",
+          "86dd7ebb8b316cb4f484fe4237b8e4bfa5d27efcd0762d86d2141ee1d0ed6f08"
+        ],
+        "max_absolute_error": 0.0,
+        "mean_absolute_error": 0.0,
+        "cosine_similarity": 0.9999999999999999,
+        "rms_ratio": 1.0
+      }
+    }
+  ]
+}
