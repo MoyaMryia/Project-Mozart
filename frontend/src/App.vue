@@ -577,12 +577,13 @@ onUnmounted(() => {
         </div>
         <div class="min-w-0 flex-1 text-left">
           <div class="text-xs font-bold text-gray-900 leading-5 truncate">{{ latestSubtitle?.zh || '等待语音输入…' }}</div>
-          <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : '' }}</div>
+          <div class="text-[11px] text-gray-500 leading-4">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
           <div v-if="latestTranslatedSubtitle && latestTranslatedSubtitle.utterance_id !== latestSubtitle?.utterance_id" class="text-[11px] text-gray-500 leading-4" :title="latestTranslatedSubtitle.translation_error || latestTranslatedSubtitle.zh">{{ latestTranslatedSubtitle.translation_status === 'failed' ? '前文待核对译文：' : '前文译文：' }}{{ latestTranslatedSubtitle.en }}</div>
           <div v-if="latestSubtitle?.refined_zh && latestSubtitle.refined_zh !== latestSubtitle.zh" class="text-[11px] text-gray-500 leading-4">复核：{{ latestSubtitle.refined_zh }}</div>
           <p v-if="latestSubtitle?.speech_degraded" class="text-[11px] text-amber-700 leading-4" role="status">译文检查未通过，已尝试播报。</p>
           <p v-if="latestSubtitle?.translation_error" class="text-[11px] text-amber-700 leading-4" role="status">{{ latestSubtitle.translation_error }}</p>
           <p v-if="latestSubtitle?.speech_error" class="text-[11px] text-amber-700 leading-4" role="status">播报失败：{{ latestSubtitle.speech_error }}</p>
+          <p v-if="latestSubtitle?.source_revision_warning" class="text-[11px] text-amber-700 leading-4" role="status">{{ latestSubtitle.source_revision_warning }}</p>
         </div>
         <span v-if="latestSubtitle?.translate_ms !== undefined" class="shrink-0 font-mono text-[9px] text-gray-400 tabular-nums self-center">{{ latestSubtitle.translate_ms }}ms</span>
       </div>

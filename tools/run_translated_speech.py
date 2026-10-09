@@ -68,6 +68,7 @@ def main():
     parser.add_argument('--tts-pythonpath', type=Path, help='Independent sherpa package directory for the speech service')
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
+    parser.add_argument('--stable-clauses', action='store_true')
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     parser.add_argument('--tts-provider-config', type=Path)
     parser.add_argument('--stt-model', type=Path, default=assets/'zipformer-zh-14M')
@@ -95,6 +96,8 @@ def main():
     args = parser.parse_args()
     if args.tts_threads < 1:
         parser.error('tts-threads must be positive')
+    if args.stable_clauses and args.delivery_policy != 'coverage':
+        parser.error('stable-clauses requires the coverage delivery policy')
     if args.keep_open and not args.input:
         parser.error('--keep-open requires file input; microphone capture already runs until stopped')
     if args.seconds <= 0 or args.start < 0:
@@ -215,6 +218,8 @@ def main():
             '--delivery-policy', args.delivery_policy, '--queue-dir', args.data_dir/'captions']
         if args.final_model:
             bridge_command += ['--final-model', args.final_model]
+        if args.stable_clauses:
+            bridge_command += ['--stable-clauses']
         if args.archive_utterances:
             bridge_command += ['--utterance-dir',args.run_dir/'utterances']
         bridge = launch('captions', bridge_command)

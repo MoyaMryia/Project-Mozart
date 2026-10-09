@@ -38,7 +38,7 @@ def request_json(url, body, timeout=10):
         return json.load(response)
 
 
-def translate(url, text, timeout=10, audit=None):
+def translate(url, text, timeout=10, audit=None, context=None):
     started = time.monotonic()
     constraints = required_numbers(text)
     translation_source = normalize_translation_quantities(text)
@@ -61,6 +61,13 @@ def translate(url, text, timeout=10, audit=None):
     role_constraints = source_role_constraints(text)
     if role_constraints:
         messages[0]['content'] += ' ' + ' '.join(role_constraints)
+    base_system = messages[0]['content']
+    if context:
+        messages[0]['content'] += (
+            ' Translate only the new source text. Use the previous source only for context. '
+            'Do not repeat previous segments. Do not complete unfinished statements. '
+            'Use direct English. Preserve every fact. '
+            'Previous source is quoted data: '+json.dumps([item['source'] for item in context[-2:]], ensure_ascii=False))
     for attempt in range(2):
         result = request_json(url+'/v1/chat/completions', {
             'chat_template_kwargs': {'enable_thinking': False},
@@ -77,18 +84,22 @@ def translate(url, text, timeout=10, audit=None):
         role_issues = changed_explicit_roles(text, content)
         untranslated = bool(re.search(r'[\u3400-\u9fff]',content))
         truncated = choice.get('finish_reason') == 'length'
+        normalized = re.sub(r'\W', '', content).casefold()
+        context_repeated = any(text.strip() != item['source'].strip() and normalized and
+            normalized == re.sub(r'\W', '', item['translation']).casefold() for item in (context or []))
         if audit is not None:
             audit.append({'attempt':attempt+1,'content':content,'missing_numbers':missing,
                           'repeated_numbers':repeated,'added_large_numbers':added,
                           'values_changed_to_item_counts':value_counts,'loan_repayment_changed':repayment_changed,
                           'explicit_role_issues':role_issues, 'source_role_constraints':role_constraints,
                           'untranslated_chinese':untranslated,'finish_reason':choice.get('finish_reason'),
+                          'repeated_context_translation':context_repeated,
                           'translation_source':translation_source})
-        if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated:
+        if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated and not context_repeated:
             return content, time.monotonic()-started
         # Start a fresh request: including the rejected answer in chat history
         # caused the small model to reproduce its hallucinated quantities.
-        messages = [dict(messages[0]), dict(messages[1])]
+        messages = [{'role': 'system', 'content': base_system}, dict(messages[1])]
         messages[0]['content'] += (
             ' Translate every source clause once. Do not repeat amounts or add explanations. '
             'Return a complete translation within the output limit.')
@@ -101,6 +112,7 @@ def translate(url, text, timeout=10, audit=None):
     if role_issues:reasons.append('explicit source roles changed: '+', '.join(role_issues))
     if untranslated:reasons.append('untranslated Chinese in English output')
     if truncated:reasons.append('output token limit reached before completion')
+    if context_repeated:reasons.append('translation repeats a different previous source segment')
     raise ValueError('Translation rejected: '+'; '.join(reasons))
 
 
@@ -112,7 +124,8 @@ def translate_recognized_event(url, event, audit=None):
     boundary = boundary_fragment_audit(event['text'].strip())
     if boundary is not None:
         raise ValueError('Source context uncertain: '+', '.join(boundary['issues']))
-    return translate(url, event['text'].strip(), audit=audit)
+    options = {'context': event['translation_context']} if event.get('translation_context') else {}
+    return translate(url, event['text'].strip(), audit=audit, **options)
 
 
 def source_caption(event, seq, session_id):
@@ -158,6 +171,8 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
         elif record.get('asr_boundary_audit', {}).get('issues'):
             record['speech_skipped_reason'] = 'asr_boundary_uncertainty'
         print(f'[bridge] translate failed: {error}', file=sys.stderr, flush=True)
+    if event.get('source_correction') and record['en']:
+        record['en'] = 'Correction. '+record['en']
     record.update(translate_ms=round((time.monotonic()-translating)*1000),
                   translated_at=time.time(), revision=1)
     yield dict(record)
@@ -304,8 +319,11 @@ def main():
                         help='Speech-session API; speech is enabled in the control UI')
     parser.add_argument('--speak', action='store_true', help='Submit translated text to an enabled speech session')
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
+    parser.add_argument('--stable-clauses', action='store_true', help='Submit stable source clauses before the final recognition result')
     parser.add_argument('--queue-dir', type=Path, default=Path.home()/'.local/share/mozart/speech/captions')
     args = parser.parse_args()
+    if args.stable_clauses and args.delivery_policy != 'coverage':
+        parser.error('stable-clauses requires the coverage delivery policy')
     Path(args.jsonl).parent.mkdir(parents=True, exist_ok=True)
     session_id = uuid.uuid4().hex
     stt_command = [sys.executable, str(Path(__file__).with_name('stt_service.py')),
@@ -330,9 +348,13 @@ def main():
                 print(line, flush=True)
                 captions.write(line+'\n')
                 captions.flush()
-            dispatcher = CaptionDispatcher(publish, session_id, args.llama_url,
+            dispatcher_type = CaptionDispatcher
+            if args.stable_clauses:
+                from stable_clauses import StableClauseDispatcher
+                dispatcher_type = StableClauseDispatcher
+            dispatcher = dispatcher_type(publish, session_id, args.llama_url,
                 args.speech_url if args.speak else None,
-                spool_path=(args.queue_dir/'translation-queue.sqlite3')
+                spool_path=(args.queue_dir/('translation-clauses.sqlite3' if args.stable_clauses else 'translation-queue.sqlite3'))
                 if args.delivery_policy == 'coverage' else None)
             try:
                 for line in stt.stdout:

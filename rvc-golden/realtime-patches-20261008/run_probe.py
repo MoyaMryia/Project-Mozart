@@ -64,6 +64,7 @@ def main():
     parser.add_argument('--tts-pythonpath', type=Path)
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
+    parser.add_argument('--stable-clauses', action='store_true')
     args = parser.parse_args()
     if args.tts_provider == 'cuda' and args.tts_model is None:
         parser.error('CUDA replay requires --tts-model')
@@ -85,6 +86,8 @@ def main():
                 '--tts-threads', str(args.tts_threads)]
     if args.early_audio:
         command += ['--early-audio']
+    if args.stable_clauses:
+        command += ['--stable-clauses']
     if args.tts_model:
         command += ['--model', str(args.tts_model)]
     if args.tts_pythonpath:

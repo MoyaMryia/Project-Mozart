@@ -11,7 +11,7 @@ import run_translated_speech as runner
 
 
 class RunnerDegradedTests(unittest.TestCase):
-    def run_stack(self, missing_optional=False, gpu=False, threads=2, early=False):
+    def run_stack(self, missing_optional=False, gpu=False, threads=2, early=False, clauses=False):
         capture_started, speech_ready = threading.Event(), threading.Event()
         launches, processes, commands = [], [], {}
         def popen(command, **kwargs):
@@ -60,6 +60,8 @@ class RunnerDegradedTests(unittest.TestCase):
             options += ['--tts-threads', str(threads)]
         if early:
             options += ['--early-audio']
+        if clauses:
+            options += ['--stable-clauses']
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]+options), \
                 patch.object(runner, 'assert_ports_available'), \
@@ -85,6 +87,8 @@ class RunnerDegradedTests(unittest.TestCase):
         self.assertEqual(translator_command[translator_command.index('-t')+1], '2')
         self.assertEqual(speech_command[speech_command.index('--delivery-policy')+1], 'coverage')
         caption_command = commands['captions'][0]
+        self.assertEqual('--stable-clauses' in caption_command, clauses)
+        self.assertNotIn('--stable-clauses', speech_command)
         self.assertEqual(caption_command[caption_command.index('--delivery-policy')+1], 'coverage')
         if gpu:
             command, settings = commands['speech']
@@ -112,6 +116,9 @@ class RunnerDegradedTests(unittest.TestCase):
 
     def test_early_audio_reaches_only_the_speech_service(self):
         self.run_stack(early=True)
+
+    def test_stable_clauses_reach_only_the_caption_bridge(self):
+        self.run_stack(clauses=True)
 
     def test_invalid_speech_threads_fail_before_launch(self):
         with patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--tts-threads', '0']), \

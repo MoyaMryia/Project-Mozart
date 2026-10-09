@@ -57,6 +57,13 @@ With the default coverage policy, the supervisor waits for queued translation an
 An explicit stop still ends capture and playback. Waiting tasks remain on disk.
 It does not start the frontend or optional RVC monitor.
 
+For the stable-clause experiment, add `--stable-clauses`.
+This option requires the coverage policy.
+The bridge can submit a stable source prefix before final recognition.
+The default remains disabled.
+The [experiment guide](../docs/SIMULTANEOUS.md) gives the conditions, source revision behavior, and rollback procedure.
+The option does not change playback speed.
+
 In a different terminal, start the frontend:
 
 ```bash

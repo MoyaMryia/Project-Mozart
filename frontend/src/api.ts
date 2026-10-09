@@ -70,6 +70,7 @@ export interface SubtitleEvent {
   translation_error?: string;
   speech_degraded?: boolean;
   speech_error?: string;
+  source_revision_warning?: string;
   ts: string;
 }
 
