@@ -41,6 +41,7 @@
 | lookahead | 前视上下文 | 需要等待的后续输入 |
 | bypass / underrun / overrun | 旁路 / 欠载 / 溢出 | 跳过推理 / 输出不足 / 输入积压 |
 | queue / job / deadline | 队列 / 任务 / 截止时间 | 待处理项 / 一项逻辑工作 / 任务时间限制 |
+| boundary classifier / logit | 句界分类器 / 未归一化分数 | 预测文本切分位置的模型 / 模型原始输出值 |
 | ASR / TTS / SSE | 自动语音识别 / 语音合成 / 服务器发送事件 | 字幕、播报和事件传输组件 |
 | RVC / ONNX / TensorRT / CUDA / ALSA / PipeWire / SPSC / SOLA | 保留原名 | 算法、模型格式、运行时、设备接口或缓冲与拼接方法 |
 

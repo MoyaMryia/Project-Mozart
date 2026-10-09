@@ -11,7 +11,7 @@ import run_translated_speech as runner
 
 
 class RunnerDegradedTests(unittest.TestCase):
-    def run_stack(self, missing_optional=False, gpu=False, threads=2, early=False, clauses=False):
+    def run_stack(self, missing_optional=False, gpu=False, threads=2, early=False, clauses=False, boundary=False):
         capture_started, speech_ready = threading.Event(), threading.Event()
         launches, processes, commands = [], [], {}
         def popen(command, **kwargs):
@@ -62,6 +62,8 @@ class RunnerDegradedTests(unittest.TestCase):
             options += ['--early-audio']
         if clauses:
             options += ['--stable-clauses']
+        if boundary:
+            options += ['--boundary-model', '/isolated/nnsplit-zh.onnx', '--boundary-threshold', '.4', '--clause-max-chars', '24']
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]+options), \
                 patch.object(runner, 'assert_ports_available'), \
@@ -87,7 +89,12 @@ class RunnerDegradedTests(unittest.TestCase):
         self.assertEqual(translator_command[translator_command.index('-t')+1], '2')
         self.assertEqual(speech_command[speech_command.index('--delivery-policy')+1], 'coverage')
         caption_command = commands['captions'][0]
-        self.assertEqual('--stable-clauses' in caption_command, clauses)
+        self.assertEqual('--stable-clauses' in caption_command, clauses or boundary)
+        self.assertEqual('--boundary-model' in caption_command, boundary)
+        self.assertNotIn('--boundary-model', speech_command)
+        if boundary:
+            self.assertEqual(caption_command[caption_command.index('--boundary-threshold')+1], '0.4')
+            self.assertEqual(caption_command[caption_command.index('--clause-max-chars')+1], '24')
         self.assertNotIn('--stable-clauses', speech_command)
         self.assertEqual(caption_command[caption_command.index('--delivery-policy')+1], 'coverage')
         if gpu:
@@ -119,6 +126,9 @@ class RunnerDegradedTests(unittest.TestCase):
 
     def test_stable_clauses_reach_only_the_caption_bridge(self):
         self.run_stack(clauses=True)
+
+    def test_boundary_model_reaches_only_the_caption_bridge(self):
+        self.run_stack(boundary=True)
 
     def test_invalid_speech_threads_fail_before_launch(self):
         with patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--tts-threads', '0']), \

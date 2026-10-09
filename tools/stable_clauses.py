@@ -46,13 +46,23 @@ def stable_cut(history, committed):
 class StableClauseDispatcher(CaptionDispatcher):
     """Keep one caption row and ordered, durable translation tasks per source."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, boundary_classifier=None, **kwargs):
+        self.boundary_worker = None
         self.ready = threading.Event()
         super().__init__(*args, **kwargs)
         if self.durable:
             with self.pending.lock, self.pending.database:
                 self.pending.database.execute('CREATE TABLE IF NOT EXISTS clause_records (key TEXT PRIMARY KEY, payload TEXT)')
         self.ready.set()
+        if boundary_classifier is not None:
+            from boundary_classifier import BoundaryWorker
+            self.boundary_worker = BoundaryWorker(boundary_classifier,
+                lambda event, result: self.accept(event, _classified=result))
+
+    def close(self, timeout=None):
+        if self.boundary_worker is not None:
+            self.boundary_worker.close()
+        return super().close(timeout)
 
     def run(self):
         self.ready.wait()
@@ -108,7 +118,7 @@ class StableClauseDispatcher(CaptionDispatcher):
             record['speech_error'] = '; '.join(dict.fromkeys(speech_errors))
         record['speech_degraded'] = any(p.get('speech_degraded', False) for p in parts)
 
-    def accept(self, event):
+    def accept(self, event, _classified=None):
         if event.get('type') == 'refined':
             return super().accept(event)
         if self.closing.is_set() or event.get('type') not in ('partial', 'final') or not event.get('text', '').strip():
@@ -120,33 +130,62 @@ class StableClauseDispatcher(CaptionDispatcher):
             old = self.record(key)
             if old and old.get('final'):
                 return
-            source = source_caption(event, event['seq'], self.session_id)
-            record = {**(old or {}), **{k: v for k, v in source.items()
-                if k not in ('revision', 'en', 'translation_status')}}
+            if _classified is not None:
+                from boundary_classifier import classifier_prefix
+                if old is None:
+                    return
+                state = old['_clause_state']
+                prefix = classifier_prefix(state['history'], state['committed'])
+                if state['committed'] != _classified['committed'] or not prefix or not prefix.startswith(_classified['prefix']):
+                    return
+                record = deepcopy(old)
+                event = {**event, 'text': record['zh'], 'emitted_at': record['asr_emitted_at']}
+                record['boundary_classifier'] = {k: v for k, v in _classified.items()
+                    if k not in ('prefix', 'committed')}
+                record['boundary_classifier_warning'] = (
+                    '断句模型失败；本段等待最终识别。' if _classified.get('error') else '')
+            else:
+                source = source_caption(event, event['seq'], self.session_id)
+                record = {**(old or {}), **{k: v for k, v in source.items()
+                    if k not in ('revision', 'en', 'translation_status')}}
             record['stable_clauses'] = True
             parts = record.setdefault('translation_segments', [])
             state = record.setdefault('_clause_state', {'committed': '', 'history': [], 'blocked': False})
-            text = source['zh']
+            text = record['zh']
             at = event.get('emitted_at', time.time())
-            if state['history'] and at <= state['history'][-1][0]:
-                state['history'] = []
-            state['history'] = (state['history']+[[at, text]])[-3:]
+            if _classified is None:
+                if state['history'] and at <= state['history'][-1][0]:
+                    state['history'] = []
+                state['history'] = (state['history']+[[at, text]])[-3:]
             if not text.startswith(state['committed']):
                 state['blocked'] = True
                 record['source_revision_warning'] = '识别改写了已提交前文；等待最终结果。'
-            correction = source['final'] and not text.startswith(state['committed'])
+            correction = record['final'] and not text.startswith(state['committed'])
             start = 0 if correction else len(state['committed'])
-            end = len(text) if source['final'] else None
-            if not source['final'] and not state['blocked'] and len(parts) < 2:
-                end = stable_cut(state['history'], state['committed'])
-            if source['final']:
+            end = len(text) if record['final'] else None
+            early_limit = 8 if self.boundary_worker is not None else 2
+            if not record['final'] and not state['blocked'] and len(parts) < early_limit:
+                if self.boundary_worker is None:
+                    end = stable_cut(state['history'], state['committed'])
+                elif _classified is None:
+                    from boundary_classifier import classifier_prefix
+                    prefix = classifier_prefix(state['history'], state['committed'])
+                    if prefix:
+                        self.boundary_worker.submit(key, event, prefix, state['committed'])
+                elif _classified['cut'] is not None:
+                    end = _classified['cut']['end']
+                    if not start < end <= len(_classified['prefix'])-4:
+                        end = None
+            if record['final']:
                 record['source_revision_warning'] = ('已提交前文与最终识别不同；本次播报包含明确更正。' if correction else '')
             if end is not None and text[start:end].strip():
                 index = len(parts)
                 segment = {'index': index, 'source_start': start, 'source_end': end,
                     'source_text': text[start:end], 'submitted_at': time.time(),
-                    'asr_emitted_at': event.get('emitted_at'), 'early': not source['final'],
+                    'asr_emitted_at': event.get('emitted_at'), 'early': not record['final'],
                     'source_correction': correction, 'translation_status': 'pending', 'en': ''}
+                if _classified is not None:
+                    segment['boundary_classifier'] = deepcopy(record['boundary_classifier'])
                 part_event = {**event, 'seq': f'{event["seq"]}/part/{index}', 'type': 'final',
                     'text': segment['source_text'], 'source_correction': correction,
                     'clause_parent_id': key, 'clause_index': index}
@@ -160,7 +199,7 @@ class StableClauseDispatcher(CaptionDispatcher):
                 except Exception as error:
                     segment.update(translation_status='failed', translation_error=f'Translation task storage failed: {error}')
                     state['committed'] = previous_committed
-            if source['final']:
+            if record['final']:
                 state['history'] = []
             self.summary(record)
             self.update(key, record, create=True)

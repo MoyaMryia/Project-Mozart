@@ -320,10 +320,21 @@ def main():
     parser.add_argument('--speak', action='store_true', help='Submit translated text to an enabled speech session')
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     parser.add_argument('--stable-clauses', action='store_true', help='Submit stable source clauses before the final recognition result')
+    parser.add_argument('--boundary-model', type=Path, help='Optional local Chinese NNSplit ONNX model')
+    parser.add_argument('--boundary-threshold', type=float, default=.5)
+    parser.add_argument('--clause-max-chars', type=int, default=24)
     parser.add_argument('--queue-dir', type=Path, default=Path.home()/'.local/share/mozart/speech/captions')
     args = parser.parse_args()
+    if args.boundary_model:
+        args.stable_clauses = True
     if args.stable_clauses and args.delivery_policy != 'coverage':
         parser.error('stable-clauses requires the coverage delivery policy')
+    if not 0 < args.boundary_threshold < 1 or not 12 <= args.clause_max_chars <= 64:
+        parser.error('boundary-threshold must be between 0 and 1; clause-max-chars must be from 12 to 64')
+    boundary_classifier = None
+    if args.boundary_model:
+        from boundary_classifier import BoundaryClassifier
+        boundary_classifier = BoundaryClassifier(args.boundary_model, args.boundary_threshold, args.clause_max_chars)
     Path(args.jsonl).parent.mkdir(parents=True, exist_ok=True)
     session_id = uuid.uuid4().hex
     stt_command = [sys.executable, str(Path(__file__).with_name('stt_service.py')),
@@ -352,10 +363,13 @@ def main():
             if args.stable_clauses:
                 from stable_clauses import StableClauseDispatcher
                 dispatcher_type = StableClauseDispatcher
+            dispatcher_options = {'boundary_classifier': boundary_classifier} if boundary_classifier else {}
+            queue_name = ('translation-boundaries.sqlite3' if boundary_classifier else
+                'translation-clauses.sqlite3' if args.stable_clauses else 'translation-queue.sqlite3')
             dispatcher = dispatcher_type(publish, session_id, args.llama_url,
                 args.speech_url if args.speak else None,
-                spool_path=(args.queue_dir/('translation-clauses.sqlite3' if args.stable_clauses else 'translation-queue.sqlite3'))
-                if args.delivery_policy == 'coverage' else None)
+                spool_path=(args.queue_dir/queue_name) if args.delivery_policy == 'coverage' else None,
+                **dispatcher_options)
             try:
                 for line in stt.stdout:
                     try:
