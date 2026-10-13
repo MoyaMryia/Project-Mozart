@@ -1,0 +1,330 @@
+{
+  "analysis_only": true,
+  "source_sha256": {
+    "rvc-golden/sentence-context-20261007/short-v2/jobs.json": "b76b4fb1139e1cab5f807b7ddb09d1940861a4ab29ffb26e4231dad468303b50",
+    "rvc-golden/sentence-context-20261007/short-v2/runtime/subtitles.jsonl": "d0c92f483bb74f8a70ad5d9dc1de0b2df4a628ed4acc1098b5c6eea9cfdb87e4"
+  },
+  "source_captions": 24,
+  "completed_jobs": 18,
+  "chunks": 35,
+  "metrics": {
+    "queue_seconds": {
+      "count": 18,
+      "median": 3.4218509197235107,
+      "min": 0.0007929801940917969,
+      "max": 16.280045747756958,
+      "sum": 89.31481647491455
+    },
+    "queue_outside_previous_job_slots_seconds": {
+      "count": 18,
+      "median": 0.0008308887481689453,
+      "min": 0.00037479400634765625,
+      "max": 0.008107900619506836,
+      "sum": 0.023518800735473633
+    },
+    "ready_wait_seconds": {
+      "count": 18,
+      "median": 5.294846296310425,
+      "min": 0.0005922317504882812,
+      "max": 9.016091346740723,
+      "sum": 74.25214695930481
+    },
+    "ready_wait_playing_seconds": {
+      "count": 18,
+      "median": 5.290919542312622,
+      "min": 0,
+      "max": 9.011855125427246,
+      "sum": 74.19900584220886
+    },
+    "ready_wait_idle_seconds": {
+      "count": 18,
+      "median": 0.003297567367553711,
+      "min": 0.0005922317504882812,
+      "max": 0.0056684017181396484,
+      "sum": 0.053141117095947266
+    },
+    "first_piece_synthesis_seconds": {
+      "count": 18,
+      "median": 2.2838264945312403,
+      "min": 0.6485879250103608,
+      "max": 3.8859327499521896,
+      "sum": 36.566784136230126
+    },
+    "first_piece_audio_seconds": {
+      "count": 18,
+      "median": 3.04,
+      "min": 0.8,
+      "max": 4.96,
+      "sum": 50.48
+    },
+    "first_piece_words": {
+      "count": 18,
+      "median": 7.0,
+      "min": 1,
+      "max": 12,
+      "sum": 129
+    },
+    "asr_to_play_seconds": {
+      "count": 18,
+      "median": 12.313111305236816,
+      "min": 2.9911985397338867,
+      "max": 27.4145085811615,
+      "sum": 245.00998425483704
+    },
+    "instant_synthesis_asr_to_play_seconds": {
+      "count": 18,
+      "median": 8.747411251068115,
+      "min": 1.29337477684021,
+      "max": 23.82856321334839,
+      "sum": 193.00125169754028
+    }
+  },
+  "instant_synthesis_assumptions": [
+    "Keep the same 18 jobs and their recorded submission times.",
+    "Keep every recorded audio duration and FIFO playback order.",
+    "Use normal playback speed and no gaps between available jobs.",
+    "Make all audio available at submission; remove generation and admission waits.",
+    "Exclude the six withheld captions and physical audio latency."
+  ],
+  "maximum_audio_seconds_submitted_in_window": {
+    "10": 26.56,
+    "20": 32.0,
+    "30": 43.440000000000005
+  },
+  "rows": [
+    {
+      "seq": 3,
+      "queue_seconds": 0.008107900619506836,
+      "queue_outside_previous_job_slots_seconds": 0.008107900619506836,
+      "ready_wait_seconds": 0.001013040542602539,
+      "ready_wait_playing_seconds": 0,
+      "ready_wait_idle_seconds": 0.001013040542602539,
+      "first_piece_synthesis_seconds": 3.8859327499521896,
+      "first_piece_audio_seconds": 4.96,
+      "first_piece_words": 7,
+      "asr_to_play_seconds": 5.2035603523254395,
+      "instant_synthesis_asr_to_play_seconds": 1.29337477684021
+    },
+    {
+      "seq": 4,
+      "queue_seconds": 0.9957115650177002,
+      "queue_outside_previous_job_slots_seconds": 0.0006644725799560547,
+      "ready_wait_seconds": 2.164630174636841,
+      "ready_wait_playing_seconds": 2.162289619445801,
+      "ready_wait_idle_seconds": 0.002340555191040039,
+      "first_piece_synthesis_seconds": 2.7874768549809232,
+      "first_piece_audio_seconds": 3.68,
+      "first_piece_words": 12,
+      "asr_to_play_seconds": 7.2269370555877686,
+      "instant_synthesis_asr_to_play_seconds": 3.3138303756713867
+    },
+    {
+      "seq": 5,
+      "queue_seconds": 0.0012664794921875,
+      "queue_outside_previous_job_slots_seconds": 0.0012664794921875,
+      "ready_wait_seconds": 0.0005922317504882812,
+      "ready_wait_playing_seconds": 0,
+      "ready_wait_idle_seconds": 0.0005922317504882812,
+      "first_piece_synthesis_seconds": 2.277691658004187,
+      "first_piece_audio_seconds": 3.52,
+      "first_piece_words": 12,
+      "asr_to_play_seconds": 5.082659959793091,
+      "instant_synthesis_asr_to_play_seconds": 2.801980972290039
+    },
+    {
+      "seq": 6,
+      "queue_seconds": 7.917174816131592,
+      "queue_outside_previous_job_slots_seconds": 0.00045013427734375,
+      "ready_wait_seconds": 5.945543050765991,
+      "ready_wait_playing_seconds": 5.942594051361084,
+      "ready_wait_idle_seconds": 0.0029489994049072266,
+      "first_piece_synthesis_seconds": 1.2520177280530334,
+      "first_piece_audio_seconds": 2.0,
+      "first_piece_words": 3,
+      "asr_to_play_seconds": 18.24534583091736,
+      "instant_synthesis_asr_to_play_seconds": 14.684022188186646
+    },
+    {
+      "seq": 7,
+      "queue_seconds": 1.6734263896942139,
+      "queue_outside_previous_job_slots_seconds": 0.0008146762847900391,
+      "ready_wait_seconds": 5.548365116119385,
+      "ready_wait_playing_seconds": 5.5441577434539795,
+      "ready_wait_idle_seconds": 0.0042073726654052734,
+      "first_piece_synthesis_seconds": 2.3961176810553297,
+      "first_piece_audio_seconds": 3.12,
+      "first_piece_words": 7,
+      "asr_to_play_seconds": 12.733041524887085,
+      "instant_synthesis_asr_to_play_seconds": 9.170275211334229
+    },
+    {
+      "seq": 8,
+      "queue_seconds": 0.0008230209350585938,
+      "queue_outside_previous_job_slots_seconds": 0.0008230209350585938,
+      "ready_wait_seconds": 6.842018365859985,
+      "ready_wait_playing_seconds": 6.838327646255493,
+      "ready_wait_idle_seconds": 0.0036907196044921875,
+      "first_piece_synthesis_seconds": 1.3839504879433662,
+      "first_piece_audio_seconds": 2.0,
+      "first_piece_words": 7,
+      "asr_to_play_seconds": 11.893181085586548,
+      "instant_synthesis_asr_to_play_seconds": 8.324547290802002
+    },
+    {
+      "seq": 9,
+      "queue_seconds": 11.282798290252686,
+      "queue_outside_previous_job_slots_seconds": 0.0004909038543701172,
+      "ready_wait_seconds": 9.016091346740723,
+      "ready_wait_playing_seconds": 9.011855125427246,
+      "ready_wait_idle_seconds": 0.0042362213134765625,
+      "first_piece_synthesis_seconds": 0.6485879250103608,
+      "first_piece_audio_seconds": 0.88,
+      "first_piece_words": 2,
+      "asr_to_play_seconds": 24.752707481384277,
+      "instant_synthesis_asr_to_play_seconds": 21.178156852722168
+    },
+    {
+      "seq": 10,
+      "queue_seconds": 11.01089882850647,
+      "queue_outside_previous_job_slots_seconds": 0.0008387565612792969,
+      "ready_wait_seconds": 7.104214906692505,
+      "ready_wait_playing_seconds": 7.099872589111328,
+      "ready_wait_idle_seconds": 0.004342317581176758,
+      "first_piece_synthesis_seconds": 2.2899613310582936,
+      "first_piece_audio_seconds": 3.04,
+      "first_piece_words": 7,
+      "asr_to_play_seconds": 22.697241067886353,
+      "instant_synthesis_asr_to_play_seconds": 19.121269941329956
+    },
+    {
+      "seq": 11,
+      "queue_seconds": 5.708756923675537,
+      "queue_outside_previous_job_slots_seconds": 0.0012691020965576172,
+      "ready_wait_seconds": 6.955748796463013,
+      "ready_wait_playing_seconds": 6.95105767250061,
+      "ready_wait_idle_seconds": 0.004691123962402344,
+      "first_piece_synthesis_seconds": 1.7844530401052907,
+      "first_piece_audio_seconds": 2.32,
+      "first_piece_words": 9,
+      "asr_to_play_seconds": 18.700515031814575,
+      "instant_synthesis_asr_to_play_seconds": 15.122736930847168
+    },
+    {
+      "seq": 12,
+      "queue_seconds": 13.449124097824097,
+      "queue_outside_previous_job_slots_seconds": 0.00176239013671875,
+      "ready_wait_seconds": 6.4383203983306885,
+      "ready_wait_playing_seconds": 6.433408498764038,
+      "ready_wait_idle_seconds": 0.004911899566650391,
+      "first_piece_synthesis_seconds": 2.625512704020366,
+      "first_piece_audio_seconds": 3.52,
+      "first_piece_words": 8,
+      "asr_to_play_seconds": 26.849021911621094,
+      "instant_synthesis_asr_to_play_seconds": 23.264498710632324
+    },
+    {
+      "seq": 13,
+      "queue_seconds": 16.280045747756958,
+      "queue_outside_previous_job_slots_seconds": 0.0016782283782958984,
+      "ready_wait_seconds": 7.5146238803863525,
+      "ready_wait_playing_seconds": 7.509759187698364,
+      "ready_wait_idle_seconds": 0.004864692687988281,
+      "first_piece_synthesis_seconds": 1.5408511600689963,
+      "first_piece_audio_seconds": 1.92,
+      "first_piece_words": 8,
+      "asr_to_play_seconds": 27.4145085811615,
+      "instant_synthesis_asr_to_play_seconds": 23.82856321334839
+    },
+    {
+      "seq": 14,
+      "queue_seconds": 7.882987976074219,
+      "queue_outside_previous_job_slots_seconds": 0.001379251480102539,
+      "ready_wait_seconds": 6.73912239074707,
+      "ready_wait_playing_seconds": 6.733453989028931,
+      "ready_wait_idle_seconds": 0.0056684017181396484,
+      "first_piece_synthesis_seconds": 2.2937837629579008,
+      "first_piece_audio_seconds": 3.04,
+      "first_piece_words": 8,
+      "asr_to_play_seconds": 20.244677782058716,
+      "instant_synthesis_asr_to_play_seconds": 16.656383275985718
+    },
+    {
+      "seq": 17,
+      "queue_seconds": 0.0007929801940917969,
+      "queue_outside_previous_job_slots_seconds": 0.0007929801940917969,
+      "ready_wait_seconds": 0.0006854534149169922,
+      "ready_wait_playing_seconds": 0,
+      "ready_wait_idle_seconds": 0.0006854534149169922,
+      "first_piece_synthesis_seconds": 3.072970589972101,
+      "first_piece_audio_seconds": 4.88,
+      "first_piece_words": 12,
+      "asr_to_play_seconds": 5.514632225036621,
+      "instant_synthesis_asr_to_play_seconds": 2.4392433166503906
+    },
+    {
+      "seq": 18,
+      "queue_seconds": 5.276114225387573,
+      "queue_outside_previous_job_slots_seconds": 0.0004391670227050781,
+      "ready_wait_seconds": 5.041327476501465,
+      "ready_wait_playing_seconds": 5.037681341171265,
+      "ready_wait_idle_seconds": 0.0036461353302001953,
+      "first_piece_synthesis_seconds": 0.6884551360271871,
+      "first_piece_audio_seconds": 0.8,
+      "first_piece_words": 1,
+      "asr_to_play_seconds": 12.990379571914673,
+      "instant_synthesis_asr_to_play_seconds": 9.910743474960327
+    },
+    {
+      "seq": 20,
+      "queue_seconds": 0.0009903907775878906,
+      "queue_outside_previous_job_slots_seconds": 0.0009903907775878906,
+      "ready_wait_seconds": 0.0006077289581298828,
+      "ready_wait_playing_seconds": 0,
+      "ready_wait_idle_seconds": 0.0006077289581298828,
+      "first_piece_synthesis_seconds": 0.7765285320347175,
+      "first_piece_audio_seconds": 1.12,
+      "first_piece_words": 4,
+      "asr_to_play_seconds": 2.9911985397338867,
+      "instant_synthesis_asr_to_play_seconds": 2.211466073989868
+    },
+    {
+      "seq": 21,
+      "queue_seconds": 2.5722780227661133,
+      "queue_outside_previous_job_slots_seconds": 0.0004832744598388672,
+      "ready_wait_seconds": 0.2726144790649414,
+      "ready_wait_playing_seconds": 0.27118349075317383,
+      "ready_wait_idle_seconds": 0.0014309883117675781,
+      "first_piece_synthesis_seconds": 2.7743014430161566,
+      "first_piece_audio_seconds": 3.76,
+      "first_piece_words": 10,
+      "asr_to_play_seconds": 6.825112819671631,
+      "instant_synthesis_asr_to_play_seconds": 5.896847724914551
+    },
+    {
+      "seq": 22,
+      "queue_seconds": 4.271423816680908,
+      "queue_outside_previous_job_slots_seconds": 0.0008928775787353516,
+      "ready_wait_seconds": 2.803285598754883,
+      "ready_wait_playing_seconds": 2.801807165145874,
+      "ready_wait_idle_seconds": 0.001478433609008789,
+      "first_piece_synthesis_seconds": 1.2284682599129155,
+      "first_piece_audio_seconds": 1.92,
+      "first_piece_words": 5,
+      "asr_to_play_seconds": 9.068143367767334,
+      "instant_synthesis_asr_to_play_seconds": 8.138227462768555
+    },
+    {
+      "seq": 24,
+      "queue_seconds": 0.9820950031280518,
+      "queue_outside_previous_job_slots_seconds": 0.00037479400634765625,
+      "ready_wait_seconds": 1.863342523574829,
+      "ready_wait_playing_seconds": 1.8615577220916748,
+      "ready_wait_idle_seconds": 0.0017848014831542969,
+      "first_piece_synthesis_seconds": 2.859723092056811,
+      "first_piece_audio_seconds": 4.0,
+      "first_piece_words": 7,
+      "asr_to_play_seconds": 6.577120065689087,
+      "instant_synthesis_asr_to_play_seconds": 5.645083904266357
+    }
+  ]
+}
