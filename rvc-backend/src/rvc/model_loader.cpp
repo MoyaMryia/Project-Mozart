@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <algorithm>
 
 namespace rvc {
 
@@ -216,10 +217,13 @@ std::vector<std::map<std::string, std::string>> ModelManager::list_models() cons
         result.push_back({
             {"id", model->id()},
             {"exists", model->exists() ? "true" : "false"},
-            {"loaded", model->loaded() ? "true" : "false"},
+            {"loaded", models_.count(model->id()) && models_.at(model->id())->loaded() ? "true" : "false"},
             {"current", (model->id() == current_model_id_) ? "true" : "false"},
         });
     }
+    std::sort(result.begin(), result.end(), [](const auto& left, const auto& right) {
+        return left.at("id") < right.at("id");
+    });
     return result;
 }
 

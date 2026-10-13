@@ -97,15 +97,13 @@ if(USE_ONNX)
         find_library(ONNX_RUNTIME_LIB onnxruntime)
     endif()
 
-    if(ONNX_RUNTIME_LIB)
+    if(ONNX_RUNTIME_LIB AND EXISTS "${ONNX_RUNTIME_INCLUDE_DIR}/onnxruntime_cxx_api.h")
         message(STATUS "Found ONNX Runtime: ${ONNX_RUNTIME_LIB}")
         add_definitions(-DUSE_ONNX)
     else()
-        message(WARNING "ONNX Runtime not found. "
-            "Install with: apt install libonnxruntime-dev\n"
-            "Or set ONNX_RUNTIME_PATH to custom install location.\n"
-            "Reverting to USE_ONNX=OFF")
-        set(USE_ONNX OFF)
+        message(FATAL_ERROR "USE_ONNX=ON requires ONNX Runtime headers and library. "
+            "Set ONNX_RUNTIME_PATH and ONNX_RUNTIME_INCLUDE_DIR. "
+            "For host tests or a TensorRT-only build, explicitly set USE_ONNX=OFF.")
     endif()
 endif()
 
@@ -212,6 +210,14 @@ endif()
 # ══════════════════════════════════════════════════════════
 if(BUILD_TESTS)
     enable_testing()
+    add_executable(test_model_selection tests/test_model_selection.cpp)
+    target_link_libraries(test_model_selection PRIVATE mozart_rvc_runtime)
+    add_test(NAME model_selection COMMAND test_model_selection)
+    if(NOT USE_ONNX)
+        add_executable(test_onnx_unavailable tests/test_onnx_unavailable.cpp)
+        target_link_libraries(test_onnx_unavailable PRIVATE mozart_rvc_runtime)
+        add_test(NAME onnx_unavailable COMMAND test_onnx_unavailable)
+    endif()
     add_executable(test_mode_controller tests/test_mode_controller.cpp)
     target_link_libraries(test_mode_controller PRIVATE mozart_rvc_runtime)
     foreach(case capacity position clear_queued active_cancel eviction clear_completed clear_failed disabled)

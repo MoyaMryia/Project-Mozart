@@ -238,9 +238,11 @@ std::unique_ptr<RVCPipelineBase> RVCPipelineFactory::create(
             auto it = m.find("exists");
             if (it != m.end() && it->second == "true") {
                 try {
-                    model_manager->load_model(m.at("id"));
-                    break;
-                } catch (...) {}
+                    if (model_manager->load_model(m.at("id"))) break;
+                    spdlog::warn("Skipping unavailable initial model: {}", m.at("id"));
+                } catch (const std::exception& error) {
+                    spdlog::warn("Initial model {} failed: {}", m.at("id"), error.what());
+                }
             }
         }
     }
