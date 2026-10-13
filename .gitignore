@@ -113,3 +113,6 @@ reports/**/jobs/
 reports/**/stream-jobs/
 reports/**/stream-models/
 reports/**/__pycache__/
+
+# 历史延迟分析报告引用的统计证据。
+!reports/repository-audit-20261008/realtime-analysis.json
