@@ -11,6 +11,9 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <future>
+#include <sys/wait.h>
+#include <cerrno>
 
 #include "state/mode_controller.hpp"
 
@@ -253,13 +256,101 @@ void test_disabled() {
     require(controller.enqueue_file(temporary.path/"missing.wav", "missing.wav", "").value("status", "") == "rejected", "disabled file queue accepted input");
 }
 
+void test_file_paths() {
+    Fixture f;
+    rvc::FileRvcWorker::Config config;
+    config.storage_dir = f.temporary.path / "audio";
+    const auto executable = f.temporary.path / "ffmpeg '$ tool";
+    fs::create_symlink("/usr/bin/ffmpeg", executable);
+    config.ffmpeg_path = executable.string();
+    rvc::FileRvcWorker worker(f.pipeline, config);
+    rvc::FileRvcWorker::Request request{"job_paths", "", f.source("quotes \" '$HOME `name`.wav"),
+                                        config.storage_dir / "result '$ audio.wav"};
+    std::atomic<bool> cancelled{false};
+    std::string error;
+    require(worker.process(request, cancelled, [](int) {}, error), "literal paths failed: " + error);
+    require(fs::file_size(request.output_path) > 44, "converted WAV missing");
+    require(!fs::exists(config.storage_dir / "paths_decoded.f32"), "temporary input retained");
+}
+
+void test_file_duration() {
+    Fixture f;
+    for (const bool rnnoise : {false, true}) {
+        rvc::FileRvcWorker::Config config;
+        config.storage_dir = f.temporary.path / "audio";
+        config.max_duration_seconds = 1;
+        config.rnnoise = rnnoise;
+        rvc::FileRvcWorker worker(f.pipeline, config);
+        rvc::FileRvcWorker::Request request{"job_limit", "", f.source("long.wav", 16001),
+                                            config.storage_dir / "result.wav"};
+        std::atomic<bool> cancelled{false};
+        std::string error;
+        require(!worker.process(request, cancelled, [](int) {}, error), "overlong audio was accepted");
+        require(error == "audio exceeds 1 second limit", "unexpected error: " + error);
+        require(!fs::exists(request.output_path), "overlong result was published");
+        require(!fs::exists(config.storage_dir / "limit_decoded.f32"), "decoded input retained");
+        require(!fs::exists(config.storage_dir / "limit_decoded_48k.f32"), "48 kHz input retained");
+    }
+}
+
+void test_ffmpeg_lifecycle(const std::string& scenario) {
+    Fixture f;
+    const auto marker = f.temporary.path / "child.pid";
+    const auto executable = f.temporary.path / "fake ffmpeg";
+    {
+        std::ofstream script(executable);
+        script << "#!/usr/bin/python3\nimport os, sys, time\nfrom pathlib import Path\n"
+               << "output = Path(sys.argv[-1])\noutput.write_bytes(bytes(320*4))\n";
+        if (scenario == "cancel_encode") script << "if output.suffix != '.part': sys.exit(0)\n";
+        script << "Path('" << marker.string() << "').write_text(str(os.getpid()))\n";
+        if (scenario == "failure") script << "sys.exit(3)\n";
+        else script << "time.sleep(30)\n";
+    }
+    fs::permissions(executable, fs::perms::owner_all);
+    rvc::FileRvcWorker::Config config;
+    config.storage_dir = f.temporary.path / "audio";
+    config.ffmpeg_path = executable.string();
+    config.ffmpeg_timeout_ms = scenario == "timeout" ? 100 : 2000;
+    rvc::FileRvcWorker worker(f.pipeline, config);
+    rvc::FileRvcWorker::Request request{"job_child", "", f.source("input.wav"), config.storage_dir / "result.wav"};
+    std::atomic<bool> cancelled{false};
+    std::string error;
+    const auto start = std::chrono::steady_clock::now();
+    auto result = std::async(std::launch::async, [&] {
+        return worker.process(request, cancelled, [](int) {}, error);
+    });
+    if (scenario == "cancel_decode" || scenario == "cancel_encode") {
+        while (!fs::exists(marker) && result.wait_for(5ms) != std::future_status::ready) {
+            if (std::chrono::steady_clock::now() - start > 1500ms) break;
+        }
+        cancelled = true;
+    }
+    require(!result.get(), "failed or cancelled FFmpeg published success");
+    require(std::chrono::steady_clock::now() - start < 1500ms, "FFmpeg cancellation or timeout was too slow");
+    const auto expected = scenario == "timeout" ? "ffmpeg deadline exceeded"
+        : scenario == "failure" ? "ffmpeg failed" : "cancelled";
+    require(error == expected, "unexpected worker error: " + error);
+    require(!fs::exists(request.output_path), "incomplete result was published");
+    require(!fs::exists(request.output_path.string() + ".part"), "partial output retained");
+    require(!fs::exists(config.storage_dir / "child_decoded.f32"), "decoded input retained");
+    require(!fs::exists(config.storage_dir / "child_output.f32"), "temporary output retained");
+    pid_t child = -1;
+    std::ifstream(marker) >> child;
+    require(child > 0, "FFmpeg did not start");
+    int status = 0;
+    require(waitpid(child, &status, WNOHANG) == -1 && errno == ECHILD, "FFmpeg child was not reaped");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
     try {
         require(argc == 2, "expected one test case name");
         const std::string name = argv[1];
-        if (name == "capacity") test_capacity();
+        if (name == "file_paths") test_file_paths();
+        else if (name == "file_duration") test_file_duration();
+        else if (name == "cancel_decode" || name == "cancel_encode" || name == "timeout" || name == "failure") test_ffmpeg_lifecycle(name);
+        else if (name == "capacity") test_capacity();
         else if (name == "position") test_position();
         else if (name == "clear_queued") test_clear_queued();
         else if (name == "active_cancel") test_active_cancel();
