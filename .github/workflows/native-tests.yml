@@ -32,11 +32,28 @@ jobs:
           cmake -S rvc-backend -B build/host -G Ninja
           -DCMAKE_BUILD_TYPE=Debug
           -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON
+          -DMOZART_BUILD_TESTS=ON
       - name: Build native targets
         run: cmake --build build/host -j2
       - name: Run native regression tests
         run: ctest --test-dir build/host --output-on-failure
-      - name: Test paced preprocessor replay
-        run: python3 preprocessor/tests/test_replay.py build/host/mozart_pre/mozart-pre
       - name: Repeat queue lifecycle tests
         run: ctest --test-dir build/host -R '^state_' --repeat until-fail:10 --output-on-failure
+      - name: Run Python regression tests
+        run: python3 -m unittest discover -s tools/tests -v
+
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend test
+      - run: npm --prefix frontend run build
