@@ -213,6 +213,8 @@ void test_eviction() {
     const auto pending_path = f.source("001-pending.wav", 800);
     const auto pending = job_id(f.enqueue(pending_path));
     const auto orphan_path = f.source("000-orphan.wav", 800);
+    const auto uploading = f.controller->upload_path("upload.wav");
+    write_wav(uploading, 800);
     require(f.controller->request_mode("idle").value("status", "") == "switching_deferred", "idle was not deferred");
     f.pipeline.release();
     // The deferred transition runs after process_job() and evict_cache().
@@ -220,6 +222,11 @@ void test_eviction() {
     require(fs::exists(pending_path), "cache eviction deleted a queued input");
     require(f.controller->job_status(pending).value("status", "") == "queued", "pending job state changed");
     require(!fs::exists(orphan_path), "cache eviction did not remove unprotected files");
+    require(fs::exists(uploading), "cache eviction deleted an active upload");
+    job_id(f.enqueue(uploading));
+    auto committed = uploading;
+    committed.replace_extension();
+    require(!fs::exists(uploading) && fs::exists(committed), "upload was not committed at queue admission");
 }
 
 void test_clear_terminal(bool fail) {

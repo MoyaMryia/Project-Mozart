@@ -15,6 +15,9 @@
 #include <thread>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <poll.h>
+#include <cerrno>
+#include <fcntl.h>
 
 // 写已断开的 socket 不应让进程收到 SIGPIPE（Linux）。没有该标志时退化为 0。
 #ifndef MSG_NOSIGNAL
@@ -27,6 +30,10 @@ static std::string http_response(int code, const std::string& body, const std::s
     std::string status;
     switch (code) {
         case 200: status = "200 OK"; break;
+        case 202: status = "202 Accepted"; break;
+        case 408: status = "408 Request Timeout"; break;
+        case 431: status = "431 Request Header Fields Too Large"; break;
+        case 503: status = "503 Service Unavailable"; break;
         case 400: status = "400 Bad Request"; break;
         case 404: status = "404 Not Found"; break;
         case 409: status = "409 Conflict"; break;
@@ -44,6 +51,33 @@ static std::string http_response(int code, const std::string& body, const std::s
            "\r\n" + body;
 }
 
+using Clock = std::chrono::steady_clock;
+
+static bool wait_socket(int fd, short events, Clock::time_point deadline) {
+    while (Clock::now() < deadline) {
+        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - Clock::now());
+        pollfd descriptor{fd, events, 0};
+        const int result = poll(&descriptor, 1, static_cast<int>(std::max<int64_t>(1, remaining.count())));
+        if (result > 0) return (descriptor.revents & events) != 0;
+        if (result < 0 && errno != EINTR) return false;
+    }
+    return false;
+}
+
+static bool send_all(int fd, const char* data, size_t size, Clock::time_point deadline) {
+    size_t sent = 0;
+    while (sent < size && wait_socket(fd, POLLOUT, deadline)) {
+        const auto count = send(fd, data + sent, size - sent, MSG_NOSIGNAL | MSG_DONTWAIT);
+        if (count > 0) sent += static_cast<size_t>(count);
+        else if (count == 0 || (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK)) return false;
+    }
+    return sent == size;
+}
+
+static bool send_all(int fd, const std::string& data, Clock::time_point deadline) {
+    return send_all(fd, data.data(), data.size(), deadline);
+}
+
 // The reference-TTS worker owns its engine and queue in a separate process.
 // Keep inference off this control server; proxy only bounded metadata and WAVs.
 static std::string speech_request(const std::string& method, const std::string& path,
@@ -58,39 +92,46 @@ static std::string speech_request(const std::string& method, const std::string& 
     if (port < 1 || port > 65535) return unavailable();
     if (body.size() > 7ULL * 1024 * 1024)
         return http_response(413, R"({"error":"Speech request exceeds 7 MiB"})");
-    const int fd = socket(AF_INET, SOCK_STREAM, 0);
+    const int fd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
     if (fd < 0) return unavailable();
-    timeval timeout{5, 0};
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+    const auto deadline = Clock::now() + std::chrono::seconds(5);
     sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_port = htons(static_cast<uint16_t>(port));
     inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
     if (connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
-        socket_close(fd);
-        return unavailable();
+        if (errno != EINPROGRESS || !wait_socket(fd, POLLOUT, deadline)) {
+            socket_close(fd);
+            return unavailable();
+        }
+        int error = 0;
+        socklen_t size = sizeof(error);
+        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &size) != 0 || error != 0) {
+            socket_close(fd);
+            return unavailable();
+        }
     }
     const std::string request = method + " " + path + " HTTP/1.1\r\nHost: 127.0.0.1\r\n"
         "Content-Type: application/json\r\nConnection: close\r\nContent-Length: "
         + std::to_string(body.size()) + "\r\n\r\n" + body;
-    size_t sent = 0;
-    while (sent < request.size()) {
-        const auto n = send(fd, request.data() + sent, request.size() - sent, MSG_NOSIGNAL);
-        if (n <= 0) { socket_close(fd); return unavailable(); }
-        sent += static_cast<size_t>(n);
-    }
+    if (!send_all(fd, request, deadline)) { socket_close(fd); return unavailable(); }
     std::string response;
     char buffer[8192];
-    ssize_t n;
-    while ((n = recv(fd, buffer, sizeof(buffer), 0)) > 0) {
-        response.append(buffer, static_cast<size_t>(n));
-        if (response.size() > 10ULL * 1024 * 1024) {
-            socket_close(fd); return unavailable();
+    while (wait_socket(fd, POLLIN, deadline)) {
+        const auto count = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+        if (count == 0) {
+            socket_close(fd);
+            return response.empty() ? unavailable() : response;
         }
+        if (count < 0) {
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) continue;
+            break;
+        }
+        response.append(buffer, static_cast<size_t>(count));
+        if (response.size() > 10ULL * 1024 * 1024) break;
     }
     socket_close(fd);
-    return n < 0 || response.empty() ? unavailable() : response;
+    return unavailable();
 }
 
 static std::string parse_request_path(const std::string& req) {
@@ -124,27 +165,33 @@ static std::string query_value(const std::string& path, const std::string& key) 
     return "";
 }
 
-static size_t content_length(const std::string& header) {
-    std::string normalized = header;
-    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char character) {
-        return static_cast<char>(std::tolower(character));
-    });
-    const std::string marker = "\r\ncontent-length:";
-    const auto position = normalized.find(marker);
-    if (position == std::string::npos) return 0;
-    size_t index = position + marker.size();
-    const auto value_end = header.find("\r\n", index);
-    if (value_end == std::string::npos) return 0;
-    while (index < value_end && (header[index] == ' ' || header[index] == '\t')) ++index;
-    if (index == value_end) return 0;
-    size_t value = 0;
-    for (; index < value_end; ++index) {
-        const unsigned char character = static_cast<unsigned char>(header[index]);
-        if (!std::isdigit(character)) return 0;
-        if (value > (std::numeric_limits<size_t>::max() - 9) / 10) return 0;
-        value = value * 10 + static_cast<size_t>(character - '0');
+static bool content_length(const std::string& header, size_t& value) {
+    bool found = false;
+    value = 0;
+    auto position = header.find("\r\n") + 2;
+    while (position < header.size() - 2) {
+        const auto end = header.find("\r\n", position);
+        const auto colon = header.find(':', position);
+        if (colon == std::string::npos || colon >= end) return false;
+        auto name = header.substr(position, colon - position);
+        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
+        if (name == "transfer-encoding") return false;
+        if (name == "content-length") {
+            if (found) return false;
+            found = true;
+            size_t start = colon + 1, stop = end;
+            while (start < stop && (header[start] == ' ' || header[start] == '\t')) ++start;
+            while (stop > start && (header[stop - 1] == ' ' || header[stop - 1] == '\t')) --stop;
+            if (start == stop) return false;
+            for (; start < stop; ++start) {
+                const auto c = static_cast<unsigned char>(header[start]);
+                if (c < '0' || c > '9' || value > (std::numeric_limits<size_t>::max() - (c - '0')) / 10) return false;
+                value = value * 10 + (c - '0');
+            }
+        }
+        position = end + 2;
     }
-    return value;
+    return true;
 }
 
 // 音色 ID 只允许单层目录名，阻止 ../ 或绝对路径穿透 models_dir。
@@ -176,9 +223,10 @@ HttpApiServer::HttpApiServer(
     uint16_t port,
     ControlPlane* controller
 )
-    : host_(host), port_(port)
-    , controller_(controller)
-{}
+    : HttpApiServer(host, port, controller, Limits{}) {}
+
+HttpApiServer::HttpApiServer(const std::string& host, uint16_t port, ControlPlane* controller, Limits limits)
+    : host_(host), port_(port), controller_(controller), limits_(limits) {}
 
 HttpApiServer::~HttpApiServer() {
     stop();
@@ -187,7 +235,8 @@ HttpApiServer::~HttpApiServer() {
 bool HttpApiServer::start() {
     if (running_.load()) return false;
 
-    server_fd_ = socket(AF_INET, SOCK_STREAM, 0);
+    workers_.reserve(limits_.connections);
+    server_fd_ = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
     if (server_fd_ < 0) {
         spdlog::error("Failed to create HTTP socket");
         return false;
@@ -211,12 +260,14 @@ bool HttpApiServer::start() {
     if (bind(server_fd_, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) < 0) {
         spdlog::error("Failed to bind HTTP socket to {}:{}", host_, port_);
         socket_close(server_fd_);
+        server_fd_ = -1;
         return false;
     }
 
     if (listen(server_fd_, 10) < 0) {
         spdlog::error("Failed to listen on HTTP socket");
         socket_close(server_fd_);
+        server_fd_ = -1;
         return false;
     }
 
@@ -229,91 +280,135 @@ bool HttpApiServer::start() {
 
 void HttpApiServer::stop() {
     running_ = false;
+    if (server_fd_ >= 0) shutdown(server_fd_, SHUT_RDWR);
+    {
+        std::lock_guard<std::mutex> lock(workers_mutex_);
+        for (const int fd : clients_) shutdown(fd, SHUT_RDWR);
+    }
+    if (server_thread_.joinable()) server_thread_.join();
     if (server_fd_ >= 0) {
-#ifdef _WIN32
-        shutdown(server_fd_, SD_BOTH);
-#else
-        shutdown(server_fd_, SHUT_RDWR);
-#endif
         socket_close(server_fd_);
         server_fd_ = -1;
     }
-    if (server_thread_.joinable()) {
-        server_thread_.join();
-    }
-    std::vector<SseWorker> workers;
+    std::vector<Worker> workers;
     {
-        std::lock_guard<std::mutex> lock(sse_mutex_);
-        workers.swap(sse_workers_);
+        std::lock_guard<std::mutex> lock(workers_mutex_);
+        workers.swap(workers_);
     }
     for (auto& worker : workers) {
         if (worker.thread.joinable()) worker.thread.join();
     }
 }
 
-void HttpApiServer::reap_finished_sse_locked() {
-    auto worker = sse_workers_.begin();
-    while (worker != sse_workers_.end()) {
+void HttpApiServer::reap_finished_workers_locked() {
+    auto worker = workers_.begin();
+    while (worker != workers_.end()) {
         if (worker->done->load()) {
-            if (worker->thread.joinable()) worker->thread.join();
-            worker = sse_workers_.erase(worker);
-        } else {
-            ++worker;
-        }
+            worker->thread.join();
+            worker = workers_.erase(worker);
+        } else ++worker;
     }
 }
 
 void HttpApiServer::run_server() {
     while (running_) {
-        struct sockaddr_in client_addr;
-        socklen_t client_len = sizeof(client_addr);
-
-        int client_fd = accept(server_fd_,
-            reinterpret_cast<struct sockaddr*>(&client_addr), &client_len);
-
+        const int client_fd = accept4(server_fd_, nullptr, nullptr, SOCK_CLOEXEC);
         if (client_fd < 0) {
             if (!running_) break;
             continue;
         }
-
-        try {
-            handle_request(client_fd);
-        } catch (const std::exception& error) {
-            spdlog::error("HTTP request handling failed: {}", error.what());
-            const auto response = http_response(500, R"({"error":"internal server error"})");
-            send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+        std::lock_guard<std::mutex> lock(workers_mutex_);
+        reap_finished_workers_locked();
+        if (!running_ || workers_.size() >= limits_.connections) {
+            const auto response = http_response(503, R"({"error":"connection limit reached"})");
+            send(client_fd, response.data(), response.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
+            socket_close(client_fd);
+            continue;
         }
-        socket_close(client_fd);
+        auto done = std::make_shared<std::atomic<bool>>(false);
+        clients_.insert(client_fd);
+        try {
+            workers_.push_back({std::thread([this, client_fd, done]() {
+                try {
+                    handle_request(client_fd);
+                } catch (const std::exception& error) {
+                    spdlog::error("HTTP request failed: {}", error.what());
+                    send_all(client_fd, http_response(500, R"({"error":"internal server error"})"),
+                             Clock::now() + limits_.write_timeout);
+                }
+                std::lock_guard<std::mutex> lock(workers_mutex_);
+                clients_.erase(client_fd);
+                socket_close(client_fd);
+                done->store(true);
+            }), done});
+        } catch (const std::system_error& error) {
+            clients_.erase(client_fd);
+            socket_close(client_fd);
+            spdlog::error("Failed to start HTTP worker: {}", error.what());
+        }
     }
 }
 
 void HttpApiServer::handle_request(int client_fd) {
-    constexpr size_t max_request_bytes = 110ULL * 1024ULL * 1024ULL;
+    constexpr size_t max_request_bytes = 110ULL * 1024 * 1024;
+    constexpr size_t max_header_bytes = 16 * 1024;
+    struct RequestBudget {
+        std::atomic<size_t>& total;
+        size_t bytes = 0;
+        ~RequestBudget() { total.fetch_sub(bytes); }
+    } budget{request_bytes_};
+    const auto start = Clock::now();
+    const auto deadline = start + limits_.request_timeout;
+    const auto reject = [&](int code, const char* error) {
+        send_all(client_fd, http_response(code, nlohmann::json{{"error", error}}.dump()),
+                 Clock::now() + limits_.write_timeout);
+    };
     std::string request;
     char buffer[8192];
     size_t header_end = std::string::npos;
     size_t expected_size = 0;
-    while (request.size() < max_request_bytes) {
-        const ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
+    while (true) {
+        const auto read_deadline = header_end == std::string::npos
+            ? std::min(deadline, start + limits_.header_timeout) : deadline;
+        if (!wait_socket(client_fd, POLLIN, read_deadline)) {
+            if (running_) reject(408, "request deadline exceeded");
+            return;
+        }
+        const ssize_t n = recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+        if (n < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) continue;
         if (n <= 0) return;
+        const size_t bytes = static_cast<size_t>(n);
+        const size_t previous = request_bytes_.fetch_add(bytes);
+        budget.bytes += bytes;
+        if (previous + bytes > limits_.request_memory_bytes) {
+            reject(503, "request memory limit reached");
+            return;
+        }
         request.append(buffer, static_cast<size_t>(n));
         if (header_end == std::string::npos) {
             header_end = request.find("\r\n\r\n");
+            if ((header_end == std::string::npos && request.size() > max_header_bytes)
+                || (header_end != std::string::npos && header_end + 4 > max_header_bytes)) {
+                reject(431, "request header exceeds 16 KiB");
+                return;
+            }
             if (header_end != std::string::npos) {
-                expected_size = header_end + 4 + content_length(request.substr(0, header_end + 4));
-                if (expected_size > max_request_bytes) {
-                    const auto response = http_response(413, R"({"error":"upload exceeds 100MB limit"})");
-                    send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+                size_t length = 0;
+                if (!content_length(request.substr(0, header_end + 4), length)) {
+                    reject(400, "invalid request framing");
                     return;
                 }
+                if (length > max_request_bytes - header_end - 4) {
+                    reject(413, "request exceeds 110 MiB");
+                    return;
+                }
+                expected_size = header_end + 4 + length;
             }
         }
         if (header_end != std::string::npos && request.size() >= expected_size) break;
     }
-    if (header_end == std::string::npos || request.size() < expected_size) return;
-
     const std::string header = request.substr(0, header_end + 4);
-    const std::string body = request.substr(header_end + 4);
+    const std::string body = request.substr(header_end + 4, expected_size - header_end - 4);
     std::string method = parse_request_method(header);
     std::string path = parse_request_path(header);
     const std::string route = path.substr(0, path.find('?'));
@@ -377,39 +472,19 @@ void HttpApiServer::handle_request(int client_fd) {
         if (response.empty()) return;
     }
     else if (route == "/api/subtitles" && method == "GET") {
-        // SSE 长连接：dup 出独立 fd 交给受跟踪的工作线程 tail 字幕 JSONL，
-        // 原连接立即返回由 run_server 关闭（dup 引用同一 TCP 连接）。
-        const int sse_fd = dup(client_fd);
-        if (sse_fd < 0) {
-            const auto response = http_response(500, R"({"error":"failed to open subtitle stream"})");
-            send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+        if (subtitle_connections_.fetch_add(1) >= limits_.subtitle_connections) {
+            subtitle_connections_.fetch_sub(1);
+            response = http_response(503, R"({"error":"subtitle connection limit reached"})");
+        } else {
+            try {
+                handle_subtitles_stream(client_fd);
+            } catch (...) {
+                subtitle_connections_.fetch_sub(1);
+                throw;
+            }
+            subtitle_connections_.fetch_sub(1);
             return;
         }
-#ifdef _WIN32
-        const DWORD send_timeout_ms = 5000;
-        setsockopt(sse_fd, SOL_SOCKET, SO_SNDTIMEO,
-                   reinterpret_cast<const char*>(&send_timeout_ms), sizeof(send_timeout_ms));
-#else
-        struct timeval send_timeout{5, 0};
-        setsockopt(sse_fd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(send_timeout));
-#endif
-        auto done = std::make_shared<std::atomic<bool>>(false);
-        try {
-            std::thread worker([this, sse_fd, done]() {
-                handle_subtitles_stream(sse_fd);
-                socket_close(sse_fd);
-                done->store(true);
-            });
-            std::lock_guard<std::mutex> lock(sse_mutex_);
-            reap_finished_sse_locked();
-            sse_workers_.push_back({std::move(worker), done});
-        } catch (const std::system_error& error) {
-            spdlog::error("Failed to start subtitle SSE worker: {}", error.what());
-            socket_close(sse_fd);
-            const auto response = http_response(500, R"({"error":"failed to start subtitle stream"})");
-            send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
-        }
-        return;
     }
     else if (route == "/api/file/cancel" && method == "DELETE") {
         response = handle_file_cancel(path);
@@ -437,12 +512,7 @@ void HttpApiServer::handle_request(int client_fd) {
         response = http_response(404, R"({"error":"not found"})");
     }
 
-    size_t sent = 0;
-    while (sent < response.size()) {
-        const auto n = send(client_fd, response.data() + sent, response.size() - sent, MSG_NOSIGNAL);
-        if (n <= 0) break;
-        sent += static_cast<size_t>(n);
-    }
+    send_all(client_fd, response, Clock::now() + limits_.write_timeout);
 }
 
 std::string HttpApiServer::handle_health() {
@@ -457,7 +527,7 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
         "Connection: keep-alive\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n";
-    if (send(client_fd, kHead, std::strlen(kHead), MSG_NOSIGNAL) < 0) return;
+    if (!send_all(client_fd, kHead, std::strlen(kHead), Clock::now() + limits_.write_timeout)) return;
 
     const char* env = std::getenv("MOZART_SUBTITLES_JSONL");
     const std::string file_path = env && env[0] ? env : "/tmp/opencode/subtitles.jsonl";
@@ -476,9 +546,14 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
         }
     };
     try_open();
-    auto last_retry = std::chrono::steady_clock::now();
+    auto last_retry = Clock::now();
+    auto last_heartbeat = Clock::now();
 
     while (running_) {
+        if (Clock::now() - last_heartbeat >= std::chrono::seconds(1)) {
+            if (!send_all(client_fd, ": heartbeat\n\n", Clock::now() + limits_.write_timeout)) return;
+            last_heartbeat = Clock::now();
+        }
         struct stat current{};
         if (file.is_open() && stat(file_path.c_str(), &current) == 0) {
             const auto position = file.tellg();
@@ -495,13 +570,13 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
             }
         } else {
             std::string line;
-            while (file) {
+            while (file && running_) {
                 const auto position = file.tellg();
                 if (!std::getline(file, line)) break;
                 if (file.eof()) { file.clear(); file.seekg(position); break; }
                 if (line.empty()) continue;
                 const std::string payload = "data: " + line + "\n\n";
-                if (send(client_fd, payload.c_str(), payload.size(), MSG_NOSIGNAL) < 0) {
+                if (!send_all(client_fd, payload, Clock::now() + limits_.write_timeout)) {
                     return; // 客户端断开
                 }
             }
@@ -517,6 +592,7 @@ std::string HttpApiServer::handle_status() {
 }
 
 std::string HttpApiServer::handle_monitor() {
+    std::lock_guard<std::mutex> lock(monitor_mutex_);
     auto snapshot = monitor_.snapshot();
     snapshot["vad"] = controller_ ? controller_->status().value("vad", nlohmann::json{{"available", false}}) : nlohmann::json{{"available", false}};
     return http_response(200, snapshot.dump());
@@ -632,7 +708,16 @@ std::string HttpApiServer::handle_file_upload(const std::string& header, const s
     const auto data_start = body.find(data_start_marker, filename_end);
     const auto data_end = body.find("\r\n--" + boundary, data_start + data_start_marker.size());
     if (data_start == std::string::npos || data_end == std::string::npos) return reject(400, "invalid audio_file payload");
+    if (data_end - data_start - data_start_marker.size() > 100ULL * 1024 * 1024)
+        return reject(413, "audio file exceeds 100 MiB");
     const auto destination = controller_->upload_path(filename);
+    struct UploadCleanup {
+        std::filesystem::path path;
+        ~UploadCleanup() {
+            std::error_code error;
+            std::filesystem::remove(path, error);
+        }
+    } cleanup{destination};
     std::ofstream uploaded(destination, std::ios::binary | std::ios::trunc);
     uploaded.write(body.data() + data_start + data_start_marker.size(), static_cast<std::streamsize>(data_end - data_start - data_start_marker.size()));
     uploaded.flush();
@@ -704,10 +789,11 @@ std::string HttpApiServer::handle_file_result(int client_fd, const std::string& 
     if (!stream || error) return http_response(404, R"({"error":"completed output was removed"})");
     const std::string header = "HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nContent-Length: " + std::to_string(size)
         + "\r\nContent-Disposition: attachment; filename=\"mozart_output.wav\"\r\nConnection: close\r\n\r\n";
-    if (send(client_fd, header.c_str(), header.size(), MSG_NOSIGNAL) < 0) return "";
+    const auto deadline = Clock::now() + limits_.write_timeout;
+    if (!send_all(client_fd, header, deadline)) return "";
     char buffer[8192];
     while (stream.read(buffer, sizeof(buffer)) || stream.gcount() > 0) {
-        if (send(client_fd, buffer, static_cast<size_t>(stream.gcount()), MSG_NOSIGNAL) < 0) return "";
+        if (!send_all(client_fd, buffer, static_cast<size_t>(stream.gcount()), deadline)) return "";
     }
     return "";
 }
