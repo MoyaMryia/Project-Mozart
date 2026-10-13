@@ -211,6 +211,14 @@ nlohmann::json ModeController::enqueue_file(std::filesystem::path source_file,
         });
         if (model == models["models"].end()) return {{"status", "rejected"}, {"error", "selected RVC model is unavailable"}};
     }
+    if (source_file.extension() == ".upload") {
+        auto committed = source_file;
+        committed.replace_extension();
+        std::error_code error;
+        std::filesystem::rename(source_file, committed, error);
+        if (error) return {{"status", "rejected"}, {"error", "failed to commit uploaded audio"}};
+        source_file = std::move(committed);
+    }
     Job job;
     job.id = make_job_id();
     job.name = original_name;
@@ -511,9 +519,11 @@ nlohmann::json ModeController::list_models_locked() const {
 }
 
 std::filesystem::path ModeController::upload_path(const std::string& original_name) const {
+    static std::atomic<uint64_t> sequence{0};
     const auto now = std::chrono::time_point_cast<std::chrono::microseconds>(
         std::chrono::system_clock::now()).time_since_epoch().count();
-    return config_.storage_dir / (std::to_string(now) + "_input" + sanitize_extension(original_name));
+    return config_.storage_dir / (std::to_string(now) + "_" + std::to_string(sequence.fetch_add(1))
+                                 + "_input" + sanitize_extension(original_name) + ".upload");
 }
 
 void ModeController::file_loop() {
@@ -616,7 +626,7 @@ void ModeController::evict_cache() {
     std::filesystem::directory_iterator iterator(config_.storage_dir, error);
     if (error) return;
     for (const auto& entry : iterator) {
-        if (!entry.is_regular_file()) continue;
+        if (!entry.is_regular_file() || entry.path().extension() == ".upload") continue;
         entries.push_back(entry);
         size += entry.file_size(error);
     }
