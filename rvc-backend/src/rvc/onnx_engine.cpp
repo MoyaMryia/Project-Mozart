@@ -232,10 +232,10 @@ void OnnxEngine::unload() {
 #else // USE_ONNX not defined — stub implementation
 
 bool OnnxEngine::load(const std::filesystem::path& model_path) {
-    spdlog::warn("ONNX Runtime not compiled in (USE_ONNX=OFF); stub load: {}",
+    spdlog::error("ONNX Runtime not compiled in (USE_ONNX=OFF); cannot load: {}",
                  model_path.string());
-    loaded_ = std::filesystem::exists(model_path);
-    return loaded_;
+    loaded_ = false;
+    return false;
 }
 
 std::optional<OnnxInput::Type> OnnxEngine::input_type(const std::string&) const {
