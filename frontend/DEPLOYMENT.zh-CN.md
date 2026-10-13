@@ -36,7 +36,7 @@ cmake -S . -B build-gpu -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON
 cmake --build build-gpu -j4
 ```
 
-确认配置输出找到所需推理运行时。当前 CMake 在缺少 ONNX Runtime 时会关闭 ONNX 推理。
+当 `USE_ONNX=ON` 时，缺少 ONNX Runtime 头文件或库会使 CMake 配置失败。
 此类构建不能证明真实模型可用。独立构建 `rvc-backend/` 不产生守护进程。
 
 构建前端：
@@ -91,7 +91,7 @@ storage:
 ./build-gpu/state/mozart_stated rvc-backend/config.yaml
 ```
 
-初始模式为 `IDLE`。模型工厂按目录顺序自动选择，不保证目标音色。
+初始模式为 `IDLE`。模型工厂按 ID 排序，选择第一个加载成功的模型。
 
 另开终端读取服务状态：
 
@@ -154,7 +154,8 @@ curl 'http://127.0.0.1:18080/api/file/status?job_id=<job_id>'
 curl 'http://127.0.0.1:18080/api/file/result?job_id=<job_id>' -o output.wav
 ```
 
-取消活动任务需要等待可用的取消检查点，无法中断当前 FFmpeg 命令或整段推理调用。
+取消请求可以终止 FFmpeg。正在执行的整段 RVC 推理仍需等待返回。
+输入最长 300 s。每次 FFmpeg 解码或编码最长 120 s。
 队列与存储约束见 [API 文档](../state/API.md)。
 
 ## 使用低延迟配置

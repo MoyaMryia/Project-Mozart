@@ -1,0 +1,91 @@
+{
+  "health": {
+    "status": "ok"
+  },
+  "status": {
+    "active_model_id": "qiqi-zh-realtime",
+    "bypass": {
+      "bypass_count": 0,
+      "inference_count": 0
+    },
+    "capabilities": {
+      "file_rvc": true,
+      "file_zero_shot": false,
+      "rt_rvc": true,
+      "rt_zero_shot": false
+    },
+    "file_queue_paused": false,
+    "last_error": "",
+    "latency": {
+      "available": false,
+      "avg_ms": 0.0,
+      "count": 0,
+      "max_ms": 0.0
+    },
+    "mode": "idle",
+    "model": {
+      "has_generator": "false",
+      "has_index": "false",
+      "has_realtime_generator": "true",
+      "id": "qiqi-zh-realtime",
+      "loaded": "true",
+      "sample_rate": "48000"
+    },
+    "pending_target_mode": null,
+    "queue": [],
+    "realtime": {
+      "available": false,
+      "bypass": false,
+      "mic_muted": false
+    },
+    "stream": {
+      "blocks": 0,
+      "history_resets": 0,
+      "inference_errors": 0,
+      "input_overruns": 0,
+      "late_blocks": 0,
+      "output_overruns": 0,
+      "output_underruns": 0,
+      "resets": 0,
+      "skipped_blocks": 0,
+      "startup_output_underruns": 0
+    },
+    "stream_mode": false,
+    "vad": {
+      "available": false,
+      "confidence_percent": 0.0,
+      "frame_count": 0,
+      "voiced_percent": 0.0
+    },
+    "worker_running": false
+  },
+  "models": {
+    "models": [
+      {
+        "current": false,
+        "exists": true,
+        "id": "a-unloadable",
+        "loaded": false
+      },
+      {
+        "current": true,
+        "exists": true,
+        "id": "qiqi-zh-realtime",
+        "loaded": true
+      }
+    ]
+  },
+  "realtime_start": {
+    "mode": "rt_rvc",
+    "model_id": "qiqi-zh-realtime",
+    "status": "active"
+  },
+  "idle": {
+    "mode": "idle",
+    "model_id": "qiqi-zh-realtime",
+    "status": "active"
+  },
+  "health_during_partial_request_seconds": 0.0006544010000197886,
+  "shutdown_with_partial_request_seconds": 0.5157868019998659,
+  "exit_code": 0
+}

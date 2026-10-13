@@ -1,0 +1,612 @@
+
+COMMIT fc774b6
+$ cmake -S /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend -B /tmp/mozart-atomic-check-ehx7_r04/build -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_BUILD_TYPE=Debug -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON -DMOZART_BUILD_TESTS=ON -DFETCHCONTENT_FULLY_DISCONNECTED=ON -DFETCHCONTENT_SOURCE_DIR_YAML-CPP=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/yaml-cpp-src -DFETCHCONTENT_SOURCE_DIR_JSON=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/json-src -DFETCHCONTENT_SOURCE_DIR_SPDLOG=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/spdlog-src
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/g++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Build spdlog: 1.12.0
+-- Looking for C++ include pthread.h
+-- Looking for C++ include pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Build type: Debug
+-- The C compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found Python3: /usr/bin/python3.10 (found version "3.10.12") found components: Interpreter 
+-- Configuring done
+-- Generating done
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    FETCHCONTENT_SOURCE_DIR_JSON
+
+
+-- Build files have been written to: /tmp/mozart-atomic-check-ehx7_r04/build
+$ cmake --build /tmp/mozart-atomic-check-ehx7_r04/build -j2
+[  1%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/denoise.c.o
+[  2%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/contrib/graphbuilder.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/denoise.h:29,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/denoise.c:38:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[  3%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/rnn.c.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/rnnoise_data.h:5,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/rnn.h:31,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/rnn.c:36:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[  3%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/nnet.c.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.c:37:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[  4%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/nnet_default.c.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet_arch.h:31,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet_default.c:35:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[  5%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/contrib/graphbuilderadapter.cpp.o
+[  6%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/kiss_fft.c.o
+[  7%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/pitch.c.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/denoise.h:29,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/pitch.c:40:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[  7%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/celt_lpc.c.o
+[  8%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/binary.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/denoise.h:29,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/celt_lpc.c:36:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[  9%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/rnnoise_init.c.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/rnnoise_data.h:5,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/rnnoise_init.c:10:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[ 10%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/rnnoise_tables.c.o
+[ 11%] Building C object mozart_pre/CMakeFiles/rnnoise.dir/native/rnnoise/src/parse_lpcnet_weights.c.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/parse_lpcnet_weights.c:33:
+/tmp/mozart-atomic-check-ehx7_r04/source/preprocessor/native/rnnoise/src/nnet.h:163:2: warning: #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance" [-Wcpp]
+  163 | #warning "Only SSE and SSE2 are available. On newer machines, enable SSSE3/AVX/AVX2 using -march= to get better performance"
+      |  ^~~~~~~
+[ 11%] Linking C static library librnnoise.a
+[ 12%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/convert.cpp.o
+[ 12%] Built target rnnoise
+[ 13%] Building CXX object _deps/spdlog-build/CMakeFiles/spdlog.dir/src/spdlog.cpp.o
+[ 13%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/depthguard.cpp.o
+[ 14%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/directives.cpp.o
+[ 15%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/emit.cpp.o
+[ 16%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/emitfromevents.cpp.o
+[ 16%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/emitter.cpp.o
+[ 17%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/emitterstate.cpp.o
+[ 18%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/emitterutils.cpp.o
+[ 19%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/exceptions.cpp.o
+[ 19%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/exp.cpp.o
+[ 20%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/memory.cpp.o
+[ 21%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/node.cpp.o
+[ 22%] Building CXX object _deps/spdlog-build/CMakeFiles/spdlog.dir/src/stdout_sinks.cpp.o
+[ 23%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/node_data.cpp.o
+[ 23%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/nodebuilder.cpp.o
+[ 24%] Building CXX object _deps/spdlog-build/CMakeFiles/spdlog.dir/src/color_sinks.cpp.o
+[ 25%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/nodeevents.cpp.o
+[ 26%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/null.cpp.o
+[ 27%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/ostream_wrapper.cpp.o
+[ 27%] Building CXX object _deps/spdlog-build/CMakeFiles/spdlog.dir/src/file_sinks.cpp.o
+[ 28%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/parse.cpp.o
+[ 28%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/parser.cpp.o
+[ 29%] Building CXX object _deps/spdlog-build/CMakeFiles/spdlog.dir/src/async.cpp.o
+[ 30%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/regex_yaml.cpp.o
+[ 31%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/scanner.cpp.o
+[ 32%] Building CXX object _deps/spdlog-build/CMakeFiles/spdlog.dir/src/cfg.cpp.o
+[ 33%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/scanscalar.cpp.o
+[ 34%] Building CXX object _deps/spdlog-build/CMakeFiles/spdlog.dir/src/bundled_fmtlib_format.cpp.o
+[ 34%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/scantag.cpp.o
+[ 35%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/scantoken.cpp.o
+[ 36%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/simplekey.cpp.o
+[ 36%] Linking CXX static library libspdlogd.a
+[ 37%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/singledocparser.cpp.o
+[ 37%] Built target spdlog
+[ 38%] Building CXX object mozart_api/mozart_monitor/CMakeFiles/mozart_monitor.dir/src/monitor.cpp.o
+[ 38%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/stream.cpp.o
+[ 39%] Building CXX object _deps/yaml-cpp-build/CMakeFiles/yaml-cpp.dir/src/tag.cpp.o
+[ 40%] Linking CXX static library libyaml-cppd.a
+[ 40%] Built target yaml-cpp
+[ 41%] Building C object mozart_pre/CMakeFiles/mozart_pre_core.dir/src/rnnoise.c.o
+[ 41%] Building C object mozart_pre/CMakeFiles/mozart_pre_core.dir/src/dsp.c.o
+[ 42%] Building C object mozart_pre/CMakeFiles/mozart_pre_core.dir/src/capture.c.o
+[ 43%] Building C object mozart_pre/CMakeFiles/mozart_pre_core.dir/src/playback.c.o
+[ 44%] Building C object mozart_pre/CMakeFiles/mozart_pre_core.dir/src/wav.c.o
+[ 45%] Linking C static library libmozart_pre_core.a
+[ 45%] Built target mozart_pre_core
+[ 46%] Building CXX object mozart_io/CMakeFiles/mozart_io.dir/src/audio_stream.cpp.o
+[ 47%] Building CXX object mozart_io/CMakeFiles/mozart_io.dir/src/ring_buffer.cpp.o
+[ 48%] Linking CXX static library libmozart_monitor.a
+[ 48%] Built target mozart_monitor
+[ 49%] Building CXX object CMakeFiles/test_streaming.dir/tests/test_streaming.cpp.o
+[ 50%] Building CXX object mozart_io/CMakeFiles/mozart_io.dir/src/udp_stream.cpp.o
+[ 50%] Building CXX object CMakeFiles/test_streaming.dir/src/rvc/streaming_pipeline.cpp.o
+[ 51%] Linking CXX executable test_streaming
+[ 51%] Built target test_streaming
+[ 52%] Building CXX object CMakeFiles/test_feature_extractor.dir/tests/test_feature_extractor.cpp.o
+[ 52%] Linking CXX static library libmozart_io.a
+[ 52%] Built target mozart_io
+[ 53%] Building CXX object CMakeFiles/test_inferencer.dir/tests/test_inferencer.cpp.o
+[ 54%] Building CXX object CMakeFiles/test_feature_extractor.dir/src/rvc/feature_extractor.cpp.o
+[ 55%] Building CXX object CMakeFiles/test_inferencer.dir/src/rvc/inferencer.cpp.o
+[ 55%] Building CXX object CMakeFiles/test_feature_extractor.dir/src/rvc/onnx_engine.cpp.o
+[ 55%] Building CXX object CMakeFiles/test_inferencer.dir/src/rvc/feature_extractor.cpp.o
+[ 56%] Building CXX object CMakeFiles/test_feature_extractor.dir/src/rvc/trt_engine.cpp.o
+[ 57%] Linking CXX executable test_feature_extractor
+[ 57%] Built target test_feature_extractor
+[ 58%] Building CXX object CMakeFiles/test_index_search.dir/tests/test_index_search.cpp.o
+[ 59%] Building CXX object CMakeFiles/test_inferencer.dir/src/rvc/model_loader.cpp.o
+[ 59%] Building CXX object CMakeFiles/test_index_search.dir/src/rvc/index_search.cpp.o
+[ 60%] Linking CXX executable test_index_search
+[ 60%] Built target test_index_search
+[ 60%] Building CXX object CMakeFiles/diag_f32.dir/tests/diag_f32.cpp.o
+[ 61%] Building CXX object CMakeFiles/diag_f32.dir/src/rvc/feature_extractor.cpp.o
+[ 62%] Building CXX object CMakeFiles/test_inferencer.dir/src/rvc/onnx_engine.cpp.o
+[ 63%] Building CXX object CMakeFiles/test_inferencer.dir/src/rvc/trt_engine.cpp.o
+[ 64%] Building CXX object CMakeFiles/diag_f32.dir/src/rvc/onnx_engine.cpp.o
+[ 64%] Building CXX object CMakeFiles/test_inferencer.dir/src/rvc/index_search.cpp.o
+[ 65%] Building CXX object CMakeFiles/diag_f32.dir/src/rvc/trt_engine.cpp.o
+[ 66%] Linking CXX executable test_inferencer
+[ 66%] Linking CXX executable diag_f32
+[ 66%] Built target test_inferencer
+[ 67%] Building CXX object _deps/yaml-cpp-build/util/CMakeFiles/yaml-cpp-sandbox.dir/sandbox.cpp.o
+[ 67%] Built target diag_f32
+[ 68%] Building CXX object _deps/yaml-cpp-build/util/CMakeFiles/yaml-cpp-parse.dir/parse.cpp.o
+[ 69%] Linking CXX executable sandbox
+[ 69%] Built target yaml-cpp-sandbox
+[ 70%] Building CXX object _deps/yaml-cpp-build/util/CMakeFiles/yaml-cpp-read.dir/read.cpp.o
+[ 70%] Linking CXX executable parse
+[ 70%] Built target yaml-cpp-parse
+[ 71%] Building C object mozart_pre/CMakeFiles/mozart-pre.dir/src/main.c.o
+[ 72%] Linking C executable mozart-pre
+[ 72%] Built target mozart-pre
+[ 73%] Building C object mozart_pre/CMakeFiles/test_dsp.dir/tests/test_dsp.c.o
+[ 74%] Linking C executable test_dsp
+[ 74%] Built target test_dsp
+[ 75%] Building CXX object mozart_api/CMakeFiles/mozart_api.dir/src/http_api.cpp.o
+[ 76%] Linking CXX executable read
+[ 76%] Built target yaml-cpp-read
+[ 76%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/audio_worker.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/audio_worker.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/audio_worker.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 77%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/streaming_pipeline.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/streaming_pipeline.hpp:31,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/streaming_pipeline.cpp:2:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 78%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/trt_engine.cpp.o
+[ 78%] Linking CXX static library libmozart_api.a
+[ 78%] Built target mozart_api
+[ 79%] Building CXX object CMakeFiles/test_udp_loopback.dir/tests/test_udp_loopback.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/trt_engine.hpp:9,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/trt_engine.cpp:2:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 80%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/pipeline.cpp.o
+[ 81%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/audio_worker.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/pipeline.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 81%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/streaming_pipeline.cpp.o
+[ 82%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/trt_engine.cpp.o
+[ 82%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/inferencer.cpp.o
+[ 83%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/pipeline.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/inferencer.hpp:9,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/inferencer.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 84%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/inferencer.cpp.o
+[ 84%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/feature_extractor.cpp.o
+[ 85%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/feature_extractor.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/feature_extractor.hpp:10,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/feature_extractor.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/feature_extractor.cpp: In member function ‘std::vector<float> rvc::FeatureExtractor::extract_features_impl(const std::vector<float>&, uint32_t, bool)’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/feature_extractor.cpp:595:14: warning: unused parameter ‘sample_rate’ [-Wunused-parameter]
+  595 |     uint32_t sample_rate,
+      |     ~~~~~~~~~^~~~~~~~~~~
+[ 86%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/model_loader.cpp.o
+[ 87%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/model_loader.cpp.o
+[ 88%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/onnx_engine.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/model_loader.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/model_loader.cpp: In member function ‘bool rvc::RVCModel::load_generator(const string&, bool)’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/model_loader.cpp:158:50: warning: unused parameter ‘device’ [-Wunused-parameter]
+  158 | bool RVCModel::load_generator(const std::string& device, bool half) {
+      |                               ~~~~~~~~~~~~~~~~~~~^~~~~~
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/model_loader.cpp:158:63: warning: unused parameter ‘half’ [-Wunused-parameter]
+  158 | bool RVCModel::load_generator(const std::string& device, bool half) {
+      |                                                          ~~~~~^~~~
+[ 89%] Building CXX object CMakeFiles/test_udp_loopback.dir/src/rvc/index_search.cpp.o
+[ 89%] Linking CXX executable test_udp_loopback
+[ 89%] Built target test_udp_loopback
+[ 90%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/onnx_engine.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/rvc/onnx_engine.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 90%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/rvc/index_search.cpp.o
+[ 91%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/state/mode_controller.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/state/mode_controller.hpp:17,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/state/mode_controller.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 92%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/state/realtime_rvc_worker.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/audio_worker.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/state/realtime_rvc_worker.hpp:8,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/state/realtime_rvc_worker.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 93%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/state/file_rvc_worker.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/state/file_rvc_worker.hpp:9,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/state/file_rvc_worker.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 93%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/state/log_store.cpp.o
+[ 94%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/utils/config.cpp.o
+[ 95%] Linking CXX static library libmozart_rvc_runtime.a
+[ 95%] Built target mozart_rvc_runtime
+[ 97%] Building CXX object CMakeFiles/test_onnx_unavailable.dir/tests/test_onnx_unavailable.cpp.o
+[ 97%] Building CXX object CMakeFiles/test_model_selection.dir/tests/test_model_selection.cpp.o
+[ 98%] Linking CXX executable test_onnx_unavailable
+[ 98%] Built target test_onnx_unavailable
+[ 98%] Linking CXX executable test_model_selection
+[ 99%] Building CXX object CMakeFiles/test_mode_controller.dir/tests/test_mode_controller.cpp.o
+[ 99%] Built target test_model_selection
+[100%] Linking CXX executable test_mode_controller
+[100%] Built target test_mode_controller
+$ ctest --test-dir /tmp/mozart-atomic-check-ehx7_r04/build --output-on-failure
+Internal ctest changing into directory: /tmp/mozart-atomic-check-ehx7_r04/build
+Test project /tmp/mozart-atomic-check-ehx7_r04/build
+      Start  1: model_selection
+ 1/17 Test  #1: model_selection ..................   Passed    0.00 sec
+      Start  2: onnx_unavailable
+ 2/17 Test  #2: onnx_unavailable .................   Passed    0.00 sec
+      Start  3: state_capacity
+ 3/17 Test  #3: state_capacity ...................   Passed    0.00 sec
+      Start  4: state_position
+ 4/17 Test  #4: state_position ...................   Passed    0.00 sec
+      Start  5: state_clear_queued
+ 5/17 Test  #5: state_clear_queued ...............   Passed    0.00 sec
+      Start  6: state_active_cancel
+ 6/17 Test  #6: state_active_cancel ..............   Passed    0.17 sec
+      Start  7: state_eviction
+ 7/17 Test  #7: state_eviction ...................   Passed    0.11 sec
+      Start  8: state_clear_completed
+ 8/17 Test  #8: state_clear_completed ............   Passed    0.10 sec
+      Start  9: state_clear_failed
+ 9/17 Test  #9: state_clear_failed ...............   Passed    0.06 sec
+      Start 10: state_disabled
+10/17 Test #10: state_disabled ...................   Passed    0.00 sec
+      Start 11: rvc_udp_loopback
+11/17 Test #11: rvc_udp_loopback .................   Passed    0.11 sec
+      Start 12: test_streaming
+12/17 Test #12: test_streaming ...................   Passed    0.07 sec
+      Start 13: test_feature_extractor
+13/17 Test #13: test_feature_extractor ...........   Passed    0.00 sec
+      Start 14: test_inferencer
+14/17 Test #14: test_inferencer ..................   Passed    0.00 sec
+      Start 15: test_index_search
+15/17 Test #15: test_index_search ................   Passed    0.01 sec
+      Start 16: test_dsp
+16/17 Test #16: test_dsp .........................   Passed    0.30 sec
+      Start 17: test_replay
+17/17 Test #17: test_replay ......................   Passed    0.59 sec
+
+100% tests passed, 0 tests failed out of 17
+
+Total Test time (real) =   1.54 sec
+
+COMMIT 5846bb7
+$ cmake -S /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend -B /tmp/mozart-atomic-check-ehx7_r04/build -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_BUILD_TYPE=Debug -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON -DMOZART_BUILD_TESTS=ON -DFETCHCONTENT_FULLY_DISCONNECTED=ON -DFETCHCONTENT_SOURCE_DIR_YAML-CPP=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/yaml-cpp-src -DFETCHCONTENT_SOURCE_DIR_JSON=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/json-src -DFETCHCONTENT_SOURCE_DIR_SPDLOG=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/spdlog-src
+-- Build spdlog: 1.12.0
+-- Build type: Debug
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/mozart-atomic-check-ehx7_r04/build
+$ cmake --build /tmp/mozart-atomic-check-ehx7_r04/build -j2
+Consolidate compiler generated dependencies of target rnnoise
+[  8%] Built target rnnoise
+Consolidate compiler generated dependencies of target yaml-cpp
+Consolidate compiler generated dependencies of target spdlog
+[ 33%] Built target yaml-cpp
+[ 39%] Built target spdlog
+Consolidate compiler generated dependencies of target mozart_monitor
+Consolidate compiler generated dependencies of target mozart_pre_core
+[ 41%] Built target mozart_monitor
+[ 46%] Built target mozart_pre_core
+Consolidate compiler generated dependencies of target mozart_io
+Consolidate compiler generated dependencies of target test_streaming
+[ 49%] Built target mozart_io
+[ 51%] Built target test_streaming
+Consolidate compiler generated dependencies of target test_feature_extractor
+[ 55%] Built target test_feature_extractor
+Consolidate compiler generated dependencies of target test_inferencer
+Consolidate compiler generated dependencies of target test_index_search
+[ 61%] Built target test_inferencer
+[ 63%] Built target test_index_search
+Consolidate compiler generated dependencies of target diag_f32
+Consolidate compiler generated dependencies of target yaml-cpp-sandbox
+[ 66%] Built target diag_f32
+[ 68%] Built target yaml-cpp-sandbox
+Consolidate compiler generated dependencies of target yaml-cpp-parse
+Consolidate compiler generated dependencies of target yaml-cpp-read
+[ 69%] Built target yaml-cpp-parse
+[ 71%] Built target yaml-cpp-read
+Consolidate compiler generated dependencies of target mozart-pre
+Consolidate compiler generated dependencies of target test_dsp
+[ 73%] Built target mozart-pre
+[ 75%] Built target test_dsp
+Consolidate compiler generated dependencies of target mozart_api
+[ 76%] Built target mozart_api
+Consolidate compiler generated dependencies of target mozart_rvc_runtime
+Consolidate compiler generated dependencies of target test_udp_loopback
+[ 77%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/state/mode_controller.cpp.o
+[ 85%] Built target test_udp_loopback
+[ 86%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/state/file_rvc_worker.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/state/file_rvc_worker.hpp:9,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/state/file_rvc_worker.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/state/mode_controller.hpp:17,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/state/mode_controller.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 87%] Linking CXX static library libmozart_rvc_runtime.a
+[ 95%] Built target mozart_rvc_runtime
+Consolidate compiler generated dependencies of target test_onnx_unavailable
+Consolidate compiler generated dependencies of target test_model_selection
+[ 95%] Linking CXX executable test_model_selection
+[ 96%] Linking CXX executable test_onnx_unavailable
+[ 97%] Built target test_onnx_unavailable
+Consolidate compiler generated dependencies of target test_mode_controller
+[ 98%] Building CXX object CMakeFiles/test_mode_controller.dir/tests/test_mode_controller.cpp.o
+[ 99%] Built target test_model_selection
+[100%] Linking CXX executable test_mode_controller
+[100%] Built target test_mode_controller
+$ ctest --test-dir /tmp/mozart-atomic-check-ehx7_r04/build --output-on-failure
+Internal ctest changing into directory: /tmp/mozart-atomic-check-ehx7_r04/build
+Test project /tmp/mozart-atomic-check-ehx7_r04/build
+      Start  1: model_selection
+ 1/23 Test  #1: model_selection ..................   Passed    0.00 sec
+      Start  2: onnx_unavailable
+ 2/23 Test  #2: onnx_unavailable .................   Passed    0.00 sec
+      Start  3: state_capacity
+ 3/23 Test  #3: state_capacity ...................   Passed    0.00 sec
+      Start  4: state_position
+ 4/23 Test  #4: state_position ...................   Passed    0.00 sec
+      Start  5: state_clear_queued
+ 5/23 Test  #5: state_clear_queued ...............   Passed    0.00 sec
+      Start  6: state_active_cancel
+ 6/23 Test  #6: state_active_cancel ..............   Passed    0.07 sec
+      Start  7: state_eviction
+ 7/23 Test  #7: state_eviction ...................   Passed    0.13 sec
+      Start  8: state_clear_completed
+ 8/23 Test  #8: state_clear_completed ............   Passed    0.12 sec
+      Start  9: state_clear_failed
+ 9/23 Test  #9: state_clear_failed ...............   Passed    0.07 sec
+      Start 10: state_disabled
+10/23 Test #10: state_disabled ...................   Passed    0.00 sec
+      Start 11: state_file_paths
+11/23 Test #11: state_file_paths .................   Passed    0.11 sec
+      Start 12: state_file_duration
+12/23 Test #12: state_file_duration ..............   Passed    0.13 sec
+      Start 13: state_cancel_decode
+13/23 Test #13: state_cancel_decode ..............   Passed    0.02 sec
+      Start 14: state_cancel_encode
+14/23 Test #14: state_cancel_encode ..............   Passed    0.04 sec
+      Start 15: state_timeout
+15/23 Test #15: state_timeout ....................   Passed    0.10 sec
+      Start 16: state_failure
+16/23 Test #16: state_failure ....................   Passed    0.02 sec
+      Start 17: rvc_udp_loopback
+17/23 Test #17: rvc_udp_loopback .................   Passed    0.10 sec
+      Start 18: test_streaming
+18/23 Test #18: test_streaming ...................   Passed    0.07 sec
+      Start 19: test_feature_extractor
+19/23 Test #19: test_feature_extractor ...........   Passed    0.01 sec
+      Start 20: test_inferencer
+20/23 Test #20: test_inferencer ..................   Passed    0.00 sec
+      Start 21: test_index_search
+21/23 Test #21: test_index_search ................   Passed    0.01 sec
+      Start 22: test_dsp
+22/23 Test #22: test_dsp .........................   Passed    0.29 sec
+      Start 23: test_replay
+23/23 Test #23: test_replay ......................   Passed    0.56 sec
+
+100% tests passed, 0 tests failed out of 23
+
+Total Test time (real) =   1.87 sec
+
+COMMIT 786cfcb8f118e859cbe48e1d4d2b362fc00ece5b
+$ cmake -S /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend -B /tmp/mozart-atomic-check-ehx7_r04/build -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_BUILD_TYPE=Debug -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON -DMOZART_BUILD_TESTS=ON -DFETCHCONTENT_FULLY_DISCONNECTED=ON -DFETCHCONTENT_SOURCE_DIR_YAML-CPP=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/yaml-cpp-src -DFETCHCONTENT_SOURCE_DIR_JSON=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/json-src -DFETCHCONTENT_SOURCE_DIR_SPDLOG=/home/moyamryia/Projects/Project-Mozart/build/host/_deps/spdlog-src
+-- Build spdlog: 1.12.0
+-- Build type: Debug
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/mozart-atomic-check-ehx7_r04/build
+$ cmake --build /tmp/mozart-atomic-check-ehx7_r04/build -j2
+Consolidate compiler generated dependencies of target rnnoise
+[  8%] Built target rnnoise
+Consolidate compiler generated dependencies of target yaml-cpp
+Consolidate compiler generated dependencies of target spdlog
+[ 32%] Built target yaml-cpp
+[ 38%] Built target spdlog
+Consolidate compiler generated dependencies of target mozart_monitor
+Consolidate compiler generated dependencies of target yaml-cpp-sandbox
+[ 40%] Built target mozart_monitor
+[ 42%] Built target yaml-cpp-sandbox
+Consolidate compiler generated dependencies of target yaml-cpp-parse
+Consolidate compiler generated dependencies of target yaml-cpp-read
+[ 44%] Built target yaml-cpp-parse
+[ 45%] Built target yaml-cpp-read
+Consolidate compiler generated dependencies of target mozart_pre_core
+[ 49%] Built target mozart_pre_core
+Consolidate compiler generated dependencies of target mozart_io
+Consolidate compiler generated dependencies of target mozart_api
+[ 52%] Built target mozart_io
+[ 53%] Building CXX object mozart_api/CMakeFiles/mozart_api.dir/src/http_api.cpp.o
+Consolidate compiler generated dependencies of target test_streaming
+[ 55%] Built target test_streaming
+Consolidate compiler generated dependencies of target test_feature_extractor
+[ 59%] Built target test_feature_extractor
+Consolidate compiler generated dependencies of target test_inferencer
+[ 65%] Built target test_inferencer
+Consolidate compiler generated dependencies of target test_index_search
+[ 67%] Built target test_index_search
+Consolidate compiler generated dependencies of target diag_f32
+[ 70%] Built target diag_f32
+Consolidate compiler generated dependencies of target mozart-pre
+[ 72%] Built target mozart-pre
+Consolidate compiler generated dependencies of target test_dsp
+[ 73%] Built target test_dsp
+Consolidate compiler generated dependencies of target mozart_rvc_runtime
+[ 74%] Building CXX object CMakeFiles/mozart_rvc_runtime.dir/src/state/mode_controller.cpp.o
+In file included from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/model_loader.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/pipeline.hpp:12,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/state/mode_controller.hpp:17,
+                 from /tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/src/state/mode_controller.cpp:1:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp: In member function ‘virtual std::vector<long int> rvc::IEngine::input_shape(const string&) const’:
+/tmp/mozart-atomic-check-ehx7_r04/source/rvc-backend/include/rvc/onnx_engine.hpp:42:65: warning: unused parameter ‘name’ [-Wunused-parameter]
+   42 |     virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+      |                                              ~~~~~~~~~~~~~~~~~~~^~~~
+[ 74%] Linking CXX static library libmozart_api.a
+[ 74%] Built target mozart_api
+Consolidate compiler generated dependencies of target test_udp_loopback
+[ 82%] Built target test_udp_loopback
+[ 83%] Building CXX object CMakeFiles/http_fixture.dir/tmp/mozart-atomic-check-ehx7_r04/source/api/tests/http_fixture.cpp.o
+[ 84%] Building CXX object CMakeFiles/http_fixture.dir/src/state/log_store.cpp.o
+[ 84%] Linking CXX executable http_fixture
+[ 84%] Built target http_fixture
+[ 85%] Linking CXX static library libmozart_rvc_runtime.a
+[ 95%] Built target mozart_rvc_runtime
+Consolidate compiler generated dependencies of target test_onnx_unavailable
+Consolidate compiler generated dependencies of target test_model_selection
+[ 97%] Linking CXX executable test_model_selection
+[ 97%] Linking CXX executable test_onnx_unavailable
+[ 98%] Built target test_onnx_unavailable
+Consolidate compiler generated dependencies of target test_mode_controller
+[ 99%] Building CXX object CMakeFiles/test_mode_controller.dir/tests/test_mode_controller.cpp.o
+[ 99%] Built target test_model_selection
+[100%] Linking CXX executable test_mode_controller
+[100%] Built target test_mode_controller
+$ ctest --test-dir /tmp/mozart-atomic-check-ehx7_r04/build --output-on-failure
+Internal ctest changing into directory: /tmp/mozart-atomic-check-ehx7_r04/build
+Test project /tmp/mozart-atomic-check-ehx7_r04/build
+      Start  1: http_lifecycle
+ 1/24 Test  #1: http_lifecycle ...................   Passed    5.71 sec
+      Start  2: model_selection
+ 2/24 Test  #2: model_selection ..................   Passed    0.00 sec
+      Start  3: onnx_unavailable
+ 3/24 Test  #3: onnx_unavailable .................   Passed    0.01 sec
+      Start  4: state_capacity
+ 4/24 Test  #4: state_capacity ...................   Passed    0.00 sec
+      Start  5: state_position
+ 5/24 Test  #5: state_position ...................   Passed    0.00 sec
+      Start  6: state_clear_queued
+ 6/24 Test  #6: state_clear_queued ...............   Passed    0.00 sec
+      Start  7: state_active_cancel
+ 7/24 Test  #7: state_active_cancel ..............   Passed    0.07 sec
+      Start  8: state_eviction
+ 8/24 Test  #8: state_eviction ...................   Passed    0.13 sec
+      Start  9: state_clear_completed
+ 9/24 Test  #9: state_clear_completed ............   Passed    0.11 sec
+      Start 10: state_clear_failed
+10/24 Test #10: state_clear_failed ...............   Passed    0.07 sec
+      Start 11: state_disabled
+11/24 Test #11: state_disabled ...................   Passed    0.00 sec
+      Start 12: state_file_paths
+12/24 Test #12: state_file_paths .................   Passed    0.11 sec
+      Start 13: state_file_duration
+13/24 Test #13: state_file_duration ..............   Passed    0.11 sec
+      Start 14: state_cancel_decode
+14/24 Test #14: state_cancel_decode ..............   Passed    0.02 sec
+      Start 15: state_cancel_encode
+15/24 Test #15: state_cancel_encode ..............   Passed    0.04 sec
+      Start 16: state_timeout
+16/24 Test #16: state_timeout ....................   Passed    0.10 sec
+      Start 17: state_failure
+17/24 Test #17: state_failure ....................   Passed    0.02 sec
+      Start 18: rvc_udp_loopback
+18/24 Test #18: rvc_udp_loopback .................   Passed    0.11 sec
+      Start 19: test_streaming
+19/24 Test #19: test_streaming ...................   Passed    0.07 sec
+      Start 20: test_feature_extractor
+20/24 Test #20: test_feature_extractor ...........   Passed    0.01 sec
+      Start 21: test_inferencer
+21/24 Test #21: test_inferencer ..................   Passed    0.00 sec
+      Start 22: test_index_search
+22/24 Test #22: test_index_search ................   Passed    0.01 sec
+      Start 23: test_dsp
+23/24 Test #23: test_dsp .........................   Passed    0.30 sec
+      Start 24: test_replay
+24/24 Test #24: test_replay ......................   Passed    0.56 sec
+
+100% tests passed, 0 tests failed out of 24
+
+Total Test time (real) =   7.58 sec

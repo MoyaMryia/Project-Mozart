@@ -44,8 +44,8 @@ It is not the numeric speaker tensor inside a Generator.
 {"mode":"file_rvc","model_id":"de_narrator"}
 ```
 
-The factory selects an initial model from directory order.
-It stops the search even if `load_model()` returns false.
+The factory sorts model IDs and selects the first model that loads.
+If a model fails to load, the search continues.
 An explicit model selection and a satisfactory inference are necessary deployment checks.
 
 The realtime worker selects the upstream profile when the split Generator and fixed feature assets satisfy its input contract.
@@ -99,20 +99,21 @@ The depth includes `queued`, `processing`, and `cancelling` jobs.
 Terminal history does not consume queue capacity.
 The returned `queue_position` counts unfinished jobs from one.
 
-The request reader allows approximately 110 MiB, including HTTP and multipart data.
-Its error text calls this a 100 MB limit.
-This limit is not a decoded audio duration or memory limit.
-The [audit report](../reports/repository-audit-20261008/RESULTS.md) records this mismatch.
+The complete HTTP request limit is 110 MiB. The audio file limit is 100 MiB.
+The decoded audio limit is 300 seconds. Longer inputs fail without a truncated result.
+Each FFmpeg operation has a 120-second deadline.
+The worker passes arguments directly to FFmpeg without a shell.
 
 Active cancellation changes the state to `cancelling`.
-The current FFmpeg commands and full inference calls cannot stop at a frame boundary.
-The worker reads the flag at the next available cancellation point.
+The worker terminates and reaps FFmpeg when cancellation or its deadline occurs.
+An active full RVC inference call still finishes before cancellation takes effect.
 The `cancelling` state continues to own the worker and pipeline.
 Daemon shutdown can also wait for these operations.
 
 Temporary files use `storage.temp_dir`.
 After a job ends, cache cleanup aims for 80% of `storage.max_cache_size_mb` when the upper limit is exceeded.
-Files of unfinished jobs stay protected.
+Uploads use temporary `.upload` files. Queue admission renames these files under the controller lock.
+Cache cleanup protects uploads and files of unfinished jobs.
 This target is not a hard disk quota.
 The queue and terminal history use memory; they do not survive a restart.
 Terminal history has no independent count limit.
@@ -132,7 +133,8 @@ Subtitles use `MOZART_SUBTITLES_JSONL`, with default path `/tmp/opencode/subtitl
 The reader reopens the file after replacement or truncation.
 It waits for incomplete JSONL lines to finish.
 The first connection starts at the file end; it does not replay earlier captions.
-Each SSE connection uses a thread, with no configured connection limit.
+Each SSE connection uses a thread. The server accepts at most eight SSE connections.
+A heartbeat occurs every second. The reader closes disconnected clients when a send fails.
 
 For each utterance, the bridge sends complete records with the same `utterance_id`:
 
@@ -180,11 +182,14 @@ The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes, disk queue
 
 ## Current HTTP limits
 
-Ordinary HTTP requests use one serial request handler.
-Accepted connections have no request timeout.
-An incomplete request can block health, mode, and cancellation requests.
-It can also delay daemon shutdown.
-The loopback probe in the audit reproduced the health blockage.
+The server accepts at most 16 concurrent connections, including SSE. Extra connections receive HTTP 503.
+Request headers have a 5-second deadline and a 16 KiB limit.
+Complete requests have a 30-second deadline. Ordinary responses have a 30-second send deadline.
+Partial transfers do not extend these deadlines. Active request data has a shared 128 MiB limit.
+Invalid Content-Length fields, duplicate lengths, and transfer encoding receive HTTP 400.
+The server interrupts active sockets during shutdown. Model loading and active RVC inference can still delay shutdown.
+The speech proxy has a separate 5-second deadline.
+The [repair report](../reports/repository-audit-20261013/RESULTS.md) gives the regression scope.
 
 ## Regression tests
 
@@ -192,7 +197,7 @@ Run the host regressions from the repository root:
 
 ```bash
 cmake -S rvc-backend -B build/host -DCMAKE_BUILD_TYPE=Debug \
-  -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON
+  -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON -DMOZART_BUILD_TESTS=ON
 cmake --build build/host -j2
 ctest --test-dir build/host --output-on-failure
 ```

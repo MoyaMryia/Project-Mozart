@@ -1,0 +1,44 @@
+2026-10-13 09:57:00.178 [info] RVC config: generator=real, hubert=real, rmvpe=real, models=/home/moyamryia/mozart-audit-20261013/smoke/models, hubert_path=/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx, rmvpe_path=/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx, realtime_hubert_path=/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.onnx, realtime_rmvpe_path=/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.onnx
+2026-10-13 09:57:00.179 [info] Loading generator: /home/moyamryia/mozart-audit-20261013/smoke/models/a-unloadable/a-unloadable.onnx
+2026-10-13 09:57:00.210 [error] ONNX load failed: /home/moyamryia/mozart-audit-20261013/smoke/models/a-unloadable/a-unloadable.onnx - Load model from /home/moyamryia/mozart-audit-20261013/smoke/models/a-unloadable/a-unloadable.onnx failed:Protobuf parsing failed.
+2026-10-13 09:57:00.210 [error] No usable Generator engine found for a-unloadable
+2026-10-13 09:57:00.210 [warning] Skipping unavailable initial model: a-unloadable
+2026-10-13 09:57:00.211 [info] Loading realtime Generator front: /home/moyamryia/mozart-audit-20261013/smoke/models/qiqi-zh-realtime/qiqi-zh-realtime-front.onnx
+2026-10-13 09:57:00.538 [warning] [trt] Using an engine plan file across different models of devices is not supported and is likely to affect performance or even cause errors or deadlock.
+2026-10-13 09:57:00.708 [info] TRT engine loaded: qiqi-zh-realtime-front.engine (6 tensors) in feats[1x280x768:float] in p_len[1:float] in pitch[1x280:float] in sid[1:int64] in latent_noise[1x192x54:float] out z[1x192x30:float]
+2026-10-13 09:57:00.709 [info] Engine backend: TensorRT (GPU) → qiqi-zh-realtime-front.engine
+2026-10-13 09:57:00.709 [info] Loading realtime Generator decoder: /home/moyamryia/mozart-audit-20261013/smoke/models/qiqi-zh-realtime/qiqi-zh-realtime-decoder.onnx
+2026-10-13 09:57:01.004 [warning] [trt] Using an engine plan file across different models of devices is not supported and is likely to affect performance or even cause errors or deadlock.
+2026-10-13 09:57:01.055 [info] TRT engine loaded: qiqi-zh-realtime-decoder.engine (6 tensors) in z[1x192x30:float] in pitchf[1x30:float] in sid[1:int64] in source_phase[1x1x1:float] in source_noise[1x14400x1:float] out audio[1x1x14400:float]
+2026-10-13 09:57:01.055 [info] Engine backend: TensorRT (GPU) → qiqi-zh-realtime-decoder.engine
+2026-10-13 09:57:01.134 [info] RVC model 'qiqi-zh-realtime' loaded (sr=48000, emb=768, offline=false, realtime=true) on cuda
+2026-10-13 09:57:02.741 [warning] [trt] Using an engine plan file across different models of devices is not supported and is likely to affect performance or even cause errors or deadlock.
+2026-10-13 09:57:02.896 [info] TRT engine loaded: hubert_base_dynamic.engine (2 tensors) in audio[1x64000:float] out features[1x199x768:float]
+2026-10-13 09:57:02.897 [info] Engine backend: TensorRT (GPU) → hubert_base_dynamic.engine
+2026-10-13 09:57:02.957 [info] HuBERT engine loaded: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx
+2026-10-13 09:57:04.545 [warning] [trt] Using an engine plan file across different models of devices is not supported and is likely to affect performance or even cause errors or deadlock.
+2026-10-13 09:57:04.680 [info] TRT engine loaded: rmvpe_dynamic.engine (2 tensors) in mel[1x128x416:float] out f0[1x416x360:float]
+2026-10-13 09:57:04.681 [info] Engine backend: TensorRT (GPU) → rmvpe_dynamic.engine
+2026-10-13 09:57:04.762 [info] RMVPE engine loaded: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx
+2026-10-13 09:57:06.369 [warning] [trt] Using an engine plan file across different models of devices is not supported and is likely to affect performance or even cause errors or deadlock.
+2026-10-13 09:57:06.581 [info] TRT engine loaded: hubert-realtime.engine (2 tensors) in audio[1x44800:float] out features[1x139x768:float]
+2026-10-13 09:57:06.583 [info] Engine backend: TensorRT (GPU) → hubert-realtime.engine
+2026-10-13 09:57:06.607 [info] Realtime HuBERT engine loaded: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.onnx
+2026-10-13 09:57:08.190 [warning] [trt] Using an engine plan file across different models of devices is not supported and is likely to affect performance or even cause errors or deadlock.
+2026-10-13 09:57:08.356 [info] TRT engine loaded: rmvpe-realtime.engine (2 tensors) in mel[1x128x32:float] out f0[1x32x360:float]
+2026-10-13 09:57:08.357 [info] Engine backend: TensorRT (GPU) → rmvpe-realtime.engine
+2026-10-13 09:57:08.371 [info] Realtime RMVPE engine loaded: /home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.onnx
+2026-10-13 09:57:08.371 [info] RVC inferencer rebuilt for model 'qiqi-zh-realtime'
+2026-10-13 09:57:08.371 [info] RVC pipeline initialized: generator=real, hubert=real, rmvpe=real (16000Hz -> 48000Hz)
+2026-10-13 09:57:08.372 [info] HTTP API server listening on 127.0.0.1:19880
+2026-10-13 09:57:08.372 [info] state daemon started; initial mode is IDLE
+2026-10-13 09:57:08.424 [info] UdpStream capture listening on 127.0.0.1:19800
+2026-10-13 09:57:08.426 [info] AudioWorker stream mode: upstream realtime (240ms block + 2.5s past + SOLA)
+2026-10-13 09:57:08.426 [info] StreamingRvc inference thread started: window=3840 hop=3840 crossfade=2400 full_history=false upstream_realtime=true right_context=0 guard=0 analysis=44800
+2026-10-13 09:57:08.426 [info] [rt_rvc] mode activated
+2026-10-13 09:57:08.426 [info] AudioWorker started: 16000Hz -> 48000Hz, frame=20ms
+2026-10-13 09:57:08.428 [info] AudioWorker stopped
+2026-10-13 09:57:08.476 [info] StreamingRvc inference thread stopped: blocks=0 skipped=0 resets=0
+2026-10-13 09:57:08.529 [info] UdpStream closed: recv=0 sent=0 dropped=0
+2026-10-13 09:57:08.529 [info] [rt_rvc] mode deactivated
+2026-10-13 09:57:08.529 [info] [system] global processing stopped

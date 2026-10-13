@@ -10,7 +10,7 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 | 功能 | 已实现行为 | 验证范围与限制 |
 | --- | --- | --- |
 | 实时 RVC | ALSA 预处理客户端与 UDP 后端 | `qiqi-zh-realtime` 的 TensorRT 配置已验证，首帧约 320 ms |
-| 文件 RVC | 上传、串行队列、取消请求、结果下载 | 已验证 HTTP 全链；长文件的内存与取消时延仍需限制 |
+| 文件 RVC | 上传、串行队列、取消请求、结果下载 | 输入最长 300 s；FFmpeg 可取消；整段推理仍需等待返回 |
 | 翻译字幕 | Zipformer 转写、可选 SenseVoice 校正、Qwen 翻译、SSE 字幕 | 已接通；人称、领域词和跨句语义仍有错误 |
 | 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查不能证明语义或声线正确 |
 | PipeWire 设备接口 | 占位实现 | 当前物理音频使用 `mozart-pre` 的 ALSA 路径 |
@@ -61,8 +61,8 @@ cmake --build build-gpu -j4
 ./build-gpu/state/mozart_stated rvc-backend/config.yaml
 ```
 
-确认构建日志找到所需推理运行时。缺少 ONNX Runtime 时，当前 CMake 会退回 `USE_ONNX=OFF`。
-这种构建可用于主机测试，不能作为真实 ONNX 推理部署通过的证据。
+当 `USE_ONNX=ON` 时，缺少 ONNX Runtime 头文件或库会使配置失败。
+主机测试或纯 TensorRT 部署必须显式设置 `USE_ONNX=OFF`。无 ONNX 运行时的构建会拒绝加载 ONNX 资产。
 独立构建 `rvc-backend/` 不产生 `mozart_stated`。
 
 前端使用已经安装的 Node.js 与 npm：
@@ -184,7 +184,7 @@ python3 tools/stream_audio_udp.py input.wav realtime-output.wav \
 
 ```bash
 cmake -S rvc-backend -B build/host -DCMAKE_BUILD_TYPE=Debug \
-  -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON
+  -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON -DMOZART_BUILD_TESTS=ON
 cmake --build build/host -j2
 ctest --test-dir build/host --output-on-failure
 python3 -m unittest discover -s tools/tests -v
