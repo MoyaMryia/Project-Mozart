@@ -1,0 +1,16 @@
+✔ a rejected candidate remains available after a newer partial caption (0.6461ms)
+✔ translation updates its source row without changing caption order (0.159735ms)
+✔ duplicate and stale revisions cannot replace a translation (0.456995ms)
+✔ speech errors update the same row and retain its translation (0.098235ms)
+✔ legacy events remain valid and caption history stays bounded (0.275417ms)
+✔ partial, final and translation use one row with increasing revisions (0.105989ms)
+✔ late translation cannot restore an old row after history eviction (1.091619ms)
+✔ a newer partial keeps the latest completed translation available separately (0.121199ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6.942154

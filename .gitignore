@@ -114,5 +114,18 @@ reports/**/stream-jobs/
 reports/**/stream-models/
 reports/**/__pycache__/
 
-# 历史延迟分析报告引用的统计证据。
+# 审计报告明确引用的可复查证据。
 !reports/repository-audit-20261008/realtime-analysis.json
+!reports/repository-audit-20261013/frontend-build.log
+!reports/repository-audit-20261013/frontend-test.log
+!reports/repository-audit-20261013/host-ctest.log
+!reports/repository-audit-20261013/host-io.log
+!reports/repository-audit-20261013/host-python.log
+!reports/repository-audit-20261013/onnx-required.log
+!reports/repository-audit-20261013/atomic-commits.log
+!reports/repository-audit-20261013/jetson/configure-gpu.log
+!reports/repository-audit-20261013/jetson/configure-host.log
+!reports/repository-audit-20261013/jetson/test-host.log
+!reports/repository-audit-20261013/jetson/test-python.log
+!reports/repository-audit-20261013/jetson/smoke/daemon.log
+!reports/repository-audit-20261013/jetson/smoke/result.json

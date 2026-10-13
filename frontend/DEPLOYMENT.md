@@ -42,7 +42,7 @@ cmake --build build-gpu -j4
 ```
 
 Make sure that the configuration output identifies the necessary inference runtime.
-If ONNX Runtime is missing, CMake disables ONNX inference.
+If `USE_ONNX=ON`, missing ONNX Runtime headers or libraries cause CMake configuration to fail.
 Such a build does not prove that real model inference is available.
 A `rvc-backend/` build does not produce the daemon.
 
@@ -101,7 +101,7 @@ From the repository root, start the daemon:
 ```
 
 The initial mode is `IDLE`.
-The factory can select a model from directory order.
+The factory sorts model IDs and selects the first model that loads.
 It does not guarantee a particular initial model.
 
 In a different terminal, read the service state:
@@ -169,7 +169,8 @@ curl 'http://127.0.0.1:18080/api/file/result?job_id=<job_id>' -o output.wav
 ```
 
 An active cancellation request waits for the next available cancellation point.
-It cannot interrupt the current FFmpeg command or full RVC inference call.
+Cancellation terminates FFmpeg. An active full RVC inference call must finish first.
+The input limit is 300 seconds. Each FFmpeg operation has a 120-second deadline.
 The [API document](../state/API.md) gives the queue and storage limits.
 
 ## Use the low-latency profile
