@@ -1,0 +1,1758 @@
+{
+  "base_commit": "531a18d",
+  "native_gpu": {
+    "startup_ms": 4607.584625016898,
+    "api": {
+      "GET health": {
+        "count": 20,
+        "median_ms": 0.402972,
+        "p95_ms": 1.07988815,
+        "max_ms": 1.173219
+      },
+      "GET logs": {
+        "count": 20,
+        "median_ms": 0.811512,
+        "p95_ms": 1.3603814500000002,
+        "max_ms": 1.761461
+      },
+      "GET models": {
+        "count": 20,
+        "median_ms": 0.562033,
+        "p95_ms": 0.6762642,
+        "max_ms": 0.694869
+      },
+      "GET monitor": {
+        "count": 20,
+        "median_ms": 1.1207215000000001,
+        "p95_ms": 1.5022567000000002,
+        "max_ms": 1.823959
+      },
+      "GET parameters": {
+        "count": 20,
+        "median_ms": 0.618579,
+        "p95_ms": 1.382317250000001,
+        "max_ms": 2.684753
+      },
+      "GET presets": {
+        "count": 20,
+        "median_ms": 0.4859025,
+        "p95_ms": 0.9528869000000002,
+        "max_ms": 1.161315
+      },
+      "GET status": {
+        "count": 20,
+        "median_ms": 0.47367800000000004,
+        "p95_ms": 0.6628967000000004,
+        "max_ms": 1.242885
+      },
+      "PUT parameters": {
+        "count": 20,
+        "median_ms": 0.669604,
+        "p95_ms": 0.9438940000000001,
+        "max_ms": 1.194884
+      },
+      "activate quality model and file mode": {
+        "count": 1,
+        "median_ms": 841.750498,
+        "p95_ms": 841.750498,
+        "max_ms": 841.750498
+      },
+      "cached model activate": {
+        "count": 20,
+        "median_ms": 0.9998535,
+        "p95_ms": 1.6603578,
+        "max_ms": 2.035262
+      },
+      "cancel queued file": {
+        "count": 1,
+        "median_ms": 0.5092,
+        "p95_ms": 0.5092,
+        "max_ms": 0.5092
+      },
+      "clear finished files": {
+        "count": 20,
+        "median_ms": 0.5747694999999999,
+        "p95_ms": 0.8651871000000001,
+        "max_ms": 0.924925
+      },
+      "clear logs": {
+        "count": 20,
+        "median_ms": 0.471422,
+        "p95_ms": 0.7406438,
+        "max_ms": 0.754263
+      },
+      "delete cancelled file": {
+        "count": 1,
+        "median_ms": 1.122818,
+        "p95_ms": 1.122818,
+        "max_ms": 1.122818
+      },
+      "delete completed file": {
+        "count": 3,
+        "median_ms": 2.070847,
+        "p95_ms": 2.3897017,
+        "max_ms": 2.42513
+      },
+      "delete preset": {
+        "count": 10,
+        "median_ms": 0.818489,
+        "p95_ms": 1.2856151999999998,
+        "max_ms": 1.351497
+      },
+      "download file result": {
+        "count": 3,
+        "median_ms": 3.697361,
+        "p95_ms": 3.7879397,
+        "max_ms": 3.798004
+      },
+      "file status": {
+        "count": 1202,
+        "median_ms": 0.887243,
+        "p95_ms": 1.2710182,
+        "max_ms": 2.747764
+      },
+      "idle already idle": {
+        "count": 1,
+        "median_ms": 0.877818,
+        "p95_ms": 0.877818,
+        "max_ms": 0.877818
+      },
+      "pause file queue": {
+        "count": 20,
+        "median_ms": 0.8807309999999999,
+        "p95_ms": 1.17463975,
+        "max_ms": 1.535407
+      },
+      "reset parameters": {
+        "count": 20,
+        "median_ms": 0.522992,
+        "p95_ms": 1.3177533500000007,
+        "max_ms": 2.418601
+      },
+      "resume file queue": {
+        "count": 20,
+        "median_ms": 0.39884450000000005,
+        "p95_ms": 0.7888529000000001,
+        "max_ms": 0.875738
+      },
+      "routing": {
+        "count": 20,
+        "median_ms": 0.5074395,
+        "p95_ms": 1.10287625,
+        "max_ms": 1.127714
+      },
+      "save preset": {
+        "count": 10,
+        "median_ms": 0.829081,
+        "p95_ms": 1.2462997999999996,
+        "max_ms": 1.382153
+      },
+      "start realtime worker cached": {
+        "count": 10,
+        "median_ms": 1.638833,
+        "p95_ms": 2.7288228999999995,
+        "max_ms": 3.043804
+      },
+      "stop realtime worker": {
+        "count": 10,
+        "median_ms": 102.01402100000001,
+        "p95_ms": 105.4017709,
+        "max_ms": 107.76085
+      },
+      "uncached model activate": {
+        "count": 1,
+        "median_ms": 725.690458,
+        "p95_ms": 725.690458,
+        "max_ms": 725.690458
+      },
+      "upload and enqueue file": {
+        "count": 4,
+        "median_ms": 1.9638035,
+        "p95_ms": 2.2146654999999997,
+        "max_ms": 2.2441
+      }
+    },
+    "profiles": {
+      "realtime": {
+        "count": 47,
+        "median_ms": 64.194,
+        "p95_ms": 65.1824,
+        "max_ms": 65.613
+      },
+      "generator_file": {
+        "count": 30,
+        "median_ms": 419.6175,
+        "p95_ms": 421.38685,
+        "max_ms": 423.376
+      },
+      "hubert_realtime": {
+        "count": 47,
+        "median_ms": 24.515,
+        "p95_ms": 29.5964,
+        "max_ms": 29.915
+      },
+      "hubert_file": {
+        "count": 30,
+        "median_ms": 58.781499999999994,
+        "p95_ms": 59.39175,
+        "max_ms": 59.575
+      },
+      "f0_file": {
+        "count": 3,
+        "median_ms": 1951.768,
+        "p95_ms": 2381.1796,
+        "max_ms": 2428.892
+      },
+      "f0_realtime": {
+        "count": 47,
+        "median_ms": 37.622,
+        "p95_ms": 38.6378,
+        "max_ms": 38.944
+      },
+      "generator_realtime": {
+        "count": 47,
+        "median_ms": 24.574,
+        "p95_ms": 25.1623,
+        "max_ms": 26.051
+      }
+    },
+    "streams": {
+      "rvc": {
+        "roundtrip": {
+          "count": 570,
+          "median_ms": 0.26652,
+          "p95_ms": 0.8590729499999987,
+          "max_ms": 2.793236
+        },
+        "first_nonzero_frame_ms": 400,
+        "stream": {
+          "blocks": 47,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 280.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        }
+      },
+      "bypass": {
+        "roundtrip": {
+          "count": 570,
+          "median_ms": 0.2489515,
+          "p95_ms": 0.8840557999999995,
+          "max_ms": 2.111872
+        },
+        "first_nonzero_frame_ms": 0,
+        "stream": {
+          "blocks": 0,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 0,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 0.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 0
+        }
+      },
+      "mute": {
+        "roundtrip": {
+          "count": 570,
+          "median_ms": 0.22422999999999998,
+          "p95_ms": 0.7214027999999999,
+          "max_ms": 1.024031
+        },
+        "first_nonzero_frame_ms": null,
+        "stream": {
+          "blocks": 0,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 0,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 0.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 0
+        }
+      }
+    },
+    "file_first_ms": 11291.902324010152,
+    "file_warm": {
+      "count": 2,
+      "median_ms": 7002.507259501726,
+      "p95_ms": 7037.242555669218,
+      "max_ms": 7041.102033021161
+    },
+    "file_all_ms": [
+      11291.902324010152,
+      7041.102033021161,
+      6963.912485982291
+    ],
+    "model": {
+      "cached_models": "2",
+      "generator_asset": "/home/moyamryia/mozart-efficiency-20261014/feature-latency-native-gpu/models/quality/quality.engine",
+      "generator_backend": "tensorrt",
+      "generator_fallback_reason": "",
+      "has_generator": "true",
+      "has_index": "false",
+      "has_realtime_generator": "false",
+      "hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.engine",
+      "hubert_backend": "tensorrt",
+      "hubert_fallback_reason": "",
+      "id": "quality",
+      "loaded": "true",
+      "model_cache_limit": "2",
+      "realtime_hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.engine",
+      "realtime_hubert_backend": "tensorrt",
+      "realtime_hubert_fallback_reason": "",
+      "realtime_rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.engine",
+      "realtime_rmvpe_backend": "tensorrt",
+      "realtime_rmvpe_fallback_reason": "",
+      "rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx",
+      "rmvpe_backend": "onnx_cpu",
+      "rmvpe_fallback_reason": "Fixed TensorRT shape differs from input; selected dynamic ONNX",
+      "sample_rate": "48000"
+    },
+    "repeated_file_pcm_identical": true
+  },
+  "native_cpu_control": {
+    "startup_ms": 4479.762564005796,
+    "api": {
+      "GET health": {
+        "count": 20,
+        "median_ms": 0.408287,
+        "p95_ms": 0.5206176500000002,
+        "max_ms": 0.649336
+      },
+      "GET logs": {
+        "count": 20,
+        "median_ms": 0.5692205,
+        "p95_ms": 0.6405143,
+        "max_ms": 0.682681
+      },
+      "GET models": {
+        "count": 20,
+        "median_ms": 0.565588,
+        "p95_ms": 0.61376135,
+        "max_ms": 0.673561
+      },
+      "GET monitor": {
+        "count": 20,
+        "median_ms": 1.0597665,
+        "p95_ms": 1.2429696500000003,
+        "max_ms": 1.669437
+      },
+      "GET parameters": {
+        "count": 20,
+        "median_ms": 0.4508645,
+        "p95_ms": 0.49031790000000003,
+        "max_ms": 0.538899
+      },
+      "GET presets": {
+        "count": 20,
+        "median_ms": 0.4770095,
+        "p95_ms": 0.526427,
+        "max_ms": 0.534483
+      },
+      "GET status": {
+        "count": 20,
+        "median_ms": 0.507187,
+        "p95_ms": 0.5336847,
+        "max_ms": 0.568373
+      },
+      "PUT parameters": {
+        "count": 20,
+        "median_ms": 0.5363395,
+        "p95_ms": 0.64510625,
+        "max_ms": 0.660216
+      },
+      "activate quality model and file mode": {
+        "count": 1,
+        "median_ms": 549.555053,
+        "p95_ms": 549.555053,
+        "max_ms": 549.555053
+      },
+      "cached model activate": {
+        "count": 20,
+        "median_ms": 0.77502,
+        "p95_ms": 1.00848505,
+        "max_ms": 1.04071
+      },
+      "cancel queued file": {
+        "count": 1,
+        "median_ms": 0.910432,
+        "p95_ms": 0.910432,
+        "max_ms": 0.910432
+      },
+      "clear finished files": {
+        "count": 20,
+        "median_ms": 0.570833,
+        "p95_ms": 0.9061840500000001,
+        "max_ms": 1.082752
+      },
+      "clear logs": {
+        "count": 20,
+        "median_ms": 0.478062,
+        "p95_ms": 0.5585556500000002,
+        "max_ms": 0.818393
+      },
+      "delete cancelled file": {
+        "count": 1,
+        "median_ms": 1.005477,
+        "p95_ms": 1.005477,
+        "max_ms": 1.005477
+      },
+      "delete completed file": {
+        "count": 5,
+        "median_ms": 2.066058,
+        "p95_ms": 2.2651582,
+        "max_ms": 2.279108
+      },
+      "delete preset": {
+        "count": 10,
+        "median_ms": 0.652552,
+        "p95_ms": 1.3578560499999988,
+        "max_ms": 1.886053
+      },
+      "download file result": {
+        "count": 5,
+        "median_ms": 3.072205,
+        "p95_ms": 4.3902488,
+        "max_ms": 4.426205
+      },
+      "file status": {
+        "count": 25580,
+        "median_ms": 0.6826965,
+        "p95_ms": 1.02970005,
+        "max_ms": 8.884738
+      },
+      "idle already idle": {
+        "count": 1,
+        "median_ms": 0.520883,
+        "p95_ms": 0.520883,
+        "max_ms": 0.520883
+      },
+      "pause file queue": {
+        "count": 20,
+        "median_ms": 0.8052935,
+        "p95_ms": 1.3456044500000002,
+        "max_ms": 1.481558
+      },
+      "reset parameters": {
+        "count": 20,
+        "median_ms": 0.483298,
+        "p95_ms": 0.53189035,
+        "max_ms": 0.534899
+      },
+      "resume file queue": {
+        "count": 20,
+        "median_ms": 0.41383899999999996,
+        "p95_ms": 0.8078642,
+        "max_ms": 0.808989
+      },
+      "routing": {
+        "count": 20,
+        "median_ms": 0.405055,
+        "p95_ms": 0.4634113,
+        "max_ms": 0.477458
+      },
+      "save preset": {
+        "count": 10,
+        "median_ms": 0.668744,
+        "p95_ms": 0.7957890000000001,
+        "max_ms": 0.797085
+      },
+      "start realtime worker cached": {
+        "count": 10,
+        "median_ms": 1.1269049999999998,
+        "p95_ms": 1.4298713499999995,
+        "max_ms": 1.582042
+      },
+      "stop realtime worker": {
+        "count": 10,
+        "median_ms": 102.77633900000001,
+        "p95_ms": 105.8542622,
+        "max_ms": 106.360469
+      },
+      "uncached model activate": {
+        "count": 1,
+        "median_ms": 742.224676,
+        "p95_ms": 742.224676,
+        "max_ms": 742.224676
+      },
+      "upload and enqueue file": {
+        "count": 6,
+        "median_ms": 2.0149035,
+        "p95_ms": 2.3802292499999997,
+        "max_ms": 2.409718
+      }
+    },
+    "profiles": {
+      "realtime": {
+        "count": 47,
+        "median_ms": 64.414,
+        "p95_ms": 65.1864,
+        "max_ms": 65.355
+      },
+      "generator_file": {
+        "count": 50,
+        "median_ms": 10314.613000000001,
+        "p95_ms": 10325.80355,
+        "max_ms": 10391.534
+      },
+      "hubert_realtime": {
+        "count": 47,
+        "median_ms": 24.229,
+        "p95_ms": 24.5504,
+        "max_ms": 24.872
+      },
+      "hubert_file": {
+        "count": 50,
+        "median_ms": 59.168,
+        "p95_ms": 59.365,
+        "max_ms": 59.568
+      },
+      "f0_file": {
+        "count": 5,
+        "median_ms": 1963.042,
+        "p95_ms": 2315.2762000000002,
+        "max_ms": 2402.389
+      },
+      "f0_realtime": {
+        "count": 47,
+        "median_ms": 37.959,
+        "p95_ms": 38.6717,
+        "max_ms": 38.69
+      },
+      "generator_realtime": {
+        "count": 47,
+        "median_ms": 24.603,
+        "p95_ms": 24.8788,
+        "max_ms": 24.961
+      }
+    },
+    "streams": {
+      "rvc": {
+        "roundtrip": {
+          "count": 570,
+          "median_ms": 0.37615750000000003,
+          "p95_ms": 0.7637426499999996,
+          "max_ms": 0.888288
+        },
+        "first_nonzero_frame_ms": 400,
+        "stream": {
+          "blocks": 47,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 280.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        }
+      },
+      "bypass": {
+        "roundtrip": {
+          "count": 570,
+          "median_ms": 0.3501565,
+          "p95_ms": 0.73501215,
+          "max_ms": 1.049382
+        },
+        "first_nonzero_frame_ms": 0,
+        "stream": {
+          "blocks": 0,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 0,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 0.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 0
+        }
+      },
+      "mute": {
+        "roundtrip": {
+          "count": 570,
+          "median_ms": 0.38798200000000005,
+          "p95_ms": 0.76181635,
+          "max_ms": 0.924001
+        },
+        "first_nonzero_frame_ms": null,
+        "stream": {
+          "blocks": 0,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 0,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 0.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 0
+        }
+      }
+    },
+    "file_first_ms": 110474.96827700525,
+    "file_warm": {
+      "count": 4,
+      "median_ms": 106000.56235199736,
+      "p95_ms": 106025.37167233677,
+      "max_ms": 106026.21730498504
+    },
+    "file_all_ms": [
+      110474.96827700525,
+      105929.12590500782,
+      105980.54494999815,
+      106020.57975399657,
+      106026.21730498504
+    ],
+    "model": {
+      "cached_models": "2",
+      "generator_asset": "/home/moyamryia/mozart-efficiency-20261014/feature-latency-native/models/quality/quality.onnx",
+      "generator_backend": "onnx_cpu",
+      "generator_fallback_reason": "",
+      "has_generator": "true",
+      "has_index": "false",
+      "has_realtime_generator": "false",
+      "hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.engine",
+      "hubert_backend": "tensorrt",
+      "hubert_fallback_reason": "",
+      "id": "quality",
+      "loaded": "true",
+      "model_cache_limit": "2",
+      "realtime_hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.engine",
+      "realtime_hubert_backend": "tensorrt",
+      "realtime_hubert_fallback_reason": "",
+      "realtime_rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.engine",
+      "realtime_rmvpe_backend": "tensorrt",
+      "realtime_rmvpe_fallback_reason": "",
+      "rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx",
+      "rmvpe_backend": "onnx_cpu",
+      "rmvpe_fallback_reason": "Fixed TensorRT shape differs from input; selected dynamic ONNX",
+      "sample_rate": "48000"
+    },
+    "repeated_file_pcm_identical": true
+  },
+  "cancellation": {
+    "records": [
+      {
+        "feature": "active file cancel acceptance",
+        "elapsed_ms": 1.7885709821712226
+      },
+      {
+        "feature": "pending mode switch acceptance",
+        "elapsed_ms": 0.9308150038123131
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.4349909906741232
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.8150359974242747
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.5112820256035775
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7902359832078218
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.3658049865625799
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.8042520096059889
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.1012849863618612
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.3210039760451764
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.187622983707115
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.9476809829939157
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.4152789954096079
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.653782994253561
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.2769699969794601
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 2.5376520061399788
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.7037680081557482
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7648590146563947
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.2679460051003844
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7716419824864715
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.9709780171979219
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.712313009193167
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.9606410060077906
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.9164480036124587
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.2884900206699967
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7042490071617067
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.6690480115357786
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.620310009457171
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.3002030027564615
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7086009902413934
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.346797012956813
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7035119817592204
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.3418690068647265
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.6545179823879153
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.9180479866918176
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7825230024755
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.302026998018846
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.6315740067511797
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.3258679828140885
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.578163995873183
+      },
+      {
+        "feature": "direct speech status",
+        "elapsed_ms": 1.3168439909350127
+      },
+      {
+        "feature": "proxied speech status",
+        "elapsed_ms": 1.7063920095097274
+      },
+      {
+        "feature": "queued speech cancel",
+        "elapsed_ms": 4.892450990155339
+      },
+      {
+        "feature": "active speech cancel",
+        "elapsed_ms": 37.78589202556759
+      },
+      {
+        "feature": "active speech stop",
+        "elapsed_ms": 3072.674690018175
+      }
+    ],
+    "cancel_response": {
+      "error": "",
+      "job_id": "job_1791989716535732",
+      "mode": "file_rvc",
+      "name": "input.wav",
+      "progress": 40,
+      "status": "cancelling"
+    },
+    "pending_response": {
+      "current_active_job": "job_1791989716535732",
+      "status": "switching_deferred",
+      "target_mode": "idle"
+    },
+    "cancelled_file": {
+      "error": "",
+      "job_id": "job_1791989716535732",
+      "mode": "file_rvc",
+      "name": "input.wav",
+      "progress": 85,
+      "status": "cancelled"
+    },
+    "file_cancel_to_terminal_ms": 4295.078161987476,
+    "file_cancel_to_idle_ms": 4296.151796996128,
+    "speech_queued_cancel": {
+      "id": "dbef75346ffd420582b550e8adbd522e",
+      "text": "This is a test of speech cancellation. Please stop the current task before it finishes.",
+      "language": "en",
+      "voice_id": "57e09fc4c5d747659fbcc5586554c1ad",
+      "voice_revision": "f2899a59ab51b0e1d83fc04c78049ba6d163cf4a9fd7459732f42e6900c32681",
+      "reference_text": "",
+      "engine": "pocket",
+      "utterance_id": "",
+      "source_text": "",
+      "status": "cancelled",
+      "created_at": 1791989729.6814814,
+      "live": false,
+      "playback": false,
+      "speech_degraded": false,
+      "admission_pending": false,
+      "was_deferred": false,
+      "admission_wait_seconds": 0,
+      "chunk_texts": [
+        "This is a test of speech cancellation. Please stop the current task before it finishes."
+      ],
+      "chunk_count": 1,
+      "chunks": [],
+      "generated_chunks": 0,
+      "played_chunks": 0,
+      "generation_done": false,
+      "estimated_duration_seconds": 5.3999999999999995,
+      "played_duration_seconds": 0,
+      "max_duration_seconds": 15.5,
+      "result_url": "/api/speech/jobs/dbef75346ffd420582b550e8adbd522e/result"
+    },
+    "speech_active_cancel": {
+      "id": "084f7e3b1589461c93f9737912f06a58",
+      "text": "This is a test of speech cancellation. Please stop the current task before it finishes.",
+      "language": "en",
+      "voice_id": "57e09fc4c5d747659fbcc5586554c1ad",
+      "voice_revision": "f2899a59ab51b0e1d83fc04c78049ba6d163cf4a9fd7459732f42e6900c32681",
+      "reference_text": "",
+      "engine": "pocket",
+      "utterance_id": "",
+      "source_text": "",
+      "status": "cancelled",
+      "created_at": 1791989729.4725003,
+      "live": false,
+      "playback": false,
+      "speech_degraded": false,
+      "admission_pending": false,
+      "was_deferred": false,
+      "admission_wait_seconds": 0,
+      "chunk_texts": [
+        "This is a test of speech cancellation. Please stop the current task before it finishes."
+      ],
+      "chunk_count": 1,
+      "chunks": [],
+      "generated_chunks": 0,
+      "played_chunks": 0,
+      "generation_done": false,
+      "estimated_duration_seconds": 5.3999999999999995,
+      "played_duration_seconds": 0,
+      "max_duration_seconds": 15.5,
+      "result_url": "/api/speech/jobs/084f7e3b1589461c93f9737912f06a58/result",
+      "started_at": 1791989729.478461,
+      "queue_seconds": 0.005960702896118164,
+      "early_audio": false,
+      "text_part_results": []
+    },
+    "speech_stop": {
+      "stopped": true
+    },
+    "speech_stopped_job": {
+      "id": "e958c82f4a244a738dbb40fa872cb1a4",
+      "text": "This is a test of speech cancellation. Please stop the current task before it finishes.",
+      "language": "en",
+      "voice_id": "57e09fc4c5d747659fbcc5586554c1ad",
+      "voice_revision": "f2899a59ab51b0e1d83fc04c78049ba6d163cf4a9fd7459732f42e6900c32681",
+      "reference_text": "",
+      "engine": "pocket",
+      "utterance_id": "cancel-playback",
+      "source_text": "",
+      "status": "cancelled",
+      "created_at": 1791989729.7358868,
+      "live": true,
+      "playback": true,
+      "speech_degraded": false,
+      "admission_pending": false,
+      "was_deferred": false,
+      "admission_wait_seconds": 0,
+      "chunk_texts": [
+        "This is a test of speech cancellation.",
+        "Please stop the current task before it finishes."
+      ],
+      "chunk_count": 1,
+      "chunks": [
+        {
+          "type": "audio",
+          "block_index": 0,
+          "filename": "e958c82f4a244a738dbb40fa872cb1a4-part-000-block-00000.wav",
+          "duration_seconds": 1.2,
+          "sample_rate": 24000,
+          "synthesis_seconds": 1.2050899600144476,
+          "elapsed_seconds": 1.2050899600144476,
+          "raw_peak": 0.7510551810264587,
+          "output_gain": 1.0,
+          "limited_samples": 0,
+          "job_id": "e958c82f4a244a738dbb40fa872cb1a4",
+          "index": 0,
+          "text_chunk_index": 0,
+          "text": "This is a test of speech cancellation.",
+          "streamed": true,
+          "status": "playing",
+          "audio_ready_at": 1791989732.2758431,
+          "playback_started_at": 1791989732.2797258,
+          "playback_timing": "null_paced"
+        }
+      ],
+      "generated_chunks": 1,
+      "played_chunks": 0,
+      "generation_done": false,
+      "estimated_duration_seconds": 5.4,
+      "played_duration_seconds": 0,
+      "max_duration_seconds": 15.5,
+      "result_url": "/api/speech/jobs/e958c82f4a244a738dbb40fa872cb1a4/result",
+      "started_at": 1791989729.7405753,
+      "queue_seconds": 0.0046885013580322266,
+      "early_audio": true,
+      "text_part_results": [],
+      "text_chunk_count": 2,
+      "duration_seconds": 1.2,
+      "sample_rate": 24000,
+      "audio_ready_at": 1791989732.2758431,
+      "playback_started_at": 1791989732.2797258,
+      "finished_at": 1791989735.360375
+    },
+    "summary": {
+      "active file cancel acceptance": {
+        "count": 1,
+        "median_ms": 1.7885709821712226,
+        "p95_ms": 1.7885709821712226,
+        "max_ms": 1.7885709821712226
+      },
+      "active speech cancel": {
+        "count": 1,
+        "median_ms": 37.78589202556759,
+        "p95_ms": 37.78589202556759,
+        "max_ms": 37.78589202556759
+      },
+      "active speech stop": {
+        "count": 1,
+        "median_ms": 3072.674690018175,
+        "p95_ms": 3072.674690018175,
+        "max_ms": 3072.674690018175
+      },
+      "direct speech status": {
+        "count": 20,
+        "median_ms": 1.3443330099107698,
+        "p95_ms": 1.9611578565672971,
+        "max_ms": 1.9709780171979219
+      },
+      "pending mode switch acceptance": {
+        "count": 1,
+        "median_ms": 0.9308150038123131,
+        "p95_ms": 0.9308150038123131,
+        "max_ms": 0.9308150038123131
+      },
+      "proxied speech status": {
+        "count": 20,
+        "median_ms": 1.7104569997172803,
+        "p95_ms": 1.9771795341512193,
+        "max_ms": 2.5376520061399788
+      },
+      "queued speech cancel": {
+        "count": 1,
+        "median_ms": 4.892450990155339,
+        "p95_ms": 4.892450990155339,
+        "max_ms": 4.892450990155339
+      }
+    }
+  },
+  "file_cpu_vs_gpu": {
+    "samples": 403146,
+    "exact": false,
+    "relative_rmse": 4.823569277994765e-05,
+    "cosine": 0.9999999988367987,
+    "max_absolute_error": 6.546825170516968e-05
+  },
+  "speech_replay": {
+    "summary": {
+      "asr event to SSE observed": {
+        "count": 292,
+        "median_ms": 113.52872848510742,
+        "p95_ms": 200.59833526611325,
+        "max_ms": 300.22454261779785
+      },
+      "asr event to bridge receive": {
+        "count": 292,
+        "median_ms": 0.5499124526977539,
+        "p95_ms": 38.70873451232909,
+        "max_ms": 155.745267868042
+      },
+      "asr input start to first partial": {
+        "count": 23,
+        "median_ms": 350.754976272583,
+        "p95_ms": 962.3805761337277,
+        "max_ms": 1302.5813102722168
+      },
+      "asr last captured packet end to final": {
+        "count": 23,
+        "median_ms": 26.697397232055664,
+        "p95_ms": 33.73312950134277,
+        "max_ms": 70.73450088500977
+      },
+      "bridge source record to SSE observed": {
+        "count": 292,
+        "median_ms": 105.6818962097168,
+        "p95_ms": 196.77822589874268,
+        "max_ms": 205.71208000183105
+      },
+      "parent final ASR to first playback": {
+        "count": 23,
+        "median_ms": 8152.458190917969,
+        "p95_ms": 11066.911602020262,
+        "max_ms": 11317.121505737305
+      },
+      "speech queue": {
+        "count": 41,
+        "median_ms": 969.7585105895996,
+        "p95_ms": 3792.3636436462402,
+        "max_ms": 4863.58380317688
+      },
+      "speech ready to first playback": {
+        "count": 41,
+        "median_ms": 6204.547882080078,
+        "p95_ms": 8016.438722610474,
+        "max_ms": 8163.409471511841
+      },
+      "speech start to first ready": {
+        "count": 41,
+        "median_ms": 931.255578994751,
+        "p95_ms": 1417.414665222168,
+        "max_ms": 2854.184865951538
+      },
+      "speech submit to first playback": {
+        "count": 41,
+        "median_ms": 8490.254640579224,
+        "p95_ms": 11043.755531311035,
+        "max_ms": 12273.247718811035
+      },
+      "speech submit to generation complete": {
+        "count": 41,
+        "median_ms": 3814.5666122436523,
+        "p95_ms": 6040.376424789429,
+        "max_ms": 6474.72071647644
+      },
+      "speech submit to playback complete": {
+        "count": 41,
+        "median_ms": 10912.564992904663,
+        "p95_ms": 14054.37684059143,
+        "max_ms": 14680.649757385254
+      },
+      "translation compute including retries": {
+        "count": 41,
+        "median_ms": 398.0,
+        "p95_ms": 740.0,
+        "max_ms": 907.0
+      },
+      "translation submit to result": {
+        "count": 41,
+        "median_ms": 402.94432640075684,
+        "p95_ms": 810.9300136566162,
+        "max_ms": 926.461935043335
+      },
+      "translation successful one attempt": {
+        "count": 40,
+        "median_ms": 394.5,
+        "p95_ms": 576.5999999999995,
+        "max_ms": 907.0
+      },
+      "translation wait and dispatch overhead": {
+        "count": 41,
+        "median_ms": 7.3038024902343786,
+        "p95_ms": 11.30048942565917,
+        "max_ms": 503.4619350433349
+      }
+    },
+    "record_count": 1354,
+    "validation": {
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 137.14954504100024,
+        "remaining_pids_before_cleanup": [],
+        "injection": null
+      },
+      "parent_count": 23,
+      "final_parents": 23,
+      "translation_parent_states": {
+        "completed": 22,
+        "failed": 1
+      },
+      "source_covered_parents": 23,
+      "completed_speech_parents": 23,
+      "job_states": {
+        "completed": 41
+      },
+      "early_segments": 18,
+      "early_submit_lead_seconds": {
+        "count": 18,
+        "median": 2.378942131996155,
+        "max": 7.985994815826416,
+        "min": 0.6085867881774902
+      },
+      "first_play_minus_final_emit_seconds": {
+        "count": 23,
+        "median": 8.152458190917969,
+        "max": 11.317121505737305,
+        "min": -0.4048638343811035
+      },
+      "speech_before_final_parents": 1,
+      "revision_violations": [],
+      "playback_order_preserved": true,
+      "parent_internal_gaps_seconds": {
+        "count": 97,
+        "median": 0.002810239791870117,
+        "max": 0.02132129669189453,
+        "min": 0.0013489723205566406
+      },
+      "parent_internal_gaps_above_20ms": 1,
+      "output_duration_seconds": 123.6,
+      "output_words": 394,
+      "minimum_available_GiB": 4.227817535400391,
+      "native_frames": 6000,
+      "native_overruns": 0,
+      "final_speech_status": {
+        "unfinished_jobs": 0,
+        "pending_jobs": 0,
+        "storage_warning": null,
+        "warmup_error": null
+      },
+      "classifier": {
+        "accepted_decisions": 101,
+        "accepted_decision_ms": {
+          "count": 101,
+          "median": 9.111055987887084,
+          "max": 17.0038609940093,
+          "min": 4.035316989757121
+        },
+        "errors": [],
+        "early_parent_count": 10,
+        "early_reasons": {
+          "model": 14,
+          "length_limit": 4
+        },
+        "source_corrections": 0,
+        "note": "Timings include accepted classifier results only. Discarded stale results are not in the caption log."
+      }
+    }
+  },
+  "components": {
+    "summary": {
+      "GET completed speech job": {
+        "count": 60,
+        "median_ms": 1.3394335,
+        "p95_ms": 1.82902505,
+        "max_ms": 2.127138
+      },
+      "GET speech/jobs": {
+        "count": 20,
+        "median_ms": 1.118018,
+        "p95_ms": 1.36090445,
+        "max_ms": 1.409515
+      },
+      "GET speech/session": {
+        "count": 20,
+        "median_ms": 0.9725105,
+        "p95_ms": 1.1343304,
+        "max_ms": 1.152996
+      },
+      "GET speech/status": {
+        "count": 20,
+        "median_ms": 1.3235445000000001,
+        "p95_ms": 1.5481026000000002,
+        "max_ms": 1.685332
+      },
+      "GET voices": {
+        "count": 20,
+        "median_ms": 1.0204955,
+        "p95_ms": 1.3780206,
+        "max_ms": 1.380331
+      },
+      "boundary classifier fixed 30 chars": {
+        "count": 20,
+        "median_ms": 6.460471999999999,
+        "p95_ms": 6.900959400000003,
+        "max_ms": 11.072759
+      },
+      "boundary model constructor": {
+        "count": 1,
+        "median_ms": 69.188127,
+        "p95_ms": 69.188127,
+        "max_ms": 69.188127
+      },
+      "delete reference voice": {
+        "count": 1,
+        "median_ms": 2.317128,
+        "p95_ms": 2.317128,
+        "max_ms": 2.317128
+      },
+      "download early playback": {
+        "count": 3,
+        "median_ms": 2.759478,
+        "p95_ms": 2.9730363,
+        "max_ms": 2.996765
+      },
+      "download preview": {
+        "count": 3,
+        "median_ms": 1.951229,
+        "p95_ms": 2.1257336,
+        "max_ms": 2.145123
+      },
+      "isolated translation first request": {
+        "count": 1,
+        "median_ms": 393.132155,
+        "p95_ms": 393.132155,
+        "max_ms": 393.132155
+      },
+      "isolated translation warm request": {
+        "count": 8,
+        "median_ms": 393.4855285,
+        "p95_ms": 480.05828025,
+        "max_ms": 485.017278
+      },
+      "speech session update": {
+        "count": 20,
+        "median_ms": 1.1532035,
+        "p95_ms": 1.34699425,
+        "max_ms": 1.505231
+      },
+      "speech stop idle": {
+        "count": 20,
+        "median_ms": 1.347098,
+        "p95_ms": 1.8517430500000003,
+        "max_ms": 2.017215
+      },
+      "submit early playback": {
+        "count": 3,
+        "median_ms": 5.53902,
+        "p95_ms": 6.4142510999999995,
+        "max_ms": 6.511499
+      },
+      "submit preview": {
+        "count": 3,
+        "median_ms": 4.54379,
+        "p95_ms": 5.8744481,
+        "max_ms": 6.022299
+      },
+      "upload reference voice": {
+        "count": 1,
+        "median_ms": 130.848668,
+        "p95_ms": 130.848668,
+        "max_ms": 130.848668
+      }
+    },
+    "tts": {
+      "preview": {
+        "count": 3,
+        "first_ready": {
+          "count": 3,
+          "median_ms": 3229.1948795318604,
+          "p95_ms": 3438.2657766342163,
+          "max_ms": 3461.495876312256
+        },
+        "generation_complete": {
+          "count": 3,
+          "median_ms": 3231.6277027130127,
+          "p95_ms": 3440.833568572998,
+          "max_ms": 3464.078664779663
+        },
+        "ready_all_ms": [
+          3461.495876312256,
+          3229.1948795318604,
+          3227.607011795044
+        ],
+        "playback_first": null,
+        "playback_complete": null,
+        "output_seconds": [
+          4.4,
+          4.4,
+          4.4
+        ],
+        "audio_checks": [
+          {
+            "job": "7c9bda70cd5a43e88d87317cca600f28",
+            "samples": 105600,
+            "peak": 0.587554931640625,
+            "finite": true,
+            "ordered_blocks_match": true
+          },
+          {
+            "job": "6ff86be58e384c84b12b4e2aaac1910d",
+            "samples": 105600,
+            "peak": 0.587554931640625,
+            "finite": true,
+            "ordered_blocks_match": true
+          },
+          {
+            "job": "14cae50eced0402cb92a03e8cf97ae1f",
+            "samples": 105600,
+            "peak": 0.587554931640625,
+            "finite": true,
+            "ordered_blocks_match": true
+          }
+        ]
+      },
+      "early playback": {
+        "count": 3,
+        "first_ready": {
+          "count": 3,
+          "median_ms": 916.2776470184326,
+          "p95_ms": 916.3735628128052,
+          "max_ms": 916.384220123291
+        },
+        "generation_complete": {
+          "count": 3,
+          "median_ms": 3249.6116161346436,
+          "p95_ms": 3255.2109956741333,
+          "max_ms": 3255.833148956299
+        },
+        "ready_all_ms": [
+          916.032075881958,
+          916.2776470184326,
+          916.384220123291
+        ],
+        "playback_first": {
+          "count": 3,
+          "median_ms": 922.0149517059326,
+          "p95_ms": 922.9610204696655,
+          "max_ms": 923.0661392211914
+        },
+        "playback_complete": {
+          "count": 3,
+          "median_ms": 5342.78416633606,
+          "p95_ms": 5343.128347396851,
+          "max_ms": 5343.1665897369385
+        },
+        "output_seconds": [
+          4.3999999999999995,
+          4.3999999999999995,
+          4.3999999999999995
+        ],
+        "audio_checks": [
+          {
+            "job": "fe9d8d52c2854ad5bfebcf4310487cf4",
+            "samples": 105600,
+            "peak": 0.587554931640625,
+            "finite": true,
+            "ordered_blocks_match": true
+          },
+          {
+            "job": "f344c08b741a4e1dbd5ff0700a473c7a",
+            "samples": 105600,
+            "peak": 0.587554931640625,
+            "finite": true,
+            "ordered_blocks_match": true
+          },
+          {
+            "job": "928194c0c6db4dfbb4c99727ca09670c",
+            "samples": 105600,
+            "peak": 0.587554931640625,
+            "finite": true,
+            "ordered_blocks_match": true
+          }
+        ]
+      }
+    },
+    "initial_asr_negative_probe": {
+      "input": "qiqi-espeak.wav",
+      "runs": 3,
+      "nonempty_online_results": 0
+    },
+    "translator_ready_ms": 3173.276545974659,
+    "speech_http_ready_ms": 168.84645400568843,
+    "speech_runtime_ready_ms": 1566.9817370071542,
+    "speech_runtime": {
+      "ready": true,
+      "runtime": "1.13.6",
+      "engine": "pocket",
+      "provider_requested": "cpu",
+      "precision": "int8",
+      "audio_stream_protocol": 1,
+      "early_decode_runtime": {
+        "protocol": 1,
+        "sherpa_version": "1.13.6",
+        "source_sha256": "78f5d10f957d2de1867a1e08395e9ec2ec388911c853dd141887396667f3ff34",
+        "patch_sha256": "5f6ea76bd16b0ef2953987e6b907857071790f7a548750f312bec8def0fdd414",
+        "header_sha256": "7593017c702926b31ab16c3aa21d366d1164fe713d992fe695720bf011da2cd4",
+        "extension_sha256": "0228afe97aa0dbf89c9432315fa5501202365d725615c3bd250f6ddd9fad784f",
+        "onnxruntime_sha256": "d860f5968f5a1ed63533e9ed198aa747ca9fe289028129877f428556089f6874",
+        "pythonpath": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python"
+      },
+      "onnxruntime_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+      "onnxruntime_loader_library": "/home/moyamryia/mozart-realtime-patches-20261008/early-audio-runtime-20261009/python/sherpa_onnx/lib/libonnxruntime.so.1.27.1",
+      "onnxruntime_version": "1.27.1",
+      "available_providers": [
+        "CPUExecutionProvider"
+      ]
+    },
+    "translation_failures": []
+  },
+  "recognition": {
+    "summary": {
+      "ASR accept and available decode per 20ms frame": {
+        "count": 1560,
+        "median_ms": 0.224807,
+        "p95_ms": 25.472087849999998,
+        "max_ms": 28.400265
+      },
+      "ASR active decode call": {
+        "count": 96,
+        "median_ms": 25.7195885,
+        "p95_ms": 26.765254,
+        "max_ms": 28.105247
+      },
+      "ASR model constructor": {
+        "count": 1,
+        "median_ms": 1659.561756,
+        "p95_ms": 1659.561756,
+        "max_ms": 1659.561756
+      },
+      "SenseVoice complete 8.399s utterance": {
+        "count": 5,
+        "median_ms": 641.084948,
+        "p95_ms": 652.3847644,
+        "max_ms": 655.201749
+      },
+      "SenseVoice model constructor": {
+        "count": 1,
+        "median_ms": 2316.899668,
+        "p95_ms": 2316.899668,
+        "max_ms": 2316.899668
+      },
+      "boundary classifier fixed 30 chars": {
+        "count": 20,
+        "median_ms": 6.316841999999999,
+        "p95_ms": 6.590853950000001,
+        "max_ms": 7.64674
+      },
+      "boundary model constructor": {
+        "count": 1,
+        "median_ms": 54.441613,
+        "p95_ms": 54.441613,
+        "max_ms": 54.441613
+      }
+    },
+    "input": {
+      "path": "/home/moyamryia/mozart-efficiency-20261014/feature-latency-asr-input.wav",
+      "sha256": "9210227367a874e57f8a958c926d30db666c88c484d4d73b922b7e5135f34df0",
+      "samples": 134384,
+      "sample_rate": 16000
+    },
+    "runs": [
+      {
+        "repeat": 0,
+        "first_partial_ms": 743.7209270137828,
+        "finals": [
+          {
+            "text": "妈妈说补价考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀",
+            "at_ms": 9065.778106014477,
+            "frame": 452
+          }
+        ],
+        "last_input_sample_ms": 8399.0,
+        "input_end_to_last_final_ms": 666.7781060144771
+      },
+      {
+        "repeat": 1,
+        "first_partial_ms": 746.5218479919713,
+        "finals": [
+          {
+            "text": "妈妈说补价考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀",
+            "at_ms": 9065.858177986229,
+            "frame": 452
+          }
+        ],
+        "last_input_sample_ms": 8399.0,
+        "input_end_to_last_final_ms": 666.8581779862288
+      },
+      {
+        "repeat": 2,
+        "first_partial_ms": 746.6493399988394,
+        "finals": [
+          {
+            "text": "妈妈说补价考研做助诱拿了大几千完了你凭着这个考研跟你妈妈报了多少钱金币了呀",
+            "at_ms": 9066.244362998987,
+            "frame": 452
+          }
+        ],
+        "last_input_sample_ms": 8399.0,
+        "input_end_to_last_final_ms": 667.2443629989866
+      }
+    ],
+    "first_partial": {
+      "count": 3,
+      "median_ms": 746.5218479919713,
+      "p95_ms": 746.6365907981526,
+      "max_ms": 746.6493399988394
+    },
+    "input_end_to_last_final": {
+      "count": 3,
+      "median_ms": 666.8581779862288,
+      "p95_ms": 667.2057444977108,
+      "max_ms": 667.2443629989866
+    },
+    "refinement": [
+      {
+        "text": "妈妈说，暑假考研住住又拿了大几千。完了你你凭着这个考研跟你妈妈报了多少钱金币了呀？",
+        "audit": null
+      },
+      {
+        "text": "妈妈说，暑假考研住住又拿了大几千。完了你你凭着这个考研跟你妈妈报了多少钱金币了呀？",
+        "audit": null
+      },
+      {
+        "text": "妈妈说，暑假考研住住又拿了大几千。完了你你凭着这个考研跟你妈妈报了多少钱金币了呀？",
+        "audit": null
+      },
+      {
+        "text": "妈妈说，暑假考研住住又拿了大几千。完了你你凭着这个考研跟你妈妈报了多少钱金币了呀？",
+        "audit": null
+      },
+      {
+        "text": "妈妈说，暑假考研住住又拿了大几千。完了你你凭着这个考研跟你妈妈报了多少钱金币了呀？",
+        "audit": null
+      }
+    ]
+  },
+  "dsp": [
+    {
+      "rnnoise": false,
+      "constructor_ms": 0.001152,
+      "frames": {
+        "count": 1260,
+        "median_ms": 0.030273,
+        "p95_ms": 0.040226649999999996,
+        "max_ms": 0.068962
+      }
+    },
+    {
+      "rnnoise": true,
+      "constructor_ms": 12.546197,
+      "frames": {
+        "count": 1260,
+        "median_ms": 5.5692035,
+        "p95_ms": 5.605357,
+        "max_ms": 5.774907
+      }
+    }
+  ],
+  "evidence_sha256": {
+    "feature-latency-dsp.json": "68367364ba4faf012b6f3e929383a121d284bbe0fd506afa45b12262dffda9ff",
+    "speech-analysis.json": "706801e2042db9e8f528f29d0982aca43047f1e4cc9e6a5497d4eb506c31a8ae",
+    "feature-latency-cancel/presets.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "feature-latency-cancel/backend.log": "43e8b8c15e2d75fdff4b3c8a728c29292b2221a604b4dadefb340e87b3e917a0",
+    "feature-latency-cancel/speech.log": "dc09c1a4f38436ced358c1eae128e83ededcbf671522989cea5c2f4a8633483b",
+    "feature-latency-cancel/backend.json": "c54acc766f8baab63e218d26ac1a5b58661ceee899be6710582a65b6eab1161b",
+    "feature-latency-cancel/results.json": "bbcf2018496ddf5fb64651dafb6c8f9c3c52a468aa1b644b3e053bcd7e26382a",
+    "feature-latency-cancel/speech/playback.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "feature-latency-cancel/speech/speech-worker.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "feature-latency-cancel/speech/results/084f7e3b1589461c93f9737912f06a58.json": "bf5209ef5b39df358a4170de575335cc2c8ecc63ff8809b57ea565de84cdea7e",
+    "feature-latency-cancel/speech/results/dbef75346ffd420582b550e8adbd522e.json": "1e4171ca6c2fe5db5fefc1e9349dae5ba6b107932f8b5d5117c670290043c730",
+    "feature-latency-cancel/speech/results/e958c82f4a244a738dbb40fa872cb1a4.json": "f254a7b1fd14f508a1ea88b499de4740ef080d51a1e0b9bf886a21d2fb0ed07a",
+    "feature-latency-cancel/speech/voices/57e09fc4c5d747659fbcc5586554c1ad.json": "4e388908b605335f937de5e33acf1ec5fc9b8f37f794789f7ed542505fa6035d",
+    "feature-latency-components/speech.log": "8b7cee5d1b015d3afb7d644b090bc092f72ba3638aafd9f782170fc67d52213e",
+    "feature-latency-components/results.json": "993a88aeb28cc6cc25f11379bd54e2b9b8ecf611217d4cbc9efc7affb4ee257b",
+    "feature-latency-components/translation.log": "44f224a671cf6b1a89596fbf1d19a47ddaf9a808c923a1eba2f692ba8231bf45",
+    "feature-latency-components/speech/playback.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "feature-latency-components/speech/speech-worker.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "feature-latency-components/speech/results/fe9d8d52c2854ad5bfebcf4310487cf4.json": "cdf7303d8e53e53cf48d4e10d85659e4d979bfe590fe13d836c7549a764b381d",
+    "feature-latency-components/speech/results/928194c0c6db4dfbb4c99727ca09670c.json": "d089dc36b2f8b99f13b21800edcf724e08ec465936cf1cb31281e5704223a74f",
+    "feature-latency-components/speech/results/7c9bda70cd5a43e88d87317cca600f28.json": "3e0a69392ecde93dcaf58fb158bc3d84ae3a23f8399c9f41a615c43007235943",
+    "feature-latency-components/speech/results/f344c08b741a4e1dbd5ff0700a473c7a.json": "f57810dd49bd90ffe23b65fbfb4faf9229883e05636fdf46b1e044240c106a24",
+    "feature-latency-components/speech/results/6ff86be58e384c84b12b4e2aaac1910d.json": "8ef2576434ad975ea7327785cb1e6f73c66d6cfa26a4c1ac624d9900332bd5aa",
+    "feature-latency-components/speech/results/14cae50eced0402cb92a03e8cf97ae1f.json": "64ee923eb67b5fa84d0760421ad303a174174471510a978723d6c557dfa7357b",
+    "feature-latency-recognition/results.json": "b2c176e485eae59dfc15e2813563282cbcf4ab9500687f9b77fdf3b19c883f9c",
+    "feature-latency-speech-20261014/progress.json": "8fb5cb365118afb1aaf9b82e29f63a7b26d7450291bb951f414919c10e4fdaee",
+    "feature-latency-speech-20261014/exit-status.json": "3732278e85acf1a13fdc50f187090d1306fdd8d024c0d116e2dc8db5015ff057",
+    "feature-latency-speech-20261014/pids.json": "3936d17fa4caa5388fafd9163e84abbd5e65ac766a9a3b70209a47c90ee588cb",
+    "feature-latency-speech-20261014/sse-observed.jsonl": "d925ee3fef0617f9e4fe504fd1e62f11a8651b0b41c9d4b11b89a06d5f63edaa",
+    "feature-latency-speech-20261014/protocol.json": "d1f996ea8fce80e3ae62ef0dd4e4c4c2df81ac52c992727ecb6b3e4bc3ff7493",
+    "feature-latency-speech-20261014/launcher.log": "4f2d09f258443e28a51decddcab2d071aefa4a66ad3c1f8575bc1290c34fec04",
+    "feature-latency-speech-20261014/jobs.json": "8d9f595d9b3b7a7ca6c379070e4fc528989dfe4a924756c1ef8285dadac1a156",
+    "feature-latency-speech-20261014/tegrastats.log": "2faa3edf305dff71f077ceadeeaa6b0ef8baeb5fe44139ba2a10eb0298e8b495",
+    "feature-latency-speech-20261014/telemetry.jsonl": "790eda07a2f21af6fb16d436138800f5dc25f11cb0d4ff1cec0b26e2090a5092",
+    "feature-latency-speech-20261014/speech/playback.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "feature-latency-speech-20261014/speech/speech-worker.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "feature-latency-speech-20261014/speech/results/9a640a3f9f6c4d27b8310decf4c22710.json": "f671c6826587ada7e1ba3cf584f5869ecf1193435af3ca6e4a58e6f2330f510e",
+    "feature-latency-speech-20261014/speech/results/9275092ed4d24309baf5492fd7206307.json": "05b19e72f54910fa8c40d949cd1ddd6cc19f997b5e392d620d594a8bf5128d14",
+    "feature-latency-speech-20261014/speech/results/a9dc904f6b2e4276872b3c54d6b1e9e9.json": "1800249aaa33dd0e2114a1ab40c73e49481f3c8625b438294e3acecd5e0dbc91",
+    "feature-latency-speech-20261014/speech/results/c142b5f7d6794572b789db7d41ce7f3e.json": "aad8f96f317bc47cfb225f3469c09197c148a2293d32c0a960dd426069bf4aa6",
+    "feature-latency-speech-20261014/speech/results/2f172bcc1cc9469db0e1344301d7dd8e.json": "f00dc39e34481f23c38acbe20c83db5f04948c591ac8dc7eeb8de62b22b57021",
+    "feature-latency-speech-20261014/speech/results/590ef5ab5aee42408b7f56c730a07d3d.json": "4d32e299d1b9d72d300d3dd899f40efcd93c9a8a0c322c836e06c04840f9406d",
+    "feature-latency-speech-20261014/speech/results/313d4c3b3d914df0a5829c10ea5d0a59.json": "bc1af07732320c1af40a1c1b54c510805c46cff69c069a6e83a79bfbe477edd3",
+    "feature-latency-speech-20261014/speech/results/a3c400eaa92a442ca8f5faf72aed92df.json": "c7ede19a631f286e2a09bbacffe888760cfbcf56f8d6d398b9f54f5856039a84",
+    "feature-latency-speech-20261014/speech/results/d19114fbb3384ee8aa16006da2241de2.json": "20f638cbaf842a14b2496eac5cc6824b0dcb1160450ce0a76ab1b12f6a31cc81",
+    "feature-latency-speech-20261014/speech/results/b6da0c397ec2423fb9360ef91847ea08.json": "762c79711ec43ea09fccf58353ed88583896dbad0146464a8e73f5d238f94111",
+    "feature-latency-speech-20261014/speech/results/318e6c0f1a6b402aaa6a48f02a43d976.json": "b5f24f5755069932aeaebdfaa6a4529196563ae3dfc74e176b96f71a1e34a379",
+    "feature-latency-speech-20261014/speech/results/78419182b309485f9e8f5ea326dc0e64.json": "4342d08d6860fb4511dc385c27a846094aec237cf181a4e050323d6c98a979aa",
+    "feature-latency-speech-20261014/speech/results/4ef8d4e78974463a87a629e8914345b5.json": "cbbbea00ce274e84dff035019f5edf7576155bf9d9bb102b1e87b67469f3dc5b",
+    "feature-latency-speech-20261014/speech/results/8e813a21772e4293a9fa8bc4c2e9937d.json": "7cb6b4d3aa512b682f61ca5c4274e146450c90a21a22fe8297159f98d4100899",
+    "feature-latency-speech-20261014/speech/results/f121dbdf303e42118929b477b84c926e.json": "f1e9af8dc48205f10d91a1e049b4cbad8ea235316b2c5f11a7a61c28a99e7b51",
+    "feature-latency-speech-20261014/speech/results/57cef2dfd36f425aa3a01511a325fcd3.json": "706aebe90f71ec20fe5c8a665f8cd0f12434596e7890abea366dff81e37367b2",
+    "feature-latency-speech-20261014/speech/results/465cd3f7bf2049799967e02fc2dafa9d.json": "540085ac6260e90803bf9c1329f1b0c600fc97785368bd1f38d1095111bd72c7",
+    "feature-latency-speech-20261014/speech/results/e1d3d8e876c04a7e8bf0d0fa337086a9.json": "75c1c391cba36a7f2dd7b223577c8084c559c644e969d8450fcdd26690d90fbd",
+    "feature-latency-speech-20261014/speech/results/b20e0945ce7b4111a4398dc7842018fd.json": "d5b6a8522cf5f28dc84edac7abc0b4ecb68785bac9355dd2484154a2fc7b413d",
+    "feature-latency-speech-20261014/speech/results/745281c58fe14355bb764cb2a1b9c6eb.json": "576fa470c03d34ebfc17747e083038d057e107cc74d0314cfa9ebbe7397b3b0b",
+    "feature-latency-speech-20261014/speech/results/278e3a44e95f417e96417e5db01bca19.json": "dd749ab01dff03361da908953e9cd5eb629587810ce2c1896c13a343408881f4",
+    "feature-latency-speech-20261014/speech/results/e618ba81c68b429c974f2862c6cf5d30.json": "341fb18af8c24034bb111be569814273a17bddd9c8b1d1113bfc157c103848f7",
+    "feature-latency-speech-20261014/speech/results/c61ae32766b549fe8c4b053366dc6d96.json": "2a7bebcba1af9fc11c0b3063e29d55e48552d2eb54eff89bdd7054bc031792b1",
+    "feature-latency-speech-20261014/speech/results/9e3ef80f80fb4f3bb2fda68004661cac.json": "751bc97adfc9b374e684be92c053cf8b2187e43bc7a322562eba4c43333c070a",
+    "feature-latency-speech-20261014/speech/results/dbb2df9a13ad4bb8bc826f250f6ac9d8.json": "909e09683e4934f5f13c2142e76f2eefe225dca9eea73b649716c447e40c1b1e",
+    "feature-latency-speech-20261014/speech/results/7f9650b479094c8496112b054254858f.json": "3738e3e6ea851b82225d4ae35b25671a2f138dda46d328ac9a364816e90825a2",
+    "feature-latency-speech-20261014/speech/results/219e0a3196cc4e3d9916579b622ff580.json": "dfeceea62b5d8dc39921eb76a14c171f25f69aea41b0494bae6f1d1b6a7163c4",
+    "feature-latency-speech-20261014/speech/results/ae318a6e842c4c6c82cb893e8daa0ef1.json": "dca300be50c44e395596200339f5ff0d1226e54937986e6b011a0ef55be0bbb4",
+    "feature-latency-speech-20261014/speech/results/5b4e7f3e99ee4e85bdbe12056b7555e8.json": "1a7504771954bef1da684a394dda5ba1c6df13eb2fea143e4523433beb518070",
+    "feature-latency-speech-20261014/speech/results/e485ea22db3a4ee584558f32ddbe80a6.json": "ce51e9c9fec263c2061404153f98a5afcd2e38203976e365b6fbbb5fd1ab5817",
+    "feature-latency-speech-20261014/speech/results/cf1a9382c85a4fd1b5db7894f32e979c.json": "5fe50026697c23b3cd4228c29f2e28e69249d827e9b4015d70b27dd1bd6809cb",
+    "feature-latency-speech-20261014/speech/results/49b62a9486224e7780287b55d9f7e0d5.json": "c9e7233f0a5a06fbe00aceebad5da5419e04432e433f124ceafd16b3ab8682fe",
+    "feature-latency-speech-20261014/speech/results/66c94493536641d88210501129d87593.json": "62f4e211ec58285d6aa155ae4e45e3f974c4f5468b83415894955fb399681621",
+    "feature-latency-speech-20261014/speech/results/f08b39a572304977b34dc38d7392b2e7.json": "214ac8be579a758b2cf5007751bd14aae226732f56b1fce8e0d0724537127301",
+    "feature-latency-speech-20261014/speech/results/06e2568b117240898f6b656f929af9d3.json": "c7b8d7e255343327a194bca6256171dc214689d7250003a77c3ae8b9327383e5",
+    "feature-latency-speech-20261014/speech/results/c10453dcf4e340e9acab542a6dc540ac.json": "ff4670d60e843e361a268b5cbdd7654fe09156681937a8ef27840b33362f9eb3",
+    "feature-latency-speech-20261014/speech/results/cd73b0dc808f45acb3b5dcb8c8eb6a71.json": "adbff345e27caa8a38347a545e0c9a16e59e8e393e6bb413eaa3b151042820c2",
+    "feature-latency-speech-20261014/speech/results/18dbcf3f13394d158bffe6b479bba7b6.json": "790628b2317646859745c77573e5679c8e472b728217f53c0080f3186940f3cc",
+    "feature-latency-speech-20261014/speech/results/3098fbf1857b421287bea97ffc6c20c9.json": "e21abc77eaf0597d75cdd04f178446eabe0df2d9e6da07a2486b6ffe1d793671",
+    "feature-latency-speech-20261014/speech/results/c8662ad2eb68421caa845c01f7e512fc.json": "a38b8f2e0b322219fe8da46d07b6ba782f87405bf896e9ed6fc99c4b20034ad7",
+    "feature-latency-speech-20261014/speech/results/4bc803d62ede43f09ef2ce2ad33f9f5c.json": "ea129aedf5c54981130847986e2d893b76697cdac58be87df5cdc59480d0ace6",
+    "feature-latency-speech-20261014/speech/voices/4e208182e9594c76aed23448b81d3838.json": "19aeedce068265f627269f31c71fb1649ed149a7475f0671ad2cbf35291df9a0",
+    "feature-latency-speech-20261014/runtime/captions.log": "dd5a72a82f466faf578443987d62c8a9768fb3bf356333d7f1292771f34941f9",
+    "feature-latency-speech-20261014/runtime/subtitles.jsonl": "278cd42fa6bd480e3772dfe6588338264afaabd111fcc1c051cbe7384d976374",
+    "feature-latency-speech-20261014/runtime/backend.log": "2608c04fbe26289f3f1cf38db619e804b04bf6927f2610c8d327a24dc4420cef",
+    "feature-latency-speech-20261014/runtime/speech.log": "1d2e0c67ce7f69627eaf19f40cf9bdff3d1337b49acd8797d169588bb9aa6888",
+    "feature-latency-speech-20261014/runtime/microphone.log": "a648c27709698cbb72ad67bc1cfd9259f0deac43571350cb0b23bf2c06875770",
+    "feature-latency-speech-20261014/runtime/speech-results.json": "ea1d63fa0366c6a7ba7c7852316cd76b9127b96fdbfaebb5c8faf66f1735c2f1",
+    "feature-latency-speech-20261014/runtime/translation.log": "3469f8ea90123ba922acb7297b1cc2ca8a4ff3a900102b89f04bcb48f1702bb0",
+    "feature-latency-native/rvc-udp.json": "d7035b95d7c9b2904c7d0a6f80ae1af02c69990605289209f4454a61a09704f1",
+    "feature-latency-native/mute-udp.json": "630d4aad93202fb60fc0563f445da27af2e6e11fd4df16235c542e7fd5546995",
+    "feature-latency-native/presets.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "feature-latency-native/backend.log": "52a736d09fba3f5e8c3503662e630aaed612e1f88816ca94fb0a173d220afa82",
+    "feature-latency-native/bypass-udp.json": "52b290dfe6418cbc1bdcec21e2d81b6a732cf1a0d428f477939cb542a5393f8c",
+    "feature-latency-native/backend.json": "d5d5d0d9e89dfaa98a224ad7fad627f9e8fde431aeb630123fbc3bf271adbdbe",
+    "feature-latency-native/results.json": "145aa3ceac1c574d2d0f748fa290ad854c8d6cc5af1f0a821f5eb8b25054339a",
+    "feature-latency-native/initial-status.json": "81b50dbc1793eb2d4e66da194b270c6f54cf3c13f1a34a475be47336c8d5849c",
+    "feature-latency-native/models/quality/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d",
+    "feature-latency-native/models/b-rt/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d",
+    "feature-latency-native/models/a-rt/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d",
+    "feature-latency-native-gpu/rvc-udp.json": "78798844d22c1b31d47eb460a758fa11a3aa2674df67e404d16d0b8d5dc8a258",
+    "feature-latency-native-gpu/mute-udp.json": "0996af2634c818ed3b81145a2e605146b54a17eceb02c181fa1fb923260c2d59",
+    "feature-latency-native-gpu/presets.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "feature-latency-native-gpu/backend.log": "3a359edd99b85fa696f1610957e820301ec4cd496374ab1628d79e5d49d12031",
+    "feature-latency-native-gpu/bypass-udp.json": "8164abb8c4e37939e23f42471ed715f8a95a077efc3e446001ca35fd5f41f7d2",
+    "feature-latency-native-gpu/backend.json": "97d724f98f6daf0e0f004b6eeafc6ac967d00a0e85c22770199429f59e5dce51",
+    "feature-latency-native-gpu/results.json": "34d8ba69ce919354520f248e20dcd5a0513db008adf95e21aa446d42df081889",
+    "feature-latency-native-gpu/initial-status.json": "979296bf2a3774b3704ba0ca90d69fe842bdb683c8214c8cf9fc48a2ccd3c51e",
+    "feature-latency-native-gpu/models/quality/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d",
+    "feature-latency-native-gpu/models/b-rt/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d",
+    "feature-latency-native-gpu/models/a-rt/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d"
+  },
+  "limitations": [
+    "单台 Jetson 使用 MAXN_SUPER；未清空磁盘缓存，未固定频率。",
+    "HTTP 使用本机回环，不含 SSH、无线网络和浏览器绘制。",
+    "UDP 时间戳标识契约包，不能表示缓冲音频内容的端到端延迟。",
+    "ASR 断句计时使用文件采样边界，未使用人工标注的实际语音边界。",
+    "null 播放按时长等待。USB、模数转换、数模转换及扬声器延迟需要物理回环测量。",
+    "首次 espeak 输入没有产生在线字幕。该负向测试已保留，不计入有效识别延迟。",
+    "单次启动和两次热文件转换不能估计其他设备或长期运行的尾部延迟。"
+  ],
+  "realtime_reference": {
+    "path": "rvc-golden/runtime-efficiency-20261014/campaign-final/parallel-1/qiqi-espeak-parallel-mozart-backend.wav",
+    "delay_samples": 19200,
+    "checks": {
+      "feature-latency-native": {
+        "samples": 402240,
+        "exact": true,
+        "relative_rmse": 0.0,
+        "cosine": 1.0,
+        "max_absolute_error": 0.0
+      },
+      "feature-latency-native-gpu": {
+        "samples": 402240,
+        "exact": true,
+        "relative_rmse": 0.0,
+        "cosine": 1.0,
+        "max_absolute_error": 0.0
+      }
+    }
+  }
+}

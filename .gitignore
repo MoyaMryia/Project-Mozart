@@ -140,3 +140,7 @@ reports/**/__pycache__/
 !reports/efficiency-20261014/frontend-build.log
 !reports/efficiency-20261014/jetson-tests.log
 !reports/efficiency-20261014/frontend-runtime.png
+
+# 逐功能延迟测量的小型摘要。
+!reports/feature-latency-20261014/metrics.json
+!reports/feature-latency-20261014/manifest.json
