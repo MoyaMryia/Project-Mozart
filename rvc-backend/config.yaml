@@ -55,6 +55,7 @@ rvc:
 
   # 性能
   device: "cuda"              # cuda / cpu
+  realtime_playout_delay_ms: 400 # 最小启动等待预算；0 关闭；按 20 ms 递增
   half: false                 # fp16（Orin Nano 共享内存有限）
   # Components are independently mockable for diagnostics. Production FILE_RVC
   # requires all values to remain false.

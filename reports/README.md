@@ -9,6 +9,7 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-14 | [efficiency-20261014/RESULTS.md](efficiency-20261014/RESULTS.md) | GPU 张量直连、特征并行、按需加载、模型缓存与真实资产验证 |
 | 2026-10-13 | [repository-audit-20261013/RESULTS.md](repository-audit-20261013/RESULTS.md) | 控制接口、文件处理、模型加载和回归覆盖修复 |
 | 2026-10-09 | [realtime-patches-20261008/BOUNDARY_CLASSIFIER.md](realtime-patches-20261008/BOUNDARY_CLASSIFIER.md) | 小型中文句界分类器；单次对照降低首播等待，仍有播放积压与质量限制 |
 | 2026-10-09 | [realtime-patches-20261008/SEMANTIC_GATE.md](realtime-patches-20261008/SEMANTIC_GATE.md) | 同声传译提交策略调研；0.8B 原文完整性判断短测未通过可用性检查 |

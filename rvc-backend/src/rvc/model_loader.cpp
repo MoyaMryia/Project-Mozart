@@ -109,6 +109,7 @@ bool RVCModel::exists() const {
 }
 
 bool RVCModel::load(const std::string& device, bool half) {
+    if (loaded_) return true;
     if (!exists()) {
         spdlog::error("Model files missing for {}", model_id_);
         return false;
@@ -197,8 +198,9 @@ bool RVCModel::load_index() {
 ModelManager::ModelManager(
     const std::filesystem::path& models_dir,
     const std::string& device,
-    bool half
-) : models_dir_(models_dir), device_(device), half_(half)
+    bool half,
+    size_t cache_limit
+) : models_dir_(models_dir), device_(device), half_(half), cache_limit_(std::max(size_t{1}, cache_limit))
 {
     std::filesystem::create_directories(models_dir_);
 }
@@ -229,7 +231,10 @@ std::vector<std::map<std::string, std::string>> ModelManager::list_models() cons
 
 std::shared_ptr<RVCModel> ModelManager::get_model_locked(const std::string& model_id) {
     auto it = models_.find(model_id);
-    if (it != models_.end()) return it->second;
+    if (it != models_.end()) {
+        last_used_[model_id] = ++access_sequence_;
+        return it->second;
+    }
 
     const auto model_dir = models_dir_ / model_id;
     std::error_code error;
@@ -251,32 +256,67 @@ std::shared_ptr<RVCModel> ModelManager::get_model_locked(const std::string& mode
 
     auto model = std::make_shared<RVCModel>(model_id, model_dir);
     models_[model_id] = model;
+    last_used_[model_id] = ++access_sequence_;
     return model;
 }
 
 std::shared_ptr<RVCModel> ModelManager::get_model(const std::string& model_id) {
     std::lock_guard<std::mutex> lock(mutex_);
-    return get_model_locked(model_id);
+    auto model = get_model_locked(model_id);
+    trim_cache_locked();
+    return model;
 }
 
 bool ModelManager::load_model(const std::string& model_id) {
-    // 整个加载过程持锁：status()/current_model() 与模型切换互斥，
-    // 也避免同一模型被并发 load。
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (model_id == current_model_id_) {
-        auto current = models_.find(current_model_id_);
-        if (current != models_.end() && current->second->loaded()) return true;
+    // 串行加载权重。目录、缓存和当前模型的读取使用另一把短时锁。
+    std::lock_guard<std::mutex> loading(load_mutex_);
+    std::shared_ptr<RVCModel> model;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        model = get_model_locked(model_id);
     }
-    auto model = get_model_locked(model_id);
     if (!model) {
         spdlog::error("Model {} not found", model_id);
         return false;
     }
-    if (!model->load(device_, half_)) {
-        return false;
+    const bool success = model->load(device_, half_);
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (success) {
+        current_model_id_ = model_id;
+    } else {
+        models_.erase(model_id);
+        last_used_.erase(model_id);
     }
-    current_model_id_ = model_id;
-    return true;
+    model.reset();
+    trim_cache_locked();
+    return success;
+}
+
+void ModelManager::trim_cache_locked() {
+    while (models_.size() > cache_limit_) {
+        auto victim = models_.end();
+        for (auto candidate = models_.begin(); candidate != models_.end(); ++candidate) {
+            // 推理或调用方持有的模型继续存活，不卸载其执行上下文。
+            if (candidate->first == current_model_id_ || candidate->second.use_count() != 1) continue;
+            if (victim == models_.end() || last_used_.at(candidate->first) < last_used_.at(victim->first)) {
+                victim = candidate;
+            }
+        }
+        if (victim == models_.end()) break;
+        spdlog::info("Evicting idle RVC model: {}", victim->first);
+        last_used_.erase(victim->first);
+        models_.erase(victim);
+    }
+}
+
+void ModelManager::trim_cache() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    trim_cache_locked();
+}
+
+size_t ModelManager::cached_model_count() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return models_.size();
 }
 
 std::shared_ptr<RVCModel> ModelManager::current_model() const {

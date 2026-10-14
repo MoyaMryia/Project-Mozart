@@ -220,3 +220,23 @@ python3 rvc-golden/compare_generator_models.py --self-test
 
 The dated [streaming investigation](STREAMING_BACKEND_INVESTIGATION.md) keeps the original evidence.
 Its historical deployment claims must agree with the current code and assets.
+
+## Runtime efficiency diagnostics
+
+Use captured Golden tensors before comparing the deployed split assets.
+Run `verify_realtime_split.py` with the checkpoint, front asset, decoder asset, tensor directory, and output directory.
+The script compares PyTorch and ONNX with identical inputs and explicit noise.
+It also saves binary inputs for `benchmark_trt_chain`.
+
+Build the GPU diagnostic with `-DMOZART_BUILD_GPU_BENCHMARKS=ON`.
+Run the diagnostic with these arguments:
+
+```text
+benchmark_trt_chain FRONT.engine DECODER.engine TENSOR_DIRECTORY OUTPUT.json
+```
+
+The diagnostic compares host transfers and device chaining with identical tensors.
+It also tests concurrent calls, invalid layouts, and recovery after rejected input.
+Use `run_efficiency_campaign.py` for paced backend comparisons.
+Use `run_efficiency_coexistence.py` for the configured Jetson translated-speech probe and concurrent RVC replay.
+Read the [dated results](../reports/efficiency-20261014/RESULTS.md) for configuration, timing boundaries, and verification scope.

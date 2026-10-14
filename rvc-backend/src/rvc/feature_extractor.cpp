@@ -32,7 +32,8 @@ FeatureExtractor::FeatureExtractor(
     bool mock_hubert,
     bool mock_rmvpe,
     const std::optional<std::filesystem::path>& realtime_hubert_path,
-    const std::optional<std::filesystem::path>& realtime_rmvpe_path
+    const std::optional<std::filesystem::path>& realtime_rmvpe_path,
+    bool defer_quality
 )
     : hubert_path_(hubert_path)
     , rmvpe_path_(rmvpe_path)
@@ -43,58 +44,7 @@ FeatureExtractor::FeatureExtractor(
     , mock_hubert_(mock_hubert)
     , mock_rmvpe_(mock_rmvpe)
 {
-    if (std::filesystem::exists(hubert_path_)) {
-        hubert_engine_ = make_engine(hubert_path_);
-        // HuBERT accepts either a fixed positive sample length or a dynamic
-        // optimization-profile axis. Other fixed lengths use ONNX fallback.
-        if (auto* trt = dynamic_cast<TrtEngine*>(hubert_engine_.get())) {
-            const auto shape = trt->input_shape("audio");
-            const bool ok = shape.empty()
-                || (shape.size() == 2 && shape[0] == 1 && shape[1] != 0);
-            if (!ok) {
-                spdlog::warn("HuBERT TRT 引擎形状不符（期望 [1,N]，实际 rank={}），回退 ONNX",
-                             shape.size());
-                hubert_engine_.reset();
-            }
-        }
-        if (hubert_engine_ && hubert_engine_->loaded()) {
-            const auto shape = hubert_engine_->input_shape("audio");
-            if (shape.size() == 2 && shape[1] > 0) {
-                warmup_zeros(
-                    *hubert_engine_, "audio", {1, shape[1]}, "features"
-                );
-            }
-            spdlog::info("HuBERT engine loaded: {}", hubert_path_.string());
-        }
-    } else {
-        spdlog::warn("HuBERT model not found at {}", hubert_path_.string());
-    }
-
-    if (rmvpe_path_ && std::filesystem::exists(*rmvpe_path_)) {
-        rmvpe_engine_ = make_engine(*rmvpe_path_);
-        // RMVPE accepts fixed T or a dynamic optimization-profile axis.
-        if (auto* trt = dynamic_cast<TrtEngine*>(rmvpe_engine_.get())) {
-            const auto shape = trt->input_shape("mel");
-            const bool ok = shape.empty()
-                || (shape.size() == 3 && shape[0] == 1
-                    && shape[1] == 128 && shape[2] != 0);
-            if (!ok) {
-                spdlog::warn("RMVPE TRT 引擎形状不符（期望 [1,128,T]），回退 ONNX");
-                rmvpe_engine_.reset();
-            }
-        }
-        if (rmvpe_engine_ && rmvpe_engine_->loaded()) {
-            const auto shape = rmvpe_engine_->input_shape("mel");
-            if (shape.size() == 3 && shape[2] > 0) {
-                warmup_zeros(
-                    *rmvpe_engine_, "mel", {1, 128, shape[2]}, "f0"
-                );
-            }
-            spdlog::info("RMVPE engine loaded: {}", rmvpe_path_->string());
-        }
-    } else if (rmvpe_path_) {
-        spdlog::warn("RMVPE path not found: {}", rmvpe_path_->string());
-    }
+    if (!defer_quality) ensure_quality_engines();
 
     if (realtime_hubert_path_ && std::filesystem::exists(*realtime_hubert_path_)) {
         realtime_hubert_engine_ = make_engine(*realtime_hubert_path_);
@@ -137,7 +87,115 @@ FeatureExtractor::FeatureExtractor(
     }
 }
 
+void FeatureExtractor::ensure_quality_engines() {
+    std::call_once(quality_once_, [&] {
+        std::unique_ptr<IEngine> hubert_engine;
+        std::unique_ptr<IEngine> rmvpe_engine;
+        if (std::filesystem::exists(hubert_path_)) {
+            hubert_engine = make_engine(hubert_path_);
+            // HuBERT accepts either a fixed positive sample length or a dynamic
+            // optimization-profile axis. Other fixed lengths use ONNX fallback.
+            if (auto* trt = dynamic_cast<TrtEngine*>(hubert_engine.get())) {
+                const auto shape = trt->input_shape("audio");
+                const bool ok = shape.empty()
+                    || (shape.size() == 2 && shape[0] == 1 && shape[1] != 0);
+                if (!ok) {
+                    spdlog::warn("HuBERT TRT 引擎形状不符（期望 [1,N]，实际 rank={}），回退 ONNX",
+                                 shape.size());
+                    hubert_engine.reset();
+                }
+            }
+            if (hubert_engine && hubert_engine->loaded()) {
+                const auto shape = hubert_engine->input_shape("audio");
+                if (shape.size() == 2 && shape[1] > 0) {
+                    warmup_zeros(
+                        *hubert_engine, "audio", {1, shape[1]}, "features"
+                    );
+                }
+                spdlog::info("HuBERT engine loaded: {}", hubert_path_.string());
+            }
+        } else {
+            spdlog::warn("HuBERT model not found at {}", hubert_path_.string());
+        }
+
+        if (rmvpe_path_ && std::filesystem::exists(*rmvpe_path_)) {
+            rmvpe_engine = make_engine(*rmvpe_path_);
+            // RMVPE accepts fixed T or a dynamic optimization-profile axis.
+            if (auto* trt = dynamic_cast<TrtEngine*>(rmvpe_engine.get())) {
+                const auto shape = trt->input_shape("mel");
+                const bool ok = shape.empty()
+                    || (shape.size() == 3 && shape[0] == 1
+                        && shape[1] == 128 && shape[2] != 0);
+                if (!ok) {
+                    spdlog::warn("RMVPE TRT 引擎形状不符（期望 [1,128,T]），回退 ONNX");
+                    rmvpe_engine.reset();
+                }
+            }
+            if (rmvpe_engine && rmvpe_engine->loaded()) {
+                const auto shape = rmvpe_engine->input_shape("mel");
+                if (shape.size() == 3 && shape[2] > 0) {
+                    warmup_zeros(
+                        *rmvpe_engine, "mel", {1, 128, shape[2]}, "f0"
+                    );
+                }
+                spdlog::info("RMVPE engine loaded: {}", rmvpe_path_->string());
+            }
+        } else if (rmvpe_path_) {
+            spdlog::warn("RMVPE path not found: {}", rmvpe_path_->string());
+        }
+        std::lock_guard<std::mutex> lock(quality_mutex_);
+        hubert_engine_ = std::move(hubert_engine);
+        rmvpe_engine_ = std::move(rmvpe_engine);
+        quality_initialized_ = true;
+    });
+}
+
 FeatureExtractor::~FeatureExtractor() = default;
+
+std::map<std::string, std::string> FeatureExtractor::runtime_info() const {
+    std::lock_guard<std::mutex> quality_lock(quality_mutex_);
+    std::map<std::string, std::string> result;
+    const auto append = [&](const char* role, const std::unique_ptr<IEngine>& engine) {
+        if (engine) for (const auto& item : engine->runtime_info()) result[std::string(role) + "_" + item.first] = item.second;
+    };
+    append("hubert", hubert_engine_);
+    append("rmvpe", rmvpe_engine_);
+    if (!quality_initialized_) {
+        result["hubert_backend"] = "deferred";
+        result["hubert_asset"] = hubert_path_.string();
+        result["rmvpe_backend"] = "deferred";
+        result["rmvpe_asset"] = rmvpe_path_ ? rmvpe_path_->string() : "";
+    }
+    append("realtime_hubert", realtime_hubert_engine_);
+    append("realtime_rmvpe", realtime_rmvpe_engine_);
+    std::lock_guard<std::mutex> lock(runtime_mutex_);
+    for (const auto& item : active_runtime_) result[item.first] = item.second;
+    return result;
+}
+
+void FeatureExtractor::record_active_runtime(const char* role, const IEngine& engine, const std::string& reason) {
+    auto snapshot = engine.runtime_info();
+    if (!reason.empty()) {
+        auto& value = snapshot["fallback_reason"];
+        value += (value.empty() ? "" : "; ") + reason;
+    }
+    std::lock_guard<std::mutex> lock(runtime_mutex_);
+    for (const auto& item : snapshot) active_runtime_[std::string(role) + "_" + item.first] = item.second;
+}
+
+std::vector<float> FeatureExtractor::run_feature_engine(
+    IEngine& engine, const char* role, const char* input,
+    const std::vector<int64_t>& shape, const std::vector<float>& data,
+    const char* output, const std::string& reason) {
+    try {
+        auto result = engine.run({input}, {shape}, {data}, {output});
+        record_active_runtime(role, engine, reason);
+        return result;
+    } catch (...) {
+        record_active_runtime(role, engine, reason);
+        throw;
+    }
+}
 
 bool FeatureExtractor::supports_realtime_hubert_samples(size_t samples) const {
     if (!realtime_hubert_engine_ || !realtime_hubert_engine_->loaded()) return false;
@@ -410,6 +468,7 @@ std::vector<float> FeatureExtractor::extract_f0_impl(
         throw std::runtime_error(
             "unsupported f0_method '" + method + "': only 'rmvpe' is implemented");
     }
+    if (!realtime) ensure_quality_engines();
     IEngine* primary_rmvpe = realtime
         ? realtime_rmvpe_engine_.get() : rmvpe_engine_.get();
     if (method == "rmvpe" && primary_rmvpe && primary_rmvpe->loaded()) {
@@ -486,9 +545,9 @@ std::vector<float> FeatureExtractor::extract_f0_impl(
                 1, static_cast<int64_t>(mel_bins), static_cast<int64_t>(padded_frames)
             };
             const auto profile_prepared = profile::Clock::now();
-            const auto salience = rmvpe->run(
-                {"mel"}, {mel_shape}, {fixed_mel}, {"f0"}
-            );
+            const auto salience = run_feature_engine(*rmvpe, realtime ? "realtime_rmvpe" : "rmvpe",
+                "mel", mel_shape, fixed_mel, "f0",
+                rmvpe != primary_rmvpe ? "Fixed TensorRT shape differs from input; selected dynamic ONNX" : "");
             const auto profile_engine = profile::Clock::now();
             if (salience.size() < padded_frames * pitch_bins) {
                 throw std::runtime_error("RMVPE dynamic output smaller than [padded, 360]");
@@ -542,9 +601,8 @@ std::vector<float> FeatureExtractor::extract_f0_impl(
             const std::vector<int64_t> mel_shape = {
                 1, static_cast<int64_t>(mel_bins), static_cast<int64_t>(rmvpe_frames)
             };
-            const auto salience = rmvpe->run(
-                {"mel"}, {mel_shape}, {fixed_mel}, {"f0"}
-            );
+            const auto salience = run_feature_engine(*rmvpe, realtime ? "realtime_rmvpe" : "rmvpe",
+                "mel", mel_shape, fixed_mel, "f0");
             if (salience.size() < rmvpe_frames * pitch_bins) {
                 throw std::runtime_error("RMVPE output shape is smaller than [128, 360]");
             }
@@ -595,6 +653,7 @@ std::vector<float> FeatureExtractor::extract_features_impl(
     uint32_t sample_rate,
     bool realtime
 ) {
+    if (!realtime) ensure_quality_engines();
     IEngine* primary_hubert = realtime
         ? realtime_hubert_engine_.get() : hubert_engine_.get();
     if (primary_hubert && primary_hubert->loaded()) {
@@ -619,9 +678,9 @@ std::vector<float> FeatureExtractor::extract_features_impl(
             throw std::runtime_error("Realtime HuBERT input does not match its fixed engine");
         }
         std::vector<int64_t> audio_shape = {1, static_cast<int64_t>(n_samples)};
-        auto feats = engine->run(
-            {"audio"}, {audio_shape}, {audio}, {"features"}
-        );
+        auto feats = run_feature_engine(*engine, realtime ? "realtime_hubert" : "hubert",
+            "audio", audio_shape, audio, "features",
+            engine != primary_hubert ? "Fixed TensorRT shape differs from input; selected dynamic ONNX" : "");
         if (profile::enabled()) {
             const auto profile_done = profile::Clock::now();
             spdlog::info(

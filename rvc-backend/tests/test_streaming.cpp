@@ -299,6 +299,76 @@ int main()
               "rolling realtime history is pruned without overrun");
     }
 
+    printf("test_realtime_playout_reserve_absorbs_compute_jitter\n");
+    {
+        StreamingRvc::Config base;
+        base.window_samples = 3840;
+        base.crossfade_out = 2400;
+        base.upstream_realtime = true;
+        base.skip_silence = true;
+        auto buffered = base;
+        buffered.startup_delay_out = 20 * MOZART_OUTPUT_SAMPLES;
+        StreamingRvc immediate(base), reserved(buffered);
+        RealtimeTailPipeline immediate_pipe, reserved_pipe;
+        for (uint32_t i = 1; i <= 12; ++i) {
+            immediate.push(make_frame(i, 0, 0.0f));
+            reserved.push(make_frame(i, 0, 0.0f));
+            immediate.pop_output(nullptr, MOZART_OUTPUT_SAMPLES);
+            reserved.pop_output(nullptr, MOZART_OUTPUT_SAMPLES);
+        }
+        CHECK(immediate.try_process_one(immediate_pipe) && reserved.try_process_one(reserved_pipe),
+              "first blocks are available before the synthetic compute delay");
+        float output[MOZART_OUTPUT_SAMPLES]{};
+        CHECK(reserved.pop_output(output, 0) == 0, "zero-length read does not consume reserve");
+        std::vector<float> immediate_pcm, reserved_pcm;
+        unsigned immediate_gaps = 0, reserved_gaps = 0, startup_frames = 0;
+        bool immediate_started = false, reserved_started = false;
+        for (uint32_t tick = 0; tick < 32; ++tick) {
+            if (tick < 12) {
+                immediate.push(make_frame(tick + 13, 1, .2f));
+                reserved.push(make_frame(tick + 13, 1, .2f));
+            }
+            // 静音首块瞬时完成；有声块多用六帧，模拟 120 ms 的计算等待。
+            if (tick == 18) {
+                CHECK(immediate.try_process_one(immediate_pipe) && reserved.try_process_one(reserved_pipe),
+                      "delayed producer finishes the second block");
+            }
+            const auto read = [&](StreamingRvc& stream, std::vector<float>& pcm, bool& started,
+                                  unsigned& gaps, unsigned* startup) {
+                const size_t got = stream.pop_output(output, MOZART_OUTPUT_SAMPLES);
+                if (got) {
+                    started = true;
+                    pcm.insert(pcm.end(), output, output + got);
+                } else if (!started) {
+                    if (startup) ++*startup;
+                } else if (pcm.size() < 2 * 11520) {
+                    ++gaps;
+                }
+            };
+            read(immediate, immediate_pcm, immediate_started, immediate_gaps, nullptr);
+            read(reserved, reserved_pcm, reserved_started, reserved_gaps, &startup_frames);
+        }
+        CHECK(immediate_gaps == 6, "unbuffered path exposes the bounded jitter");
+        CHECK(reserved_gaps == 0 && startup_frames == 8, "400 ms startup budget absorbs silence-to-speech compute jitter");
+        CHECK(reserved_pcm == immediate_pcm && reserved_pcm.size() == 23040,
+              "reserve preserves every emitted PCM sample and its order");
+        for (uint32_t i = 1000; i < 1012; ++i) {
+            reserved.push(make_frame(i, 1, .3f));
+            CHECK(reserved.pop_output(output, MOZART_OUTPUT_SAMPLES) == 0, "reset waits for its input-time budget");
+        }
+        CHECK(reserved.try_process_one(reserved_pipe), "stream produces output after discontinuity");
+        for (int i = 0; i < 8; ++i) {
+            CHECK(reserved.pop_output(output, MOZART_OUTPUT_SAMPLES) == 0, "reset restores the startup reserve");
+        }
+        CHECK(reserved.pop_output(output, MOZART_OUTPUT_SAMPLES) == MOZART_OUTPUT_SAMPLES,
+              "reset stream resumes after its reserve");
+        buffered.startup_delay_out = 1;
+        bool invalid = false;
+        try { StreamingRvc rejected(buffered); }
+        catch (const std::invalid_argument&) { invalid = true; }
+        CHECK(invalid, "reserve rejects incomplete contract frames");
+    }
+
     // ---- 用例 8：full-history 超过历史容量后不永久停摆 ----
     printf("test_full_history_capacity_reanchor\n");
     {

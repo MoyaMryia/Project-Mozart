@@ -1,5 +1,7 @@
 #include "rvc/inferencer.hpp"
 #include "rvc/profile.hpp"
+#include <future>
+#include <cstdlib>
 #include <spdlog/spdlog.h>
 #include <array>
 #include <cmath>
@@ -417,6 +419,16 @@ std::vector<float> RVCInferencer::infer_realtime(
         throw std::invalid_argument("Realtime Generator front shape does not match request");
     }
 
+    const char* parallel_setting = std::getenv("MOZART_RVC_PARALLEL_FEATURES");
+    const bool parallel = !parallel_setting || std::string(parallel_setting) != "0";
+    // F0 与 HuBERT 只读取音频。future 析构在异常路径中等待，保护输入寿命。
+    std::future<std::vector<float>> feature_task;
+    if (parallel) {
+        feature_task = std::async(std::launch::async, [&] {
+            return feature_extractor_->extract_features_realtime(audio, 16000);
+        });
+    }
+
     size_t f0_samples = request.block_samples_16k + 800;
     if (f0_method_ == "rmvpe") {
         f0_samples = 5120 * ((f0_samples - 1) / 5120 + 1) - kHop16k;
@@ -489,7 +501,8 @@ std::vector<float> RVCInferencer::infer_realtime(
     );
     const auto profile_f0 = profile::Clock::now();
 
-    auto feats = feature_extractor_->extract_features_realtime(audio, 16000);
+    auto feats = parallel ? feature_task.get()
+                          : feature_extractor_->extract_features_realtime(audio, 16000);
     const uint32_t emb_dim = model_->config().emb_channels;
     if (feats.empty() || feats.size() % emb_dim != 0) {
         throw std::runtime_error("Realtime HuBERT feature shape is invalid");
@@ -569,11 +582,6 @@ std::vector<float> RVCInferencer::infer_realtime(
         {1, static_cast<int64_t>(latent_channels), static_cast<int64_t>(latent_frames)},
         std::move(latent_noise), {}
     ));
-    auto z = front.run(front_inputs, {"z"});
-    if (z.size() != latent_channels * request.return_frames) {
-        throw std::runtime_error("Realtime front output shape is invalid");
-    }
-    const auto profile_front = profile::Clock::now();
 
     std::vector<float> decoder_pitchf(request.return_frames, 0.0f);
     std::copy_n(
@@ -597,7 +605,7 @@ std::vector<float> RVCInferencer::infer_realtime(
     decoder_inputs.push_back(typed_input(
         decoder, "z",
         {1, static_cast<int64_t>(latent_channels), static_cast<int64_t>(request.return_frames)},
-        std::move(z), {}
+        {}, {}
     ));
     decoder_inputs.push_back(typed_input(
         decoder, "pitchf", {1, static_cast<int64_t>(request.return_frames)},
@@ -616,20 +624,21 @@ std::vector<float> RVCInferencer::infer_realtime(
          static_cast<int64_t>(source_dim)},
         std::move(source_noise), {}
     ));
-    auto output = decoder.run(decoder_inputs, {"audio"});
+    const auto profile_prepared = profile::Clock::now();
+    auto output = front.run_chained(front_inputs, "z", decoder, decoder_inputs, "z", "audio");
     if (output.size() != request.output_samples) {
         throw std::runtime_error("Realtime decoder output shape is invalid");
     }
     if (profile::enabled()) {
         const auto profile_done = profile::Clock::now();
         spdlog::info(
-            "[profile][realtime] input={} frames={} f0={:.3f}ms hubert={:.3f}ms "
-            "front={:.3f}ms decoder={:.3f}ms total={:.3f}ms",
+            "[profile][realtime] input={} frames={} f0_with_overlap={:.3f}ms hubert_wait_prepare={:.3f}ms "
+            "generator_prepare={:.3f}ms generator={:.3f}ms total={:.3f}ms",
             audio.size(), frames,
             profile::elapsed_ms(profile_start, profile_f0),
             profile::elapsed_ms(profile_f0, profile_hubert),
-            profile::elapsed_ms(profile_hubert, profile_front),
-            profile::elapsed_ms(profile_front, profile_done),
+            profile::elapsed_ms(profile_hubert, profile_prepared),
+            profile::elapsed_ms(profile_prepared, profile_done),
             profile::elapsed_ms(profile_start, profile_done)
         );
     }

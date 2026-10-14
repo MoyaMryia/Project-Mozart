@@ -46,7 +46,9 @@ StreamingRvc::StreamingRvc(Config config)
                 || analysis_samples_ % kModelFrame16k != 0
                 || out_block_ % kModelFrame48k != 0))
         || cfg_.startup_buffer_blocks == 0
-        || cfg_.startup_buffer_blocks > kOutRingCapacity / emit_out_) {
+        || cfg_.startup_buffer_blocks > kOutRingCapacity / emit_out_
+        || cfg_.startup_delay_out % MOZART_OUTPUT_SAMPLES != 0
+        || cfg_.startup_delay_out > kOutRingCapacity - cfg_.startup_buffer_blocks * emit_out_) {
         throw std::invalid_argument("StreamingRvc: invalid window/crossfade config");
     }
     ring_.resize(cfg_.full_history
@@ -54,6 +56,7 @@ StreamingRvc::StreamingRvc(Config config)
         : std::max(cfg_.window_samples * 4, analysis_samples_ + 2 * hop_in_));
     out_ring_.resize(kOutRingCapacity);
     tail_.assign(cfg_.crossfade_out, 0.0f);
+    startup_delay_remaining_ = cfg_.startup_delay_out;
 }
 
 void StreamingRvc::handle_discontinuity()
@@ -72,6 +75,7 @@ void StreamingRvc::handle_discontinuity()
         std::lock_guard<std::mutex> out_lk(out_mutex_);
         out_head_ = out_size_ = 0;
         output_started_ = false;
+        startup_delay_remaining_ = cfg_.startup_delay_out;
     }
 }
 
@@ -94,6 +98,7 @@ void StreamingRvc::reset_full_history_locked()
         std::lock_guard<std::mutex> out_lk(out_mutex_);
         out_head_ = out_size_ = 0;
         output_started_ = false;
+        startup_delay_remaining_ = cfg_.startup_delay_out;
     }
     ++reset_gen_;
     stats_.history_resets.fetch_add(1, std::memory_order_relaxed);
@@ -450,8 +455,13 @@ void StreamingRvc::inference_loop(RVCPipelineBase& pipeline,
 
 size_t StreamingRvc::pop_output(float* dst, size_t n)
 {
+    if (n == 0) return 0;
     std::lock_guard<std::mutex> lk(out_mutex_);
     if (!output_started_) {
+        if (startup_delay_remaining_ > 0) {
+            startup_delay_remaining_ -= std::min(n, startup_delay_remaining_);
+            return 0;
+        }
         if (out_size_ < cfg_.startup_buffer_blocks * emit_out_) return 0;
         output_started_ = true;
     }

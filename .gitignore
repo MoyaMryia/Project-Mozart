@@ -129,3 +129,14 @@ reports/**/__pycache__/
 !reports/repository-audit-20261013/jetson/test-python.log
 !reports/repository-audit-20261013/jetson/smoke/daemon.log
 !reports/repository-audit-20261013/jetson/smoke/result.json
+
+# 效率验证的摘要、源码清单和小型回归证据。
+!reports/efficiency-20261014/metrics.json
+!reports/efficiency-20261014/source-runtime.json
+!reports/efficiency-20261014/assets-manifest.json
+!reports/efficiency-20261014/host-tests.log
+!reports/efficiency-20261014/python-tests.log
+!reports/efficiency-20261014/frontend-tests.log
+!reports/efficiency-20261014/frontend-build.log
+!reports/efficiency-20261014/jetson-tests.log
+!reports/efficiency-20261014/frontend-runtime.png
