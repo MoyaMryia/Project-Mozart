@@ -1,0 +1,436 @@
+{
+  "baseline_commit": "daf16b1",
+  "native_source_files_verified": 33,
+  "short": {
+    "baseline": {
+      "blocks": 141,
+      "median_ms": 67.938,
+      "p95_ms": 68.562,
+      "max_ms": 71.487,
+      "startup_seconds_median": 8.180106630999944,
+      "ready_rss_bytes_median": 2390392832
+    },
+    "compatible": {
+      "blocks": 141,
+      "median_ms": 67.901,
+      "p95_ms": 68.827,
+      "max_ms": 71.767,
+      "startup_seconds_median": 4.541306252998766,
+      "ready_rss_bytes_median": 1467256832
+    },
+    "chain": {
+      "blocks": 141,
+      "median_ms": 67.462,
+      "p95_ms": 67.99,
+      "max_ms": 71.326,
+      "startup_seconds_median": 4.545953950000694,
+      "ready_rss_bytes_median": 1468145664
+    },
+    "parallel": {
+      "blocks": 141,
+      "median_ms": 63.991,
+      "p95_ms": 64.744,
+      "max_ms": 65.937,
+      "startup_seconds_median": 4.541084700991632,
+      "ready_rss_bytes_median": 1467494400
+    }
+  },
+  "short_all_pcm_identical": true,
+  "chain": {
+    "clock": "steady_clock; before run through completed output copy; 10 warmup pairs excluded",
+    "concurrent_identical_outputs": 20,
+    "device_chain": {
+      "count": 50,
+      "max_ms": 21.887866,
+      "median_ms": 21.518214999999998,
+      "p95_ms": 21.83558415
+    },
+    "host_roundtrip": {
+      "count": 50,
+      "max_ms": 22.366321,
+      "median_ms": 21.971662000000002,
+      "p95_ms": 22.29498165
+    },
+    "identical_outputs": 120,
+    "invalid_layout_rejected": true,
+    "invalid_output_rejected": true,
+    "samples": 14400
+  },
+  "onnx": {
+    "front": {
+      "shape": [
+        1,
+        192,
+        30
+      ],
+      "dtype": "float32",
+      "relative_rmse": 3.965914329633419e-07,
+      "cosine": 0.9999999999999185,
+      "max_abs": 2.7418136596679688e-06,
+      "rms": 0.6308505876228043
+    },
+    "decoder": {
+      "shape": [
+        1,
+        1,
+        14400
+      ],
+      "dtype": "float32",
+      "relative_rmse": 2.3519281216028047e-06,
+      "cosine": 0.9999999999972465,
+      "max_abs": 1.6354024410247803e-06,
+      "rms": 0.11106303875552236
+    },
+    "pipeline": {
+      "shape": [
+        1,
+        1,
+        14400
+      ],
+      "dtype": "float32",
+      "relative_rmse": 2.611565930217605e-06,
+      "cosine": 0.9999999999965884,
+      "max_abs": 1.6391277313232422e-06,
+      "rms": 0.11106305293803387
+    },
+    "sample_rate": 48000,
+    "output_seconds": 0.3,
+    "input_origin": "Captured offline Golden tail; fixed realtime crop",
+    "hubert": {
+      "shape": [
+        1,
+        139,
+        768
+      ],
+      "dtype": "float32",
+      "relative_rmse": 1.7116669270153781e-06,
+      "cosine": 0.9999999999985009,
+      "max_abs": 8.58306884765625e-06,
+      "rms": 0.33354080494041677
+    },
+    "rmvpe": {
+      "shape": [
+        1,
+        32,
+        360
+      ],
+      "dtype": "float32",
+      "relative_rmse": 7.242883439499709e-07,
+      "cosine": 0.9999999999998423,
+      "max_abs": 8.344650268554688e-07,
+      "rms": 0.05934406743957177
+    },
+    "assets": {
+      "/home/moyamryia/mozart-archive/RVC_Model_Collection/48k（新版）/原神/中文/七七/七七.pth": "d72bd33911b8a9d2ccac81dc005998a2c043e97587374cecf3ca38edef05d64d",
+      "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/qiqi-zh-realtime/qiqi-zh-realtime-front.onnx": "d1b5a95c725d038ec2abcfb66d916e79282bc47683d4970931818d2652d5196b",
+      "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/qiqi-zh-realtime/qiqi-zh-realtime-decoder.onnx": "6ef39785ea7c28f2f01e069c108a243e9eca633ceb93559b29f72d1bce9fda03",
+      "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.onnx": "28e53187507c7483d97424648608eb0981824c27de51dd24f97da315d884e0d0",
+      "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.onnx": "8238ebd20decd69121470753568da8d2bafbfb6fb02e5ca2fa405cd652d7ac65"
+    }
+  },
+  "coexistence_rvc": {
+    "input": "/home/moyamryia/Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav",
+    "input_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+    "clock": "Backend steady_clock around realtime inference; all blocks including flush; constructor warmup excluded",
+    "assets": {
+      "/home/moyamryia/mozart-efficiency-20261014/coexistence-playout/rvc/models/qiqi-zh-realtime/qiqi-zh-realtime-decoder.engine": "25e72eca2b0930d7451870d601cb8cd0d827ca0f07ffd3e8930239dfaafb6aef",
+      "/home/moyamryia/mozart-efficiency-20261014/coexistence-playout/rvc/models/qiqi-zh-realtime/qiqi-zh-realtime-front.engine": "a30b23c2007e3fe9ed445e3de467b9ea78b84e00348280457e49074abc1b1680",
+      "/home/moyamryia/mozart-efficiency-20261014/coexistence-playout/rvc/models/qiqi-zh-realtime/qiqi-zh-realtime-front.onnx": "d1b5a95c725d038ec2abcfb66d916e79282bc47683d4970931818d2652d5196b",
+      "/home/moyamryia/mozart-efficiency-20261014/coexistence-playout/rvc/models/qiqi-zh-realtime/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d",
+      "/home/moyamryia/mozart-efficiency-20261014/coexistence-playout/rvc/models/qiqi-zh-realtime/qiqi-zh-realtime-decoder.onnx": "6ef39785ea7c28f2f01e069c108a243e9eca633ceb93559b29f72d1bce9fda03"
+    },
+    "runs": [
+      {
+        "case": "parallel",
+        "repeat": 1,
+        "inference": {
+          "count": 512,
+          "median_ms": 64.66499999999999,
+          "p95_ms": 102.00565,
+          "max_ms": 132.677
+        },
+        "stream": {
+          "blocks": 512,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 280.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        },
+        "validation_errors": [],
+        "startup_seconds": 4.787394671002403,
+        "ready_process_memory": {
+          "VmRSS": 1468026880,
+          "VmHWM": 1840992256
+        },
+        "final_process_memory": {
+          "VmRSS": 1473687552,
+          "VmHWM": 1840992256
+        },
+        "first_frame_ms": 400,
+        "samples": 5759040,
+        "sample_rate": 48000,
+        "peak": 0.9423884153366089,
+        "rms": 0.0944789257294751,
+        "clip_samples": 0,
+        "pcm_sha256": "f8190150ca05ce0a7f8e15c4bd8ac8feb93dd94b15d42ddea4c2ab56ac916e05"
+      }
+    ],
+    "all_pcm_identical": true
+  },
+  "final_replay": {
+    "input": "/home/moyamryia/mozart-efficiency-20261014/reference/input/qiqi-espeak.wav",
+    "input_sha256": "124e1967e74977cd4156d52ed2718e4e600cad6ea85db37b910e8e95491897bd",
+    "clock": "Backend steady_clock around realtime inference; all blocks including flush; constructor warmup excluded",
+    "assets": {
+      "/home/moyamryia/mozart-efficiency-20261014/campaign-final/models/qiqi-zh-realtime/qiqi-zh-realtime-decoder.engine": "25e72eca2b0930d7451870d601cb8cd0d827ca0f07ffd3e8930239dfaafb6aef",
+      "/home/moyamryia/mozart-efficiency-20261014/campaign-final/models/qiqi-zh-realtime/qiqi-zh-realtime-front.engine": "a30b23c2007e3fe9ed445e3de467b9ea78b84e00348280457e49074abc1b1680",
+      "/home/moyamryia/mozart-efficiency-20261014/campaign-final/models/qiqi-zh-realtime/qiqi-zh-realtime-front.onnx": "d1b5a95c725d038ec2abcfb66d916e79282bc47683d4970931818d2652d5196b",
+      "/home/moyamryia/mozart-efficiency-20261014/campaign-final/models/qiqi-zh-realtime/config.json": "596dc3983f63ef6f6d0cb69e5b6c9274e6be4675afa25625fed3bda1d95aa87d",
+      "/home/moyamryia/mozart-efficiency-20261014/campaign-final/models/qiqi-zh-realtime/qiqi-zh-realtime-decoder.onnx": "6ef39785ea7c28f2f01e069c108a243e9eca633ceb93559b29f72d1bce9fda03"
+    },
+    "runs": [
+      {
+        "case": "parallel",
+        "repeat": 1,
+        "inference": {
+          "count": 47,
+          "median_ms": 64.33,
+          "p95_ms": 64.9918,
+          "max_ms": 65.233
+        },
+        "stream": {
+          "blocks": 47,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 280.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        },
+        "validation_errors": [],
+        "startup_seconds": 5.190934245008975,
+        "ready_process_memory": {
+          "VmRSS": 1541734400,
+          "VmHWM": 1913774080
+        },
+        "final_process_memory": {
+          "VmRSS": 1548279808,
+          "VmHWM": 1913774080
+        },
+        "first_frame_ms": 400,
+        "samples": 402240,
+        "sample_rate": 48000,
+        "peak": 0.933692455291748,
+        "rms": 0.09062126993678107,
+        "clip_samples": 0,
+        "pcm_sha256": "59ef8cb91d42a13b9ec1567e8662b01a2fa36332c8e2bb00c40da67010cc8c6c"
+      }
+    ],
+    "all_pcm_identical": true
+  },
+  "coexistence_speech": {
+    "exit": {
+      "exit_code": 0,
+      "failure": null,
+      "elapsed_seconds": 137.15793783200206,
+      "remaining_pids_before_cleanup": [],
+      "injection": null
+    },
+    "parent_count": 23,
+    "final_parents": 23,
+    "translation_parent_states": {
+      "completed": 22,
+      "failed": 1
+    },
+    "source_covered_parents": 23,
+    "completed_speech_parents": 23,
+    "job_states": {
+      "completed": 41
+    },
+    "early_segments": 18,
+    "early_submit_lead_seconds": {
+      "count": 18,
+      "median": 2.3882490396499634,
+      "max": 7.990682601928711,
+      "min": 0.6248443126678467
+    },
+    "first_play_minus_final_emit_seconds": {
+      "count": 23,
+      "median": 8.277616739273071,
+      "max": 11.435867309570312,
+      "min": -0.2726454734802246
+    },
+    "speech_before_final_parents": 1,
+    "revision_violations": [],
+    "playback_order_preserved": true,
+    "parent_internal_gaps_seconds": {
+      "count": 97,
+      "median": 0.002814769744873047,
+      "max": 0.01669621467590332,
+      "min": 0.0016965866088867188
+    },
+    "parent_internal_gaps_above_20ms": 0,
+    "output_duration_seconds": 123.6,
+    "output_words": 394,
+    "minimum_available_GiB": 2.9062843322753906,
+    "native_frames": 6000,
+    "native_overruns": 0,
+    "final_speech_status": {
+      "unfinished_jobs": 0,
+      "pending_jobs": 0,
+      "storage_warning": null,
+      "warmup_error": null
+    },
+    "classifier": {
+      "accepted_decisions": 101,
+      "accepted_decision_ms": {
+        "count": 101,
+        "median": 8.469373002299108,
+        "max": 21.712629008106887,
+        "min": 4.475253008422442
+      },
+      "errors": [],
+      "early_parent_count": 10,
+      "early_reasons": {
+        "model": 14,
+        "length_limit": 4
+      },
+      "source_corrections": 0,
+      "note": "Timings include accepted classifier results only. Discarded stale results are not in the caption log."
+    },
+    "wave_checks_count": 41,
+    "all_ordered_blocks_match": true,
+    "fullscale_samples": 0,
+    "failed_parent_sequences": [
+      5
+    ]
+  },
+  "file": {
+    "generator": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/qiqi-zh-t398.onnx",
+    "generator_sha256": "807388b3150f5979a3f8b9581a3d8847796a8f6b8afcc3a11b181e2508dced36",
+    "input_sha256": "124e1967e74977cd4156d52ed2718e4e600cad6ea85db37b910e8e95491897bd",
+    "baseline": {
+      "sample_rate": 48000,
+      "samples": 403146,
+      "pcm_sha256": "3813a379501e9fced6331c675935a98d056dba2fd172ec12ee58157488233afa",
+      "peak": 0.8370904326438904,
+      "rms": 0.07827778272263182,
+      "clipped_samples": 0,
+      "model_after": {
+        "has_generator": "true",
+        "has_index": "false",
+        "has_realtime_generator": "false",
+        "id": "quality",
+        "loaded": "true",
+        "sample_rate": "48000"
+      }
+    },
+    "candidate": {
+      "sample_rate": 48000,
+      "samples": 403146,
+      "pcm_sha256": "3813a379501e9fced6331c675935a98d056dba2fd172ec12ee58157488233afa",
+      "peak": 0.8370904326438904,
+      "rms": 0.07827778272263182,
+      "clipped_samples": 0,
+      "model_after": {
+        "cached_models": "1",
+        "generator_asset": "/home/moyamryia/mozart-efficiency-20261014/file-fixed-verification/models/quality/quality.onnx",
+        "generator_backend": "onnx_cpu",
+        "generator_fallback_reason": "",
+        "has_generator": "true",
+        "has_index": "false",
+        "has_realtime_generator": "false",
+        "hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.engine",
+        "hubert_backend": "tensorrt",
+        "hubert_fallback_reason": "",
+        "id": "quality",
+        "loaded": "true",
+        "model_cache_limit": "2",
+        "realtime_hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.engine",
+        "realtime_hubert_backend": "tensorrt",
+        "realtime_hubert_fallback_reason": "",
+        "realtime_rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.engine",
+        "realtime_rmvpe_backend": "tensorrt",
+        "realtime_rmvpe_fallback_reason": "",
+        "rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx",
+        "rmvpe_backend": "onnx_cpu",
+        "rmvpe_fallback_reason": "Fixed TensorRT shape differs from input; selected dynamic ONNX",
+        "sample_rate": "48000"
+      }
+    },
+    "identical_pcm": true
+  },
+  "validation": {
+    "host_native": {
+      "passed": 25,
+      "total": 25,
+      "configuration": "Debug; USE_ONNX=OFF; USE_TENSORRT=OFF"
+    },
+    "jetson_native": {
+      "passed": 22,
+      "total": 22,
+      "configuration": "Release; USE_ONNX=ON; USE_TENSORRT=ON; USE_CUDA_EP=OFF"
+    },
+    "python": {
+      "passed": 147,
+      "total": 147
+    },
+    "frontend": {
+      "passed": 11,
+      "total": 11,
+      "test_files": 2,
+      "production_build": true
+    }
+  },
+  "comparison_config": {
+    "block_ms": 240,
+    "past_context_ms": 2500,
+    "crossfade_ms": 50,
+    "sola_search_ms": 10,
+    "short_playout_delay_ms": 0,
+    "final_playout_delay_ms": 400,
+    "power_mode": "MAXN_SUPER",
+    "RVC": {
+      "pitch_shift": 0,
+      "index_rate": 0,
+      "filter_radius": 3,
+      "rms_mix_rate": 1,
+      "protect": 0.33
+    }
+  },
+  "chain_final": {
+    "clock": "steady_clock; before run through completed output copy; 10 warmup pairs excluded",
+    "concurrent_identical_outputs": 20,
+    "device_chain": {
+      "count": 50,
+      "max_ms": 24.262774,
+      "median_ms": 21.798301000000002,
+      "p95_ms": 21.88762795
+    },
+    "host_roundtrip": {
+      "count": 50,
+      "max_ms": 22.91556,
+      "median_ms": 22.233346,
+      "p95_ms": 22.4204254
+    },
+    "identical_outputs": 120,
+    "invalid_layout_rejected": true,
+    "invalid_output_rejected": true,
+    "samples": 14400
+  },
+  "cleanup": {
+    "remaining_test_processes": []
+  }
+}

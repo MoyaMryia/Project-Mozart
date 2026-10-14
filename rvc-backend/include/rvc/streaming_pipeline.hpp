@@ -53,6 +53,8 @@ public:
         // Quality mode uses extra reserve hops because prefix inference gets
         // slower as history grows.
         size_t startup_buffer_blocks = 1;
+        // 从首个契约帧开始计量的最小启动等待样本数。
+        size_t startup_delay_out = 0;
     };
 
     struct Stats {
@@ -84,6 +86,7 @@ public:
 
     const Stats& stats() const noexcept { return stats_; }
     size_t output_pending() const;
+    size_t startup_delay_out() const { return cfg_.startup_delay_out; }
 
 private:
     Config cfg_;
@@ -122,6 +125,7 @@ private:
     size_t out_size_ = 0;
     uint64_t out_total_ = 0;
     bool output_started_ = false;
+    size_t startup_delay_remaining_ = 0;
 
     // 块间淡化尾（crossfade_out 样本），cv_mutex_ 保护（仅推理线程读写）
     std::vector<float> tail_;

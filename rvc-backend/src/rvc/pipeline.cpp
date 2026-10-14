@@ -75,7 +75,8 @@ RealRVCPipeline::RealRVCPipeline(
     }
     feature_extractor_ = std::make_shared<FeatureExtractor>(
         hubert_path, rmvpe_path, device, half, mock_.hubert, mock_.rmvpe,
-        realtime_hubert_path, realtime_rmvpe_path
+        realtime_hubert_path, realtime_rmvpe_path,
+        realtime_hubert_path.has_value() && realtime_rmvpe_path.has_value()
     );
     rebuild_inferencer_locked();
 }
@@ -122,6 +123,7 @@ bool RealRVCPipeline::switch_model(const std::string& model_id) {
         std::lock_guard<std::mutex> lock(mutex_);
         rebuild_inferencer_locked();
     }
+    model_manager_->trim_cache();
     return success;
 }
 
@@ -145,6 +147,19 @@ std::map<std::string, std::string> RealRVCPipeline::model_info() const {
         info["id"] = "";
         info["loaded"] = "false";
     }
+    const auto append = [&](const char* role, const IEngine& engine) {
+        for (const auto& item : engine.runtime_info()) info[std::string(role) + "_" + item.first] = item.second;
+    };
+    if (model && model->loaded()) {
+        if (model->has_generator()) append("generator", model->generator_engine());
+        if (model->has_realtime_generator()) {
+            append("realtime_front", model->realtime_front_engine());
+            append("realtime_decoder", model->realtime_decoder_engine());
+        }
+    }
+    for (const auto& item : feature_extractor_->runtime_info()) info[item.first] = item.second;
+    info["cached_models"] = std::to_string(model_manager_->cached_model_count());
+    info["model_cache_limit"] = std::to_string(model_manager_->cache_limit());
     return info;
 }
 

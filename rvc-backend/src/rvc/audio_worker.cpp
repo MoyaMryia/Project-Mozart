@@ -47,7 +47,9 @@ void AudioWorker::start() {
     }
     if (config_.input_sample_rate != MOZART_INPUT_SAMPLE_RATE
         || config_.output_sample_rate != MOZART_OUTPUT_SAMPLE_RATE
-        || config_.frame_duration_ms != MOZART_INPUT_FRAME_MS) {
+        || config_.frame_duration_ms != MOZART_INPUT_FRAME_MS
+        || config_.realtime_playout_delay_ms > 1000
+        || config_.realtime_playout_delay_ms % MOZART_INPUT_FRAME_MS != 0) {
         running_ = false;
         throw std::invalid_argument("AudioWorker config does not match the fixed IO contract");
     }
@@ -63,6 +65,7 @@ void AudioWorker::start() {
             scfg.past_context_samples = 40000;
             scfg.sola_search_out = 480;
             scfg.startup_buffer_blocks = 1;
+            scfg.startup_delay_out = config_.realtime_playout_delay_ms * (MOZART_OUTPUT_SAMPLE_RATE / 1000);
             pipeline_.reset_realtime();
         }
         scfg.full_history = !scfg.upstream_realtime
@@ -232,6 +235,8 @@ AudioWorker::StreamStats AudioWorker::get_stream_stats() const {
         s.output_overruns = streaming_->stats().output_overruns.load();
         s.inference_errors = streaming_->stats().inference_errors.load();
         s.history_resets = streaming_->stats().history_resets.load();
+        s.playout_delay_ms = static_cast<uint32_t>(streaming_->startup_delay_out() / (MOZART_OUTPUT_SAMPLE_RATE / 1000));
+        s.queued_output_ms = static_cast<double>(streaming_->output_pending()) * 1000.0 / MOZART_OUTPUT_SAMPLE_RATE;
     }
     std::lock_guard<std::mutex> lock(stats_mutex_);
     s.output_underruns = underrun_count_;

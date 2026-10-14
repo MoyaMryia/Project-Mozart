@@ -31,6 +31,7 @@ public:
         uint32_t output_sample_rate = MOZART_OUTPUT_SAMPLE_RATE;
         uint32_t frame_duration_ms = MOZART_INPUT_FRAME_MS;
         bool skip_silence = true;
+        uint32_t realtime_playout_delay_ms = 400;
     };
 
     struct LatencyStats {
@@ -61,6 +62,8 @@ public:
         uint64_t history_resets = 0;
         uint64_t output_underruns = 0;
         uint64_t startup_output_underruns = 0;
+        uint32_t playout_delay_ms = 0;
+        double queued_output_ms = 0.0;
     };
 
     AudioWorker(mozart_stream_handle_t stream,
