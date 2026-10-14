@@ -24,6 +24,8 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 同一固定输入的十二轮短测中，四种配置的 PCM 音频逐样本一致。
 启动、进程内存、推理耗时和组合运行的配置与结果见[效率验证报告](reports/efficiency-20261014/RESULTS.md)。
 
+变声、识别、翻译、字幕、参考音色播报及控制接口的计时范围与实测结果见[逐功能延迟报告](reports/feature-latency-20261014/RESULTS.md)。
+
 ## 数据流
 
 ```text
