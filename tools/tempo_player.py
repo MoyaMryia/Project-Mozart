@@ -67,7 +67,7 @@ class TempoPlayer:
             command = ['ffmpeg', '-v', 'error', '-nostdin',
                 '-threads', '1', '-filter_threads', '1', '-probesize', '32', '-analyzeduration', '0',
                 '-f', 's16le', '-ar', str(rate), '-ac', '1', '-blocksize', '1024', '-i', 'pipe:0',
-                '-af', f'atempo={tempo:.2f}', '-f', 's16le', '-flush_packets', '1', 'pipe:1']
+                '-af', f'atempo={tempo:.3f}', '-f', 's16le', '-flush_packets', '1', 'pipe:1']
             self.backend = 'ffmpeg'
             library = tempo_library()
             if library:

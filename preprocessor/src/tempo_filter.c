@@ -46,7 +46,7 @@ static int filter_pcm(FILE *source_stream, FILE *destination, long rate, double 
     snprintf(args, sizeof(args), "time_base=1/%ld:sample_rate=%ld:sample_fmt=s16:channel_layout=mono", rate, rate);
     code = avfilter_graph_create_filter(&source, avfilter_get_by_name("abuffer"), "input", args, NULL, graph);
     if (code < 0) goto done;
-    snprintf(args, sizeof(args), "%.2f", tempo);
+    snprintf(args, sizeof(args), "%.3f", tempo);
     code = avfilter_graph_create_filter(&filter, avfilter_get_by_name("atempo"), "tempo", args, NULL, graph);
     if (code < 0) goto done;
     code = avfilter_graph_create_filter(&sink, avfilter_get_by_name("abuffersink"), "output", NULL, NULL, graph);

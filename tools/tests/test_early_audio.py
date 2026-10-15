@@ -180,6 +180,43 @@ class EarlyAudioTests(unittest.TestCase):
                 self.service.player = original
                 self.service.active_play = self.service.player_job_id = None
 
+    def test_flexible_ratio_preserves_whole_stream_and_filter_tail(self):
+        self.service.playback_tempo = 'flexible'
+        self.service.capture_playback = True
+        with patch.object(self.service.tempo_controller, 'select', return_value={
+                'tempo': 1.037, 'limited': False}):
+            result = self.wait(self.submit('quick flexible', playback=True, live=True)['id'])
+        self.assertEqual(result['status'], 'completed', result.get('error'))
+        self.assertEqual(result['playback_tempo'], 1.037)
+        with wave.open(str(self.root/'results'/f"{result['id']}.wav"), 'rb') as source:
+            source_pcm = source.readframes(source.getnframes())
+        expected = subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', '24000',
+            '-ac', '1', '-i', 'pipe:0', '-af', 'atempo=1.037', '-f', 's16le', 'pipe:1'],
+            input=source_pcm, stdout=subprocess.PIPE, check=True).stdout
+        self.assertEqual(self.players[0].read_bytes(), expected)
+        self.assertEqual(result['playback_output_samples'], len(expected)//2)
+
+    def test_flexible_complete_wav_path_also_waits_for_filter_tail(self):
+        self.service.close()
+        worker = self.root/'whole-worker.py'
+        worker.write_text('''import json,sys,wave
+print(json.dumps({'ready':True}),flush=True)
+for line in sys.stdin:
+ j=json.loads(line)
+ with wave.open(j['output'],'wb') as w:
+  w.setparams((1,2,24000,0,'NONE','not compressed'));w.writeframes(b'\\x10\\x00'*5760)
+ print(json.dumps({'duration_seconds':.24,'sample_rate':24000}),flush=True)
+''')
+        self.service = SpeechService(self.root/'whole', [sys.executable, str(worker)],
+            playback_device='null', delivery_policy='coverage', playback_tempo='flexible', capture_playback=True)
+        self.service.voices['test'] = {'id':'test','revision':'fixed','transcript':'','engine':'pocket','status':'needs_preview'}
+        with patch.object(self.service.tempo_controller, 'select', return_value={'tempo':1.037}):
+            result = self.wait(self.submit('whole', playback=True, live=True)['id'])
+        self.assertEqual(result['status'], 'completed', result.get('error'))
+        self.assertTrue(result['continuous_playback'])
+        self.assertGreater(result['playback_output_samples'], 0)
+        self.assertEqual(result['played_chunks'], result['chunk_count'])
+
 
 if __name__ == '__main__':
     unittest.main()

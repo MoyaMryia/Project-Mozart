@@ -189,9 +189,21 @@ class StableClauseDispatcher(CaptionDispatcher):
                 part_event = {**event, 'seq': f'{event["seq"]}/part/{index}', 'type': 'final',
                     'text': segment['source_text'], 'source_correction': correction,
                     'clause_parent_id': key, 'clause_index': index}
+                # 当前识别前缀对应的观测区间包含前视音频，不是逐词强制对齐。
+                # 各次提交只分配未使用的音频区间，避免重复使用父段总时长。
+                from speech_duration import source_duration
+                begin_pts = state.get('committed_audio_end_pts_ns', record.get('audio_start_pts_ns'))
+                end_pts = record.get('audio_end_pts_ns')
+                seconds = source_duration({'audio_start_pts_ns': begin_pts, 'audio_end_pts_ns': end_pts})
+                part_event['source_duration_seconds'] = None if correction else seconds
+                segment['source_duration_seconds'] = part_event['source_duration_seconds']
+                segment['source_timing_basis'] = 'observed_interval_with_lookahead'
                 parts.append(segment)
                 previous_committed = state['committed']
+                previous_audio_end = state.get('committed_audio_end_pts_ns')
                 state['committed'] = text[:end]
+                if seconds is not None and not correction:
+                    state['committed_audio_end_pts_ns'] = end_pts
                 item = {'event': part_event, 'session_id': self.session_id,
                     'work_key': f'{key}/part/{index}', 'record': deepcopy(record)}
                 try:
@@ -199,6 +211,10 @@ class StableClauseDispatcher(CaptionDispatcher):
                 except Exception as error:
                     segment.update(translation_status='failed', translation_error=f'Translation task storage failed: {error}')
                     state['committed'] = previous_committed
+                    if previous_audio_end is None:
+                        state.pop('committed_audio_end_pts_ns', None)
+                    else:
+                        state['committed_audio_end_pts_ns'] = previous_audio_end
             if record['final']:
                 state['history'] = []
             self.summary(record)

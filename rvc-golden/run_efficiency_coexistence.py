@@ -20,7 +20,7 @@ def main():
     parser.add_argument('--label', default='efficiency-coexistence-20261014')
     parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3,5,10,15], default=3)
     parser.add_argument('--tts-threads', type=int, default=2)
-    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive'], default='normal')
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='normal')
     parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--commit', default='1e4d8e5+latency-working')
     args = parser.parse_args()

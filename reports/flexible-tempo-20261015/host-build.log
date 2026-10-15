@@ -1,0 +1,24 @@
+[  8%] Built target rnnoise
+[ 31%] Built target yaml-cpp
+[ 37%] Built target spdlog
+[ 39%] Built target mozart_monitor
+[ 41%] Built target yaml-cpp-sandbox
+[ 43%] Built target yaml-cpp-parse
+[ 44%] Built target yaml-cpp-read
+[ 48%] Built target mozart_pre_core
+[ 51%] Built target mozart_io
+[ 52%] Built target mozart_api
+[ 54%] Built target test_streaming
+[ 58%] Built target test_feature_extractor
+[ 62%] Built target test_index_search
+[ 66%] Built target test_inferencer
+[ 68%] Built target mozart-pre
+[ 71%] Built target diag_f32
+[ 73%] Built target test_dsp
+[ 84%] Built target mozart_rvc_runtime
+[ 86%] Built target http_fixture
+[ 95%] Built target test_udp_loopback
+[ 97%] Built target test_model_selection
+[ 98%] Built target test_engine_chain
+[ 99%] Built target test_onnx_unavailable
+[100%] Built target test_mode_controller

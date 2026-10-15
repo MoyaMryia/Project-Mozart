@@ -208,8 +208,11 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
         if record['translation_status'] == 'failed':
             record['speech_degraded'] = True
         try:
+            from speech_duration import source_duration
             result = request_json(speech_url+'/api/speech/events', {
                 'text': record['en'], 'source_text': text,
+                'source_duration_seconds': source_duration(event),
+                'source_emitted_at': event.get('emitted_at'),
                 'speech_degraded': record.get('speech_degraded', False),
                 'utterance_id': record['utterance_id']}, timeout=3)
             record['speech'] = result.get('id', result.get('skipped', ''))

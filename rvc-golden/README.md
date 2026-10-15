@@ -289,3 +289,10 @@ Use `--pitch-only` with the original PyTorch RVC environment for the official RM
 Use `benchmark_translation_retry.py --repo REPO --replay REPLAY --output OUTPUT` for retained-source translation checks.
 The translation comparison changes only the bounded title repair option.
 Read the [playback report](../reports/playback-latency-20261015/RESULTS.md) for the measured scope and remaining limits.
+
+Use `--playback-tempo flexible` for duration prediction and queue feedback.
+Use `fit_speech_duration.py` to calibrate the four-parameter model from retained jobs and independent speech results.
+Use `benchmark_playback_tempo.py --tempos 1 1.012 1.025 1.037 1.05` for representative quality comparisons.
+Use `benchmark_flexible_policy.py --input WAV --output DIRECTORY` to verify speed selection and recovery with recorded speech.
+That policy test bypasses synthesis. It does not measure complete translation latency.
+Read the [flexible-tempo report](../reports/flexible-tempo-20261015/RESULTS.md) for the final measurements and quality limits.

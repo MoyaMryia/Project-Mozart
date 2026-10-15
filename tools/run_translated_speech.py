@@ -92,7 +92,11 @@ def main():
     parser.add_argument('--seconds', type=float, default=60, help='File replay length; microphone runs until stopped')
     parser.add_argument('--mic-device', default='plughw:CARD=Device,DEV=0')
     parser.add_argument('--playback-device', default='plughw:CARD=Device,DEV=0')
-    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive'], default='adaptive')
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='flexible')
+    parser.add_argument('--duration-profile', type=Path)
+    parser.add_argument('--playback-tempo-max', type=float, default=1.05)
+    parser.add_argument('--playback-target-delay', type=float, default=1.5)
+    parser.add_argument('--playback-recovery-seconds', type=float, default=30.)
     parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--data-dir', type=Path, default=home/'.local/share/mozart/speech')
     parser.add_argument('--run-dir', type=Path, default=Path('/tmp/mozart-translated-speech'))
@@ -100,6 +104,11 @@ def main():
     parser.add_argument('--no-rnnoise', action='store_true')
     parser.add_argument('--archive-utterances',action='store_true',help='Save processed source utterances for diagnosis')
     args = parser.parse_args()
+    from tempo_control import TempoController
+    try:
+        TempoController(args.playback_tempo_max, args.playback_target_delay, args.playback_recovery_seconds)
+    except ValueError as error:
+        parser.error(str(error))
     if args.boundary_model:
         args.stable_clauses = True
     if args.tts_threads < 1:
@@ -208,6 +217,11 @@ def main():
             '--provider', args.tts_provider, '--precision', args.tts_precision,
             '--threads', args.tts_threads, '--delivery-policy', args.delivery_policy]
         speech_command += ['--playback-tempo', args.playback_tempo]
+        speech_command += ['--playback-tempo-max', str(args.playback_tempo_max),
+            '--playback-target-delay', str(args.playback_target_delay),
+            '--playback-recovery-seconds', str(args.playback_recovery_seconds)]
+        if args.duration_profile:
+            speech_command += ['--duration-profile', args.duration_profile]
         if args.capture_playback:
             speech_command += ['--capture-playback']
         if args.tts_provider_config:
