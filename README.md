@@ -30,7 +30,7 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 
 播放积压的后续优化与称谓漏译修复见[播放延迟报告](reports/playback-latency-20261015/RESULTS.md)。
 
-时长控制的 GitHub 调研与 23 段中英对照见[译文时长参考](docs/TRANSLATION_DURATION.md)。
+时长控制的开源方案、语音学论文及中英计时见[译文时长参考](docs/TRANSLATION_DURATION.md)。
 
 ## 数据流
 
