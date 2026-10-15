@@ -1,0 +1,42 @@
+{
+  "local_base_commit": "91be67b",
+  "repo": "/home/moyamryia/mozart-efficiency-20261014/candidate",
+  "work": "/home/moyamryia/mozart-backlog-20261015",
+  "source_sha256": {
+    "preprocessor/CMakeLists.txt": "2540969b162999b3d740cd77b79094e0612e5131670ca110f42b53294a0111d7",
+    "preprocessor/src/tempo_filter.c": "150cca3dd7bf50952ddca566a7c7249fac3d891bbb93638eb82fc850c9b8a222",
+    "tools/speech_service.py": "d03eee85fa9a14f9273232f3b28aae8f16024cc2c183df551ec755e0f674a497",
+    "tools/tempo_player.py": "dd0d0fb662fcdb101a27dcb89f526f1cc7ad1f7f5500050dc74139cc4628888a",
+    "tools/subtitle_bridge.py": "37c233985d296219ef70d946a73ad364a8e5d6da4d90f91ff07aa373bc785dd6",
+    "tools/run_translated_speech.py": "c8ee9632336f5387beb2ba6cb1937eeba1478ce795421dae394eec711e9bd97b",
+    "tools/tests/test_early_audio.py": "fcbb91e32eabe427da47728965faa2a7c62e88982cbe83b74ee8c29138b754eb",
+    "tools/tests/test_tempo_player.py": "0944cd4fd4a2533bfcbbf3ca8c5c5afdf60802a570a35be15090fba166e10166",
+    "tools/tests/test_subtitle_bridge.py": "fceb75a8cd8b2dd6080a0fe0d856552c04f922abffe97489f4706a92d544af9d",
+    "rvc-golden/verify_tempo_playback.py": "cfc83ff5f334a1a5bc791d5870455ddd546d419ca1e716c5f860a24c897d56cf",
+    "rvc-golden/benchmark_playback_tempo.py": "c42cdeccfea8ae6e4fa7d72f4d28454451267662dfafd554db1784174d7cd227",
+    "rvc-golden/benchmark_translation_retry.py": "9c731c01f75a3cf2fb654171102a595ab74f7c090b559ebc9b56444feb6f0e09",
+    "rvc-golden/run_efficiency_coexistence.py": "0cc3c319ef3dbef66e567300390caf9e1ee5e7dcafa678ceb405d91ccfb095f8",
+    "rvc-golden/realtime-patches-20261008/run_probe.py": "1dc4f5efeb14e62f9f90975695160c25e08f521a177d871d70c23ee47b23fc4e"
+  },
+  "binaries": {
+    "/home/moyamryia/mozart-latency-20261015/build/preprocessor/libmozart-tempo.so": {
+      "sha256": "0a6e1c3e14928f6196995266a44d469406df8c7c78d4aafeda0e16e712a6a418",
+      "bytes": 71240
+    },
+    "/home/moyamryia/mozart-latency-20261015/build/preprocessor/mozart-tempo": {
+      "sha256": "8d2b6e026b9fe0691b52ad8c9c9a32f3f47c077209279eca1315f40b2133fd8d",
+      "bytes": 71832
+    },
+    "/home/moyamryia/mozart-latency-20261015/build/state/mozart_stated": {
+      "sha256": "55ac341d966c5242f45d64eea35fd431562a556f77f3989237a4f6e12cb37c8e",
+      "bytes": 1803736
+    }
+  },
+  "libraries": "11.4.100\n60.8.100\n",
+  "ffmpeg": "ffmpeg version n8.0.1-9-g90b8004959-1ubuntu0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+  "power_mode": "NV Power Mode: MAXN_SUPER\n2\n",
+  "platform": "Linux localhost.localdomain 6.8.12-1021-tegra #1 SMP PREEMPT Mon Jun  1 13:25:46 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux\n",
+  "remaining_test_processes": [],
+  "input_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+  "reference_sha256": "3ac60ca3921680580411e6a4829002b519841c2085c3de7bc5dd5766fc6c50ba"
+}

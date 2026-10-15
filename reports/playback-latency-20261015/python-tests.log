@@ -1,0 +1,13 @@
+...........................................................................................................[bridge] translate failed: Translation rejected
+..[bridge] translate failed: Recognition uncertain: quantity_disagreement
+..........[bridge] translate failed: Translation timeout
+.....[bridge] translate failed: Translation rejected: untranslated Chinese in English output
+[bridge] translate failed: Translation rejected: required numerals missing: 12000; unsupported added amounts/years: 1000
+[bridge] translate failed: Translation rejected: output token limit reached before completion
+.......[bridge] translate failed: Translation timeout
+..[bridge] translate failed: Recognition uncertain: itn_quantity_disagreement
+...........................
+----------------------------------------------------------------------
+Ran 160 tests in 11.210s
+
+OK

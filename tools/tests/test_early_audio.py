@@ -6,11 +6,12 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import wave
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from speech_service import SpeechService
+from tempo_player import TempoPlayer
 import test_speech_service as speech_tests
 
 WORKER = '''import json,sys,time,wave
@@ -133,6 +134,51 @@ class EarlyAudioTests(unittest.TestCase):
         self.assertTrue(all(chunk['status'] == 'completed' for chunk in result['chunks']))
         stored = json.loads((self.root/'results'/f"{job['id']}.json").read_text())
         self.assertEqual(stored['played_chunks'], 3)
+
+    def test_adaptive_tempo_saves_actual_output_and_preserves_synthesis(self):
+        self.service.playback_tempo = 'adaptive'
+        self.service.capture_playback = True
+        with self.service.lock:
+            job = self.submit('quick adaptive', playback=True, live=True)
+            self.service.jobs[job['id']]['created_at'] -= 4
+        result = self.wait(job['id'])
+        self.assertEqual(result['status'], 'completed', result.get('error'))
+        self.assertEqual(result['playback_tempo'], 1.05)
+        self.assertGreater(result['playback_started_at'], result['playback_input_started_at'])
+        self.assertEqual(result['playback_timing'], 'null_paced_filtered_pcm')
+        self.assertEqual(result['played_chunks'], 3)
+        with wave.open(str(self.root/'results'/result['playback_audio_filename']), 'rb') as capture:
+            self.assertEqual(capture.getnframes(), result['playback_output_samples'])
+            self.assertEqual(capture.readframes(capture.getnframes()), self.players[0].read_bytes())
+        with wave.open(str(self.root/'results'/f"{job['id']}.wav"), 'rb') as source:
+            self.assertEqual(source.getnframes(), 5760)
+
+    def test_adaptive_tempo_keeps_empty_queue_and_preview_at_normal_speed(self):
+        self.service.playback_tempo = 'adaptive'
+        with self.service.lock:
+            self.assertEqual(self.service.select_playback_tempo({'live': False}), 1)
+            job = self.submit('normal', playback=True, live=True)
+            self.assertEqual(self.service.select_playback_tempo(self.service.jobs[job['id']]), 1)
+        result = self.wait(job['id'])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['playback_tempo'], 1)
+
+    def test_next_job_cannot_inherit_previous_player_first_audio_time(self):
+        with self.service.lock:
+            original = self.service.player
+            self.service.player = Mock(spec=TempoPlayer, first_audio_at=time.time()-10)
+            self.service.active_play = 'next'
+            self.service.player_job_id = 'previous'
+            job = {'id': 'next'}
+            try:
+                self.service.sync_playback_start(job)
+                self.assertNotIn('playback_started_at', job)
+                self.service.player_job_id = 'next'
+                self.service.sync_playback_start(job)
+                self.assertEqual(job['playback_started_at'], self.service.player.first_audio_at)
+            finally:
+                self.service.player = original
+                self.service.active_play = self.service.player_job_id = None
 
 
 if __name__ == '__main__':

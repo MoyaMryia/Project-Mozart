@@ -92,6 +92,8 @@ def main():
     parser.add_argument('--seconds', type=float, default=60, help='File replay length; microphone runs until stopped')
     parser.add_argument('--mic-device', default='plughw:CARD=Device,DEV=0')
     parser.add_argument('--playback-device', default='plughw:CARD=Device,DEV=0')
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive'], default='adaptive')
+    parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--data-dir', type=Path, default=home/'.local/share/mozart/speech')
     parser.add_argument('--run-dir', type=Path, default=Path('/tmp/mozart-translated-speech'))
     parser.add_argument('--no-playback', action='store_true', help='Generate downloadable speech without ALSA playback')
@@ -205,6 +207,9 @@ def main():
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
             '--provider', args.tts_provider, '--precision', args.tts_precision,
             '--threads', args.tts_threads, '--delivery-policy', args.delivery_policy]
+        speech_command += ['--playback-tempo', args.playback_tempo]
+        if args.capture_playback:
+            speech_command += ['--capture-playback']
         if args.tts_provider_config:
             speech_command += ['--provider-config', args.tts_provider_config]
         if args.early_audio:

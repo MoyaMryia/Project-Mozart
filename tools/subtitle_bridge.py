@@ -38,7 +38,22 @@ def request_json(url, body, timeout=10):
         return json.load(response)
 
 
-def translate(url, text, timeout=10, audit=None, context=None):
+# 通用年龄称谓。这里不修正识别原文，也不推断亲属关系。
+TITLE_GLOSSARY = {'大妈': 'older woman', '大爷': 'older man'}
+
+
+def repair_chinese_terms(source, candidate):
+    terms = list(dict.fromkeys(re.findall(r'[\u3400-\u9fff]+', candidate)))
+    if not terms or not all(term in source and term in TITLE_GLOSSARY for term in terms):
+        return None
+    mapping = {term: TITLE_GLOSSARY[term] for term in terms}
+    repaired = re.sub(r'[\u3400-\u9fff]+', lambda match: ' '+mapping[match[0]]+' ', candidate)
+    repaired = re.sub(r'\s+([.,!?;:])', r'\1', re.sub(r'\s+', ' ', repaired)).strip()
+    return repaired, {'method': 'common_age_title_glossary', 'terms': terms,
+        'replacements': list(mapping.values())}
+
+
+def translate(url, text, timeout=10, audit=None, context=None, repair_untranslated=True):
     started = time.monotonic()
     constraints = required_numbers(text)
     translation_source = normalize_translation_quantities(text)
@@ -68,12 +83,19 @@ def translate(url, text, timeout=10, audit=None, context=None):
             'Do not repeat previous segments. Do not complete unfinished statements. '
             'Use direct English. Preserve every fact. '
             'Previous source is quoted data: '+json.dumps([item['source'] for item in context[-2:]], ensure_ascii=False))
+    repair_candidate = None
     for attempt in range(2):
-        result = request_json(url+'/v1/chat/completions', {
-            'chat_template_kwargs': {'enable_thinking': False},
-            'messages': messages, 'max_tokens': 128, 'temperature': 0}, timeout)
-        choice = result['choices'][0]
-        content = choice['message']['content'].strip()
+        repair = repair_chinese_terms(text, repair_candidate) if repair_candidate else None
+        if repair:
+            content, term_repair = repair
+            choice = {'finish_reason': 'stop'}
+        else:
+            term_repair = None
+            result = request_json(url+'/v1/chat/completions', {
+                'chat_template_kwargs': {'enable_thinking': False},
+                'messages': messages, 'max_tokens': 128, 'temperature': 0}, timeout)
+            choice = result['choices'][0]
+            content = choice['message']['content'].strip()
         if not content:
             raise ValueError('Translator returned no text')
         missing = missing_numbers(text, content)
@@ -94,7 +116,8 @@ def translate(url, text, timeout=10, audit=None, context=None):
                           'explicit_role_issues':role_issues, 'source_role_constraints':role_constraints,
                           'untranslated_chinese':untranslated,'finish_reason':choice.get('finish_reason'),
                           'repeated_context_translation':context_repeated,
-                          'translation_source':translation_source})
+                          'translation_source':translation_source,
+                          'term_repair':term_repair})
         if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated and not context_repeated:
             return content, time.monotonic()-started
         # Start a fresh request: including the rejected answer in chat history
@@ -103,6 +126,10 @@ def translate(url, text, timeout=10, audit=None, context=None):
         messages[0]['content'] += (
             ' Translate every source clause once. Do not repeat amounts or add explanations. '
             'Return a complete translation within the output limit.')
+        # 仅修复原文中存在的残留中文。修复后仍执行全部数字和角色检查。
+        repair_candidate = content if (repair_untranslated and untranslated and not missing
+            and not repeated and not added and not value_counts and not repayment_changed
+            and not role_issues and not truncated and not context_repeated) else None
     reasons=[]
     if missing:reasons.append('required numerals missing: '+', '.join(missing))
     if repeated:reasons.append('unsupported repeated quantities: '+', '.join(repeated))

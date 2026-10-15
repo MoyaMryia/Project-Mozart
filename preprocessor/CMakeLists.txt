@@ -21,6 +21,20 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 option(MOZART_BUILD_TESTS "Build unit tests" OFF)
 option(MOZART_USE_RNNOISE "Build and link xiph RNNoise from native/rnnoise/" ON)
 
+# 有开发头文件时构建轻量变速工具；其他部署仍可使用 FFmpeg 程序。
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(MOZART_AVFILTER QUIET IMPORTED_TARGET libavfilter>=9 libavutil>=58)
+    if(TARGET PkgConfig::MOZART_AVFILTER)
+        add_executable(mozart-tempo src/tempo_filter.c)
+        target_link_libraries(mozart-tempo PRIVATE PkgConfig::MOZART_AVFILTER)
+        add_library(mozart_tempo_filter SHARED src/tempo_filter.c)
+        set_target_properties(mozart_tempo_filter PROPERTIES OUTPUT_NAME mozart-tempo)
+        target_compile_definitions(mozart_tempo_filter PRIVATE MOZART_TEMPO_LIBRARY=1)
+        target_link_libraries(mozart_tempo_filter PRIVATE PkgConfig::MOZART_AVFILTER)
+    endif()
+endif()
+
 # ---- RNNoise native library --------------------------------------------------
 # 外部权重模式：模型权重不入代码，运行时从 blob 文件加载（见 rnnoise.c）。
 # 上游 rnnoise_data.c（78MB 内嵌权重源）已从树中移除；如需重新导出 blob，

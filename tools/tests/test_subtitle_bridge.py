@@ -7,6 +7,26 @@ def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
 
 class BridgeChecks(unittest.TestCase):
+    def test_age_title_repair_keeps_existing_translation_without_another_request(self):
+        audit = []
+        with patch('subtitle_bridge.request_json', return_value=answer(
+                'Your mother is dancing with the lobster大妈 in the square dance.')) as request:
+            result, _ = translate('translator', '你妈妈跟龙虾大妈跳广场舞', audit=audit)
+        self.assertEqual(result, 'Your mother is dancing with the lobster older woman in the square dance.')
+        self.assertEqual(request.call_count, 1)
+        self.assertTrue(audit[0]['untranslated_chinese'])
+        self.assertFalse(audit[1]['untranslated_chinese'])
+        self.assertEqual(audit[1]['term_repair']['method'], 'common_age_title_glossary')
+
+    def test_title_repair_does_not_accept_changed_numbers_or_unknown_terms(self):
+        for source, candidate in [('大妈付12000元', '大妈 paid 1000.'),
+                                  ('这个叫跑分', 'This is called 跑分.'),
+                                  ('年轻女人', 'The 大妈 dances.')]:
+            with self.subTest(source=source), patch('subtitle_bridge.request_json', return_value=answer(candidate)) as request:
+                with self.assertRaises(ValueError):
+                    translate('translator', source)
+            self.assertEqual(request.call_count, 2)
+
     def test_context_copy_retries_without_previous_source_or_translation(self):
         audit=[]
         context=[{'source':'最后的结果一定是输','translation':'The result is a loss.'}]
