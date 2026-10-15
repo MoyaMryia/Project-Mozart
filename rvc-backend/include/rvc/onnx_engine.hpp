@@ -79,6 +79,9 @@ public:
     }
     // 引擎某输入的静态形状；动态/未知返回空（用于 TRT 固定形状校验）
     virtual std::vector<int64_t> input_shape(const std::string&) const { return {}; }
+    virtual std::vector<int64_t> max_input_shape(const std::string& name) const {
+        return input_shape(name);
+    }
     virtual void unload() = 0;
 protected:
     void record_runtime(const std::string& backend, const std::filesystem::path& asset, bool reset_reason = false) {

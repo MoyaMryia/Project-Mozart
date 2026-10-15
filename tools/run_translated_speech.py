@@ -68,6 +68,7 @@ def main():
     parser.add_argument('--tts-pythonpath', type=Path, help='Independent sherpa package directory for the speech service')
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
+    parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=3)
     parser.add_argument('--stable-clauses', action='store_true')
     parser.add_argument('--boundary-model', type=Path, help='Optional local Chinese NNSplit ONNX model')
     parser.add_argument('--boundary-threshold', type=float, default=.5)
@@ -207,7 +208,7 @@ def main():
         if args.tts_provider_config:
             speech_command += ['--provider-config', args.tts_provider_config]
         if args.early_audio:
-            speech_command += ['--early-audio']
+            speech_command += ['--early-audio', '--audio-chunk-frames', str(args.tts_audio_chunk_frames)]
         speech_environment = os.environ.copy()
         if args.tts_pythonpath:
             speech_environment['PYTHONPATH'] = str(args.tts_pythonpath)+os.pathsep+speech_environment.get('PYTHONPATH', '')

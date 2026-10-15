@@ -26,6 +26,8 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 
 变声、识别、翻译、字幕、参考音色播报及控制接口的计时范围与实测结果见[逐功能延迟报告](reports/feature-latency-20261014/RESULTS.md)。
 
+文件转换、字幕传输、取消及早期播报的后续优化见[延迟优化报告](reports/latency-reduction-20261015/RESULTS.md)。
+
 ## 数据流
 
 ```text

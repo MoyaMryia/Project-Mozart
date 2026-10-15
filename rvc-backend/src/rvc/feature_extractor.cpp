@@ -523,8 +523,11 @@ std::vector<float> FeatureExtractor::extract_f0_impl(
         }
         const size_t padded_frames = mel_frames > 0
             ? 32 * ((mel_frames - 1) / 32 + 1) : 0;
-        if (!realtime && rmvpe && !dynamic_time
-                && static_cast<size_t>(fixed_time) != padded_frames
+        const auto maximum_shape = rmvpe ? rmvpe->max_input_shape("mel") : std::vector<int64_t>{};
+        const bool outside_profile = dynamic_time && maximum_shape.size() >= 3 && maximum_shape[2] > 0
+            && padded_frames > static_cast<size_t>(maximum_shape[2]);
+        if (!realtime && rmvpe && ((!dynamic_time
+                && static_cast<size_t>(fixed_time) != padded_frames) || outside_profile)
                 && rmvpe_path_
                 && ensure_onnx_fallback(rmvpe_onnx_engine_, *rmvpe_path_)) {
             spdlog::debug("RMVPE TRT fixed time {} != padded {}; using ONNX fallback",
@@ -547,7 +550,9 @@ std::vector<float> FeatureExtractor::extract_f0_impl(
             const auto profile_prepared = profile::Clock::now();
             const auto salience = run_feature_engine(*rmvpe, realtime ? "realtime_rmvpe" : "rmvpe",
                 "mel", mel_shape, fixed_mel, "f0",
-                rmvpe != primary_rmvpe ? "Fixed TensorRT shape differs from input; selected dynamic ONNX" : "");
+                rmvpe != primary_rmvpe
+                    ? (outside_profile ? "TensorRT profile excludes input shape; selected dynamic ONNX"
+                                       : "Fixed TensorRT shape differs from input; selected dynamic ONNX") : "");
             const auto profile_engine = profile::Clock::now();
             if (salience.size() < padded_frames * pitch_bins) {
                 throw std::runtime_error("RMVPE dynamic output smaller than [padded, 360]");
@@ -661,16 +666,23 @@ std::vector<float> FeatureExtractor::extract_features_impl(
         size_t n_samples = audio.size();
         // TRT 固定形状引擎只接受构建时长；其他长度走动态 ONNX 兜底
         IEngine* engine = primary_hubert;
+        std::string fallback_reason;
         if (!realtime) {
             auto* trt = dynamic_cast<TrtEngine*>(engine);
             if (trt) {
                 const auto shape = trt->input_shape("audio");
-                if (shape.size() == 2 && shape[1] > 0
-                        && static_cast<size_t>(shape[1]) != n_samples
+                const auto maximum = trt->max_input_shape("audio");
+                const bool outside_profile = maximum.size() == 2 && maximum[1] > 0
+                    && n_samples > static_cast<size_t>(maximum[1]);
+                if (((shape.size() == 2 && shape[1] > 0
+                        && static_cast<size_t>(shape[1]) != n_samples) || outside_profile)
                         && ensure_onnx_fallback(hubert_onnx_engine_, hubert_path_)) {
                     spdlog::debug("HuBERT TRT fixed length {} != {}; using ONNX fallback",
                                   shape[1], n_samples);
                     engine = hubert_onnx_engine_.get();
+                    fallback_reason = outside_profile
+                        ? "TensorRT profile excludes input shape; selected dynamic ONNX"
+                        : "Fixed TensorRT shape differs from input; selected dynamic ONNX";
                 }
             }
         } else if (engine->input_shape("audio")
@@ -680,7 +692,7 @@ std::vector<float> FeatureExtractor::extract_features_impl(
         std::vector<int64_t> audio_shape = {1, static_cast<int64_t>(n_samples)};
         auto feats = run_feature_engine(*engine, realtime ? "realtime_hubert" : "hubert",
             "audio", audio_shape, audio, "features",
-            engine != primary_hubert ? "Fixed TensorRT shape differs from input; selected dynamic ONNX" : "");
+            fallback_reason);
         if (profile::enabled()) {
             const auto profile_done = profile::Clock::now();
             spdlog::info(

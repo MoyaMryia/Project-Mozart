@@ -38,6 +38,7 @@ public:
 
     // 引擎某输入的静态形状（load 后有效）；无此张量返回空
     std::vector<int64_t> input_shape(const std::string& name) const override;
+    std::vector<int64_t> max_input_shape(const std::string& name) const override;
 
     void unload() override;
 

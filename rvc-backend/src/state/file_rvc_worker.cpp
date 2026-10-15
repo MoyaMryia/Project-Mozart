@@ -192,7 +192,7 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
         progress(60);
         std::vector<float> converted;
         try {
-            converted = pipeline_.process(contract_pcm);
+            converted = pipeline_.process_cancellable(contract_pcm, cancelled);
         } catch (const std::exception& exception) {
             error = std::string("RVC inference failed: ") + exception.what();
             cleanup();
@@ -231,7 +231,7 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
         progress(40);
         std::vector<float> converted;
         try {
-            converted = pipeline_.process(audio_16k);
+            converted = pipeline_.process_cancellable(audio_16k, cancelled);
         } catch (const std::exception& exception) {
             error = std::string("RVC inference failed: ") + exception.what();
             cleanup();

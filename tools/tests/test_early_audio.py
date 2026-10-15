@@ -20,7 +20,7 @@ for line in sys.stdin:
  j=json.loads(line);output=Path(j['output']);pieces=[];started=time.monotonic()
  for i in range(3):
   if i:
-   time.sleep(.12)
+   time.sleep(.01 if j['text'].startswith('quick') else .12)
   if i==1 and j['text'].startswith('cancel'):
    time.sleep(10)
   if i==1 and j['text'].startswith('latefail'):
@@ -124,6 +124,15 @@ class EarlyAudioTests(unittest.TestCase):
         self.assertEqual(len(self.players), 3)
         self.assertEqual([j['playback_started_at'] for j in results],
                          sorted(j['playback_started_at'] for j in results))
+
+    def test_ready_blocks_keep_complete_persistent_progress(self):
+        job = self.submit('quick', playback=True, live=True)
+        result = self.wait(job['id'])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['played_chunks'], 3)
+        self.assertTrue(all(chunk['status'] == 'completed' for chunk in result['chunks']))
+        stored = json.loads((self.root/'results'/f"{job['id']}.json").read_text())
+        self.assertEqual(stored['played_chunks'], 3)
 
 
 if __name__ == '__main__':

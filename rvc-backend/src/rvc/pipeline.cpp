@@ -209,6 +209,16 @@ std::vector<float> RealRVCPipeline::process(const std::vector<float>& audio) {
     return inferencer->infer(audio);
 }
 
+std::vector<float> RealRVCPipeline::process_cancellable(
+    const std::vector<float>& audio, const std::atomic<bool>& cancelled
+) {
+    check_cancelled(&cancelled);
+    if (mock_.generator) return RVCPipelineBase::process_cancellable(audio, cancelled);
+    const auto inferencer = current_inferencer();
+    if (!inferencer) throw std::runtime_error("RVC Generator is unavailable");
+    return inferencer->infer(audio, &cancelled);
+}
+
 std::vector<float> RealRVCPipeline::process_realtime(
     const std::vector<float>& audio,
     const RvcRealtimeRequest& request

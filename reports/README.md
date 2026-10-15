@@ -9,6 +9,8 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-15 | [latency-reduction-20261015/RESULTS.md](latency-reduction-20261015/RESULTS.md) | 文件整段 TensorRT、字幕事件唤醒、协作取消与小块播报 |
+| 2026-10-14 | [feature-latency-20261014/RESULTS.md](feature-latency-20261014/RESULTS.md) | 当前部署功能、控制接口和执行中取消的逐项计时 |
 | 2026-10-14 | [efficiency-20261014/RESULTS.md](efficiency-20261014/RESULTS.md) | GPU 张量直连、特征并行、按需加载、模型缓存与真实资产验证 |
 | 2026-10-13 | [repository-audit-20261013/RESULTS.md](repository-audit-20261013/RESULTS.md) | 控制接口、文件处理、模型加载和回归覆盖修复 |
 | 2026-10-09 | [realtime-patches-20261008/BOUNDARY_CLASSIFIER.md](realtime-patches-20261008/BOUNDARY_CLASSIFIER.md) | 小型中文句界分类器；单次对照降低首播等待，仍有播放积压与质量限制 |

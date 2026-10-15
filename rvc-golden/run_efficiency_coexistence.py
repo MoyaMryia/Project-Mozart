@@ -18,6 +18,9 @@ def main():
     parser.add_argument('--work', type=Path, required=True)
     parser.add_argument('--boundary-model', type=Path, required=True)
     parser.add_argument('--label', default='efficiency-coexistence-20261014')
+    parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3,5,10,15], default=3)
+    parser.add_argument('--tts-threads', type=int, default=2)
+    parser.add_argument('--commit', default='1e4d8e5+latency-working')
     args = parser.parse_args()
     home, root = Path.home(), args.repo.resolve()
     for name, target in [('.venv', home/'Mozart/.venv'), ('build-gpu', args.build.resolve())]:
@@ -29,8 +32,9 @@ def main():
     args.work.mkdir(parents=True, exist_ok=True)
     source = home/'Mozart/rvc-golden/sentence-context-20261007/processed-source-120s.wav'
     probe = [str(root/'.venv/bin/python'), str(root/'rvc-golden/realtime-patches-20261008/run_probe.py'),
-        str(root), args.label, '--commit', 'daf16b1+efficiency-working',
+        str(root), args.label, '--commit', args.commit,
         '--early-audio', '--tts-pythonpath', str(home/'mozart-realtime-patches-20261008/early-audio-runtime-20261009/python'),
+        '--tts-audio-chunk-frames', str(args.tts_audio_chunk_frames), '--tts-threads', str(args.tts_threads),
         '--boundary-model', str(args.boundary_model)]
     campaign = [sys.executable, '-u', str(root/'rvc-golden/run_efficiency_campaign.py'),
         '--baseline', str(args.build/'state/mozart_stated'), '--candidate', str(args.build/'state/mozart_stated'),

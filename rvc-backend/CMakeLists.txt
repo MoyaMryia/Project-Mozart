@@ -181,6 +181,10 @@ target_include_directories(mozart_rvc_runtime PUBLIC
 
 target_link_libraries(mozart_rvc_runtime PRIVATE trt_flags)
 option(MOZART_BUILD_GPU_BENCHMARKS "Build real-asset GPU diagnostics" OFF)
+if(MOZART_BUILD_GPU_BENCHMARKS AND USE_ONNX)
+    add_executable(verify_onnx_stage ../rvc-golden/verify_onnx_stage.cpp)
+    target_link_libraries(verify_onnx_stage PRIVATE mozart_rvc_runtime)
+endif()
 if(MOZART_BUILD_GPU_BENCHMARKS AND USE_TENSORRT AND TENSORRT_LIBRARY
    AND TENSORRT_INCLUDE_DIR AND CUDART_LIBRARY AND CUDA_INCLUDE_DIR)
     add_executable(benchmark_trt_chain ../rvc-golden/benchmark_trt_chain.cpp)

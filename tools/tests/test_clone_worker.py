@@ -29,6 +29,11 @@ class NativeOptions:
 
 
 class WorkerOptionsTests(unittest.TestCase):
+    def test_early_block_size_uses_native_map_setter(self):
+        config = NativeOptions()
+        configure_pocket(config, {'early_audio': True}, 12, 5)
+        self.assertEqual(config.extra['chunk_size'], '5')
+        self.assertEqual(config.extra['seed'], '42')
     def test_early_runtime_manifest_rejects_a_changed_extension(self):
         with tempfile.TemporaryDirectory() as directory:
             package = Path(directory)

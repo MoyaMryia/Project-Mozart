@@ -1,5 +1,6 @@
 """验证原生 HTTP 连接生命周期，不使用模型或 GPU。"""
 import os
+import json
 from pathlib import Path
 import socket
 import subprocess
@@ -186,6 +187,47 @@ class HttpTests(unittest.TestCase):
             self.assertLess(time.monotonic(), deadline)
             time.sleep(.1)
         self.assertIn(b'200 OK', self.request(b'GET /api/health HTTP/1.1\r\n\r\n'))
+
+    def test_subtitles_append_incomplete_replace_and_truncate(self):
+        path = Path(self.temporary.name)/'captions.jsonl'
+        path.write_text('{"old":true}\n')
+        client = self.connect()
+        client.sendall(b'GET /api/subtitles HTTP/1.1\r\n\r\n')
+        stream = client.makefile('rb')
+        while stream.readline() != b'\r\n':
+            pass
+        def event():
+            while True:
+                line = stream.readline()
+                if line.startswith(b'data: '):
+                    return json.loads(line[6:])
+        with path.open('a') as output:
+            output.write('{"seq":1}')
+            output.flush()
+            time.sleep(.03)
+            output.write('\n')
+        self.assertEqual(event(), {'seq': 1})
+        replacement = path.with_suffix('.new')
+        replacement.write_text('{"seq":2}\n')
+        replacement.replace(path)
+        self.assertEqual(event(), {'seq': 2})
+        path.write_text('{"seq":3}\n')
+        self.assertEqual(event(), {'seq': 3})
+        stream.close()
+
+    def test_subtitles_file_created_after_connection(self):
+        client = self.connect()
+        client.sendall(b'GET /api/subtitles HTTP/1.1\r\n\r\n')
+        stream = client.makefile('rb')
+        while stream.readline() != b'\r\n':
+            pass
+        (Path(self.temporary.name)/'captions.jsonl').write_text('{"created":true}\n')
+        while True:
+            line = stream.readline()
+            if line.startswith(b'data: '):
+                self.assertEqual(json.loads(line[6:]), {'created': True})
+                break
+        stream.close()
         self.stop()
 
 
