@@ -144,8 +144,9 @@ Use `--tts-threads 4` for another test with CPU int8.
 ### Early audio output
 
 Early audio needs an independent Pocket runtime with the project native patch.
-The patch decodes each group of 15 latent frames during generation and keeps the decoder state.
-It keeps the existing text pieces, five generation steps, seed, and decoder block size.
+The patch decodes latent frames during generation and keeps the decoder state.
+The current default group contains three frames, or 240 ms of audio.
+It keeps the existing text pieces, five generation steps, and seed.
 The worker publishes each PCM block before the complete text piece returns.
 One raw ALSA playback process receives all blocks of a logical job in order.
 
@@ -168,6 +169,11 @@ For early playback, add these supervisor options:
 ```
 
 Keep CPU int8 and two speech threads for the initial comparison.
+Use `--tts-audio-chunk-frames 15` to restore the previous group size.
+The standalone speech service accepts `--audio-chunk-frames`.
+The supported values are 3, 5, 10, and 15.
+Changing the group size can change PCM samples.
+Read the [2026-10-15 measurements](../reports/latency-reduction-20261015/RESULTS.md) for the tested quality and timing scope.
 Without the manifest, an early-audio request fails during worker startup.
 Without `--early-audio`, the service keeps complete-piece output.
 Download-only jobs also keep complete-piece output.

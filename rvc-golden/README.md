@@ -240,3 +240,38 @@ It also tests concurrent calls, invalid layouts, and recovery after rejected inp
 Use `run_efficiency_campaign.py` for paced backend comparisons.
 Use `run_efficiency_coexistence.py` for the configured Jetson translated-speech probe and concurrent RVC replay.
 Read the [dated results](../reports/efficiency-20261014/RESULTS.md) for configuration, timing boundaries, and verification scope.
+
+## File and control latency diagnostics
+
+The [2026-10-15 report](../reports/latency-reduction-20261015/RESULTS.md) records the subsequent latency changes.
+The realtime Generator contract remains fixed.
+The new file assets use tested dynamic profiles.
+
+Export the file Generator with `tools/export_generator_onnx.py --dynamic-time`.
+Keep explicit noise inputs and the verified checkpoint metadata.
+Run `prepare_dynamic_verification.py` with the original captured Golden tensors.
+Build the three file engines with `build_dynamic_engines.py`.
+Run `prepare_hubert_verification.py` to add the HuBERT comparisons.
+Run `verify_onnx_stage MANIFEST OUTPUT.json` from the GPU diagnostic build.
+The TensorRT manifest must require `backend: tensorrt`.
+An attached CUDA provider does not prove GPU execution.
+
+For the file configuration, select the new Generator model directory.
+Set `rvc.hubert_path` to `hubert-file.onnx`.
+Set `rvc.rmvpe_path` to `rmvpe-file.onnx`.
+Keep each TensorRT engine beside its ONNX asset.
+Keep the separate realtime asset paths.
+The configured Generator profile accepts 100 to 2400 frames.
+The verified lengths are 200, 398, 1038, and 2198 frames.
+The report includes a verified 20-second file and a 30-second fallback.
+Longer file inputs use the existing fixed-window assembly.
+RMVPE inputs above its profile use dynamic ONNX on the CPU.
+The report records the memory cost and long-file recovery test.
+
+Use `benchmark_fast_file.py` for backend file comparisons and profile recovery.
+Use `benchmark_sse_wakeup.py` for ordered caption event comparisons.
+Use `benchmark_cancel_latency.py` for active cancellation and playback stop.
+Use `benchmark_speech_blocks.py` for fixed-text block-size comparisons.
+Use `analyze_speech_blocks.py --pitch-only` with the official PyTorch RMVPE assets for pitch comparisons.
+Use `analyze_playback_floor.py` for the FIFO duration calculation.
+The calculated playback floor is not a measured hardware latency.

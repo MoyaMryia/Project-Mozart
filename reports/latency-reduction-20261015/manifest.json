@@ -1,0 +1,125 @@
+{
+  "base_commit": "1e4d8e5",
+  "source_directory": "/home/moyamryia/mozart-efficiency-20261014/candidate",
+  "source_sha256": {
+    ".gitignore": "170c59de645089b0e88f91e1fdc6ac62b3461bfa50a4761693fa376dd573284a",
+    "README.md": "60196fecfee253547a0ffb8d68c67f769b4eab84fc6bfb81003e831f32afee9d",
+    "api/src/http_api.cpp": "d2b70b0ccba27ec87fa4cb18e2ed5deac3109126a4c9f3ce767388bf73cac422",
+    "api/tests/test_http.py": "45c224bd7d8dcada39ad0bea9b64da1e0044df250a6c7d3bff5bd4197eb9a53b",
+    "rvc-backend/CMakeLists.txt": "79ac26abbde7cb7789917ae6b38d75ff581d0dbcba7fe00b31b58949ded5aff2",
+    "rvc-backend/include/rvc/cancellation.hpp": "d6a07087b92279017e7ce5f0b18e6404f26d1ac3a096f5808f3b62f850137198",
+    "rvc-backend/include/rvc/inferencer.hpp": "edff20f293716f10221f1ad45dd30b7fceff2dc818c51c59d6ec3fbbe055d2f5",
+    "rvc-backend/include/rvc/onnx_engine.hpp": "1e8bda0ae14308caa783ee1c43dba203659983e9bd61141d7733b05043e3955b",
+    "rvc-backend/include/rvc/pipeline.hpp": "de9b844752441018f6195e45570a44f24876f15035911e23e06c6e3b9af6d509",
+    "rvc-backend/include/rvc/trt_engine.hpp": "59fc25803bae4686c74b162efa8d4433b22444428e0834bbd80cbd481c5cb07b",
+    "rvc-backend/src/rvc/feature_extractor.cpp": "75a634ff6c26eefb747f8fcdefe66f156762ccacc3978d7e08e7f4b7c536db3c",
+    "rvc-backend/src/rvc/inferencer.cpp": "3290a77c0290ad3b5b6976a758b92c39a50b873b9503afd2db8e69bf709dac6e",
+    "rvc-backend/src/rvc/pipeline.cpp": "a7e0abd641098b4d4b816e2e293eb750cbb74537cc1865fc26b52d3d4cf69e58",
+    "rvc-backend/src/rvc/trt_engine.cpp": "636771e665e36dd42d7f723fa6a71b1413fcb4484e5dafbf29831678c71fac94",
+    "rvc-backend/src/state/file_rvc_worker.cpp": "9e7026a6559acd33b53c1bce4dd68932bddf8dbcaf0c43f840c76b5c7b213921",
+    "rvc-backend/tests/test_inferencer.cpp": "b5949d2db64942e867b6c12d21b25ac96a4ddff09e2c21a5cc11c85e84035db4",
+    "rvc-golden/README.md": "1c43a739d6bc5f8b0e9c65ab864d318329c258ea9b8280426a8b9da4186ff271",
+    "rvc-golden/analyze_fast_file_quality.py": "8d5c4ec6fd0efb5017edd28870f52f200432f6b86ece0dc4c574216434fd2e58",
+    "rvc-golden/analyze_playback_floor.py": "72dd8874b7b1d8c30c3cd3d14188211dd94d0283389e68d10a9fafabf17b314e",
+    "rvc-golden/analyze_speech_blocks.py": "091e06bf431e8a04ea36113f3fa482751529f551df2d96ffca8af37ae1656e8e",
+    "rvc-golden/benchmark_cancel_latency.py": "2cbea9d22ba795ef5fcdd6ef90a362b3b5de61ad4ce97c9a0f0806877b65cddd",
+    "rvc-golden/benchmark_engine_read.cpp": "4f7ceb53da865f67415637b926a6949b6c4af79a791d31db4c600e031f0fd1a3",
+    "rvc-golden/benchmark_fast_file.py": "81342d96a5b0fec8c836a3ac73a8ffcc3d57719696c0adeb47819927d57c4dc1",
+    "rvc-golden/benchmark_speech_blocks.py": "1e6632563b2eda44a6cecf7210967f404326a9a2cb4c9535c86c2bd96787feeb",
+    "rvc-golden/benchmark_sse_wakeup.py": "23632870fb3b0481e74a669f00a4eb3d68e46ca9087448c6590262ab4e2671ec",
+    "rvc-golden/build_dynamic_engines.py": "110c43bc700836b6e5b2b1e83c1dfe5055ce599860d2d763820fa3562c7b1084",
+    "rvc-golden/prepare_dynamic_verification.py": "f1951139c568dac6f295bdad749cc21904176e42e65e0a517c3847b71fb1b87f",
+    "rvc-golden/prepare_hubert_verification.py": "3d30799a7f8abdc7a6783a393be12ca37fe0fd4a3c6045d4dc1b3b0d57f13668",
+    "rvc-golden/prepare_native_noise_reference.py": "be57d5bea402a406f4a16be898e538d68068c1d70d026f5a47f8b254a4b0f77e",
+    "rvc-golden/realtime-patches-20261008/pocket_gpu_probe.py": "d788642a54dab4b892cc51bf180add11028833e9b75839feb0f043293a28bf07",
+    "rvc-golden/realtime-patches-20261008/run_probe.py": "981457641684eb9fcdca4a3d742f9777b7e1f693d42eac9afac4758ca28666ea",
+    "rvc-golden/run_efficiency_coexistence.py": "fbeffb834f3e8a8dcd35eec3f9fb78e6ffd8d5bc74d233e8202d6ff5f8ecfc9d",
+    "rvc-golden/verify_onnx_stage.cpp": "f8d120b29ca2856791180b8c6e0530d46e3c7cdd6311951c437f1a8dbc71fd1d",
+    "tools/REFERENCE_SPEECH.md": "ada2dd46fdf9dc915ec3e27d2a10f1876a87ad56861c8c60901adb8ad50d2770",
+    "tools/clone_worker.py": "334b59073fef216eebdcc36bedada1568c9c282f94b0565676aaf82c55753a8b",
+    "tools/run_translated_speech.py": "b420b5b8d9654bf999a1b8b5a7c16008ec8f73dee8f048073a263042768e9ca2",
+    "tools/speech_service.py": "16aed61c0451b64795a076611d75f677b0d9ff73e9b9f22f1872730e82ee92fb",
+    "tools/tests/test_clone_worker.py": "c2f5450a91b6af06d8c99aad7d4fa114cce6b0b3011ebaf45f3ff209634af14d",
+    "tools/tests/test_early_audio.py": "7fa8d659f51ecb232e5922e88c56256481150551d48120d4790ae30794627a5b",
+    "tools/tests/test_speech_service.py": "4e0d5e8a1c36e6638f8f5a201bd9c648d44984a3aa2c1ee06cd0c7fad23323ef"
+  },
+  "native_binary": {
+    "path": "/home/moyamryia/mozart-latency-20261015/build/state/mozart_stated",
+    "sha256": "55ac341d966c5242f45d64eea35fd431562a556f77f3989237a4f6e12cb37c8e"
+  },
+  "verifier_binary": {
+    "path": "/home/moyamryia/mozart-latency-20261015/build/rvc-backend/verify_onnx_stage",
+    "sha256": "86f5787f2cd8c3bd85dab0cff86d68110dd07bc314c4068439175670aeae40d8"
+  },
+  "assets": {
+    "/home/moyamryia/mozart-latency-20261015/profile20/assets/hubert-file.onnx": {
+      "bytes": 377704150,
+      "sha256": "4f3d21a6ec3b5dc4481aa95ea7427d31d89ee49a6930df04080b714fb9f64fca",
+      "target": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx"
+    },
+    "/home/moyamryia/mozart-latency-20261015/profile20/assets/qiqi-dynamic-explicit.engine": {
+      "bytes": 121597748,
+      "sha256": "5ddae96719de74c83472ea73c91d10ffcd38c5ce701ee1a982439354110b180f",
+      "target": "/home/moyamryia/mozart-latency-20261015/profile20/assets/qiqi-dynamic-explicit.engine"
+    },
+    "/home/moyamryia/mozart-latency-20261015/profile20/assets/rmvpe-file.engine": {
+      "bytes": 372953596,
+      "sha256": "851c2c36ca5dcd992cea4f320e41f90bed2c38a0089ab89c1ccc86e7776bc119",
+      "target": "/home/moyamryia/mozart-latency-20261015/profile20/assets/rmvpe-file.engine"
+    },
+    "/home/moyamryia/mozart-latency-20261015/profile20/assets/hubert-file.engine": {
+      "bytes": 379326068,
+      "sha256": "95da479da34ad55749eeaad8f4ffa017fd2c16c1267c571ce334d5cf3d9f2421",
+      "target": "/home/moyamryia/mozart-latency-20261015/profile20/assets/hubert-file.engine"
+    },
+    "/home/moyamryia/mozart-latency-20261015/profile20/assets/rmvpe-file.onnx": {
+      "bytes": 361695302,
+      "sha256": "ffdffea185473442755fb6f6738db26e97b2e82e3d5d4ee24e75b9dc65c10393",
+      "target": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx"
+    },
+    "/home/moyamryia/mozart-latency-20261015/profile20/assets/qiqi-dynamic-explicit.onnx": {
+      "bytes": 115432429,
+      "sha256": "3bb5d36519ebddb373d1e43f477ac1756ccb994069bc465402836d23c52778a5",
+      "target": "/home/moyamryia/mozart-latency-20261015/assets/qiqi-dynamic-explicit.onnx"
+    }
+  },
+  "build": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "USE_ONNX": "ON",
+    "USE_CUDA_EP": "OFF",
+    "USE_TENSORRT": "ON",
+    "ONNX_RUNTIME_PATH": "/home/moyamryia/Mozart/third_party/onnxruntime-gpu-1.29.0/lib",
+    "ONNX_RUNTIME_INCLUDE_DIR": "/home/moyamryia/Mozart/third_party/onnxruntime-gpu-1.29.0/include",
+    "BUILD_TESTS": "ON",
+    "MOZART_BUILD_GPU_BENCHMARKS": "ON"
+  },
+  "environment": {
+    "uname": [
+      "Linux",
+      "localhost.localdomain",
+      "6.8.12-1021-tegra",
+      "#1 SMP PREEMPT Mon Jun  1 13:25:46 PDT 2026",
+      "aarch64"
+    ],
+    "power_query": "NV Power Mode: MAXN_SUPER\n2\n",
+    "power_query_error": ""
+  },
+  "checkpoint": {
+    "path": "/home/moyamryia/mozart-archive/RVC_Model_Collection/48k（新版）/原神/中文/七七/七七.pth",
+    "sha256": "d72bd33911b8a9d2ccac81dc005998a2c043e97587374cecf3ca38edef05d64d",
+    "version": "v2",
+    "f0": true,
+    "sample_rate": 48000,
+    "speakers": 202,
+    "features": 768
+  },
+  "deployment_config": "/home/moyamryia/mozart-latency-20261015/deployment/backend-file-fast.json",
+  "local_artifacts": "/home/moyamryia/Projects/Project-Mozart/rvc-golden/latency-reduction-20261015",
+  "local_asset_sha256_verified": true,
+  "inputs": {
+    "/home/moyamryia/Projects/Project-Mozart/rvc-golden/runtime-efficiency-20261014/reference/input/qiqi-espeak.wav": "124e1967e74977cd4156d52ed2718e4e600cad6ea85db37b910e8e95491897bd",
+    "/home/moyamryia/Projects/Project-Mozart/rvc-golden/latency-reduction-20261015/file-fast-final/qiqi-espeak-repeated-20s-input.wav": "010c62921d5c4a8078037606e3ec66ccc95445074ea776308e22b6c94bf355fc",
+    "/home/moyamryia/Projects/Project-Mozart/rvc-golden/latency-reduction-20261015/profile20/file-only-final/qiqi-espeak-repeated-20s-input.wav": "010c62921d5c4a8078037606e3ec66ccc95445074ea776308e22b6c94bf355fc",
+    "/home/moyamryia/Projects/Project-Mozart/rvc-golden/latency-reduction-20261015/profile20/file-only-final/qiqi-espeak-repeated-overflow-input.wav": "3aedfda38954539fdee21a7aa96ffb6a1aefb5f704c840651aac3a3fb703b95d"
+  }
+}

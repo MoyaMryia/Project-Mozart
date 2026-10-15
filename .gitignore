@@ -144,3 +144,10 @@ reports/**/__pycache__/
 # 逐功能延迟测量的小型摘要。
 !reports/feature-latency-20261014/metrics.json
 !reports/feature-latency-20261014/manifest.json
+
+# 延迟优化的可复查小型证据。
+!reports/latency-reduction-20261015/metrics.json
+!reports/latency-reduction-20261015/manifest.json
+!reports/latency-reduction-20261015/host-tests.log
+!reports/latency-reduction-20261015/python-tests.log
+!reports/latency-reduction-20261015/jetson-tests.log

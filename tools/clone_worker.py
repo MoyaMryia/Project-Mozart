@@ -72,9 +72,11 @@ def pocket_input_text(text):
     return text
 
 
-def configure_pocket(config, job, limit):
+def configure_pocket(config, job, limit, audio_chunk_frames=3):
     maximum_frames = None
     extra = {'seed': '42'}
+    if job.get('early_audio'):
+        extra['chunk_size'] = str(audio_chunk_frames)
     if job.get('live') or job.get('chunk_count', 1) > 1 or job.get('early_audio'):
         maximum_frames = max(1, int(limit*12.5))
         extra['max_frames'] = str(maximum_frames)
@@ -94,6 +96,7 @@ def main():
     parser.add_argument('--precision', choices=['int8', 'float32'], default='int8')
     parser.add_argument('--provider-config', type=Path)
     parser.add_argument('--early-audio', action='store_true')
+    parser.add_argument('--audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=3)
     args = parser.parse_args()
     if args.early_audio and args.engine != 'pocket':
         parser.error('--early-audio requires the pocket engine')
@@ -161,7 +164,7 @@ def main():
             maximum_frames = None
             if args.engine == 'pocket':
                 # Standard Pocket decoding starts after the complete latent loop.
-                maximum_frames = configure_pocket(config, job, limit)
+                maximum_frames = configure_pocket(config, job, limit, args.audio_chunk_frames)
                 if blocks:
                     config.extra = {**config.extra, 'early_decode': '1'}
             synthesis_text = pocket_input_text(job['text']) if args.engine == 'pocket' else job['text']

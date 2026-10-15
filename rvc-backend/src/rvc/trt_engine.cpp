@@ -72,26 +72,38 @@ std::string TrtEngine::dtype_name(int32_t dtype) {
 }
 
 bool TrtEngine::load(const std::filesystem::path& engine_path) {
+    const auto load_started = profile::Clock::now();
     unload();
     if (!std::filesystem::exists(engine_path)) {
         spdlog::error("TRT engine not found: {}", engine_path.string());
         return false;
     }
 
-    std::ifstream f(engine_path, std::ios::binary);
-    std::string blob((std::istreambuf_iterator<char>(f)),
-                     std::istreambuf_iterator<char>());
-    if (blob.empty()) {
-        spdlog::error("TRT engine empty: {}", engine_path.string());
+    std::error_code file_error;
+    const auto bytes = std::filesystem::file_size(engine_path, file_error);
+    if (file_error || bytes == 0
+        || bytes > static_cast<uintmax_t>(std::numeric_limits<size_t>::max())
+        || bytes > static_cast<uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+        spdlog::error("TRT engine size is invalid: {}", engine_path.string());
         return false;
     }
+    std::ifstream f(engine_path, std::ios::binary);
+    std::string blob(static_cast<size_t>(bytes), '\0');
+    if (!f.read(blob.data(), static_cast<std::streamsize>(bytes))
+        || f.peek() != std::char_traits<char>::eof()) {
+        spdlog::error("TRT engine read failed or file changed: {}", engine_path.string());
+        return false;
+    }
+    const auto file_read = profile::Clock::now();
 
     auto* runtime = nvinfer1::createInferRuntime(g_trt_logger);
+    const auto runtime_created = profile::Clock::now();
     if (!runtime) {
         spdlog::error("TRT runtime creation failed");
         return false;
     }
     engine_ = runtime->deserializeCudaEngine(blob.data(), blob.size());
+    const auto deserialized = profile::Clock::now();
     delete runtime;
     if (!engine_) {
         spdlog::error("TRT deserialize failed: {}", engine_path.string());
@@ -99,6 +111,7 @@ bool TrtEngine::load(const std::filesystem::path& engine_path) {
     }
     auto* engine = static_cast<nvinfer1::ICudaEngine*>(engine_);
     context_ = engine->createExecutionContext();
+    const auto context_created = profile::Clock::now();
     if (!context_) {
         spdlog::error("TRT execution context creation failed");
         unload();
@@ -163,6 +176,15 @@ bool TrtEngine::load(const std::filesystem::path& engine_path) {
     spdlog::info("TRT engine loaded: {} ({} tensors){}", engine_path.filename().string(),
                  tensors_.size(), io_desc);
     record_runtime("tensorrt", engine_path, true);
+    if (profile::enabled()) {
+        const auto done = profile::Clock::now();
+        spdlog::info("[profile][trt_load] asset={} bytes={} read={:.3f}ms runtime={:.3f}ms "
+            "deserialize={:.3f}ms context={:.3f}ms allocate={:.3f}ms total={:.3f}ms",
+            engine_path.filename().string(), bytes, profile::elapsed_ms(load_started,file_read),
+            profile::elapsed_ms(file_read,runtime_created), profile::elapsed_ms(runtime_created,deserialized),
+            profile::elapsed_ms(deserialized,context_created), profile::elapsed_ms(context_created,done),
+            profile::elapsed_ms(load_started,done));
+    }
     return true;
 }
 
@@ -177,6 +199,14 @@ std::vector<int64_t> TrtEngine::input_shape(const std::string& name) const {
         if (t.is_input && t.name == name) return t.dims;
     }
     return {};
+}
+
+std::vector<int64_t> TrtEngine::max_input_shape(const std::string& name) const {
+    if (!engine_) return {};
+    const auto declared = input_shape(name);
+    if (std::find(declared.begin(), declared.end(), -1) == declared.end()) return declared;
+    return to_dims(static_cast<nvinfer1::ICudaEngine*>(engine_)->getProfileShape(
+        name.c_str(), 0, nvinfer1::OptProfileSelector::kMAX));
 }
 
 namespace {

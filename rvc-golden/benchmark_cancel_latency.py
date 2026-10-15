@@ -19,18 +19,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', type=Path, required=True)
     parser.add_argument('--work', type=Path, required=True)
+    parser.add_argument('--label', default='feature-latency-cancel')
+    parser.add_argument('--fast-file', action='store_true')
+    parser.add_argument('--cancel-stage', choices=['after-first-window','during-generator'], default='after-first-window')
     args = parser.parse_args()
     work, home = args.work, Path.home()
-    output = work/'feature-latency-cancel'
+    output = work/args.label
     output.mkdir(exist_ok=False)
     native_port, speech_port = free_port(socket.SOCK_STREAM), free_port(socket.SOCK_STREAM)
-    report, processes, logs = dict(records=[]), [], []
+    report, processes, logs = dict(records=[], fast_file=args.fast_file, cancel_stage=args.cancel_stage), [], []
     def api(port, route, body=None, method=None, feature=None, content_type='application/json'):
         request = urllib.request.Request(f'http://127.0.0.1:{port}{route}', method=method,
             data=body if isinstance(body, bytes) else json.dumps(body).encode() if body is not None else None,
             headers={'Content-Type': content_type})
         began = time.monotonic()
-        with urllib.request.urlopen(request, timeout=15) as response:
+        with urllib.request.urlopen(request, timeout=90 if route == '/api/mode/switch' else 15) as response:
             value = json.load(response)
         if feature:
             report['records'].append(dict(feature=feature, elapsed_ms=(time.monotonic()-began)*1000))
@@ -55,6 +58,10 @@ def main():
         process = subprocess.Popen(command, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         processes.append(process)
     config = json.loads((work/'feature-latency-native-gpu/backend.json').read_text())
+    if args.fast_file:
+        config['rvc']['models_dir'] = str(work/'file-fast-final/candidate-fast/models')
+        config['rvc']['hubert_path'] = str(work/'assets/hubert-file.onnx')
+        config['rvc']['rmvpe_path'] = str(work/'assets/rmvpe-file.onnx')
     config['network']['control']['port'] = native_port
     config['network']['audio']['port'] = free_port(socket.SOCK_DGRAM)
     config['storage']['temp_dir'] = str(output/'temp')
@@ -71,7 +78,13 @@ def main():
                 f'--{boundary}\r\nContent-Disposition: form-data; name="audio_file"; filename="input.wav"\r\n'
                 'Content-Type: audio/wav\r\n\r\n').encode()+raw+f'\r\n--{boundary}--\r\n'.encode()
         key = api(native_port, '/api/file/convert', body, content_type='multipart/form-data; boundary='+boundary)['job_id']
-        until(lambda: '[profile][generator] frames=398' in (output/'backend.log').read_text())
+        if args.cancel_stage == 'during-generator':
+            marker = '[profile][hubert] audio='+('166382' if args.fast_file else '64000')
+            until(lambda: marker in (output/'backend.log').read_text())
+            time.sleep(.05)
+        else:
+            marker = '[profile][generator] frames='+('1038' if args.fast_file else '398')
+            until(lambda: marker in (output/'backend.log').read_text())
         began = time.monotonic()
         report['cancel_response'] = api(native_port, '/api/file/cancel?job_id='+key, method='DELETE', feature='active file cancel acceptance')
         report['pending_response'] = api(native_port, '/api/mode/switch', dict(mode='idle'), feature='pending mode switch acceptance')

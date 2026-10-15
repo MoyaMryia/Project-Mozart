@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <random>
+#include "rvc/cancellation.hpp"
 
 #include "rvc/model_loader.hpp"
 #include "rvc/feature_extractor.hpp"
@@ -33,7 +34,9 @@ public:
         float protect = 0.33f
     );
 
-    std::vector<float> infer(const std::vector<float>& audio);
+    std::vector<float> infer(
+        const std::vector<float>& audio, const std::atomic<bool>* cancelled = nullptr
+    );
     std::vector<float> infer_realtime(
         const std::vector<float>& audio,
         const RvcRealtimeRequest& request
@@ -77,7 +80,8 @@ private:
     std::vector<float> infer_window(
         const std::vector<float>& audio_16k,
         const std::vector<float>& pitchf,
-        const std::vector<int64_t>& pitch
+        const std::vector<int64_t>& pitch,
+        const std::atomic<bool>* cancelled = nullptr
     );
 };
 

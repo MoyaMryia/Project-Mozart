@@ -337,9 +337,15 @@ class SpeechService:
     @staticmethod
     def kill(process):
         if process and process.poll() is None:
+            # 先关闭输入，解除 aplay 对原始音频管道的阻塞读取。
+            if process.stdin and not process.stdin.closed:
+                try:
+                    process.stdin.close()
+                except OSError:
+                    pass
             process.terminate()
             try:
-                process.wait(timeout=3)
+                process.wait(timeout=.1)
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=3)
@@ -649,7 +655,10 @@ class SpeechService:
                     job['played_chunks'] += 1
                     job['played_duration_seconds'] += chunk['duration_seconds']
                     self.active_play_piece = None
-                    self.save_job(job)
+                    # 下一块已就绪时，在其开始记录中一并保存完成状态。
+                    # 避免两次串行磁盘提交插在连续音频块之间。
+                    if not (self.play_pending and self.play_pending[0]['job_id'] == job['id']):
+                        self.save_job(job)
                     self.lock.notify_all()
                     self.lock.wait_for(lambda: self.closed or job['status'] in TERMINAL or
                         self.play_pending or job['generation_done'])
@@ -882,6 +891,7 @@ def main():
     parser.add_argument('--playback-device', default='default')
     parser.add_argument('--preload',action='store_true',help='Initialize the worker before admitting live input')
     parser.add_argument('--early-audio', action='store_true', help='Use the independent early Pocket audio runtime')
+    parser.add_argument('--audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=3)
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     args = parser.parse_args()
     command = [sys.executable, str(Path(__file__).with_name('clone_worker.py')),
@@ -890,7 +900,7 @@ def main():
     if args.provider_config:
         command += ['--provider-config', str(args.provider_config)]
     if args.early_audio:
-        command += ['--early-audio']
+        command += ['--early-audio', '--audio-chunk-frames', str(args.audio_chunk_frames)]
     service = SpeechService(args.data_dir, command, args.engine, args.playback_device,
                             preload=args.preload, delivery_policy=args.delivery_policy)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(service))

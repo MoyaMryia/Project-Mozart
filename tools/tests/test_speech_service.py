@@ -26,6 +26,25 @@ for line in sys.stdin:
 
 
 class SpeechTests(unittest.TestCase):
+    def test_stop_closes_blocked_input_and_reaps_process(self):
+        import subprocess
+        child = subprocess.Popen([sys.executable, '-c',
+            'import signal,sys;signal.signal(signal.SIGTERM,signal.SIG_IGN);'
+            'print("ready",flush=True);sys.stdin.buffer.read()'],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        try:
+            self.assertEqual(child.stdout.readline(), b'ready\n')
+            began = time.monotonic()
+            SpeechService.kill(child)
+            self.assertLess(time.monotonic()-began, .6)
+            self.assertIsNotNone(child.poll())
+            self.assertTrue(child.stdin.closed)
+        finally:
+            if child.poll() is None:
+                child.kill()
+                child.wait()
+            child.stdout.close()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         root = Path(self.temp.name)
