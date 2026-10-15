@@ -174,6 +174,20 @@ The standalone speech service accepts `--audio-chunk-frames`.
 The supported values are 3, 5, 10, and 15.
 Changing the group size can change PCM samples.
 Read the [2026-10-15 measurements](../reports/latency-reduction-20261015/RESULTS.md) for the tested quality and timing scope.
+
+The supervisor and speech-service commands default to `--playback-tempo adaptive`.
+For early live speech, the service selects 1.05× speed when estimated queue time or task age reaches one second.
+Each logical job keeps one speed. One continuous `atempo` filter preserves its state across audio blocks.
+The service keeps all text and synthesis WAV files. Preview jobs keep their original speed.
+Use `--playback-tempo normal` to restore original playback speed.
+Read the [playback measurements](../reports/playback-latency-20261015/RESULTS.md) for the tested scope.
+With libavfilter 9 and libavutil 58 development files, CMake also builds `mozart_tempo_filter`.
+The service loads `build-gpu/preprocessor/libmozart-tempo.so` before live input starts.
+Without that library, the service uses a separate FFmpeg filter process for each accelerated job.
+That fallback has additional startup delay.
+For actual filtered WAV capture, add `--capture-playback`. This diagnostic option is disabled by default.
+The job reports its selected speed, backend, first PCM delivery time, and actual filtered duration.
+These timestamps do not measure physical speaker output.
 Without the manifest, an early-audio request fails during worker startup.
 Without `--early-audio`, the service keeps complete-piece output.
 Download-only jobs also keep complete-piece output.
@@ -339,6 +353,7 @@ Waiting speech does not expire after 30 seconds. Queue delay and estimated durat
 The service accepts waiting text before audio capacity becomes available.
 The existing 12-second audio buffer limit still controls synthesis. The service keeps generated WAV files on disk.
 Delay can increase when the output duration exceeds the input duration.
+Adaptive tempo can reduce this accumulation. It cannot guarantee a bounded delay for every input rate.
 Invalid text, unavailable translation candidates, engine errors, and explicit cancellation can still prevent speech.
 The [coverage report](../reports/realtime-patches-20261008/COVERAGE.md) gives the replay results and limits.
 

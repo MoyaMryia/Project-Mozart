@@ -275,3 +275,17 @@ Use `benchmark_speech_blocks.py` for fixed-text block-size comparisons.
 Use `analyze_speech_blocks.py --pitch-only` with the official PyTorch RMVPE assets for pitch comparisons.
 Use `analyze_playback_floor.py` for the FIFO duration calculation.
 The calculated playback floor is not a measured hardware latency.
+
+## Playback backlog diagnostics
+
+Use the retained 120-second input for both playback policies.
+Run `run_efficiency_coexistence.py` with `--playback-tempo normal` and then `--playback-tempo adaptive`.
+Add `--capture-playback` for the adaptive run.
+Keep the model, reference WAV, early-audio frames, and thread count fixed.
+Use `verify_tempo_playback.py --replay REPLAY --output RESULT.json` to compare actual playback PCM with whole-job FFmpeg filtering.
+The command verifies sample counts, output rate, and the complete filter tail.
+Use `benchmark_playback_tempo.py --input-dir WAV_DIR --output OUTPUT` for fixed-text recognition comparisons.
+Use `--pitch-only` with the original PyTorch RVC environment for the official RMVPE comparison.
+Use `benchmark_translation_retry.py --repo REPO --replay REPLAY --output OUTPUT` for retained-source translation checks.
+The translation comparison changes only the bounded title repair option.
+Read the [playback report](../reports/playback-latency-20261015/RESULTS.md) for the measured scope and remaining limits.

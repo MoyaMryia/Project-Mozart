@@ -151,3 +151,12 @@ reports/**/__pycache__/
 !reports/latency-reduction-20261015/host-tests.log
 !reports/latency-reduction-20261015/python-tests.log
 !reports/latency-reduction-20261015/jetson-tests.log
+
+# 播放积压优化的小型证据。
+!reports/playback-latency-20261015/metrics.json
+!reports/playback-latency-20261015/manifest.json
+!reports/playback-latency-20261015/python-tests.log
+!reports/playback-latency-20261015/jetson-python-tests.log
+!reports/playback-latency-20261015/host-tests.log
+!reports/playback-latency-20261015/jetson-tests.log
+!reports/playback-latency-20261015/tempo-library-tests.log

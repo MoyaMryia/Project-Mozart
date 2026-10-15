@@ -20,6 +20,8 @@ def main():
     parser.add_argument('--label', default='efficiency-coexistence-20261014')
     parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3,5,10,15], default=3)
     parser.add_argument('--tts-threads', type=int, default=2)
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive'], default='normal')
+    parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--commit', default='1e4d8e5+latency-working')
     args = parser.parse_args()
     home, root = Path.home(), args.repo.resolve()
@@ -36,6 +38,9 @@ def main():
         '--early-audio', '--tts-pythonpath', str(home/'mozart-realtime-patches-20261008/early-audio-runtime-20261009/python'),
         '--tts-audio-chunk-frames', str(args.tts_audio_chunk_frames), '--tts-threads', str(args.tts_threads),
         '--boundary-model', str(args.boundary_model)]
+    probe += ['--playback-tempo', args.playback_tempo]
+    if args.capture_playback:
+        probe += ['--capture-playback']
     campaign = [sys.executable, '-u', str(root/'rvc-golden/run_efficiency_campaign.py'),
         '--baseline', str(args.build/'state/mozart_stated'), '--candidate', str(args.build/'state/mozart_stated'),
         '--repo', str(root), '--assets', str(home/'Mozart/rvc-golden/qiqi-zh-run'),

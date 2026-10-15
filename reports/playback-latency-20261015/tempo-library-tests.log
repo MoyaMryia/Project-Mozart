@@ -1,0 +1,11 @@
+test_continuous_filter_keeps_tail_and_matches_whole_input (test_tempo_player.TempoTests.test_continuous_filter_keeps_tail_and_matches_whole_input) ... ok
+test_failed_output_does_not_leave_filter_running (test_tempo_player.TempoTests.test_failed_output_does_not_leave_filter_running) ... ok
+test_first_output_arrives_before_input_eof (test_tempo_player.TempoTests.test_first_output_arrives_before_input_eof) ... ok
+test_null_waits_for_actual_filtered_samples (test_tempo_player.TempoTests.test_null_waits_for_actual_filtered_samples) ... ok
+test_stop_reaps_filter_and_output_before_input_eof (test_tempo_player.TempoTests.test_stop_reaps_filter_and_output_before_input_eof) ... Tempo filter failed: Input/output error
+ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.928s
+
+OK
