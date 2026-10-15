@@ -7,6 +7,16 @@ def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
 
 class BridgeChecks(unittest.TestCase):
+    def test_speech_receives_observed_duration_and_source_timestamp(self):
+        event = dict(seq=1, text='测试。', emitted_at=123.,
+            audio_start_pts_ns=1_000_000_000, audio_end_pts_ns=3_000_000_000)
+        with patch('subtitle_bridge.translate_recognized_event', return_value=('A test.', .1)), \
+                patch('subtitle_bridge.request_json', return_value={'id':'job'}) as request:
+            list(caption_updates(event, 1, 'session', 'translator', 'speech'))
+        body = request.call_args.args[1]
+        self.assertEqual(body['source_duration_seconds'], 2)
+        self.assertEqual(body['source_emitted_at'], 123.)
+
     def test_age_title_repair_keeps_existing_translation_without_another_request(self):
         audit = []
         with patch('subtitle_bridge.request_json', return_value=answer(

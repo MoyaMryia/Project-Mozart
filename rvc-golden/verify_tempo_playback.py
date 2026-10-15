@@ -67,7 +67,7 @@ def main():
             source, rate = pcm(args.replay/'speech/results'/f"{job['id']}.wav")
             actual, actual_rate = pcm(args.replay/'speech/results'/job['playback_audio_filename'])
             expected = subprocess.run(['ffmpeg','-v','error','-f','s16le','-ar',str(rate),'-ac','1',
-                '-i','pipe:0','-af',f"atempo={job['playback_tempo']:.2f}",'-f','s16le','pipe:1'],
+                '-i','pipe:0','-af',f"atempo={job['playback_tempo']:.3f}",'-f','s16le','pipe:1'],
                 input=source,stdout=subprocess.PIPE,check=True).stdout
             checks.append(dict(job=job['id'], exact=actual==expected,
                 rate_matches=rate==actual_rate, samples=len(actual)//2,

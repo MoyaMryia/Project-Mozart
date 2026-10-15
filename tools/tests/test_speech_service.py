@@ -26,6 +26,18 @@ for line in sys.stdin:
 
 
 class SpeechTests(unittest.TestCase):
+    def test_invalid_source_timing_is_rejected_before_admission(self):
+        for field in ['source_duration_seconds', 'source_emitted_at']:
+            for value in [float('nan'), float('inf'), -1, True, '2', 10**400]:
+                with self.subTest(field=field, value=value), self.assertRaises(ApiError) as error:
+                    self.submit(**{field: value})
+                self.assertEqual(error.exception.code, 400)
+
+    def test_explicit_stop_clears_tempo_history(self):
+        self.service.tempo_controller.previous['fixed'] = (1.05, time.time())
+        self.service.route('POST', '/api/speech/stop', {})
+        self.assertEqual(self.service.tempo_controller.previous, {})
+
     def test_stop_closes_blocked_input_and_reaps_process(self):
         import subprocess
         child = subprocess.Popen([sys.executable, '-c',

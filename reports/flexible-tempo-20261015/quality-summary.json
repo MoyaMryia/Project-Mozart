@@ -1,0 +1,541 @@
+{
+  "reference_texts": 12,
+  "ratios": 51,
+  "normal_audio": 12,
+  "transformed_audio": 600,
+  "changed_from_normal": 100,
+  "original_asr_matches_requested_text": 8,
+  "correct_reference_cases": [
+    "00-01.wav",
+    "00-02.wav",
+    "00-03.wav",
+    "00-04.wav",
+    "00-05.wav",
+    "00-07.wav",
+    "00-08.wav",
+    "00-09.wav"
+  ],
+  "transformed_correct_reference_count": 400,
+  "transformed_correct_reference_changed": 0,
+  "fullscale_samples": 0,
+  "by_ratio": [
+    {
+      "tempo": 1.0,
+      "n": 12,
+      "changed": 0,
+      "changed_texts": []
+    },
+    {
+      "tempo": 1.001,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.002,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.003,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.004,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.005,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.006,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.007,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.008,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.009,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.01,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.011,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.012,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.013,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.014,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.015,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.016,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.017,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.018,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.019,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.02,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.021,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.022,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-06.wav",
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.023,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.024,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.025,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.026,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-00.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.027,
+      "n": 12,
+      "changed": 4,
+      "changed_texts": [
+        "00-00.wav",
+        "00-06.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.028,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.029,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.03,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.031,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.032,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.033,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.034,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.035,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.036,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.037,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.038,
+      "n": 12,
+      "changed": 3,
+      "changed_texts": [
+        "00-06.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.039,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.04,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.041,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-06.wav",
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.042,
+      "n": 12,
+      "changed": 1,
+      "changed_texts": [
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.043,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-00.wav",
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.044,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-06.wav",
+        "00-10.wav"
+      ]
+    },
+    {
+      "tempo": 1.045,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.046,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.047,
+      "n": 12,
+      "changed": 4,
+      "changed_texts": [
+        "00-00.wav",
+        "00-06.wav",
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.048,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.049,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    },
+    {
+      "tempo": 1.05,
+      "n": 12,
+      "changed": 2,
+      "changed_texts": [
+        "00-10.wav",
+        "00-11.wav"
+      ]
+    }
+  ],
+  "original_asr": [
+    {
+      "text": "Hello.",
+      "transcript": ".",
+      "name": "00-00.wav"
+    },
+    {
+      "text": "My daughter.",
+      "transcript": "My daughter.",
+      "name": "00-01.wav"
+    },
+    {
+      "text": "Please close the window.",
+      "transcript": "Please, close the window.",
+      "name": "00-02.wav"
+    },
+    {
+      "text": "The laboratory is temporarily unavailable.",
+      "transcript": "The laboratory is temporarily unavailable.",
+      "name": "00-03.wav"
+    },
+    {
+      "text": "Do not send the payment until tomorrow.",
+      "transcript": "Do not send the payment until tomorrow.",
+      "name": "00-04.wav"
+    },
+    {
+      "text": "She has already completed the application.",
+      "transcript": "She has already completed the application.",
+      "name": "00-05.wav"
+    },
+    {
+      "text": "We waited, but nobody answered.",
+      "transcript": "We waited that nobody answered.",
+      "name": "00-06.wav"
+    },
+    {
+      "text": "The university announced a new scholarship.",
+      "transcript": "The university announced a new scholarship.",
+      "name": "00-07.wav"
+    },
+    {
+      "text": "Please bring the documents to the station before the meeting.",
+      "transcript": "Please bring the documents to the station before the meeting.",
+      "name": "00-08.wav"
+    },
+    {
+      "text": "I asked the technician to restart the computer after lunch.",
+      "transcript": "I asked the technician to restart the computer, after lunch.",
+      "name": "00-09.wav"
+    },
+    {
+      "text": "Pay 25,000 yuan.",
+      "transcript": "Hey,25000 U.",
+      "name": "00-10.wav"
+    },
+    {
+      "text": "The CPU needs 8 GB of memory.",
+      "transcript": "The CPU needs 8 D of memory.",
+      "name": "00-11.wav"
+    }
+  ]
+}

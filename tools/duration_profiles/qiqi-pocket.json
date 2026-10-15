@@ -1,0 +1,44 @@
+{
+  "id": "qiqi-pocket-int8-v1",
+  "feature_version": 1,
+  "features": [
+    "intercept",
+    "words",
+    "approximate_syllables",
+    "clause_pauses"
+  ],
+  "coefficients": [
+    0.5172446336955268,
+    0.05620571749056968,
+    0.13802901894139424,
+    0.2054442987202838
+  ],
+  "voice_revision": "f2899a59ab51b0e1d83fc04c78049ba6d163cf4a9fd7459732f42e6900c32681",
+  "runtime": {
+    "engine": "pocket",
+    "provider_requested": "cpu",
+    "precision": "int8",
+    "runtime": "1.13.6",
+    "num_steps": 5,
+    "seed": 42,
+    "audio_stream_protocol": 1,
+    "model_sha256": {
+      "decoder.int8.onnx": "12b0857402d31aead94df19d6783b4350d1f740e811f3a3202c70ad89ae11eea",
+      "encoder.onnx": "e8f2f6d301ffb96e398b138a7dc6d3038622d236044636b73d920bab85890260",
+      "lm_flow.int8.onnx": "8d627d235c44a597da908e1085ebe241cbbe358964c502c5a5063d18851a5529",
+      "lm_main.int8.onnx": "bfc0c7e7e3d72864fa3bb2ee499f62f21ddc1474b885f5f3ca570f8be73e787e",
+      "text_conditioner.onnx": "0b84e837d7bfaf2c896627b03e3f080320309f37f4fc7df7698c644f7ba5e6b1"
+    }
+  },
+  "min_words": 2.0,
+  "max_words": 15.0,
+  "reserve_margin_seconds": 0.5,
+  "training": {
+    "parts": 47,
+    "parents": 23,
+    "jobs": 41,
+    "ridge_alpha": 10,
+    "jobs_sha256": "6a4978ca66c38b06f27bf4e8b087832422606b15241f5c65167b66ad2fbdd9a5",
+    "validation": "leave_one_parent_out"
+  }
+}

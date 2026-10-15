@@ -65,7 +65,7 @@ def main():
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
     parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=15)
-    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive'], default='normal')
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='normal')
     parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--stable-clauses', action='store_true')
     parser.add_argument('--boundary-model', type=Path)

@@ -160,3 +160,17 @@ reports/**/__pycache__/
 !reports/playback-latency-20261015/host-tests.log
 !reports/playback-latency-20261015/jetson-tests.log
 !reports/playback-latency-20261015/tempo-library-tests.log
+
+# 灵活变速的模型、计时和质量摘要。
+!reports/flexible-tempo-20261015/metrics.json
+!reports/flexible-tempo-20261015/manifest.json
+!reports/flexible-tempo-20261015/quality-summary.json
+!reports/flexible-tempo-20261015/duration-fit.json
+!reports/flexible-tempo-20261015/pitch-comparison.json
+!reports/flexible-tempo-20261015/policy-cycle.json
+!reports/flexible-tempo-20261015/python-tests.log
+!reports/flexible-tempo-20261015/jetson-python-tests.log
+!reports/flexible-tempo-20261015/host-tests.log
+!reports/flexible-tempo-20261015/host-build.log
+!reports/flexible-tempo-20261015/jetson-build.log
+!reports/flexible-tempo-20261015/playback-verification.log

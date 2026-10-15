@@ -9,6 +9,7 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-16 | [flexible-tempo-20261015/RESULTS.md](flexible-tempo-20261015/RESULTS.md) | 逐段比例控制、四参数时长模型、独立文本及全部默认比例扫描 |
 | 2026-10-15 | [playback-latency-20261015/RESULTS.md](playback-latency-20261015/RESULTS.md) | 保音高变速、服务内音频过滤与称谓漏译修复 |
 | 2026-10-15 | [latency-reduction-20261015/RESULTS.md](latency-reduction-20261015/RESULTS.md) | 文件整段 TensorRT、字幕事件唤醒、协作取消与小块播报 |
 | 2026-10-14 | [feature-latency-20261014/RESULTS.md](feature-latency-20261014/RESULTS.md) | 当前部署功能、控制接口和执行中取消的逐项计时 |

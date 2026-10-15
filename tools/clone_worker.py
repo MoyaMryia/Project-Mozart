@@ -10,6 +10,14 @@ from pathlib import Path
 from onnxruntime_info import require_cuda, sherpa_runtime_info
 
 
+def asset_digest(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as source:
+        for block in iter(lambda: source.read(1024*1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def early_runtime(module):
     package = Path(module.__file__).parent
     manifest = json.loads((package/'mozart_early_decode.json').read_text())
@@ -135,6 +143,9 @@ def main():
         **{args.engine: model}, num_threads=args.threads, provider=provider)))
     print(json.dumps({'ready': True, 'runtime': so.__version__, 'engine': args.engine,
                       'provider_requested': args.provider, 'precision': args.precision,
+                      'num_steps': 5 if args.engine == 'pocket' else 4, 'seed': 42,
+                      'model_sha256': {p.name: asset_digest(p)
+                                       for p in sorted(m.glob('*.onnx'))},
                       'audio_stream_protocol': 1 if early else 0,
                       'early_decode_runtime': early, **runtime}), flush=True)
     for line in sys.stdin:

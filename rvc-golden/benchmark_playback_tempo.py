@@ -17,7 +17,10 @@ def main():
     parser.add_argument('--input-dir', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--pitch-only', action='store_true')
+    parser.add_argument('--tempos', type=float, nargs='+', default=[1., 1.05, 1.08, 1.1])
     args = parser.parse_args()
+    if args.tempos[0] != 1 or any(not np.isfinite(t) or not 1 <= t <= 1.1 for t in args.tempos):
+        parser.error('tempos must start with 1 and remain between 1 and 1.1')
     if args.pitch_only:
         import sys
         import torch
@@ -35,7 +38,7 @@ def main():
             if row['tempo'] == 1:
                 baseline[row['name']] = pitch
             ref = baseline[row['name']]
-            # 按实际采样长度对齐变速前后的时间轴，避免把缩短时长误算成音高偏移。
+            # 按标称变速比例映射时间轴。局部伸缩和边界可能产生对齐误差。
             positions = np.minimum(len(ref)-1, np.rint(np.arange(len(pitch))*row['tempo']).astype(int))
             ref = ref[positions]
             both, either = (ref>0)&(pitch>0), (ref>0)|(pitch>0)
@@ -53,11 +56,11 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     records = []
     references = {}
-    for tempo in (1., 1.05, 1.08, 1.1):
+    for tempo in args.tempos:
         for path in sorted(args.input_dir.glob('00-*.wav')):
             if not re.fullmatch(r'00-\d{2}\.wav', path.name):
                 continue
-            output = args.output/f'{path.stem}-tempo-{tempo:.2f}.wav'
+            output = args.output/f'{path.stem}-tempo-{tempo:.3f}.wav'
             began = time.monotonic()
             if tempo == 1:
                 shutil.copyfile(path, output)
