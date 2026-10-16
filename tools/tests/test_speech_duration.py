@@ -70,7 +70,7 @@ class TempoControlTests(unittest.TestCase):
         control = TempoController()
         result = control.select(3, 2, .5, 3, 'voice', 100)
         self.assertEqual(result['source_ratio'], 1.5)
-        self.assertEqual(result['tempo'], 1.05)
+        self.assertEqual(result['tempo'], 1.15)
         self.assertTrue(result['limited'])
 
     def test_continuous_ratio_and_feedback_do_not_require_source_timing(self):
@@ -82,14 +82,14 @@ class TempoControlTests(unittest.TestCase):
         self.assertAlmostEqual(result['recovery_ratio'], 1.03)
 
     def test_release_is_gradual_and_idle_and_other_voice_reset_history(self):
-        control = TempoController()
+        control = TempoController(1.05)
         self.assertEqual(control.select(2, 1, 0, 2, 'a', 100)['tempo'], 1.05)
         self.assertEqual(control.select(2, 3, 0, 2, 'a', 101)['tempo'], 1.04)
         self.assertEqual(control.select(2, 3, 0, 2, 'b', 101)['tempo'], 1)
         self.assertEqual(control.select(2, 3, 0, 2, 'a', 107)['tempo'], 1)
 
     def test_invalid_limits_and_inputs_fail_before_audio(self):
-        for maximum in [float('nan'), .9, 1.2]:
+        for maximum in [float('nan'), .9, 1.1501, 1.2]:
             with self.assertRaises(ValueError):
                 TempoController(maximum)
         with self.assertRaises(ValueError):
@@ -97,6 +97,13 @@ class TempoControlTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             TempoController().select(2, float('nan'), 0, 2, 'a', 100)
         self.assertLessEqual(TempoController(1.0374).select(3, 2, 0, 3, 'a', 100)['tempo'], 1.0374)
+
+    def test_extended_cap_keeps_intermediate_ratios_and_gradual_release(self):
+        control = TempoController()
+        self.assertEqual(control.select(3, 2, 0, 3, 'a', 100)['tempo'], 1.15)
+        self.assertEqual(control.select(2, 3, 0, 2, 'a', 101)['tempo'], 1.14)
+        self.assertEqual(control.select(2.25, 2, 0, 2.25, 'b', 101)['tempo'], 1.125)
+        self.assertEqual(control.select(2, 3, 0, 2, 'a', 107)['tempo'], 1)
 
 
 if __name__ == '__main__':
