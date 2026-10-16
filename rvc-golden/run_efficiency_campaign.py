@@ -14,7 +14,6 @@ import time
 import urllib.request
 
 import numpy as np
-import soundfile as sf
 
 
 def request(port):
@@ -38,6 +37,14 @@ def process_memory(pid):
     return {key: int(re.search(rf'^{key}:\s+(\d+)', text, re.M)[1])*1024 for key in ['VmRSS', 'VmHWM']}
 
 
+def validate_cases(cases):
+    allowed = {'baseline', 'compatible', 'chain', 'parallel'}
+    if any(case not in allowed for case in cases):
+        raise ValueError('Invalid cases')
+    if 'baseline' not in cases or len(set(cases)) < 2:
+        raise ValueError('Cases must include baseline and at least one different case')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--baseline', type=Path, required=True)
@@ -50,8 +57,12 @@ def main():
     parser.add_argument('--playout-delay-ms', type=int, default=0)
     parser.add_argument('--cases', nargs='+', default=['baseline', 'compatible', 'chain', 'parallel'])
     args = parser.parse_args()
-    if args.repeats < 1 or any(case not in {'baseline', 'compatible', 'chain', 'parallel'} for case in args.cases):
+    if args.repeats < 1:
         parser.error('Invalid repeats or cases')
+    try:
+        validate_cases(args.cases)
+    except ValueError as error:
+        parser.error(str(error))
     root = args.output_dir.resolve()
     root.mkdir(parents=True, exist_ok=True)
     model_id = 'qiqi-zh-realtime'
@@ -125,6 +136,7 @@ def main():
                         except subprocess.TimeoutExpired:
                             os.killpg(process.pid, signal.SIGKILL)
                             process.wait()
+            import soundfile as sf
             audio, rate = sf.read(output, dtype='float32')
             text = (directory/'backend.log').read_text()
             times = [float(value) for value in re.findall(r'\[profile\]\[realtime\][^\n]* total=([0-9.]+)ms', text)]

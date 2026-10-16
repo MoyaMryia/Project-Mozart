@@ -69,7 +69,17 @@ def main():
             expected = subprocess.run(['ffmpeg','-v','error','-f','s16le','-ar',str(rate),'-ac','1',
                 '-i','pipe:0','-af',f"atempo={job['playback_tempo']:.3f}",'-f','s16le','pipe:1'],
                 input=source,stdout=subprocess.PIPE,check=True).stdout
+            ffmpeg_expected = expected
+            expected_backend = 'ffmpeg'
+            if args.helper and job.get('playback_tempo_backend') == 'libavfilter_inprocess':
+                # 同一过滤器的整文件输出用于检查流式完整性；保留 FFmpeg 的独立差异。
+                expected = subprocess.run([str(args.helper), str(rate), f"{job['playback_tempo']:.3f}"],
+                    input=source, stdout=subprocess.PIPE, check=True).stdout
+                expected_backend = 'native_whole_file'
             checks.append(dict(job=job['id'], exact=actual==expected,
+                expected_backend=expected_backend, ffmpeg_exact=actual==ffmpeg_expected,
+                ffmpeg_samples=len(ffmpeg_expected)//2,
+                ffmpeg_sample_difference=(len(actual)-len(ffmpeg_expected))//2,
                 rate_matches=rate==actual_rate, samples=len(actual)//2,
                 metadata_matches=len(actual)//2==job['playback_output_samples'],
                 pcm_sha256=hashlib.sha256(actual).hexdigest(),
@@ -79,7 +89,8 @@ def main():
             first_pcm_after_input_ms=stats([r['first_pcm_after_input_ms'] for r in checks]),
             total_source_seconds=sum(j['duration_seconds'] for j in jobs),
             total_playback_seconds=sum(j.get('playback_duration_seconds',j['duration_seconds']) for j in jobs))
-        if not checks or not all(r['exact'] and r['rate_matches'] and r['metadata_matches'] for r in checks):
+        if not checks or not all(r['exact'] and r['ffmpeg_exact'] and r['rate_matches']
+                                 and r['metadata_matches'] for r in checks):
             args.output.write_text(json.dumps(result,indent=2)+'\n')
             raise RuntimeError('Playback PCM verification failed')
     args.output.write_text(json.dumps(result,indent=2)+'\n')
