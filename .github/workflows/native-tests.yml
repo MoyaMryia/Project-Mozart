@@ -26,7 +26,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             cmake ninja-build g++ libasound2-dev libspdlog-dev \
-            libyaml-cpp-dev nlohmann-json3-dev ffmpeg
+            libyaml-cpp-dev nlohmann-json3-dev ffmpeg pkg-config \
+            libavfilter-dev libavutil-dev
       - name: Configure without GPU or model assets
         run: >-
           cmake -S rvc-backend -B build/host -G Ninja
@@ -41,6 +42,13 @@ jobs:
         run: ctest --test-dir build/host -R '^state_' --repeat until-fail:10 --output-on-failure
       - name: Run Python regression tests
         run: python3 -m unittest discover -s tools/tests -v
+      - name: Build native tempo library
+        run: |
+          cmake -S preprocessor -B build-gpu/preprocessor -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug -DMOZART_USE_RNNOISE=OFF
+          cmake --build build-gpu/preprocessor --target mozart_tempo_filter -j2
+      - name: Run native tempo playback tests
+        run: python3 -m unittest discover -s tools/tests -p test_tempo_player.py -v
 
   frontend:
     runs-on: ubuntu-24.04
