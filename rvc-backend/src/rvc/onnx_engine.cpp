@@ -7,6 +7,7 @@
 namespace rvc {
 
 std::unique_ptr<IEngine> make_engine(const std::filesystem::path& model_path) {
+    std::string fallback_reason;
     // 约定：模型 X.onnx 旁存在 X.engine 时优先 TensorRT 直载（GPU）
     if (model_path.extension() == ".onnx") {
         auto engine_path = model_path;
@@ -17,11 +18,13 @@ std::unique_ptr<IEngine> make_engine(const std::filesystem::path& model_path) {
                 spdlog::info("Engine backend: TensorRT (GPU) → {}", engine_path.filename().string());
                 return trt;
             }
+            fallback_reason = "TensorRT asset failed to load: " + engine_path.string();
             spdlog::warn("TRT engine {} 加载失败，回退 ONNX", engine_path.string());
         }
     }
     auto onnx = std::make_unique<OnnxEngine>();
     if (onnx->load(model_path)) {
+        onnx->add_fallback_reason(fallback_reason);
         spdlog::info("Engine backend: ONNX Runtime ({}) → {}",
 #ifdef USE_CUDA_EP
                      "CUDA EP requested",
@@ -102,6 +105,7 @@ bool OnnxEngine::load(const std::filesystem::path& model_path) {
             session_->GetInputCount(),
             session_->GetOutputCount()
         );
+        record_runtime(cuda_attached_ ? "onnx_cuda_ep" : "onnx_cpu", model_path_, true);
         return true;
 
     } catch (const Ort::Exception& e) {
@@ -173,6 +177,7 @@ bool OnnxEngine::reload_cpu() {
         session_opts_ = std::move(opts);
         session_ = std::move(session);
         cuda_attached_ = false;
+        record_runtime("onnx_cpu", model_path_);
         return true;
     } catch (const Ort::Exception& e) {
         spdlog::error("CPU session rebuild failed for {}: {}",
@@ -214,6 +219,7 @@ std::vector<float> OnnxEngine::run(const std::vector<OnnxInput>& inputs,
         const std::string message = e.what();
         if (cuda_attached_ && message.find("CUDA error") != std::string::npos
                 && reload_cpu()) {
+            add_fallback_reason(message);
             return run_once(input_names, input_tensors, output_names);
         }
         throw;
@@ -227,6 +233,7 @@ void OnnxEngine::unload() {
     cuda_attached_ = false;
     input_types_.clear();
     input_shapes_.clear();
+    record_runtime("unavailable", {}, true);
 }
 
 #else // USE_ONNX not defined — stub implementation

@@ -18,6 +18,7 @@
 #include <poll.h>
 #include <cerrno>
 #include <fcntl.h>
+#include <sys/inotify.h>
 
 // 写已断开的 socket 不应让进程收到 SIGPIPE（Linux）。没有该标志时退化为 0。
 #ifndef MSG_NOSIGNAL
@@ -527,10 +528,27 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
         "Connection: keep-alive\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n";
-    if (!send_all(client_fd, kHead, std::strlen(kHead), Clock::now() + limits_.write_timeout)) return;
-
     const char* env = std::getenv("MOZART_SUBTITLES_JSONL");
     const std::string file_path = env && env[0] ? env : "/tmp/opencode/subtitles.jsonl";
+
+    struct Changes {
+        int fd = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+        int watch = -1;
+        ~Changes() { if (fd >= 0) close(fd); }
+        bool arm(const std::string& parent) {
+            if (fd < 0) return false;
+            const int next = inotify_add_watch(fd, parent.c_str(),
+                IN_MODIFY | IN_CLOSE_WRITE | IN_CREATE | IN_MOVED_TO | IN_DELETE
+                | IN_MOVE_SELF | IN_DELETE_SELF);
+            if (next < 0) return false;
+            if (watch >= 0 && next != watch) inotify_rm_watch(fd, watch);
+            watch = next;
+            return true;
+        }
+    } changes;
+    const auto parent_path = std::filesystem::path(file_path).parent_path();
+    const std::string parent = parent_path.empty() ? "." : parent_path.string();
+    changes.arm(parent);
 
     std::ifstream file;
     struct stat identity{};
@@ -546,7 +564,9 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
         }
     };
     try_open();
-    auto last_retry = Clock::now();
+    opened_once = true;
+    // 在响应头发出前确定起点，避免客户端随后追加的首条字幕被跳过。
+    if (!send_all(client_fd, kHead, std::strlen(kHead), Clock::now() + limits_.write_timeout)) return;
     auto last_heartbeat = Clock::now();
 
     while (running_) {
@@ -557,17 +577,19 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
         struct stat current{};
         if (file.is_open() && stat(file_path.c_str(), &current) == 0) {
             const auto position = file.tellg();
+            const bool rewritten_at_end = position >= 0 && current.st_size == position
+                && current.st_size == identity.st_size
+                && (current.st_mtim.tv_sec != identity.st_mtim.tv_sec
+                    || current.st_mtim.tv_nsec != identity.st_mtim.tv_nsec);
             if (current.st_ino != identity.st_ino || current.st_dev != identity.st_dev
-                || (position >= 0 && current.st_size < position)) {
+                || (position >= 0 && current.st_size < position) || rewritten_at_end) {
                 try_open();
+            } else {
+                identity = current;
             }
         }
         if (!file.is_open()) {
-            const auto now = std::chrono::steady_clock::now();
-            if (now - last_retry > std::chrono::seconds(2)) {
-                try_open();
-                last_retry = now;
-            }
+            try_open();
         } else {
             std::string line;
             while (file && running_) {
@@ -582,7 +604,15 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
             }
             file.clear(); // EOF：等待新行
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        const bool watching = changes.arm(parent);
+        pollfd waiters[2] = {{client_fd, POLLIN, 0}, {changes.fd, POLLIN, 0}};
+        const int ready = poll(waiters, changes.fd >= 0 ? 2 : 1, watching ? 1000 : 20);
+        if (ready < 0 && errno != EINTR) return;
+        if (waiters[0].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)) return;
+        if (changes.fd >= 0 && waiters[1].revents & POLLIN) {
+            char events[4096];
+            while (read(changes.fd, events, sizeof(events)) > 0) {}
+        }
     }
 }
 

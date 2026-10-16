@@ -1,5 +1,7 @@
 #include "rvc/inferencer.hpp"
 #include "rvc/profile.hpp"
+#include <future>
+#include <cstdlib>
 #include <spdlog/spdlog.h>
 #include <array>
 #include <cmath>
@@ -201,7 +203,10 @@ void RVCInferencer::reset_realtime() {
     realtime_random_.seed(114514);
 }
 
-std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
+std::vector<float> RVCInferencer::infer(
+    const std::vector<float>& audio, const std::atomic<bool>* cancelled
+) {
+    check_cancelled(cancelled);
     if (!model_->loaded()) {
         throw std::runtime_error("RVC model not loaded");
     }
@@ -236,17 +241,27 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
     const auto padded = reflect_pad(audio_16k, kPad16k);
     const auto profile_padded = profile::Clock::now();
     const size_t full_frames = padded.size() / kHop16k;
+    check_cancelled(cancelled);
     const auto f0_full = feature_extractor_->extract_f0(padded, 16000, f0_method_);
+    check_cancelled(cancelled);
     const auto profile_f0 = profile::Clock::now();
     auto [pitch_full, pitchf_full] = f0_to_pitch(f0_full, pitch_shift_,
         std::max(f0_full.size(), padded.size() / kHop16k + 1));
     const auto profile_pitch = profile::Clock::now();
 
+    const auto maximum_shape = model_->generator_engine().max_input_shape("feats");
+    const bool full_shape_supported = maximum_shape.size() < 2 || maximum_shape[1] <= 0
+        || full_frames <= static_cast<size_t>(maximum_shape[1]);
+    if (dynamic_generator && !full_shape_supported) {
+        // 超过整段 profile 时沿用固定窗口装配，避免截断输入或越界分配。
+        generator_frames = 398;
+    }
+
     // The correctness-first dynamic contract follows the original RVC path:
     // one reflect-padded prefix enters HuBERT and one Generator invocation.
     // Static engines retain the legacy fixed-window behavior below.
-    if (dynamic_generator) {
-        auto converted = infer_window(padded, pitchf_full, pitch_full);
+    if (dynamic_generator && full_shape_supported) {
+        auto converted = infer_window(padded, pitchf_full, pitch_full, cancelled);
         const size_t context = kPad16k * model_sr / 16000;
         if (converted.size() > 2 * context) {
             converted = std::vector<float>(
@@ -281,7 +296,7 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
         auto pitchf = slice_or_pad(pitchf_full, 0, generator_frames);
         auto pitch = std::vector<int64_t>(generator_frames, 1);
         for (size_t t = 0; t < generator_frames; ++t) pitch[t] = pitch_full[t];
-        auto converted = infer_window(padded, pitchf, pitch);
+        auto converted = infer_window(padded, pitchf, pitch, cancelled);
         const size_t context = kPad16k * model_sr / 16000;
         if (converted.size() > 2 * context) {
             converted = std::vector<float>(
@@ -310,7 +325,7 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
             const size_t source = std::min(t, pitch_full.size() - 1);
             pitch[t] = pitch_full[source];
         }
-        auto converted = infer_window(padded, pitchf, pitch);
+        auto converted = infer_window(padded, pitchf, pitch, cancelled);
         const size_t pad_tgt = kPad16k * model_sr / 16000;
         if (converted.size() > 2 * pad_tgt) {
             converted = std::vector<float>(
@@ -335,6 +350,7 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
     assembled.reserve((padded.size() * model_sr / 16000) + window_out);
     size_t windows = 0;
     for (size_t start = 0; start < padded.size(); start += hop_in) {
+        check_cancelled(cancelled);
         auto window = slice_or_pad(padded, start, kWindow16k);
         // Golden-aligned per window: reflect-pad the 2 s window to 4 s before
         // HuBERT (matching RVC pipeline.vc) and run at the engine's native T.
@@ -347,7 +363,7 @@ std::vector<float> RVCInferencer::infer(const std::vector<float>& audio) {
             pitchf[t] = pitchf_full[src];
             pitch[t] = pitch_full[src];
         }
-        auto converted = infer_window(hubert_input, pitchf, pitch);
+        auto converted = infer_window(hubert_input, pitchf, pitch, cancelled);
         if (converted.size() > 2 * pad_tgt) {
             converted = std::vector<float>(
                 converted.begin() + static_cast<std::ptrdiff_t>(pad_tgt),
@@ -415,6 +431,16 @@ std::vector<float> RVCInferencer::infer_realtime(
         || front_feats_shape[1] != static_cast<int64_t>(frames)
         || front_feats_shape[2] != static_cast<int64_t>(model_->config().emb_channels)) {
         throw std::invalid_argument("Realtime Generator front shape does not match request");
+    }
+
+    const char* parallel_setting = std::getenv("MOZART_RVC_PARALLEL_FEATURES");
+    const bool parallel = !parallel_setting || std::string(parallel_setting) != "0";
+    // F0 与 HuBERT 只读取音频。future 析构在异常路径中等待，保护输入寿命。
+    std::future<std::vector<float>> feature_task;
+    if (parallel) {
+        feature_task = std::async(std::launch::async, [&] {
+            return feature_extractor_->extract_features_realtime(audio, 16000);
+        });
     }
 
     size_t f0_samples = request.block_samples_16k + 800;
@@ -489,7 +515,8 @@ std::vector<float> RVCInferencer::infer_realtime(
     );
     const auto profile_f0 = profile::Clock::now();
 
-    auto feats = feature_extractor_->extract_features_realtime(audio, 16000);
+    auto feats = parallel ? feature_task.get()
+                          : feature_extractor_->extract_features_realtime(audio, 16000);
     const uint32_t emb_dim = model_->config().emb_channels;
     if (feats.empty() || feats.size() % emb_dim != 0) {
         throw std::runtime_error("Realtime HuBERT feature shape is invalid");
@@ -569,11 +596,6 @@ std::vector<float> RVCInferencer::infer_realtime(
         {1, static_cast<int64_t>(latent_channels), static_cast<int64_t>(latent_frames)},
         std::move(latent_noise), {}
     ));
-    auto z = front.run(front_inputs, {"z"});
-    if (z.size() != latent_channels * request.return_frames) {
-        throw std::runtime_error("Realtime front output shape is invalid");
-    }
-    const auto profile_front = profile::Clock::now();
 
     std::vector<float> decoder_pitchf(request.return_frames, 0.0f);
     std::copy_n(
@@ -597,7 +619,7 @@ std::vector<float> RVCInferencer::infer_realtime(
     decoder_inputs.push_back(typed_input(
         decoder, "z",
         {1, static_cast<int64_t>(latent_channels), static_cast<int64_t>(request.return_frames)},
-        std::move(z), {}
+        {}, {}
     ));
     decoder_inputs.push_back(typed_input(
         decoder, "pitchf", {1, static_cast<int64_t>(request.return_frames)},
@@ -616,20 +638,21 @@ std::vector<float> RVCInferencer::infer_realtime(
          static_cast<int64_t>(source_dim)},
         std::move(source_noise), {}
     ));
-    auto output = decoder.run(decoder_inputs, {"audio"});
+    const auto profile_prepared = profile::Clock::now();
+    auto output = front.run_chained(front_inputs, "z", decoder, decoder_inputs, "z", "audio");
     if (output.size() != request.output_samples) {
         throw std::runtime_error("Realtime decoder output shape is invalid");
     }
     if (profile::enabled()) {
         const auto profile_done = profile::Clock::now();
         spdlog::info(
-            "[profile][realtime] input={} frames={} f0={:.3f}ms hubert={:.3f}ms "
-            "front={:.3f}ms decoder={:.3f}ms total={:.3f}ms",
+            "[profile][realtime] input={} frames={} f0_with_overlap={:.3f}ms hubert_wait_prepare={:.3f}ms "
+            "generator_prepare={:.3f}ms generator={:.3f}ms total={:.3f}ms",
             audio.size(), frames,
             profile::elapsed_ms(profile_start, profile_f0),
             profile::elapsed_ms(profile_f0, profile_hubert),
-            profile::elapsed_ms(profile_hubert, profile_front),
-            profile::elapsed_ms(profile_front, profile_done),
+            profile::elapsed_ms(profile_hubert, profile_prepared),
+            profile::elapsed_ms(profile_prepared, profile_done),
             profile::elapsed_ms(profile_start, profile_done)
         );
     }
@@ -639,15 +662,20 @@ std::vector<float> RVCInferencer::infer_realtime(
 std::vector<float> RVCInferencer::infer_window(
     const std::vector<float>& audio_16k,
     const std::vector<float>& pitchf,
-    const std::vector<int64_t>& pitch
+    const std::vector<int64_t>& pitch,
+    const std::atomic<bool>* cancelled
 ) {
+    check_cancelled(cancelled);
     const auto profile_start = profile::Clock::now();
     auto feats = feature_extractor_->extract_features(audio_16k, 16000);
+    check_cancelled(cancelled);
     const auto profile_hubert = profile::Clock::now();
     const auto unindexed = feats;
     feats = apply_index(feats);
+    check_cancelled(cancelled);
     const auto profile_index = profile::Clock::now();
     auto output = synthesize_window(feats, pitchf, pitch, unindexed);
+    check_cancelled(cancelled);
     if (profile::enabled()) {
         const auto profile_done = profile::Clock::now();
         spdlog::info(

@@ -1,0 +1,49 @@
+{
+  "runtime_source_sha256": {
+    "tools/bench_concurrent.py": "618148f78b6d026793bc386b6454a4134dbb0695fa7beb737d311c1d18db5a40",
+    "tools/clone_worker.py": "40c25750ccfa1e303ffce895f73591d829fd3d1073723c44e0c301d60362e545",
+    "tools/tempo_control.py": "02a5d021a0417513eaa4c05a8c6fb716b407ac66df56f11db56a4cba0c122863",
+    "tools/tts2rvc.py": "bb13e14113da96a1802151f85a5440f8de1c0239354d5793a8873d8a0f387467",
+    "tools/speech_service.py": "7e812745b135d64e112957995516500f35f3a899bdc41ca5c655229ec3d8622c",
+    "tools/tts_service.py": "9424c971af6dc19e4e475d271900d86d205e04945c949693830651ae72649362",
+    "tools/export_generator_split_onnx.py": "f6382bc5c699c9b045031b2d4239759b8bcb492ac6b0f8def51a2788dca4de99",
+    "tools/stt_service.py": "bef13c3ca6b41a6acbdb3cc9a0b4beaef6095c1cb91591977bcca4f30746f68c",
+    "tools/export_generator_onnx.py": "ba341c979b21cd627b4b0363badc7a4ad3a3c9987ecfd03a24fe13f17c0aa2f8",
+    "tools/speech_chunks.py": "4f39a416b9e9fe8d90ed9c8a89b8abb76a2bccb5a7eb69c64df95137349ef8d6",
+    "tools/bili_stress.py": "ea76abd5faa12520847c7b9885612f364930b532b08f211fb071f42ab24843d5",
+    "tools/boundary_classifier.py": "c87349026088cd67201518db6ddd86d66e025cd55ed77ec887b3ec66a85c8114",
+    "tools/translation_checks.py": "b98b1834ee8ba4261ef6ee4b409b5bb69926243a66eaacfde50bbc6ee3b5d393",
+    "tools/stream_audio_udp.py": "3b777194bb2766076fce520565981d499f3e46655bf60c2d18ca408c157e72cc",
+    "tools/stable_clauses.py": "4ab41231ba5d0a67346514426c9829da70c6bf434ada321b0ca95874c2d86ca3",
+    "tools/run_translated_speech.py": "878ef67fe2133c0e5313f2d2ed50ed41f63535fa87d30283ddf0fb0f5b7260f6",
+    "tools/asr_refinement.py": "beef524a27b18d5e619569b2fac6b479b248a758b0c15462144cb3289668e5de",
+    "tools/fetch_boundary_model.py": "000ac5a764ae887fc633ea59b6840858cc47fba369107829a5c06e8c1a6146a9",
+    "tools/tempo_player.py": "454cdba298ba9b831eb607b45ccc296153e87ac0a396f75b197ca7b423b4a102",
+    "tools/onnxruntime_info.py": "3529f7c75a95f5b09ddf6f962cb3036820b1eb53bc3fe4e8d6990e8f9b839fd3",
+    "tools/speech_duration.py": "8140bab61456c20ad686f6be0ffc7d0e9889607de6d03978224173eef188ad81",
+    "tools/durable_jobs.py": "8f7a65d37d2f836356fd4de296d260ef631d3944ddf20765be32338c96ea5fb1",
+    "tools/build_pocket_early_audio.py": "ab155556af5301821bfdd3b3009be1bc56c4bd861a8a8a61353cfbffb85ab78b",
+    "tools/export_hubert_onnx.py": "5056609b613bff87117074c2f0143a443abe237fb4c05fb7ee0b3de9d2009fd7",
+    "tools/demo_fullchain.py": "9783cd8a2f4516880976ee1612d5136caf0971cc57310ce12d118d2e35f1420e",
+    "tools/asr_checks.py": "c264e463d6da24faa040da92b2c2c7cea3aced323172619adac19311102f20df",
+    "tools/export_rmvpe_onnx.py": "0236c9d10e2f2e2ce73a2d03e736ec34cfc4341f987a74523a75f3783919667e",
+    "tools/subtitle_bridge.py": "7f770507f292c291ec4982c14068c37b05e403e15927aba091d72bb3297e3886"
+  },
+  "profile_sha256": "48fd30b90d024dd4e7abd77171d1d3ed5e6870198e4e720f7bd722310977d3a6",
+  "input_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+  "quality_sha256": "343035d830ada089832166fbbf8f345b5fb30f73c0224aa1b56de8a96120d0b7",
+  "archive_sha256": {
+    "rvc-golden/flexible-tempo-20261015/final-evidence.tar": "b0fb793285b02dba18f161bbdadd3f1873ed2a8dc90ceba668fc26d53b4e599f",
+    "rvc-golden/flexible-tempo-20261015/replays-initial.tar": "6d2156c9ee97c23fed9675e41b4c7d99a6c0ba3bb7b633d9f7911a565796e8c2",
+    "rvc-golden/flexible-tempo-20261015/replays-repeat.tar": "d404e18c3a543199b54f6f351225122cd2f0690f60c2853c05dfbce643946452",
+    "rvc-golden/flexible-tempo-20261015/policy-cycle.tar": "735ac348c46a7fbb4959d6395f6a5db424e5d115c4fe55042b589ac064d99c17"
+  },
+  "jetson_native_sha256": {
+    "/home/moyamryia/mozart-efficiency-20261014/candidate/tools/duration_profiles/qiqi-pocket.json": "48fd30b90d024dd4e7abd77171d1d3ed5e6870198e4e720f7bd722310977d3a6",
+    "/home/moyamryia/mozart-efficiency-20261014/candidate/preprocessor/src/tempo_filter.c": "1b033b1dc5c143b6041813050d252f17cef42e1fcff5608db05c5adc1691ad53",
+    "/home/moyamryia/mozart-latency-20261015/build/preprocessor/libmozart-tempo.so": "4064e72850401ce778328f2e16c0659f8134ac63e7a03006ebb6bd00f0e4ab1b"
+  },
+  "jetson_libavfilter_version": "11.4.100",
+  "jetson_libavutil_version": "60.8.100",
+  "remaining_test_processes": []
+}

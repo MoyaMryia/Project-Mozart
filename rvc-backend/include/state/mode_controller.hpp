@@ -33,6 +33,7 @@ public:
         uint32_t frame_duration_ms = MOZART_INPUT_FRAME_MS;
         bool rvc_enabled = true;
         bool skip_silence = true;
+        uint32_t realtime_playout_delay_ms = 400;
         bool file_rnnoise = false;
         std::filesystem::path storage_dir = "./storage/temp";
         std::string ffmpeg_path = "ffmpeg";

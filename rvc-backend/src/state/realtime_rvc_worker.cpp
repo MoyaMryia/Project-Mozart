@@ -29,6 +29,7 @@ void RealtimeRvcWorker::start() {
     worker_config.output_sample_rate = config_.output_sample_rate;
     worker_config.frame_duration_ms = config_.frame_duration_ms;
     worker_config.skip_silence = config_.skip_silence;
+    worker_config.realtime_playout_delay_ms = config_.realtime_playout_delay_ms;
     worker_ = std::make_unique<AudioWorker>(stream_, pipeline_, worker_config);
     try {
         worker_->start();

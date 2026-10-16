@@ -16,6 +16,34 @@ TEXT = PREFIX+'然后今天准备开始新的测试'
 
 
 class StableClauseTests(unittest.TestCase):
+    def test_durable_snapshot_keeps_audio_interval_for_recovery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            dispatcher = StableClauseDispatcher(lambda row: None, 'session', 'translator',
+                spool_path=Path(directory)/'queue.sqlite3')
+            saved = []
+            with patch.object(dispatcher.pending, 'put_nowait', side_effect=saved.append):
+                dispatcher.accept(dict(type='final', seq=1, text='测试源区间。',
+                    audio_start_pts_ns=10_000_000_000, audio_end_pts_ns=13_000_000_000))
+            self.assertTrue(dispatcher.close())
+        self.assertEqual(saved[0]['event']['source_duration_seconds'], 3)
+        self.assertEqual(saved[0]['record']['_clause_state']['committed_audio_end_pts_ns'], 13_000_000_000)
+
+    def test_clause_intervals_partition_observed_audio_without_reusing_parent(self):
+        requests = []
+        def translated(url, event, **kwargs):
+            requests.append(dict(event))
+            return 'Translated source.', .1
+        with patch('subtitle_bridge.translate_recognized_event', side_effect=translated):
+            dispatcher = StableClauseDispatcher(lambda row: None, 'session', 'translator')
+            for index, suffix in enumerate(['一', '一些', '一些内容']):
+                dispatcher.accept(dict(type='partial', seq=1, text=TEXT+suffix, emitted_at=index*.35,
+                    audio_start_pts_ns=10_000_000_000, audio_end_pts_ns=13_000_000_000))
+            dispatcher.accept(dict(type='final', seq=1, text=TEXT, emitted_at=2,
+                audio_start_pts_ns=10_000_000_000, audio_end_pts_ns=15_000_000_000))
+            self.assertTrue(dispatcher.close())
+        self.assertEqual([r['source_duration_seconds'] for r in requests], [3, 2])
+        self.assertEqual(sum(r['source_duration_seconds'] for r in requests), 5)
+
     def partials(self, dispatcher, text=TEXT, seq=1):
         for index, suffix in enumerate(['一', '一些', '一些内容']):
             dispatcher.accept({'type': 'partial', 'seq': seq, 'text': text+suffix, 'emitted_at': index*.35})

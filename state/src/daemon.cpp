@@ -76,6 +76,11 @@ bool StateManagerDaemon::start() {
     controller_config.output_sample_rate = output_rate;
     controller_config.frame_duration_ms = frame_ms;
     controller_config.skip_silence = config_.get_bool("input.meta.vad_enabled", true);
+    const int playout_delay = config_.get_int("rvc.realtime_playout_delay_ms", 400);
+    if (playout_delay < 0 || playout_delay > 1000 || playout_delay % MOZART_INPUT_FRAME_MS != 0) {
+        throw std::invalid_argument("rvc.realtime_playout_delay_ms must be 0..1000 in 20 ms steps");
+    }
+    controller_config.realtime_playout_delay_ms = static_cast<uint32_t>(playout_delay);
     controller_config.file_rnnoise = config_.get_bool("storage.file_rnnoise", false);
     controller_config.storage_dir = config_.resolve_file_path("storage.temp_dir", "./storage/temp");
     controller_config.ffmpeg_path = config_.get_string("storage.ffmpeg_path", "ffmpeg");

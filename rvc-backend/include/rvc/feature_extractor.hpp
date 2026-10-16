@@ -21,7 +21,8 @@ public:
         bool mock_hubert = true,
         bool mock_rmvpe = true,
         const std::optional<std::filesystem::path>& realtime_hubert_path = std::nullopt,
-        const std::optional<std::filesystem::path>& realtime_rmvpe_path = std::nullopt
+        const std::optional<std::filesystem::path>& realtime_rmvpe_path = std::nullopt,
+        bool defer_quality = false
     );
 
     ~FeatureExtractor();
@@ -54,12 +55,29 @@ public:
         uint32_t sample_rate = 16000
     );
 
-    bool is_hubert_loaded() const { return hubert_engine_ && hubert_engine_->loaded(); }
-    bool is_rmvpe_loaded() const { return rmvpe_engine_ && rmvpe_engine_->loaded(); }
+    bool is_hubert_loaded() const {
+        std::lock_guard<std::mutex> lock(quality_mutex_);
+        return hubert_engine_ && hubert_engine_->loaded();
+    }
+    bool is_rmvpe_loaded() const {
+        std::lock_guard<std::mutex> lock(quality_mutex_);
+        return rmvpe_engine_ && rmvpe_engine_->loaded();
+    }
+    std::map<std::string, std::string> runtime_info() const;
     bool supports_realtime_hubert_samples(size_t samples) const;
     bool supports_realtime_rmvpe_frames(size_t frames) const;
 
 private:
+    void record_active_runtime(const char* role, const IEngine& engine, const std::string& reason = "");
+    std::vector<float> run_feature_engine(IEngine& engine, const char* role, const char* input,
+        const std::vector<int64_t>& shape, const std::vector<float>& data,
+        const char* output, const std::string& reason = "");
+    void ensure_quality_engines();
+    std::once_flag quality_once_;
+    mutable std::mutex quality_mutex_;
+    bool quality_initialized_ = false;
+    mutable std::mutex runtime_mutex_;
+    std::map<std::string, std::string> active_runtime_;
     std::filesystem::path hubert_path_;
     std::optional<std::filesystem::path> rmvpe_path_;
     std::optional<std::filesystem::path> realtime_hubert_path_;

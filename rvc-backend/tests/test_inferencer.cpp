@@ -106,12 +106,28 @@ void test_model_manager_empty_dir() {
     std::cout << "  [OK]\n";
 }
 
+void test_cancel_before_model_access() {
+    auto model = create_mock_model();
+    auto features = std::make_shared<rvc::FeatureExtractor>(
+        "nonexistent.pt", std::nullopt, "cpu", false);
+    rvc::RVCInferencer inferencer(model, features);
+    std::atomic<bool> cancelled{true};
+    bool rejected = false;
+    try {
+        inferencer.infer(std::vector<float>(32000, 0.1f), &cancelled);
+    } catch (const rvc::InferenceCancelled&) {
+        rejected = true;
+    }
+    CHECK(rejected);
+}
+
 int main() {
     test_inferencer_upsample();
     test_inferencer_resample();
     test_model_config_parsing();
     test_model_exists();
     test_model_manager_empty_dir();
+    test_cancel_before_model_access();
 
     if (g_failures == 0) {
         std::cout << "\n[PASS] All inferencer/model tests passed\n";

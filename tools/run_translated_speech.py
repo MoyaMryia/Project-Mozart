@@ -68,6 +68,7 @@ def main():
     parser.add_argument('--tts-pythonpath', type=Path, help='Independent sherpa package directory for the speech service')
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
+    parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=3)
     parser.add_argument('--stable-clauses', action='store_true')
     parser.add_argument('--boundary-model', type=Path, help='Optional local Chinese NNSplit ONNX model')
     parser.add_argument('--boundary-threshold', type=float, default=.5)
@@ -91,12 +92,23 @@ def main():
     parser.add_argument('--seconds', type=float, default=60, help='File replay length; microphone runs until stopped')
     parser.add_argument('--mic-device', default='plughw:CARD=Device,DEV=0')
     parser.add_argument('--playback-device', default='plughw:CARD=Device,DEV=0')
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='flexible')
+    parser.add_argument('--duration-profile', type=Path)
+    parser.add_argument('--playback-tempo-max', type=float, default=1.05)
+    parser.add_argument('--playback-target-delay', type=float, default=1.5)
+    parser.add_argument('--playback-recovery-seconds', type=float, default=30.)
+    parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--data-dir', type=Path, default=home/'.local/share/mozart/speech')
     parser.add_argument('--run-dir', type=Path, default=Path('/tmp/mozart-translated-speech'))
     parser.add_argument('--no-playback', action='store_true', help='Generate downloadable speech without ALSA playback')
     parser.add_argument('--no-rnnoise', action='store_true')
     parser.add_argument('--archive-utterances',action='store_true',help='Save processed source utterances for diagnosis')
     args = parser.parse_args()
+    from tempo_control import TempoController
+    try:
+        TempoController(args.playback_tempo_max, args.playback_target_delay, args.playback_recovery_seconds)
+    except ValueError as error:
+        parser.error(str(error))
     if args.boundary_model:
         args.stable_clauses = True
     if args.tts_threads < 1:
@@ -204,10 +216,18 @@ def main():
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
             '--provider', args.tts_provider, '--precision', args.tts_precision,
             '--threads', args.tts_threads, '--delivery-policy', args.delivery_policy]
+        speech_command += ['--playback-tempo', args.playback_tempo]
+        speech_command += ['--playback-tempo-max', str(args.playback_tempo_max),
+            '--playback-target-delay', str(args.playback_target_delay),
+            '--playback-recovery-seconds', str(args.playback_recovery_seconds)]
+        if args.duration_profile:
+            speech_command += ['--duration-profile', args.duration_profile]
+        if args.capture_playback:
+            speech_command += ['--capture-playback']
         if args.tts_provider_config:
             speech_command += ['--provider-config', args.tts_provider_config]
         if args.early_audio:
-            speech_command += ['--early-audio']
+            speech_command += ['--early-audio', '--audio-chunk-frames', str(args.tts_audio_chunk_frames)]
         speech_environment = os.environ.copy()
         if args.tts_pythonpath:
             speech_environment['PYTHONPATH'] = str(args.tts_pythonpath)+os.pathsep+speech_environment.get('PYTHONPATH', '')

@@ -7,6 +7,9 @@
 #include <filesystem>
 #include <optional>
 #include <unordered_map>
+#include <map>
+#include <mutex>
+#include <stdexcept>
 
 #ifdef USE_ONNX
 #include <onnxruntime_cxx_api.h>
@@ -38,9 +41,58 @@ public:
         const std::vector<const char*>& output_names) = 0;
     virtual std::vector<float> run(const std::vector<OnnxInput>& inputs,
                                    const std::vector<const char*>& output_names) = 0;
+    // 默认路径保留 CPU/ONNX 兼容性。TensorRT 可直接连接两个设备张量。
+    virtual std::vector<float> run_chained(
+        const std::vector<OnnxInput>& inputs, const char* output,
+        IEngine& consumer, std::vector<OnnxInput>& consumer_inputs,
+        const char* consumer_input, const char* consumer_output) {
+        if (!output || !consumer_input || !consumer_output) {
+            throw std::invalid_argument("Chained tensor name is missing");
+        }
+        for (auto& input : consumer_inputs) {
+            if (input.name && std::string(input.name) == consumer_input) {
+                input.floats = run(inputs, {output});
+                size_t count = 1;
+                for (const auto dimension : input.shape) {
+                    if (dimension <= 0 || count > SIZE_MAX / static_cast<size_t>(dimension)) {
+                        throw std::invalid_argument("Invalid chained tensor shape");
+                    }
+                    count *= static_cast<size_t>(dimension);
+                }
+                if (input.type != OnnxInput::Type::Float || input.floats.size() != count) {
+                    throw std::invalid_argument("Chained tensor shape or type mismatch");
+                }
+                return consumer.run(consumer_inputs, {consumer_output});
+            }
+        }
+        throw std::invalid_argument("Chained input tensor not found");
+    }
+    std::map<std::string, std::string> runtime_info() const {
+        std::lock_guard<std::mutex> lock(runtime_mutex_);
+        return runtime_info_;
+    }
+    void add_fallback_reason(const std::string& reason) {
+        if (reason.empty()) return;
+        std::lock_guard<std::mutex> lock(runtime_mutex_);
+        auto& value = runtime_info_["fallback_reason"];
+        value += (value.empty() ? "" : "; ") + reason;
+    }
     // 引擎某输入的静态形状；动态/未知返回空（用于 TRT 固定形状校验）
-    virtual std::vector<int64_t> input_shape(const std::string& name) const { return {}; }
+    virtual std::vector<int64_t> input_shape(const std::string&) const { return {}; }
+    virtual std::vector<int64_t> max_input_shape(const std::string& name) const {
+        return input_shape(name);
+    }
     virtual void unload() = 0;
+protected:
+    void record_runtime(const std::string& backend, const std::filesystem::path& asset, bool reset_reason = false) {
+        std::lock_guard<std::mutex> lock(runtime_mutex_);
+        runtime_info_["backend"] = backend;
+        runtime_info_["asset"] = asset.string();
+        if (reset_reason) runtime_info_["fallback_reason"].clear();
+    }
+private:
+    mutable std::mutex runtime_mutex_;
+    std::map<std::string, std::string> runtime_info_{{"backend", "unavailable"}, {"asset", ""}, {"fallback_reason", ""}};
 };
 
 // 工厂：model_path 为 .onnx；同目录 <stem>.engine 存在时优先 TensorRT，

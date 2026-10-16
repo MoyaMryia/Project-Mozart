@@ -180,6 +180,16 @@ target_include_directories(mozart_rvc_runtime PUBLIC
 )
 
 target_link_libraries(mozart_rvc_runtime PRIVATE trt_flags)
+option(MOZART_BUILD_GPU_BENCHMARKS "Build real-asset GPU diagnostics" OFF)
+if(MOZART_BUILD_GPU_BENCHMARKS AND USE_ONNX)
+    add_executable(verify_onnx_stage ../rvc-golden/verify_onnx_stage.cpp)
+    target_link_libraries(verify_onnx_stage PRIVATE mozart_rvc_runtime)
+endif()
+if(MOZART_BUILD_GPU_BENCHMARKS AND USE_TENSORRT AND TENSORRT_LIBRARY
+   AND TENSORRT_INCLUDE_DIR AND CUDART_LIBRARY AND CUDA_INCLUDE_DIR)
+    add_executable(benchmark_trt_chain ../rvc-golden/benchmark_trt_chain.cpp)
+    target_link_libraries(benchmark_trt_chain PRIVATE mozart_rvc_runtime trt_flags)
+endif()
 target_link_libraries(mozart_rvc_runtime PUBLIC
     yaml-cpp
     nlohmann_json::nlohmann_json
@@ -219,6 +229,10 @@ if(BUILD_TESTS)
     add_executable(test_model_selection tests/test_model_selection.cpp)
     target_link_libraries(test_model_selection PRIVATE mozart_rvc_runtime)
     add_test(NAME model_selection COMMAND test_model_selection)
+    set_tests_properties(model_selection PROPERTIES TIMEOUT 15)
+    add_executable(test_engine_chain tests/test_engine_chain.cpp)
+    target_link_libraries(test_engine_chain PRIVATE mozart_rvc_runtime)
+    add_test(NAME engine_chain COMMAND test_engine_chain)
     if(NOT USE_ONNX)
         add_executable(test_onnx_unavailable tests/test_onnx_unavailable.cpp)
         target_link_libraries(test_onnx_unavailable PRIVATE mozart_rvc_runtime)

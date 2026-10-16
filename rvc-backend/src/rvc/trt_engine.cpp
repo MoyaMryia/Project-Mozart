@@ -6,6 +6,9 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <set>
+#include <cstdlib>
+#include <algorithm>
 
 #ifdef USE_TENSORRT
 #include <NvInfer.h>
@@ -69,26 +72,38 @@ std::string TrtEngine::dtype_name(int32_t dtype) {
 }
 
 bool TrtEngine::load(const std::filesystem::path& engine_path) {
+    const auto load_started = profile::Clock::now();
     unload();
     if (!std::filesystem::exists(engine_path)) {
         spdlog::error("TRT engine not found: {}", engine_path.string());
         return false;
     }
 
-    std::ifstream f(engine_path, std::ios::binary);
-    std::string blob((std::istreambuf_iterator<char>(f)),
-                     std::istreambuf_iterator<char>());
-    if (blob.empty()) {
-        spdlog::error("TRT engine empty: {}", engine_path.string());
+    std::error_code file_error;
+    const auto bytes = std::filesystem::file_size(engine_path, file_error);
+    if (file_error || bytes == 0
+        || bytes > static_cast<uintmax_t>(std::numeric_limits<size_t>::max())
+        || bytes > static_cast<uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+        spdlog::error("TRT engine size is invalid: {}", engine_path.string());
         return false;
     }
+    std::ifstream f(engine_path, std::ios::binary);
+    std::string blob(static_cast<size_t>(bytes), '\0');
+    if (!f.read(blob.data(), static_cast<std::streamsize>(bytes))
+        || f.peek() != std::char_traits<char>::eof()) {
+        spdlog::error("TRT engine read failed or file changed: {}", engine_path.string());
+        return false;
+    }
+    const auto file_read = profile::Clock::now();
 
     auto* runtime = nvinfer1::createInferRuntime(g_trt_logger);
+    const auto runtime_created = profile::Clock::now();
     if (!runtime) {
         spdlog::error("TRT runtime creation failed");
         return false;
     }
     engine_ = runtime->deserializeCudaEngine(blob.data(), blob.size());
+    const auto deserialized = profile::Clock::now();
     delete runtime;
     if (!engine_) {
         spdlog::error("TRT deserialize failed: {}", engine_path.string());
@@ -96,6 +111,12 @@ bool TrtEngine::load(const std::filesystem::path& engine_path) {
     }
     auto* engine = static_cast<nvinfer1::ICudaEngine*>(engine_);
     context_ = engine->createExecutionContext();
+    const auto context_created = profile::Clock::now();
+    if (!context_) {
+        spdlog::error("TRT execution context creation failed");
+        unload();
+        return false;
+    }
     if (cudaStreamCreateWithFlags(
             reinterpret_cast<cudaStream_t*>(&stream_), cudaStreamNonBlocking)
         != cudaSuccess) {
@@ -154,6 +175,16 @@ bool TrtEngine::load(const std::filesystem::path& engine_path) {
     }
     spdlog::info("TRT engine loaded: {} ({} tensors){}", engine_path.filename().string(),
                  tensors_.size(), io_desc);
+    record_runtime("tensorrt", engine_path, true);
+    if (profile::enabled()) {
+        const auto done = profile::Clock::now();
+        spdlog::info("[profile][trt_load] asset={} bytes={} read={:.3f}ms runtime={:.3f}ms "
+            "deserialize={:.3f}ms context={:.3f}ms allocate={:.3f}ms total={:.3f}ms",
+            engine_path.filename().string(), bytes, profile::elapsed_ms(load_started,file_read),
+            profile::elapsed_ms(file_read,runtime_created), profile::elapsed_ms(runtime_created,deserialized),
+            profile::elapsed_ms(deserialized,context_created), profile::elapsed_ms(context_created,done),
+            profile::elapsed_ms(load_started,done));
+    }
     return true;
 }
 
@@ -170,136 +201,214 @@ std::vector<int64_t> TrtEngine::input_shape(const std::string& name) const {
     return {};
 }
 
-std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
-                                  const std::vector<const char*>& output_names) {
-    if (!context_) throw std::runtime_error("TRT engine not loaded");
-    auto* context = static_cast<nvinfer1::IExecutionContext*>(context_);
-    auto* stream = static_cast<cudaStream_t>(stream_);
-    const auto profile_start = profile::Clock::now();
+std::vector<int64_t> TrtEngine::max_input_shape(const std::string& name) const {
+    if (!engine_) return {};
+    const auto declared = input_shape(name);
+    if (std::find(declared.begin(), declared.end(), -1) == declared.end()) return declared;
+    return to_dims(static_cast<nvinfer1::ICudaEngine*>(engine_)->getProfileShape(
+        name.c_str(), 0, nvinfer1::OptProfileSelector::kMAX));
+}
 
-    auto find_tensor = [&](const std::string& name) -> Tensor* {
-        for (auto& t : tensors_) {
-            if (t.name == name) return &t;
+namespace {
+
+// 异常返回前完成排队工作，防止 CUDA 继续访问已释放的主机输入。
+class StreamDrain {
+public:
+    explicit StreamDrain(void* stream) : stream_(static_cast<cudaStream_t>(stream)) {}
+    ~StreamDrain() { if (stream_) cudaStreamSynchronize(stream_); }
+    void release() { stream_ = nullptr; }
+private:
+    cudaStream_t stream_;
+};
+
+size_t checked_elements(const std::vector<int64_t>& shape) {
+    size_t result = 1;
+    for (const auto dimension : shape) {
+        if (dimension <= 0 || result > SIZE_MAX / static_cast<size_t>(dimension)) {
+            throw std::invalid_argument("TRT tensor shape is invalid or too large");
         }
+        result *= static_cast<size_t>(dimension);
+    }
+    return result;
+}
+
+} // namespace
+
+TrtEngine::Tensor& TrtEngine::enqueue(
+    const std::vector<OnnxInput>& inputs, const char* output_name,
+    void* execution_stream, const char* linked_name, const Tensor* linked) {
+    if (!context_) throw std::runtime_error("TRT engine not loaded");
+    if (!output_name) throw std::invalid_argument("TRT output name is missing");
+    auto* context = static_cast<nvinfer1::IExecutionContext*>(context_);
+    auto stream = static_cast<cudaStream_t>(execution_stream);
+    auto find_tensor = [&](const char* name) -> Tensor* {
+        if (!name) return nullptr;
+        for (auto& tensor : tensors_) if (tensor.name == name) return &tensor;
         return nullptr;
     };
-
-    // Set every runtime input shape before asking TensorRT for output shapes.
+    Tensor* output = find_tensor(output_name);
+    if (!output || output->is_input || output->dtype != 0) {
+        throw std::invalid_argument("TRT requested output must be a float output tensor");
+    }
+    std::set<std::string> supplied;
     for (const auto& input : inputs) {
-        Tensor* t = find_tensor(input.name);
-        if (!t || !t->is_input) {
-            throw std::runtime_error("TRT input tensor not found: " + std::string(input.name));
+        Tensor* tensor = find_tensor(input.name);
+        if (!tensor || !tensor->is_input || !supplied.insert(input.name).second) {
+            throw std::invalid_argument("TRT input is missing, unknown, or duplicated");
         }
-        if (input.shape.size() != t->dims.size()) {
-            throw std::invalid_argument("TRT input rank mismatch: " + std::string(input.name));
+        checked_elements(input.shape);
+        if (input.shape.size() != tensor->dims.size()) {
+            throw std::invalid_argument("TRT input rank mismatch: " + tensor->name);
         }
-        for (size_t dimension = 0; dimension < input.shape.size(); ++dimension) {
-            if (t->dims[dimension] > 0
-                && t->dims[dimension] != input.shape[dimension]) {
-                throw std::invalid_argument("TRT static input shape mismatch: " + std::string(input.name));
+        for (size_t axis = 0; axis < input.shape.size(); ++axis) {
+            if (tensor->dims[axis] > 0 && tensor->dims[axis] != input.shape[axis]) {
+                throw std::invalid_argument("TRT static input shape mismatch: " + tensor->name);
             }
         }
-        if (!context->setInputShape(t->name.c_str(), from_dims(input.shape))) {
-            throw std::invalid_argument("TRT profile rejected input shape: " + std::string(input.name));
+        if (!context->setInputShape(tensor->name.c_str(), from_dims(input.shape))) {
+            throw std::invalid_argument("TRT profile rejected input shape: " + tensor->name);
         }
     }
-
-    for (auto& tensor : tensors_) {
-        const auto concrete = context->getTensorShape(tensor.name.c_str());
-        tensor.elems = 1;
-        for (int32_t dimension = 0; dimension < concrete.nbDims; ++dimension) {
-            if (concrete.d[dimension] <= 0) {
-                throw std::runtime_error("TRT could not resolve shape for " + tensor.name);
-            }
-            tensor.elems *= static_cast<size_t>(concrete.d[dimension]);
+    for (const auto& tensor : tensors_) {
+        if (tensor.is_input && supplied.count(tensor.name) == 0) {
+            throw std::invalid_argument("TRT required input is missing: " + tensor.name);
         }
-        tensor.bytes = tensor.elems * dtype_size(tensor.dtype);
+    }
+    bool linked_bound = false;
+    for (auto& tensor : tensors_) {
+        const auto concrete = to_dims(context->getTensorShape(tensor.name.c_str()));
+        tensor.elems = checked_elements(concrete);
+        const size_t item_bytes = dtype_size(tensor.dtype);
+        if (tensor.elems > SIZE_MAX / item_bytes) {
+            throw std::invalid_argument("TRT tensor byte size overflow");
+        }
+        tensor.bytes = tensor.elems * item_bytes;
+        if (linked && linked_name && tensor.name == linked_name) {
+            if (!tensor.is_input || tensor.dtype != linked->dtype || tensor.bytes != linked->bytes) {
+                throw std::invalid_argument("TRT chained tensor type or shape mismatch");
+            }
+            const auto input = std::find_if(inputs.begin(), inputs.end(), [&](const auto& value) {
+                return value.name && tensor.name == value.name;
+            });
+            if (input == inputs.end() || input->shape != linked->dims || input->type != OnnxInput::Type::Float) {
+                throw std::invalid_argument("TRT chained tensor layout mismatch");
+            }
+            if (!context->setTensorAddress(tensor.name.c_str(), linked->dev)) {
+                throw std::runtime_error("TRT failed to bind chained tensor");
+            }
+            linked_bound = true;
+            continue;
+        }
         if (tensor.bytes > tensor.capacity_bytes) {
             if (tensor.dev) cudaFree(tensor.dev);
             tensor.dev = nullptr;
             if (cudaMalloc(&tensor.dev, tensor.bytes) != cudaSuccess) {
-                throw std::runtime_error(
-                    "cudaMalloc " + std::to_string(tensor.bytes)
-                    + " bytes failed for " + tensor.name);
+                throw std::runtime_error("TRT tensor allocation failed: " + tensor.name);
             }
             tensor.capacity_bytes = tensor.bytes;
         }
-        context->setTensorAddress(tensor.name.c_str(), tensor.dev);
+        if (!context->setTensorAddress(tensor.name.c_str(), tensor.dev)) {
+            throw std::runtime_error("TRT tensor binding failed: " + tensor.name);
+        }
     }
-    const auto profile_shapes = profile::Clock::now();
-
-    // H2D：按引擎实际 dtype 拷贝（int64 输入若引擎是 int32 则降转换）
+    if (linked && !linked_bound) throw std::invalid_argument("TRT chained input not found");
     for (const auto& input : inputs) {
-        Tensor* t = find_tensor(input.name);
+        Tensor* tensor = find_tensor(input.name);
+        if (linked && linked_name && tensor->name == linked_name) continue;
         const void* host = nullptr;
-        size_t bytes = 0;
-        std::vector<int32_t> as_int32;
-        if (t->dtype == 8) {                       // kINT64
-            if (input.int64s.size() != t->elems) throw std::invalid_argument("TRT int64 shape mismatch: " + std::string(input.name));
-            host = input.int64s.data();
-            bytes = t->bytes;
-        } else if (t->dtype == 3) {                // kINT32（ONNX int64 输入的常见降级）
-            as_int32.resize(t->elems);
-            const size_t src = input.type == OnnxInput::Type::Int64
-                ? input.int64s.size() : input.floats.size();
-            if (src != t->elems) throw std::invalid_argument("TRT int32 shape mismatch: " + std::string(input.name));
-            for (size_t k = 0; k < t->elems; ++k) {
-                const int64_t v = input.type == OnnxInput::Type::Int64
-                    ? input.int64s[k] : static_cast<int64_t>(input.floats[k]);
-                as_int32[k] = static_cast<int32_t>(v);
+        if (tensor->dtype == 8) {
+            if (input.type != OnnxInput::Type::Int64 || input.int64s.size() != tensor->elems) {
+                throw std::invalid_argument("TRT int64 input mismatch: " + tensor->name);
             }
-            host = as_int32.data();
-            bytes = t->bytes;
-        } else {                                   // kFLOAT
-            if (input.floats.size() != t->elems) throw std::invalid_argument("TRT float shape mismatch: " + std::string(input.name));
+            host = input.int64s.data();
+        } else if (tensor->dtype == 3) {
+            const size_t count = input.type == OnnxInput::Type::Int64 ? input.int64s.size() : input.floats.size();
+            if (count != tensor->elems) throw std::invalid_argument("TRT int32 input mismatch: " + tensor->name);
+            tensor->int32_staging.resize(count);
+            for (size_t i = 0; i < count; ++i) {
+                const double value = input.type == OnnxInput::Type::Int64
+                    ? static_cast<double>(input.int64s[i]) : static_cast<double>(input.floats[i]);
+                if (!(value >= INT32_MIN && value <= INT32_MAX)) {
+                    throw std::invalid_argument("TRT int32 input is out of range: " + tensor->name);
+                }
+                tensor->int32_staging[i] = static_cast<int32_t>(value);
+            }
+            host = tensor->int32_staging.data();
+        } else if (tensor->dtype == 0) {
+            if (input.type != OnnxInput::Type::Float || input.floats.size() != tensor->elems) {
+                throw std::invalid_argument("TRT float input mismatch: " + tensor->name);
+            }
             host = input.floats.data();
-            bytes = t->bytes;
+        } else {
+            throw std::invalid_argument("TRT input dtype is unsupported: " + tensor->name);
         }
-        if (cudaMemcpyAsync(t->dev, host, bytes, cudaMemcpyHostToDevice, stream)
-            != cudaSuccess) {
-            throw std::runtime_error("cudaMemcpyAsync H2D failed for " + std::string(input.name));
+        if (cudaMemcpyAsync(tensor->dev, host, tensor->bytes, cudaMemcpyHostToDevice, stream) != cudaSuccess) {
+            throw std::runtime_error("TRT input copy failed: " + tensor->name);
         }
     }
-    const auto profile_h2d = profile::Clock::now();
+    if (!context->enqueueV3(stream)) throw std::runtime_error("TRT enqueueV3 failed");
+    return *output;
+}
 
-    if (!context->enqueueV3(stream)) {
-        throw std::runtime_error("enqueueV3 failed");
+std::vector<float> TrtEngine::read_output(const Tensor& output, void* execution_stream) {
+    auto stream = static_cast<cudaStream_t>(execution_stream);
+    std::vector<float> result(output.elems);
+    // 局部输出缓冲区须比排队的 D2H 工作存活更久。
+    StreamDrain drain(execution_stream);
+    if (cudaMemcpyAsync(result.data(), output.dev, output.bytes, cudaMemcpyDeviceToHost, stream) != cudaSuccess
+        || cudaStreamSynchronize(stream) != cudaSuccess) {
+        throw std::runtime_error("TRT output copy or synchronization failed");
     }
-    const auto profile_enqueue = profile::Clock::now();
+    drain.release();
+    return result;
+}
 
-    // The D2H copy is ordered after inference on the same stream, so a separate
-    // pre-copy synchronization only adds a host round trip.
-    (void)output_names;
-    for (const auto& t : tensors_) {
-        if (t.is_input) continue;
-        std::vector<float> out(t.elems);
-        const auto profile_output_alloc = profile::Clock::now();
-        if (cudaMemcpyAsync(out.data(), t.dev, t.elems * sizeof(float),
-                            cudaMemcpyDeviceToHost, stream) != cudaSuccess) {
-            throw std::runtime_error("cudaMemcpyAsync D2H failed for " + t.name);
-        }
-        const auto profile_d2h = profile::Clock::now();
-        if (cudaStreamSynchronize(stream) != cudaSuccess) {
-            throw std::runtime_error("cudaStreamSynchronize failed for " + t.name);
-        }
-        if (profile::enabled()) {
-            const auto profile_done = profile::Clock::now();
-            spdlog::info(
-                "[profile][trt:{}] shape_alloc={:.3f}ms input_h2d_call={:.3f}ms "
-                "enqueue_call={:.3f}ms output_alloc={:.3f}ms d2h_call={:.3f}ms "
-                "sync_wait={:.3f}ms total={:.3f}ms",
-                inputs.empty() ? "unknown" : inputs.front().name,
-                profile::elapsed_ms(profile_start, profile_shapes),
-                profile::elapsed_ms(profile_shapes, profile_h2d),
-                profile::elapsed_ms(profile_h2d, profile_enqueue),
-                profile::elapsed_ms(profile_enqueue, profile_output_alloc),
-                profile::elapsed_ms(profile_output_alloc, profile_d2h),
-                profile::elapsed_ms(profile_d2h, profile_done),
-                profile::elapsed_ms(profile_start, profile_done));
-        }
-        return out;
+std::vector<float> TrtEngine::run(const std::vector<OnnxInput>& inputs,
+                                  const std::vector<const char*>& output_names) {
+    if (output_names.size() != 1) throw std::invalid_argument("TRT requires one named output");
+    std::lock_guard<std::mutex> lock(execution_mutex_);
+    StreamDrain drain(stream_);
+    const auto start = profile::Clock::now();
+    auto& output = enqueue(inputs, output_names.front(), stream_);
+    const auto queued = profile::Clock::now();
+    auto result = read_output(output, stream_);
+    drain.release();
+    if (profile::enabled()) {
+        const auto done = profile::Clock::now();
+        spdlog::info("[profile][trt:{}] prepare_enqueue={:.3f}ms output_wait={:.3f}ms total={:.3f}ms",
+            output_names.front(), profile::elapsed_ms(start, queued),
+            profile::elapsed_ms(queued, done), profile::elapsed_ms(start, done));
     }
-    throw std::runtime_error("TRT engine has no output tensor");
+    return result;
+}
+
+std::vector<float> TrtEngine::run_chained(
+    const std::vector<OnnxInput>& inputs, const char* output_name,
+    IEngine& consumer, std::vector<OnnxInput>& consumer_inputs,
+    const char* consumer_input, const char* consumer_output) {
+    auto* next = dynamic_cast<TrtEngine*>(&consumer);
+    const char* setting = std::getenv("MOZART_RVC_DEVICE_CHAIN");
+    if (!next || next == this || (setting && std::string(setting) == "0")) {
+        return IEngine::run_chained(inputs, output_name, consumer, consumer_inputs, consumer_input, consumer_output);
+    }
+    std::scoped_lock lock(execution_mutex_, next->execution_mutex_);
+    StreamDrain drain(stream_);
+    const auto start = profile::Clock::now();
+    auto& intermediate = enqueue(inputs, output_name, stream_);
+    // 固定实时契约使用完整 z。动态输出保存本次实际形状。
+    Tensor view = {};
+    view.dtype = intermediate.dtype;
+    view.bytes = intermediate.bytes;
+    view.dev = intermediate.dev;
+    view.dims = to_dims(static_cast<nvinfer1::IExecutionContext*>(context_)->getTensorShape(output_name));
+    auto& output = next->enqueue(consumer_inputs, consumer_output, stream_, consumer_input, &view);
+    auto result = next->read_output(output, stream_);
+    drain.release();
+    if (profile::enabled()) {
+        spdlog::info("[profile][trt-chain] {}->{} total={:.3f}ms", output_name, consumer_input,
+            profile::elapsed_ms(start, profile::Clock::now()));
+    }
+    return result;
 }
 
 std::vector<float> TrtEngine::run(
@@ -328,6 +437,7 @@ void TrtEngine::unload() {
     engine_ = nullptr;
     stream_ = nullptr;
     input_types_.clear();
+    record_runtime("unavailable", {}, true);
 }
 
 #else // !USE_TENSORRT — 空实现（头文件桩已够，这里无需额外代码）

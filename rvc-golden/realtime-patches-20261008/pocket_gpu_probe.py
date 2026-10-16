@@ -33,6 +33,7 @@ def main():
     parser.add_argument('--profile', action='store_true')
     parser.add_argument('--repeats', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
+    parser.add_argument('--audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=15)
     args = parser.parse_args()
     if args.threads < 1:
         parser.error('--threads must be positive')
@@ -46,7 +47,7 @@ def main():
                '--model', str(args.model), '--threads', str(args.threads), '--provider', args.provider,
                '--precision', args.precision]
     if args.early_audio:
-        command += ['--early-audio']
+        command += ['--early-audio', '--audio-chunk-frames', str(args.audio_chunk_frames)]
     if args.profile:
         config = args.output/'provider.conf'
         config.write_text('LogSeverityLevel=0\nProfilingFilePrefix='+str((args.output/'ort').resolve())+'\n')

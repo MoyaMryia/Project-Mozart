@@ -64,6 +64,9 @@ def main():
     parser.add_argument('--tts-pythonpath', type=Path)
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--early-audio', action='store_true')
+    parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=15)
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='normal')
+    parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--stable-clauses', action='store_true')
     parser.add_argument('--boundary-model', type=Path)
     parser.add_argument('--boundary-threshold', type=float, default=.5)
@@ -86,9 +89,11 @@ def main():
         '--no-rnnoise', '--playback-device', 'null', '--archive-utterances',
         '--run-dir', str(output/'runtime'), '--data-dir', str(output/'speech')]
     command += ['--tts-provider', args.tts_provider, '--tts-precision', args.tts_precision,
-                '--tts-threads', str(args.tts_threads)]
+                '--tts-threads', str(args.tts_threads), '--playback-tempo', args.playback_tempo]
+    if args.capture_playback:
+        command += ['--capture-playback']
     if args.early_audio:
-        command += ['--early-audio']
+        command += ['--early-audio', '--tts-audio-chunk-frames', str(args.tts_audio_chunk_frames)]
     if args.stable_clauses:
         command += ['--stable-clauses']
     if args.boundary_model:

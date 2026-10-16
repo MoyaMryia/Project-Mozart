@@ -6,11 +6,12 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import wave
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from speech_service import SpeechService
+from tempo_player import TempoPlayer
 import test_speech_service as speech_tests
 
 WORKER = '''import json,sys,time,wave
@@ -20,7 +21,7 @@ for line in sys.stdin:
  j=json.loads(line);output=Path(j['output']);pieces=[];started=time.monotonic()
  for i in range(3):
   if i:
-   time.sleep(.12)
+   time.sleep(.01 if j['text'].startswith('quick') else .12)
   if i==1 and j['text'].startswith('cancel'):
    time.sleep(10)
   if i==1 and j['text'].startswith('latefail'):
@@ -124,6 +125,97 @@ class EarlyAudioTests(unittest.TestCase):
         self.assertEqual(len(self.players), 3)
         self.assertEqual([j['playback_started_at'] for j in results],
                          sorted(j['playback_started_at'] for j in results))
+
+    def test_ready_blocks_keep_complete_persistent_progress(self):
+        job = self.submit('quick', playback=True, live=True)
+        result = self.wait(job['id'])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['played_chunks'], 3)
+        self.assertTrue(all(chunk['status'] == 'completed' for chunk in result['chunks']))
+        stored = json.loads((self.root/'results'/f"{job['id']}.json").read_text())
+        self.assertEqual(stored['played_chunks'], 3)
+
+    def test_adaptive_tempo_saves_actual_output_and_preserves_synthesis(self):
+        self.service.playback_tempo = 'adaptive'
+        self.service.capture_playback = True
+        with self.service.lock:
+            job = self.submit('quick adaptive', playback=True, live=True)
+            self.service.jobs[job['id']]['created_at'] -= 4
+        result = self.wait(job['id'])
+        self.assertEqual(result['status'], 'completed', result.get('error'))
+        self.assertEqual(result['playback_tempo'], 1.05)
+        self.assertGreater(result['playback_started_at'], result['playback_input_started_at'])
+        self.assertEqual(result['playback_timing'], 'null_paced_filtered_pcm')
+        self.assertEqual(result['played_chunks'], 3)
+        with wave.open(str(self.root/'results'/result['playback_audio_filename']), 'rb') as capture:
+            self.assertEqual(capture.getnframes(), result['playback_output_samples'])
+            self.assertEqual(capture.readframes(capture.getnframes()), self.players[0].read_bytes())
+        with wave.open(str(self.root/'results'/f"{job['id']}.wav"), 'rb') as source:
+            self.assertEqual(source.getnframes(), 5760)
+
+    def test_adaptive_tempo_keeps_empty_queue_and_preview_at_normal_speed(self):
+        self.service.playback_tempo = 'adaptive'
+        with self.service.lock:
+            self.assertEqual(self.service.select_playback_tempo({'live': False}), 1)
+            job = self.submit('normal', playback=True, live=True)
+            self.assertEqual(self.service.select_playback_tempo(self.service.jobs[job['id']]), 1)
+        result = self.wait(job['id'])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['playback_tempo'], 1)
+
+    def test_next_job_cannot_inherit_previous_player_first_audio_time(self):
+        with self.service.lock:
+            original = self.service.player
+            self.service.player = Mock(spec=TempoPlayer, first_audio_at=time.time()-10)
+            self.service.active_play = 'next'
+            self.service.player_job_id = 'previous'
+            job = {'id': 'next'}
+            try:
+                self.service.sync_playback_start(job)
+                self.assertNotIn('playback_started_at', job)
+                self.service.player_job_id = 'next'
+                self.service.sync_playback_start(job)
+                self.assertEqual(job['playback_started_at'], self.service.player.first_audio_at)
+            finally:
+                self.service.player = original
+                self.service.active_play = self.service.player_job_id = None
+
+    def test_flexible_ratio_preserves_whole_stream_and_filter_tail(self):
+        self.service.playback_tempo = 'flexible'
+        self.service.capture_playback = True
+        with patch.object(self.service.tempo_controller, 'select', return_value={
+                'tempo': 1.037, 'limited': False}):
+            result = self.wait(self.submit('quick flexible', playback=True, live=True)['id'])
+        self.assertEqual(result['status'], 'completed', result.get('error'))
+        self.assertEqual(result['playback_tempo'], 1.037)
+        with wave.open(str(self.root/'results'/f"{result['id']}.wav"), 'rb') as source:
+            source_pcm = source.readframes(source.getnframes())
+        expected = subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', '24000',
+            '-ac', '1', '-i', 'pipe:0', '-af', 'atempo=1.037', '-f', 's16le', 'pipe:1'],
+            input=source_pcm, stdout=subprocess.PIPE, check=True).stdout
+        self.assertEqual(self.players[0].read_bytes(), expected)
+        self.assertEqual(result['playback_output_samples'], len(expected)//2)
+
+    def test_flexible_complete_wav_path_also_waits_for_filter_tail(self):
+        self.service.close()
+        worker = self.root/'whole-worker.py'
+        worker.write_text('''import json,sys,wave
+print(json.dumps({'ready':True}),flush=True)
+for line in sys.stdin:
+ j=json.loads(line)
+ with wave.open(j['output'],'wb') as w:
+  w.setparams((1,2,24000,0,'NONE','not compressed'));w.writeframes(b'\\x10\\x00'*5760)
+ print(json.dumps({'duration_seconds':.24,'sample_rate':24000}),flush=True)
+''')
+        self.service = SpeechService(self.root/'whole', [sys.executable, str(worker)],
+            playback_device='null', delivery_policy='coverage', playback_tempo='flexible', capture_playback=True)
+        self.service.voices['test'] = {'id':'test','revision':'fixed','transcript':'','engine':'pocket','status':'needs_preview'}
+        with patch.object(self.service.tempo_controller, 'select', return_value={'tempo':1.037}):
+            result = self.wait(self.submit('whole', playback=True, live=True)['id'])
+        self.assertEqual(result['status'], 'completed', result.get('error'))
+        self.assertTrue(result['continuous_playback'])
+        self.assertGreater(result['playback_output_samples'], 0)
+        self.assertEqual(result['played_chunks'], result['chunk_count'])
 
 
 if __name__ == '__main__':
