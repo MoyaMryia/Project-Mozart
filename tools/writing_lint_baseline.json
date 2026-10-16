@@ -212,54 +212,6 @@
    "count": 1
   },
   {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "1.15 倍是按用户要求提高的上限，不是固定播放速度。",
-   "count": 1
-  },
-  {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "|  |  | 播放比例上限。允许 1.00–1.15，向下取到 0.001 精度。高于 1.05 的发音与听感仍需另测。 |",
-   "count": 1
-  },
-  {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "只表示该段相对源区间的预测超长量，不是累计积压或实测延迟。",
-   "count": 1
-  },
-  {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "它不是物理扬声器的实际剩余播放量。",
-   "count": 1
-  },
-  {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "观测区间包含识别前视音频，不等于分句的精确发音区间。",
-   "count": 1
-  },
-  {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "该余量不是单句时长误差的硬上限。",
-   "count": 1
-  },
-  {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "近似音节数来自字母规则，不是逐音素对齐。",
-   "count": 1
-  },
-  {
-   "path": "docs/FLEXIBLE_TEMPO.md",
-   "rule": "hedge-in-body",
-   "text": "默认目标延迟为 1.5 s，恢复时间为 30 s。这些是控制参数，不是延迟保证。",
-   "count": 1
-  },
-  {
    "path": "docs/REALTIME_LATENCY.md",
    "rule": "hedge-in-body",
    "text": "- 使用持续 PCM 播放器，减少每片段启动  的开销；该开销尚未独立测量，不能声称可节省数秒。",

@@ -179,3 +179,5 @@ reports/**/__pycache__/
 !reports/tempo-limit-20261016/quality-summary.json
 !reports/tempo-limit-20261016/manifest.json
 !reports/tempo-limit-20261016/pcm-difference.json
+!reports/tempo-limit-20261016/metrics.json
+!rvc-golden/tempo-frame-boundary-pocket.wav

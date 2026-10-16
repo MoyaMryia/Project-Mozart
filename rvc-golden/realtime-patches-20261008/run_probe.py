@@ -10,6 +10,10 @@ import subprocess
 import threading
 import time
 import urllib.request
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'tools'))
+from tempo_control import DEFAULT_TEMPO_MAX
 
 
 def save(path, value):
@@ -66,7 +70,7 @@ def main():
     parser.add_argument('--early-audio', action='store_true')
     parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=15)
     parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='normal')
-    parser.add_argument('--playback-tempo-max', type=float, default=1.15)
+    parser.add_argument('--playback-tempo-max', type=float, default=DEFAULT_TEMPO_MAX)
     parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--stable-clauses', action='store_true')
     parser.add_argument('--boundary-model', type=Path)

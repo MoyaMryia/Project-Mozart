@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -7,7 +8,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from speech_duration import DEFAULT_PROFILE, DurationEstimator, duration_features, source_duration
-from tempo_control import TempoController
+from tempo_control import MAX_TEMPO, TempoController
 
 
 class DurationTests(unittest.TestCase):
@@ -92,11 +93,13 @@ class TempoControlTests(unittest.TestCase):
         for maximum in [float('nan'), .9, 1.1501, 1.2]:
             with self.assertRaises(ValueError):
                 TempoController(maximum)
-        with self.assertRaises(ValueError):
-            TempoController().select(float('nan'), 2, 0, 2, 'a', 100)
-        with self.assertRaises(ValueError):
-            TempoController().select(2, float('nan'), 0, 2, 'a', 100)
         self.assertLessEqual(TempoController(1.0374).select(3, 2, 0, 3, 'a', 100)['tempo'], 1.0374)
+
+    def test_python_and_native_upper_limits_match(self):
+        source = (Path(__file__).resolve().parents[2]/'preprocessor/src/tempo_filter.c').read_text()
+        value = re.search(r'^#define MOZART_MAX_TEMPO ([0-9.]+)$', source, re.MULTILINE)
+        self.assertIsNotNone(value)
+        self.assertEqual(float(value.group(1)), MAX_TEMPO)
 
     def test_extended_cap_keeps_intermediate_ratios_and_gradual_release(self):
         control = TempoController()

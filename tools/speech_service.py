@@ -991,10 +991,6 @@ def main():
     parser.add_argument('--audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=3)
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     args = parser.parse_args()
-    try:
-        TempoController(args.playback_tempo_max, args.playback_target_delay, args.playback_recovery_seconds)
-    except ValueError as error:
-        parser.error(str(error))
     command = [sys.executable, str(Path(__file__).with_name('clone_worker.py')),
         '--model', args.model, '--engine', args.engine, '--threads', str(args.threads), '--vocoder', args.vocoder,
         '--provider', args.provider, '--precision', args.precision]

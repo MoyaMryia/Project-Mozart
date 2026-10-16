@@ -52,10 +52,11 @@ class FeatureLatencyCompareTests(unittest.TestCase):
 
 
 class CampaignCaseTests(unittest.TestCase):
-    def invoke(self, cases, output):
+    def invoke(self, cases, output, measure_case=None):
         argv = ['run_efficiency_campaign.py', '--baseline', 'baseline-bin', '--candidate', 'candidate-bin',
                 '--repo', '.', '--assets', str(output / 'missing-assets'), '--input', 'input.wav',
-                '--output-dir', str(output), '--cases', *cases]
+                '--output-dir', str(output)]
+        argv += ['--measure-case', measure_case] if measure_case else ['--cases', *cases]
         with mock.patch.object(sys, 'argv', argv):
             run_efficiency_campaign.main()
 
@@ -91,6 +92,16 @@ class CampaignCaseTests(unittest.TestCase):
             output = Path(temp) / 'output'
             with mock.patch.object(Path, 'iterdir', side_effect=ReachedAssetTraversal), self.assertRaises(ReachedAssetTraversal):
                 self.invoke(['baseline', 'compatible'], output)
+            self.assertTrue(output.exists())
+
+    def test_explicit_measurement_mode_reaches_assets(self):
+        class ReachedAssetTraversal(Exception):
+            pass
+
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp)/'output'
+            with mock.patch.object(Path, 'iterdir', side_effect=ReachedAssetTraversal), self.assertRaises(ReachedAssetTraversal):
+                self.invoke([], output, measure_case='parallel')
             self.assertTrue(output.exists())
 
 

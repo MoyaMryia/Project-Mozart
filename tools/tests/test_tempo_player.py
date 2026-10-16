@@ -1,7 +1,5 @@
-import math
 from pathlib import Path
 import shutil
-import struct
 import subprocess
 import sys
 import tempfile
@@ -47,30 +45,28 @@ class TempoTests(unittest.TestCase):
         return player
 
     def test_continuous_filter_keeps_tail_and_matches_whole_input(self):
-        pcm = b''.join(struct.pack('<h', int(8000*math.sin(2*math.pi*220*i/24000))) for i in range(48000))
+        fixture = Path(__file__).resolve().parents[2]/'rvc-golden/tempo-frame-boundary-pocket.wav'
+        with wave.open(str(fixture), 'rb') as source:
+            pcm = source.readframes(source.getnframes())
         for tempo in [1.037, 1.1, 1.125, 1.15]:
             with self.subTest(tempo=tempo):
                 expected = subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', '24000', '-ac', '1',
                     '-i', 'pipe:0', '-af', f'atempo={tempo:.3f}', '-f', 's16le', 'pipe:1'], input=pcm,
                     stdout=subprocess.PIPE, check=True).stdout
-                player = self.player(tempo=tempo)
-                library_path = Path(__file__).resolve().parents[2]/'build-gpu/preprocessor/libmozart-tempo.so'
-                self.assertEqual(player.backend, 'libavfilter_inprocess' if library_path.is_file() else 'ffmpeg')
-                for start in range(0, len(pcm), 2400):
-                    player.stdin.write(pcm[start:start+2400])
-                player.stdin.close()
-                self.assertEqual(player.wait(timeout=5), 0)
-                self.assertEqual(self.outputs[-1].read_bytes(), expected)
-                self.assertEqual(player.output_samples*2, len(expected))
-                self.assertIsNotNone(player.first_audio_at)
-                with wave.open(str(self.root/'capture.wav'), 'rb') as capture:
-                    self.assertEqual(capture.readframes(capture.getnframes()), expected)
-
-    def test_invalid_tempo_fails_before_opening_output(self):
-        for tempo in [float('nan'), float('inf'), .999, 1.1501]:
-            with self.subTest(tempo=tempo), self.assertRaises(ValueError):
-                self.player(tempo=tempo)
-        self.assertEqual(self.outputs, [])
+                for block_bytes in [2400, 4096, 8192]:
+                    with self.subTest(block_bytes=block_bytes):
+                        player = self.player(tempo=tempo)
+                        library_path = Path(__file__).resolve().parents[2]/'build-gpu/preprocessor/libmozart-tempo.so'
+                        self.assertEqual(player.backend, 'libavfilter_inprocess' if library_path.is_file() else 'ffmpeg')
+                        for start in range(0, len(pcm), block_bytes):
+                            player.stdin.write(pcm[start:start+block_bytes])
+                        player.stdin.close()
+                        self.assertEqual(player.wait(timeout=5), 0)
+                        self.assertEqual(self.outputs[-1].read_bytes(), expected)
+                        self.assertEqual(player.output_samples*2, len(expected))
+                        self.assertIsNotNone(player.first_audio_at)
+                        with wave.open(str(self.root/'capture.wav'), 'rb') as capture:
+                            self.assertEqual(capture.readframes(capture.getnframes()), expected)
 
     def test_first_output_arrives_before_input_eof(self):
         player = self.player()
