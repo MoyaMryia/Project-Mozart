@@ -1,0 +1,1869 @@
+{
+  "runs": [
+    {
+      "case": "final105",
+      "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+      "parent_first_pcm_seconds": {
+        "count": 23,
+        "median": 3.555209159851074,
+        "min": -1.8873355388641357,
+        "p95": 8.568194293975829,
+        "percentile_method": "linear",
+        "max": 9.414731979370117
+      },
+      "parents": 23,
+      "completed_parents": 23,
+      "jobs": 41,
+      "job_states": {
+        "completed": 41
+      },
+      "identical_text_source_and_wav_to_baseline": true,
+      "synthesis_audio_seconds": 123.75999999999999,
+      "playback_audio_seconds": 118.38825,
+      "tempo_counts": {
+        "1.05": 41
+      },
+      "limited_jobs": 41,
+      "minimum_available_GiB": 3.1216812133789062,
+      "asr_frames": 6000,
+      "asr_overruns": 0,
+      "source_covered_parents": 23,
+      "playback_order_preserved": true,
+      "revision_violations": [],
+      "final_speech_status": {
+        "unfinished_jobs": 0,
+        "pending_jobs": 0,
+        "storage_warning": null,
+        "warmup_error": null
+      },
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 131.87411865295144,
+        "remaining_pids_before_cleanup": [],
+        "injection": null
+      },
+      "playback_verification": {
+        "captured_jobs": 41,
+        "checks": [
+          {
+            "job": "37d36fea3f7146bba4a547d899015bf3",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 173971,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 173971,
+            "metadata_matches": true,
+            "pcm_sha256": "5f56a7e661202fdeaef3945cc9a3f91e327c9d40b3678c0a12b027a749e364ec",
+            "first_pcm_after_input_ms": 11.638879776000977
+          },
+          {
+            "job": "c345110cbd6c41af8265868ba1f52de6",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 82666,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 82666,
+            "metadata_matches": true,
+            "pcm_sha256": "263c31a2862526709730b203a5d3888b2af89b81d9e44937fa573d102abc09ec",
+            "first_pcm_after_input_ms": 5.922079086303711
+          },
+          {
+            "job": "008c6fadf3e444499bd55cc30a4da06e",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 60665,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 60665,
+            "metadata_matches": true,
+            "pcm_sha256": "47fa68d031cbf7e05503766cfde406dcb2606cbf7567884f2ccd92715cf8ef9a",
+            "first_pcm_after_input_ms": 4.439592361450195
+          },
+          {
+            "job": "339e06f62ea34b719b782dcc829138d9",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 49760,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 49760,
+            "metadata_matches": true,
+            "pcm_sha256": "b54c3c581071fe409bb59c5108f5292c9b3bbb206cfebaed83aba82bea6accdf",
+            "first_pcm_after_input_ms": 4.3354034423828125
+          },
+          {
+            "job": "85e099c9b2ed48bf991959c0b879a1eb",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 73598,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 73598,
+            "metadata_matches": true,
+            "pcm_sha256": "58b7da2270599ad2c6e04c8881b3e68d433bcd1b3119a96573df33a22468caee",
+            "first_pcm_after_input_ms": 5.620479583740234
+          },
+          {
+            "job": "5c8e0bad520c4fe6a738f34ed0505fcf",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 95375,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 95375,
+            "metadata_matches": true,
+            "pcm_sha256": "e0d3643030054b0a5a64298dbd5eff496f60c7af7c1bc6d61d4eae34e0198836",
+            "first_pcm_after_input_ms": 3.810882568359375
+          },
+          {
+            "job": "fbbfb9309b6e44c186e857171baeceef",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 62412,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 62412,
+            "metadata_matches": true,
+            "pcm_sha256": "6a68255d705e163cac147d71da6b88aced0ab807d99f2fc2f0d2261341245f37",
+            "first_pcm_after_input_ms": 5.2490234375
+          },
+          {
+            "job": "938715ce7b7b4c80ae61088ab07a3430",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 77077,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 77077,
+            "metadata_matches": true,
+            "pcm_sha256": "5f717e56b27cb88bad653cb709f73864da9e886a0077dcae43321e251373760e",
+            "first_pcm_after_input_ms": 4.267692565917969
+          },
+          {
+            "job": "3f089edf3c984b57bc20910ff755c17b",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 27697,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 27697,
+            "metadata_matches": true,
+            "pcm_sha256": "ccb9cbfbbb5116196fa54eaa73aefe5f75fa653631e26d289b80c03f28a9e5c2",
+            "first_pcm_after_input_ms": 4.528284072875977
+          },
+          {
+            "job": "089a385fc03f4e3490fee6bf12eb669d",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 78967,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 78967,
+            "metadata_matches": true,
+            "pcm_sha256": "344d4749cf5bcd7696eae63e0229680c61671c6a99b9f3e19d19712006de230d",
+            "first_pcm_after_input_ms": 16.020774841308594
+          },
+          {
+            "job": "9812ce24e40c41c2a651c7957b005e7d",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 118979,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 118979,
+            "metadata_matches": true,
+            "pcm_sha256": "a69ab78d178d5c29524a3310c4c5131f3cb8992186d1ed6c76e834543674badf",
+            "first_pcm_after_input_ms": 5.747079849243164
+          },
+          {
+            "job": "029eff56b1c2491b9cdd0cfcde8a10ff",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 24137,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 24137,
+            "metadata_matches": true,
+            "pcm_sha256": "017c90ebf475b171520548168af049bd5834f170539332f14ef2979158d32797",
+            "first_pcm_after_input_ms": 13.015508651733398
+          },
+          {
+            "job": "9373ca32d9104a2a87ffd18179b00bd2",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 74984,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 74984,
+            "metadata_matches": true,
+            "pcm_sha256": "d4816b6a5e079b5d10989d0afbaaab643f3aff818f0b2827ffe2f692f1525bda",
+            "first_pcm_after_input_ms": 4.67681884765625
+          },
+          {
+            "job": "1133c79bbf3a42c3a903d8efe64db6ed",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 95451,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 95451,
+            "metadata_matches": true,
+            "pcm_sha256": "c4185ccd2ca705e800c040f00c0e5994adc5e9d878924b7aebbfb2839737d1d8",
+            "first_pcm_after_input_ms": 5.817651748657227
+          },
+          {
+            "job": "3cc2293867824acd82b2b0763e616997",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 44217,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 44217,
+            "metadata_matches": true,
+            "pcm_sha256": "943e89368a76ebab59716fc8856acdf6d84b8cb47a7db8087bbdcd78927e95d1",
+            "first_pcm_after_input_ms": 6.308078765869141
+          },
+          {
+            "job": "e5535daf8170456998de7fd51dce584e",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 26010,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 26010,
+            "metadata_matches": true,
+            "pcm_sha256": "312a5f3e703a1c3368ca7034cd862d8af26bca55ab6430cdd1ed8cb434d951c8",
+            "first_pcm_after_input_ms": 5.381107330322266
+          },
+          {
+            "job": "e9e06fc88fd746dfb33fbdae98da307c",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 31251,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 31251,
+            "metadata_matches": true,
+            "pcm_sha256": "5f1e4cc5fd310a9acf28f469b69d39250eabdbfa61bc66bf353c36cb9f7d9227",
+            "first_pcm_after_input_ms": 4.430055618286133
+          },
+          {
+            "job": "d6f6e277677b42729848db6ec13d7e44",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 77168,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 77168,
+            "metadata_matches": true,
+            "pcm_sha256": "217af2a936953475f6dfdd01bc80db9b0ef8e7510058c409841081595717b0d8",
+            "first_pcm_after_input_ms": 5.475282669067383
+          },
+          {
+            "job": "1040f49ce53a416286442e3987133977",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 75257,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 75257,
+            "metadata_matches": true,
+            "pcm_sha256": "a2b4efb977ab999f5bb165e8e9a1f606ee990d4afc5d26a81383da0e6a8fdf92",
+            "first_pcm_after_input_ms": 5.127906799316406
+          },
+          {
+            "job": "de6948b062674e9cbb6ecbba99ba2b02",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 25878,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 25878,
+            "metadata_matches": true,
+            "pcm_sha256": "c7dc074ebd0da3816a8f98e864cd1033cfb89359eda9d238339cfc78735f14a1",
+            "first_pcm_after_input_ms": 5.765438079833984
+          },
+          {
+            "job": "eb18913a5c9344b79247158593899049",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 55178,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 55178,
+            "metadata_matches": true,
+            "pcm_sha256": "6b1bba401bbd7ae33ba1710b75c8e362bac3a215f7479dd268b053c5e8036a52",
+            "first_pcm_after_input_ms": 5.04302978515625
+          },
+          {
+            "job": "46337b7d578846728f97fb382ff8bd03",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 102729,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 102729,
+            "metadata_matches": true,
+            "pcm_sha256": "5069b4755b451dd19ef182801173923c4914f7c0a5c84d46a5561cc5c0bcb964",
+            "first_pcm_after_input_ms": 4.154443740844727
+          },
+          {
+            "job": "8f3d0b06bff14f3c8cd997ad15633d37",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 77144,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 77144,
+            "metadata_matches": true,
+            "pcm_sha256": "979fa6b286bf8075eb65328641374fc2c7321c5554e039cd9baad5678cf8dca3",
+            "first_pcm_after_input_ms": 5.712270736694336
+          },
+          {
+            "job": "6809db95504e4a08ab8721fa8ad73575",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 78592,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 78592,
+            "metadata_matches": true,
+            "pcm_sha256": "db88e43b9f03906e93ed5817ad4e8761faa1c93eb93e8d33a938e9a0a86ec789",
+            "first_pcm_after_input_ms": 4.276037216186523
+          },
+          {
+            "job": "1e678bfdc4d2439a899fbd934d55aa7c",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 99222,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 99222,
+            "metadata_matches": true,
+            "pcm_sha256": "62d7d8191fe9790d7d7b39cec263cda127716c0658b85dc5783e08a82fd842bc",
+            "first_pcm_after_input_ms": 5.568027496337891
+          },
+          {
+            "job": "21953e2ba52e49a583dacaaec78942a2",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 60689,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 60689,
+            "metadata_matches": true,
+            "pcm_sha256": "9638a11fc42824760e6cdc1593a1a79dfc91ee8507ac64d300cdc385e0159f7a",
+            "first_pcm_after_input_ms": 8.259296417236328
+          },
+          {
+            "job": "fd11051ee9914d8bb9994bddbc15da35",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 36799,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 36799,
+            "metadata_matches": true,
+            "pcm_sha256": "9914710554f8d42490b757459333c66cb139afe56f5268c72d6d70b7acba7293",
+            "first_pcm_after_input_ms": 4.55474853515625
+          },
+          {
+            "job": "303ffb9caeed49df82d6e7cc17a819de",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 97327,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 97327,
+            "metadata_matches": true,
+            "pcm_sha256": "830bf81bfab1ef232d2712ad8484bf64ff723fe5d4a501d75b22be49731d0e92",
+            "first_pcm_after_input_ms": 5.731344223022461
+          },
+          {
+            "job": "d5c4e8cecfa64c099e022fc73a882160",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 155386,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 155386,
+            "metadata_matches": true,
+            "pcm_sha256": "178e4671ca2bbcf28a95f034a86221281a97b2a39155a3d635e2ebf97d778eb8",
+            "first_pcm_after_input_ms": 4.137754440307617
+          },
+          {
+            "job": "5fcdad68f36343d8a7d253b1a29303b4",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 55183,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 55183,
+            "metadata_matches": true,
+            "pcm_sha256": "fccdfbef7fc44a64f4782dc89799a7555da4eea30bb5d3d1939bca864a16a10e",
+            "first_pcm_after_input_ms": 4.211187362670898
+          },
+          {
+            "job": "50adc92a571944a5b1a3e9e8ae91637e",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 93635,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 93635,
+            "metadata_matches": true,
+            "pcm_sha256": "5c09da79e0b9858c0a8b4bbcdc4c29c6eee1035630ed54b1d3d26820bbd873cb",
+            "first_pcm_after_input_ms": 7.134437561035156
+          },
+          {
+            "job": "8690812cd6204c46b64221dd940282ea",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 60598,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 60598,
+            "metadata_matches": true,
+            "pcm_sha256": "826284b5d52359b3898ff0ffed77ddcfa76351ac62e4164e39f3e57d58f4f1cc",
+            "first_pcm_after_input_ms": 4.305839538574219
+          },
+          {
+            "job": "f435c0c0fefc41c3bb7df0e60fd5e57e",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 44305,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 44305,
+            "metadata_matches": true,
+            "pcm_sha256": "e130cd68775e46a48e6e53da63dfd5f1efae3b53109c5ba6292643623e9fe8a3",
+            "first_pcm_after_input_ms": 3.8063526153564453
+          },
+          {
+            "job": "9056e519a138408588ce29ff3ce14dda",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 46074,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 46074,
+            "metadata_matches": true,
+            "pcm_sha256": "fb2fab6b7eae6193c237747066c4e1ede0d1f4bfebc5b29b3a1eff83c99743c4",
+            "first_pcm_after_input_ms": 4.546165466308594
+          },
+          {
+            "job": "133a8ae4856c48b9b3cfdbc8db79350e",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 42493,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 42493,
+            "metadata_matches": true,
+            "pcm_sha256": "eb90eb4e8859671328bfaedb25369a38456b7c76ff1e5f49c45f9fab525eeb16",
+            "first_pcm_after_input_ms": 3.7775039672851562
+          },
+          {
+            "job": "35db95d9731c4718bbe006d019a6b0f8",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 62434,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 62434,
+            "metadata_matches": true,
+            "pcm_sha256": "a464fa2450ea1ec4fc3210daf4548359b6991a433ccbfe065960790895357fb6",
+            "first_pcm_after_input_ms": 5.26738166809082
+          },
+          {
+            "job": "5c52c29eda7048f9a01016a411c8504d",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 68065,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 68065,
+            "metadata_matches": true,
+            "pcm_sha256": "b1d47a7d7cc9dfb93978ad642ce1f8fe1bb3c352a44db44007f6fbf6361416e9",
+            "first_pcm_after_input_ms": 5.641937255859375
+          },
+          {
+            "job": "11c03322175d4943b26ee0205e7d805d",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 42189,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 42189,
+            "metadata_matches": true,
+            "pcm_sha256": "16cfdfa6723493f9f634eb2b1f517cdffd575fc7f3e0c2f7b420ca6410c2ffd2",
+            "first_pcm_after_input_ms": 5.336761474609375
+          },
+          {
+            "job": "8e19008a417c4f66bd7c52b56c6d9296",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 46151,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 46151,
+            "metadata_matches": true,
+            "pcm_sha256": "0266c2a467ffffdc757cd69dad915733a122dbc64e017ee073c71935521c1815",
+            "first_pcm_after_input_ms": 6.291866302490234
+          },
+          {
+            "job": "b1a5142bbf9c440fae6cd1d487867dbc",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 86339,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 86339,
+            "metadata_matches": true,
+            "pcm_sha256": "8ae3db57376f7b71ee2ddba103b5b29eba51882fc551f4c4fc20aa0303190b24",
+            "first_pcm_after_input_ms": 4.445791244506836
+          },
+          {
+            "job": "253ac40a4cba46ab83d65d49f0cf4496",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 55266,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 55266,
+            "metadata_matches": true,
+            "pcm_sha256": "418c03f6a04c352bddb1cf331efa0365994106bbea10afcc3eadcab1fc017385",
+            "first_pcm_after_input_ms": 5.0029754638671875
+          }
+        ],
+        "tempo_counts": {
+          "1.05": 41
+        },
+        "first_pcm_after_input_ms": {
+          "count": 41,
+          "median": 5.2490234375,
+          "min": 3.7775039672851562,
+          "p95": 11.638879776000977,
+          "percentile_method": "linear",
+          "max": 16.020774841308594
+        },
+        "total_source_seconds": 123.75999999999999,
+        "total_playback_seconds": 118.38825
+      },
+      "rvc": {
+        "case": "parallel",
+        "repeat": 1,
+        "inference": {
+          "count": 512,
+          "median_ms": 65.06200000000001,
+          "p95_ms": 102.20845,
+          "max_ms": 136.98
+        },
+        "stream": {
+          "blocks": 512,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 280.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        },
+        "validation_errors": [],
+        "startup_seconds": 1.8635603819857351,
+        "ready_process_memory": {
+          "VmRSS": 1431863296,
+          "VmHWM": 1771290624
+        },
+        "final_process_memory": {
+          "VmRSS": 1437220864,
+          "VmHWM": 1771290624
+        },
+        "first_frame_ms": 400,
+        "samples": 5759040,
+        "sample_rate": 48000,
+        "peak": 0.9423884153366089,
+        "rms": 0.0944789257294751,
+        "clip_samples": 0,
+        "pcm_sha256": "f8190150ca05ce0a7f8e15c4bd8ac8feb93dd94b15d42ddea4c2ab56ac916e05"
+      },
+      "source_signatures": [
+        {
+          "key": "1/part/0",
+          "text": "Mama said that during the summer vacation, she took a course to help boost the result of the exam and won a large sum of money.",
+          "source": "妈妈说暑假考研做助诱拿了大几千完了",
+          "wav_sha256": "ac8479a2d703b6631582ec232435e794792f75f311d609322c3fde432f68d46c"
+        },
+        {
+          "key": "1/part/1",
+          "text": "You paid with this exam to your mom a lot of gold coins?",
+          "source": "你凭着这个考研跟你妈妈报了多少钱金币了呀",
+          "wav_sha256": "b4f71e1512a6cfe8ec27043aac4934a484181a8291b6adb3b1a45477317764df"
+        },
+        {
+          "key": "2/part/0",
+          "text": "Seven thousand five thousand is a large number.",
+          "source": "七千五千又是大几千",
+          "wav_sha256": "02b2be0f39f852dbe145c9a17ab8ca4245d2a859c72127eaa142df1758896623"
+        },
+        {
+          "key": "3/part/0",
+          "text": "Your mother is thinking about the house.",
+          "source": "你妈妈在家里心想着",
+          "wav_sha256": "ec46be99be62079e47a5dca6da76a3e174082f62887985cec17c3884541d9c0e"
+        },
+        {
+          "key": "4/part/0",
+          "text": "My son is studying for a graduate exam at school.",
+          "source": "我儿子在学校里面要考研",
+          "wav_sha256": "9a4c23cebbce145ed40a533c374aca5270f0eb939d7c36576405e8972b73b7a5"
+        },
+        {
+          "key": "5/part/0",
+          "text": "Your mother is dancing with the lobster older woman in the square dance.",
+          "source": "你妈妈跟龙虾大妈跳广场舞",
+          "wav_sha256": "5a9978f08882e5fb80429eae6e325aebb75423ecbee349564dc902a57aa4c1fd"
+        },
+        {
+          "key": "5/part/1",
+          "text": "Or when the daughter is quiet, the son will be more.",
+          "source": "或者说女儿闷的时候人家会比较儿子",
+          "wav_sha256": "a3e8930a24f4b1e17f455a0242c9d49b6390b21d388547f6f21d46131c8601a6"
+        },
+        {
+          "key": "5/part/2",
+          "text": "Now how is it that your mother is proud to tell the people",
+          "source": "现在怎么样你妈妈很骄傲地跟人家说",
+          "wav_sha256": "522630d4458b56e16d25a2007ac2b92c514dac2552ba694a939bdc26a435310d"
+        },
+        {
+          "key": "6/part/0",
+          "text": "My son",
+          "source": "我儿子",
+          "wav_sha256": "16265647ac0691fc30c0acee910aa12631ad2685018c753aeb279dc22bdc8711"
+        },
+        {
+          "key": "7/part/0",
+          "text": "Now preparing for the graduate entrance exam.",
+          "source": "现在准备考研准备弄个考个研究生",
+          "wav_sha256": "7a0754349df000849cfdc8d1414bb69eded4e974cb069223f836a3d2255597a6"
+        },
+        {
+          "key": "7/part/1",
+          "text": "You speak slowly, and your heart still feels a little bit happy that your son is there.",
+          "source": "你慢慢一边说一边内心还有点开心自己儿子",
+          "wav_sha256": "58e0ce3598fab82dc3c3dafd0b3ad5e5efc63db46b92051061e7d0e215c6fc7e"
+        },
+        {
+          "key": "8/part/0",
+          "text": "I am working.",
+          "source": "想上进但是呢你在干嘛",
+          "wav_sha256": "8cda50dc4cb19266e0e1e441cdb116850a08e9c2b87825a93e49ad2c1240db7e"
+        },
+        {
+          "key": "8/part/1",
+          "text": "You are gambling and you are asking me to borrow a loan.",
+          "source": "你在赌博你要借我网贷",
+          "wav_sha256": "ea987187e7dc2eb7c3f00412e80f534f74832466df11d77f4e9954d91ebe0b5f"
+        },
+        {
+          "key": "8/part/2",
+          "text": "You are in a web dating situation where everyone is using this to borrow money.",
+          "source": "你在网恋你们老的都是通过这个博去引钱去掉",
+          "wav_sha256": "94292fc52708485dacc14852ca980beec55f9cf47f50550ca03dcf3637d63a74"
+        },
+        {
+          "key": "8/part/3",
+          "text": "No one has anything to brag about.",
+          "source": "一线就没东西装逼",
+          "wav_sha256": "e32509646512c2c0fcabed0a0360caf2c7bdec4840d7be53165de3e2e30494cf"
+        },
+        {
+          "key": "9/part/0",
+          "text": "That is you.",
+          "source": "这个就是你",
+          "wav_sha256": "f62adfd138163b728471312173a2b1be4c70208e3e6643827710ded83e1a6714"
+        },
+        {
+          "key": "10/part/0",
+          "text": "Repay the loan",
+          "source": "充值战备还贷款",
+          "wav_sha256": "c02549b85d027f8852318871ee7d43be578fcc278412f39932e5ff1bd4bf5764"
+        },
+        {
+          "key": "11/part/0",
+          "text": "Soon, the land will be returned to the original owner.",
+          "source": "过几天又年本代地的输回去",
+          "wav_sha256": "bb04fd93a36567a0e6b0000b40aa84259cb6cdba7766091ce2d4c93ece113c8f"
+        },
+        {
+          "key": "11/part/1",
+          "text": "This is the classic process of scamming or borrowing money.",
+          "source": "这个是经典的流程是什么呢骗钱或者借钱",
+          "wav_sha256": "6f3509687f662049de272f0c3e4de20cbc78c385e2c0e00c793418d8f273a464"
+        },
+        {
+          "key": "12/part/0",
+          "text": "Then recharge.",
+          "source": "然后去充值",
+          "wav_sha256": "4dfd378e4368b36fc1dad11a343cdec3d46c4e6d454639c576a0769462b88fa1"
+        },
+        {
+          "key": "13/part/0",
+          "text": "Just the subsidy plan may win for a while.",
+          "source": "只是补贴计划可能赢一段时间",
+          "wav_sha256": "ec848bd6fcc14df4b0fe0982d47c3612c8c081d49ca8a13e0aaa0d6486c11d41"
+        },
+        {
+          "key": "14/part/0",
+          "text": "It will come down to one day when the top and the top will not be able to lose everything.",
+          "source": "就会有一天上头上头完全不全部输完",
+          "wav_sha256": "23beb6a2375411356121dc6a958d1ab233abf40ff7bef907e7a655f491f04ec8"
+        },
+        {
+          "key": "14/part/1",
+          "text": "After that, they start borrowing money or deceiving it.",
+          "source": "之后又开始借钱或者骗钱",
+          "wav_sha256": "a7484f35a29857123cb29aaf1e12350e6932dcdb0581c4c2f3d4149ba591258c"
+        },
+        {
+          "key": "14/part/2",
+          "text": "And then he entered again and then the subsidy plan.",
+          "source": "然后又冲进去然后又补贴计划",
+          "wav_sha256": "f5d15529ab413185ff0e23d957209c56f8445f415124bfd2cf016b458356fc55"
+        },
+        {
+          "key": "15/part/0",
+          "text": "Then maybe they will win or lose it all, but the result is the end result.",
+          "source": "然后可能又赢或者说直接输反正最后的结果",
+          "wav_sha256": "b37e3232a38172b7acf49ae8697e3f7171c9895cc9006c65be9c4e0c6bfbcec5"
+        },
+        {
+          "key": "15/part/1",
+          "text": "It will definitely lose, for this is the loop.",
+          "source": "一定是输反正就是这个循环",
+          "wav_sha256": "11fa126072f8f4cefbf2ece5cbbdbf3b3b01a8276fcbf8cb0c905bad53959eb4"
+        },
+        {
+          "key": "15/part/2",
+          "text": "This is reading dogs.",
+          "source": "一直来一直来这个就是读狗的",
+          "wav_sha256": "a89bdd3c8d5b689f5113fbc4cef9142e3f3260af64b0de32f29a5bee9222f372"
+        },
+        {
+          "key": "15/part/3",
+          "text": "No escape from the loop; no single dog can escape.",
+          "source": "循环逃不掉的没有一个独狗能逃掉",
+          "wav_sha256": "0359f47b5639fcdde39e6e931bd1433cfbbf22b713e0522fd1a18be24b996304"
+        },
+        {
+          "key": "16/part/0",
+          "text": "For example, to enroll in a political class or a small class, you need to pay 10000 yuan.",
+          "source": "比如说要上政治小生小课生班什么的又要到了一万块",
+          "wav_sha256": "2a44c616056d324b3cd5b0d02a5175a1845410f79f70d3434dcabe8d82103c7d"
+        },
+        {
+          "key": "16/part/1",
+          "text": "Okay because you're holding on to your learning",
+          "source": "完了因为报精辟你就拿着你让学习",
+          "wav_sha256": "b47735466962c43090d02a87b600b2f9a7db9f8693e8a8eccd892f5efffbd271"
+        },
+        {
+          "key": "17/part/0",
+          "text": "To run a research project, a political student must have a class.",
+          "source": "要跑研究要政治小朋友身班什么",
+          "wav_sha256": "542e6d03df6abc41f877fb23fdb9668708740602fc8632016794992710aff7ae"
+        },
+        {
+          "key": "17/part/1",
+          "text": "You are going to deceive your mother with money.",
+          "source": "东西的你从通通往到这种事情去骗你妈妈钱",
+          "wav_sha256": "53e72632a08d5dfbd83762236df55c62880067dd049c4b3a2d6e44c2d4e0ee7d"
+        },
+        {
+          "key": "18/part/0",
+          "text": "Do you read this and find out if it's a lie?",
+          "source": "你看看读这个真的什么谎都杀得出来",
+          "wav_sha256": "d35422a462a221643a61a6062dd968cff53c8e1e6453372339df82f6f35276f0"
+        },
+        {
+          "key": "18/part/1",
+          "text": "You can't tell a lie with money.",
+          "source": "一段为了骗钱什么话都杀得出来",
+          "wav_sha256": "f5d2afade8c7b5fe30303573b98588087723020299259fac4f03581c83431822"
+        },
+        {
+          "key": "18/part/2",
+          "text": "As long as you can get money.",
+          "source": "只要能骗到钱就行",
+          "wav_sha256": "efc125aac576ce14ba2365182f7735879d3183d97b79e98a937007ddc9f8122d"
+        },
+        {
+          "key": "18/part/3",
+          "text": "He ignores whoever is facing him and ignores himself.",
+          "source": "他不管对面是谁不管自己",
+          "wav_sha256": "d3e6c323b9bda1c49f3ec609a136c9812d5ecfb63e51fe7798af6fa8423d9565"
+        },
+        {
+          "key": "19/part/0",
+          "text": "To earn money, to get money, to recover",
+          "source": "在做了什么事情只要能要到钱只要能翻本",
+          "wav_sha256": "208e122641cf8bf31573d13b7ff89a24787eaa21f767d1d53181214d1f567168"
+        },
+        {
+          "key": "20/part/0",
+          "text": "Qian wins back all the lies.",
+          "source": "钱赢回来所有的谎话",
+          "wav_sha256": "d1c576bd4e3fa3ee56cf838d20def13782780f1316f9d19467f5e19ec469e3bf"
+        },
+        {
+          "key": "21/part/0",
+          "text": "can not be treated as a threat",
+          "source": "就可以不当等伤害",
+          "wav_sha256": "23894688d7687de7d8a9c9172edbb02d07da487a74a5b8b07fc8e2de0ada62aa"
+        },
+        {
+          "key": "22/part/0",
+          "text": "At this point, the mother has become increasingly doubtful.",
+          "source": "这个时候妈妈已经有点不相信了",
+          "wav_sha256": "07e22418efbb9aec42d01c580d6fe581a9250752d0b2eda24d6cce3da25f58d1"
+        },
+        {
+          "key": "23/part/0",
+          "text": "Mother still doubted me because of me.",
+          "source": "妈妈还是怀疑了但是由于我",
+          "wav_sha256": "5a8623ff3b3deee0436743d0d23594b38e5068192964f2013fa32434858d9185"
+        }
+      ]
+    },
+    {
+      "case": "final115",
+      "source_sha256": "f1b319995cb2dce9b46cfdb0b1d0bb8829d5cf916a61992a8750733408a4ef84",
+      "parent_first_pcm_seconds": {
+        "count": 23,
+        "median": 0.774540901184082,
+        "min": -4.444418668746948,
+        "p95": 6.262566924095154,
+        "percentile_method": "linear",
+        "max": 7.018293142318726
+      },
+      "parents": 23,
+      "completed_parents": 23,
+      "jobs": 41,
+      "job_states": {
+        "completed": 41
+      },
+      "identical_text_source_and_wav_to_baseline": true,
+      "synthesis_audio_seconds": 123.75999999999999,
+      "playback_audio_seconds": 108.961,
+      "tempo_counts": {
+        "1.15": 22,
+        "1.14": 9,
+        "1.13": 5,
+        "1.12": 1,
+        "1.142": 1,
+        "1.132": 1,
+        "1.122": 1,
+        "1.069": 1
+      },
+      "limited_jobs": 22,
+      "minimum_available_GiB": 3.1262855529785156,
+      "asr_frames": 6000,
+      "asr_overruns": 0,
+      "source_covered_parents": 23,
+      "playback_order_preserved": true,
+      "revision_violations": [],
+      "final_speech_status": {
+        "unfinished_jobs": 0,
+        "pending_jobs": 0,
+        "storage_warning": null,
+        "warmup_error": null
+      },
+      "exit": {
+        "exit_code": 0,
+        "failure": null,
+        "elapsed_seconds": 128.9601082529989,
+        "remaining_pids_before_cleanup": [],
+        "injection": null
+      },
+      "playback_verification": {
+        "captured_jobs": 41,
+        "checks": [
+          {
+            "job": "5e96da0b95fb4bc5aa7b2fb10d9af712",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 158780,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 158780,
+            "metadata_matches": true,
+            "pcm_sha256": "0dddf6491a07f679297ab4ed3cf865e41b91e67dbbf25ecf41462a1c7bdf7037",
+            "first_pcm_after_input_ms": 13.919830322265625
+          },
+          {
+            "job": "396b72d96f124abf8559d1bb3dce490c",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 75435,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 75435,
+            "metadata_matches": true,
+            "pcm_sha256": "3ee72ceb55f567d26e7800b5f69d1c383b3d3e3eb9bbca0b339afc8b50222db3",
+            "first_pcm_after_input_ms": 6.018877029418945
+          },
+          {
+            "job": "1e14097d8662469eba8b31abddb7d181",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 55346,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 55346,
+            "metadata_matches": true,
+            "pcm_sha256": "630edd81ebca709e541eb46e641792d8c981140c46d2973064c1e1e2a1c0d14a",
+            "first_pcm_after_input_ms": 4.171133041381836
+          },
+          {
+            "job": "4c3e8d535dab47a8811f8b404d9f17bd",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 45482,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 45482,
+            "metadata_matches": true,
+            "pcm_sha256": "748ddddffb43937471c318ee245985a169bfc1ecb2339b3c0cd082074c1d5ae9",
+            "first_pcm_after_input_ms": 4.171609878540039
+          },
+          {
+            "job": "60b2df717604449e9d6c41ae69f683b1",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 67324,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 67324,
+            "metadata_matches": true,
+            "pcm_sha256": "0257c6e741f3baa33d326fa20a0d51233a218b0013962b2e84884309f10cdb9a",
+            "first_pcm_after_input_ms": 4.230260848999023
+          },
+          {
+            "job": "03a39064fd40432aa5d32a99563735b3",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 88569,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 88569,
+            "metadata_matches": true,
+            "pcm_sha256": "caab6b5937eb3f1387118fbaf3d5ef566504838aebcfdb58e3dad13b44d916a1",
+            "first_pcm_after_input_ms": 3.265857696533203
+          },
+          {
+            "job": "5bc8d5872fd3456388ff9892690aa6cd",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 57054,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 57054,
+            "metadata_matches": true,
+            "pcm_sha256": "3cc3e074b9f0cadaf55fe54305d6d54078dc40a9b4d766b4c1b72cc8ab526c3b",
+            "first_pcm_after_input_ms": 5.878925323486328
+          },
+          {
+            "job": "206a672dfbff4e1794dbb4d33a4fc0c4",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 70501,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 70501,
+            "metadata_matches": true,
+            "pcm_sha256": "d185c99e097a70a61b8f84fa5563105895dd0a9336d2b4f6dd77c25d1da60dd8",
+            "first_pcm_after_input_ms": 4.273653030395508
+          },
+          {
+            "job": "15683afb71024f2a92d47e0fd70abeee",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 25384,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 25384,
+            "metadata_matches": true,
+            "pcm_sha256": "f9bd414082b889f9fd04212bb09ad3d0dc1bde685087157f602dcd634fe0661e",
+            "first_pcm_after_input_ms": 4.069328308105469
+          },
+          {
+            "job": "c303fd210a6444e4ab81e4a6778eeec5",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 71961,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 71961,
+            "metadata_matches": true,
+            "pcm_sha256": "71f5abeca2d70dd6a7bafa3befacd8f1b40a6b35b107ae1aed6f01c3bd177256",
+            "first_pcm_after_input_ms": 3.9861202239990234
+          },
+          {
+            "job": "09a89a05cbdf4ce0bf54124aeb3e776c",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 108736,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 108736,
+            "metadata_matches": true,
+            "pcm_sha256": "9028e131118c6702d2237e050c5aa93dcb1169ef70cb908d5ca460e284850643",
+            "first_pcm_after_input_ms": 6.088495254516602
+          },
+          {
+            "job": "f2884f6608894d85b67413830d3a7995",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 22110,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 22110,
+            "metadata_matches": true,
+            "pcm_sha256": "56344305a5ea92a29f1e6c6d22da1f065df094535c9a50a5adfeb8301c317e7c",
+            "first_pcm_after_input_ms": 4.794120788574219
+          },
+          {
+            "job": "2d2d9d8fcdbd4e868a18ae24f6da02d8",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 70097,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 70097,
+            "metadata_matches": true,
+            "pcm_sha256": "6680d7458c4bf76d9c57d71b08981e07eda44ebe59c8b364dbc7379dfa7ec575",
+            "first_pcm_after_input_ms": 4.787206649780273
+          },
+          {
+            "job": "d3452f4864494bdabb869028aaf251f5",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 87024,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 87024,
+            "metadata_matches": true,
+            "pcm_sha256": "9045d6d17dd893367222a4a5c910e5e04d9f5670db2fb1512e8b3bc92f6607d2",
+            "first_pcm_after_input_ms": 14.190673828125
+          },
+          {
+            "job": "cc84f292ef8744a285675ffddc285193",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 40094,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 40094,
+            "metadata_matches": true,
+            "pcm_sha256": "2be8c8d452c5e4cc594c3d605c0dd9b5de1a847f55552875f4a9d03d03c1357a",
+            "first_pcm_after_input_ms": 4.899501800537109
+          },
+          {
+            "job": "a573bd0236e244ffaa76715d8091122f",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 23818,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 23818,
+            "metadata_matches": true,
+            "pcm_sha256": "d50c295b53d767bcc98ab90bd58b5c8f83d460d10219cbc0cd99307905674e00",
+            "first_pcm_after_input_ms": 4.614830017089844
+          },
+          {
+            "job": "6d6294d186f94cd49ec5088320483423",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 29213,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 29213,
+            "metadata_matches": true,
+            "pcm_sha256": "9085a13421e6e3d6d1cd1d320193c758208392763d5ec6e33a647f87ce2b1787",
+            "first_pcm_after_input_ms": 4.542350769042969
+          },
+          {
+            "job": "69d53239799b4784b29438c1da9fddcf",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 72320,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 72320,
+            "metadata_matches": true,
+            "pcm_sha256": "7922f35f2e04792a515764721819d52faead8289121b7e1c55aba05ee1fa0130",
+            "first_pcm_after_input_ms": 4.226446151733398
+          },
+          {
+            "job": "55fec44c22f3447f82843cd6948f4f7e",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 69198,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 69198,
+            "metadata_matches": true,
+            "pcm_sha256": "474db024cc46d893926923c0630d88bcc5f58c67a0360278967a4ca72a961a1b",
+            "first_pcm_after_input_ms": 4.582405090332031
+          },
+          {
+            "job": "27b6e3eedd3f4bbc947b00ac4168f8f3",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 23995,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 23995,
+            "metadata_matches": true,
+            "pcm_sha256": "458e1110086052da4c3bd352d8a9af98d545b1c8739341c3a6961e4926c5805e",
+            "first_pcm_after_input_ms": 4.277706146240234
+          },
+          {
+            "job": "5bcfe308e10a46ec97f0c5f32b782160",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 51644,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 51644,
+            "metadata_matches": true,
+            "pcm_sha256": "7b60b303b28da2473802426bb5203d00023d0659cdddab7389cc6c3d5c4357eb",
+            "first_pcm_after_input_ms": 3.6101341247558594
+          },
+          {
+            "job": "6d07fb10eb6349da93997353fb39487f",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 100918,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 100918,
+            "metadata_matches": true,
+            "pcm_sha256": "2f9cc398e2082a75c76ba51935fff0f1c88bdd780db1e7179772010e33593c47",
+            "first_pcm_after_input_ms": 5.255460739135742
+          },
+          {
+            "job": "a0502683e3f34d8f947e6cb21cfae233",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 70451,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 70451,
+            "metadata_matches": true,
+            "pcm_sha256": "f6d78abcf4e97bfefaf6f89f190734ba8d4152d139f020274211a2a126beb23f",
+            "first_pcm_after_input_ms": 3.3807754516601562
+          },
+          {
+            "job": "f175a93c6c414c3a9b11bae1d1e885bf",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 72112,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 72112,
+            "metadata_matches": true,
+            "pcm_sha256": "337d3b9a9390652a57cd7c6be2918a438b5e900f183bbc542663375c960b4ca6",
+            "first_pcm_after_input_ms": 4.635810852050781
+          },
+          {
+            "job": "ceecf080605e4f569e80caf118882cb1",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 91392,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 91392,
+            "metadata_matches": true,
+            "pcm_sha256": "62af73404f1137862aeecc62a39b9fe40cffc90d5d2fe6c0594c94da4ffb90f0",
+            "first_pcm_after_input_ms": 8.807659149169922
+          },
+          {
+            "job": "6f1bb25d5b4847d0880b41aafe4d4075",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 55237,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 55237,
+            "metadata_matches": true,
+            "pcm_sha256": "a6f86938d37fb0f0535fe8ab22fa49b092abc24668792babbe94762f5d595bf6",
+            "first_pcm_after_input_ms": 4.204511642456055
+          },
+          {
+            "job": "69fbb8aea868482b88b3245c3edbdeda",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 33983,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 33983,
+            "metadata_matches": true,
+            "pcm_sha256": "84b49c5653fbde7d2646976a8fbf719e76a8c9c7c63d9530484620916346a216",
+            "first_pcm_after_input_ms": 3.7784576416015625
+          },
+          {
+            "job": "d2beaca62ff54fcd90e3396dbf098b31",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 88755,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 88755,
+            "metadata_matches": true,
+            "pcm_sha256": "85ae9a90274420fbaa8f0cf9fc96a1892b3ad2aac4c5b584a553ace85e97123f",
+            "first_pcm_after_input_ms": 5.259513854980469
+          },
+          {
+            "job": "0d4b987452444ab58734b6a2cd5126c9",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 143569,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 143569,
+            "metadata_matches": true,
+            "pcm_sha256": "8b7d516fe562a306930e2ddbd928b64db5764b8a5c2fbdfcba24a05abf0c93a0",
+            "first_pcm_after_input_ms": 4.244565963745117
+          },
+          {
+            "job": "401fc5af46e84aafa048cb0e05dfd671",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 50420,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 50420,
+            "metadata_matches": true,
+            "pcm_sha256": "c1ee9fe963530a3698fac3f49a7f2e3b2394a569b96dbe13fe8f170fd50dcdf5",
+            "first_pcm_after_input_ms": 8.960485458374023
+          },
+          {
+            "job": "8d0ebd38ae604489bfc91f1ad7263cdd",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 86271,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 86271,
+            "metadata_matches": true,
+            "pcm_sha256": "a1dbf101542aa00b04df60596dcace869e85f9f3b1713850f82fbb59577a0e48",
+            "first_pcm_after_input_ms": 4.307270050048828
+          },
+          {
+            "job": "afb7b72b9f0e4e9f937e443e3e1f228b",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 55283,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 55283,
+            "metadata_matches": true,
+            "pcm_sha256": "8bf86d190f1b9af24af8f8dfc195715eb3b4782bbc9aa8b9b8bf010838cb2b53",
+            "first_pcm_after_input_ms": 5.481958389282227
+          },
+          {
+            "job": "921cde134d684410bb0c6e152e4b2af7",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 40719,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 40719,
+            "metadata_matches": true,
+            "pcm_sha256": "2a9da18928d396df21f239085ef528c33fb198941c96934c714456ad75ddd952",
+            "first_pcm_after_input_ms": 6.913661956787109
+          },
+          {
+            "job": "afcca8b0ac40406181b6294cccd75b38",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 42662,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 42662,
+            "metadata_matches": true,
+            "pcm_sha256": "d5708cadbaed49810ef5a444fe289f1aefad16660c3c7b57684b1f0ac94a7626",
+            "first_pcm_after_input_ms": 3.9238929748535156
+          },
+          {
+            "job": "a60a3a69351d4faba8fee78ff232bb7f",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 38796,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 38796,
+            "metadata_matches": true,
+            "pcm_sha256": "e44808b0ec02de12822dd86835685fb54aa675dc66769e8c9b8c1cc890c0a19d",
+            "first_pcm_after_input_ms": 3.3757686614990234
+          },
+          {
+            "job": "f61af8c8f84a4431add41d8f59ecafd8",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 57037,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 57037,
+            "metadata_matches": true,
+            "pcm_sha256": "f23d15fb148c4cc10bfb1e97c9241f136535f08def5432078559a16bbec3b585",
+            "first_pcm_after_input_ms": 3.8156509399414062
+          },
+          {
+            "job": "1a17826d0a3c40f59c8b8a02a8a3e49f",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 62710,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 62710,
+            "metadata_matches": true,
+            "pcm_sha256": "67fcb539528b94e974009927d44c77fc3520dae62a175d79ea9d5beca03add88",
+            "first_pcm_after_input_ms": 5.194187164306641
+          },
+          {
+            "job": "ead0920a75b642888e3990f8547f09f9",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 39288,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 39288,
+            "metadata_matches": true,
+            "pcm_sha256": "d04e02a04251591436551a943ba56630c2ec01dfb1068ee5e8c59912a70f3bda",
+            "first_pcm_after_input_ms": 5.158662796020508
+          },
+          {
+            "job": "60bcc956d382406ebdcdc3818c9da014",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 42105,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 42105,
+            "metadata_matches": true,
+            "pcm_sha256": "3101b62806c252cb51a8338340e4828d561de36eee984e232663e87ce9c1ce9e",
+            "first_pcm_after_input_ms": 4.040718078613281
+          },
+          {
+            "job": "626d5356ce9c4a06ac1f2bd15376779b",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 78796,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 78796,
+            "metadata_matches": true,
+            "pcm_sha256": "f511cd0834066eeebbdcb7c80b4a959655c04a1a3fec0589f07e8ca5d4d2a016",
+            "first_pcm_after_input_ms": 3.9970874786376953
+          },
+          {
+            "job": "4293714ef37e479b9f1345ca3560c31c",
+            "exact": true,
+            "expected_backend": "ffmpeg",
+            "native_exact": true,
+            "ffmpeg_exact": true,
+            "ffmpeg_samples": 50475,
+            "ffmpeg_sample_difference": 0,
+            "rate_matches": true,
+            "samples": 50475,
+            "metadata_matches": true,
+            "pcm_sha256": "cfc472baa10d61d6faf5ca130c8cc0c40816845ba0f4bcdbf9aeabc24019b315",
+            "first_pcm_after_input_ms": 7.35163688659668
+          }
+        ],
+        "tempo_counts": {
+          "1.15": 22,
+          "1.14": 9,
+          "1.13": 5,
+          "1.12": 1,
+          "1.142": 1,
+          "1.132": 1,
+          "1.122": 1,
+          "1.069": 1
+        },
+        "first_pcm_after_input_ms": {
+          "count": 41,
+          "median": 4.542350769042969,
+          "min": 3.265857696533203,
+          "p95": 8.960485458374023,
+          "percentile_method": "linear",
+          "max": 14.190673828125
+        },
+        "total_source_seconds": 123.75999999999999,
+        "total_playback_seconds": 108.961
+      },
+      "rvc": {
+        "case": "parallel",
+        "repeat": 1,
+        "inference": {
+          "count": 512,
+          "median_ms": 65.2825,
+          "p95_ms": 102.90735,
+          "max_ms": 138.96
+        },
+        "stream": {
+          "blocks": 512,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 280.0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        },
+        "validation_errors": [],
+        "startup_seconds": 1.3592116229701787,
+        "ready_process_memory": {
+          "VmRSS": 1447813120,
+          "VmHWM": 1785987072
+        },
+        "final_process_memory": {
+          "VmRSS": 1453785088,
+          "VmHWM": 1785987072
+        },
+        "first_frame_ms": 400,
+        "samples": 5759040,
+        "sample_rate": 48000,
+        "peak": 0.9423884153366089,
+        "rms": 0.0944789257294751,
+        "clip_samples": 0,
+        "pcm_sha256": "f8190150ca05ce0a7f8e15c4bd8ac8feb93dd94b15d42ddea4c2ab56ac916e05"
+      },
+      "source_signatures": [
+        {
+          "key": "1/part/0",
+          "text": "Mama said that during the summer vacation, she took a course to help boost the result of the exam and won a large sum of money.",
+          "source": "妈妈说暑假考研做助诱拿了大几千完了",
+          "wav_sha256": "ac8479a2d703b6631582ec232435e794792f75f311d609322c3fde432f68d46c"
+        },
+        {
+          "key": "1/part/1",
+          "text": "You paid with this exam to your mom a lot of gold coins?",
+          "source": "你凭着这个考研跟你妈妈报了多少钱金币了呀",
+          "wav_sha256": "b4f71e1512a6cfe8ec27043aac4934a484181a8291b6adb3b1a45477317764df"
+        },
+        {
+          "key": "2/part/0",
+          "text": "Seven thousand five thousand is a large number.",
+          "source": "七千五千又是大几千",
+          "wav_sha256": "02b2be0f39f852dbe145c9a17ab8ca4245d2a859c72127eaa142df1758896623"
+        },
+        {
+          "key": "3/part/0",
+          "text": "Your mother is thinking about the house.",
+          "source": "你妈妈在家里心想着",
+          "wav_sha256": "ec46be99be62079e47a5dca6da76a3e174082f62887985cec17c3884541d9c0e"
+        },
+        {
+          "key": "4/part/0",
+          "text": "My son is studying for a graduate exam at school.",
+          "source": "我儿子在学校里面要考研",
+          "wav_sha256": "9a4c23cebbce145ed40a533c374aca5270f0eb939d7c36576405e8972b73b7a5"
+        },
+        {
+          "key": "5/part/0",
+          "text": "Your mother is dancing with the lobster older woman in the square dance.",
+          "source": "你妈妈跟龙虾大妈跳广场舞",
+          "wav_sha256": "5a9978f08882e5fb80429eae6e325aebb75423ecbee349564dc902a57aa4c1fd"
+        },
+        {
+          "key": "5/part/1",
+          "text": "Or when the daughter is quiet, the son will be more.",
+          "source": "或者说女儿闷的时候人家会比较儿子",
+          "wav_sha256": "a3e8930a24f4b1e17f455a0242c9d49b6390b21d388547f6f21d46131c8601a6"
+        },
+        {
+          "key": "5/part/2",
+          "text": "Now how is it that your mother is proud to tell the people",
+          "source": "现在怎么样你妈妈很骄傲地跟人家说",
+          "wav_sha256": "522630d4458b56e16d25a2007ac2b92c514dac2552ba694a939bdc26a435310d"
+        },
+        {
+          "key": "6/part/0",
+          "text": "My son",
+          "source": "我儿子",
+          "wav_sha256": "16265647ac0691fc30c0acee910aa12631ad2685018c753aeb279dc22bdc8711"
+        },
+        {
+          "key": "7/part/0",
+          "text": "Now preparing for the graduate entrance exam.",
+          "source": "现在准备考研准备弄个考个研究生",
+          "wav_sha256": "7a0754349df000849cfdc8d1414bb69eded4e974cb069223f836a3d2255597a6"
+        },
+        {
+          "key": "7/part/1",
+          "text": "You speak slowly, and your heart still feels a little bit happy that your son is there.",
+          "source": "你慢慢一边说一边内心还有点开心自己儿子",
+          "wav_sha256": "58e0ce3598fab82dc3c3dafd0b3ad5e5efc63db46b92051061e7d0e215c6fc7e"
+        },
+        {
+          "key": "8/part/0",
+          "text": "I am working.",
+          "source": "想上进但是呢你在干嘛",
+          "wav_sha256": "8cda50dc4cb19266e0e1e441cdb116850a08e9c2b87825a93e49ad2c1240db7e"
+        },
+        {
+          "key": "8/part/1",
+          "text": "You are gambling and you are asking me to borrow a loan.",
+          "source": "你在赌博你要借我网贷",
+          "wav_sha256": "ea987187e7dc2eb7c3f00412e80f534f74832466df11d77f4e9954d91ebe0b5f"
+        },
+        {
+          "key": "8/part/2",
+          "text": "You are in a web dating situation where everyone is using this to borrow money.",
+          "source": "你在网恋你们老的都是通过这个博去引钱去掉",
+          "wav_sha256": "94292fc52708485dacc14852ca980beec55f9cf47f50550ca03dcf3637d63a74"
+        },
+        {
+          "key": "8/part/3",
+          "text": "No one has anything to brag about.",
+          "source": "一线就没东西装逼",
+          "wav_sha256": "e32509646512c2c0fcabed0a0360caf2c7bdec4840d7be53165de3e2e30494cf"
+        },
+        {
+          "key": "9/part/0",
+          "text": "That is you.",
+          "source": "这个就是你",
+          "wav_sha256": "f62adfd138163b728471312173a2b1be4c70208e3e6643827710ded83e1a6714"
+        },
+        {
+          "key": "10/part/0",
+          "text": "Repay the loan",
+          "source": "充值战备还贷款",
+          "wav_sha256": "c02549b85d027f8852318871ee7d43be578fcc278412f39932e5ff1bd4bf5764"
+        },
+        {
+          "key": "11/part/0",
+          "text": "Soon, the land will be returned to the original owner.",
+          "source": "过几天又年本代地的输回去",
+          "wav_sha256": "bb04fd93a36567a0e6b0000b40aa84259cb6cdba7766091ce2d4c93ece113c8f"
+        },
+        {
+          "key": "11/part/1",
+          "text": "This is the classic process of scamming or borrowing money.",
+          "source": "这个是经典的流程是什么呢骗钱或者借钱",
+          "wav_sha256": "6f3509687f662049de272f0c3e4de20cbc78c385e2c0e00c793418d8f273a464"
+        },
+        {
+          "key": "12/part/0",
+          "text": "Then recharge.",
+          "source": "然后去充值",
+          "wav_sha256": "4dfd378e4368b36fc1dad11a343cdec3d46c4e6d454639c576a0769462b88fa1"
+        },
+        {
+          "key": "13/part/0",
+          "text": "Just the subsidy plan may win for a while.",
+          "source": "只是补贴计划可能赢一段时间",
+          "wav_sha256": "ec848bd6fcc14df4b0fe0982d47c3612c8c081d49ca8a13e0aaa0d6486c11d41"
+        },
+        {
+          "key": "14/part/0",
+          "text": "It will come down to one day when the top and the top will not be able to lose everything.",
+          "source": "就会有一天上头上头完全不全部输完",
+          "wav_sha256": "23beb6a2375411356121dc6a958d1ab233abf40ff7bef907e7a655f491f04ec8"
+        },
+        {
+          "key": "14/part/1",
+          "text": "After that, they start borrowing money or deceiving it.",
+          "source": "之后又开始借钱或者骗钱",
+          "wav_sha256": "a7484f35a29857123cb29aaf1e12350e6932dcdb0581c4c2f3d4149ba591258c"
+        },
+        {
+          "key": "14/part/2",
+          "text": "And then he entered again and then the subsidy plan.",
+          "source": "然后又冲进去然后又补贴计划",
+          "wav_sha256": "f5d15529ab413185ff0e23d957209c56f8445f415124bfd2cf016b458356fc55"
+        },
+        {
+          "key": "15/part/0",
+          "text": "Then maybe they will win or lose it all, but the result is the end result.",
+          "source": "然后可能又赢或者说直接输反正最后的结果",
+          "wav_sha256": "b37e3232a38172b7acf49ae8697e3f7171c9895cc9006c65be9c4e0c6bfbcec5"
+        },
+        {
+          "key": "15/part/1",
+          "text": "It will definitely lose, for this is the loop.",
+          "source": "一定是输反正就是这个循环",
+          "wav_sha256": "11fa126072f8f4cefbf2ece5cbbdbf3b3b01a8276fcbf8cb0c905bad53959eb4"
+        },
+        {
+          "key": "15/part/2",
+          "text": "This is reading dogs.",
+          "source": "一直来一直来这个就是读狗的",
+          "wav_sha256": "a89bdd3c8d5b689f5113fbc4cef9142e3f3260af64b0de32f29a5bee9222f372"
+        },
+        {
+          "key": "15/part/3",
+          "text": "No escape from the loop; no single dog can escape.",
+          "source": "循环逃不掉的没有一个独狗能逃掉",
+          "wav_sha256": "0359f47b5639fcdde39e6e931bd1433cfbbf22b713e0522fd1a18be24b996304"
+        },
+        {
+          "key": "16/part/0",
+          "text": "For example, to enroll in a political class or a small class, you need to pay 10000 yuan.",
+          "source": "比如说要上政治小生小课生班什么的又要到了一万块",
+          "wav_sha256": "2a44c616056d324b3cd5b0d02a5175a1845410f79f70d3434dcabe8d82103c7d"
+        },
+        {
+          "key": "16/part/1",
+          "text": "Okay because you're holding on to your learning",
+          "source": "完了因为报精辟你就拿着你让学习",
+          "wav_sha256": "b47735466962c43090d02a87b600b2f9a7db9f8693e8a8eccd892f5efffbd271"
+        },
+        {
+          "key": "17/part/0",
+          "text": "To run a research project, a political student must have a class.",
+          "source": "要跑研究要政治小朋友身班什么",
+          "wav_sha256": "542e6d03df6abc41f877fb23fdb9668708740602fc8632016794992710aff7ae"
+        },
+        {
+          "key": "17/part/1",
+          "text": "You are going to deceive your mother with money.",
+          "source": "东西的你从通通往到这种事情去骗你妈妈钱",
+          "wav_sha256": "53e72632a08d5dfbd83762236df55c62880067dd049c4b3a2d6e44c2d4e0ee7d"
+        },
+        {
+          "key": "18/part/0",
+          "text": "Do you read this and find out if it's a lie?",
+          "source": "你看看读这个真的什么谎都杀得出来",
+          "wav_sha256": "d35422a462a221643a61a6062dd968cff53c8e1e6453372339df82f6f35276f0"
+        },
+        {
+          "key": "18/part/1",
+          "text": "You can't tell a lie with money.",
+          "source": "一段为了骗钱什么话都杀得出来",
+          "wav_sha256": "f5d2afade8c7b5fe30303573b98588087723020299259fac4f03581c83431822"
+        },
+        {
+          "key": "18/part/2",
+          "text": "As long as you can get money.",
+          "source": "只要能骗到钱就行",
+          "wav_sha256": "efc125aac576ce14ba2365182f7735879d3183d97b79e98a937007ddc9f8122d"
+        },
+        {
+          "key": "18/part/3",
+          "text": "He ignores whoever is facing him and ignores himself.",
+          "source": "他不管对面是谁不管自己",
+          "wav_sha256": "d3e6c323b9bda1c49f3ec609a136c9812d5ecfb63e51fe7798af6fa8423d9565"
+        },
+        {
+          "key": "19/part/0",
+          "text": "To earn money, to get money, to recover",
+          "source": "在做了什么事情只要能要到钱只要能翻本",
+          "wav_sha256": "208e122641cf8bf31573d13b7ff89a24787eaa21f767d1d53181214d1f567168"
+        },
+        {
+          "key": "20/part/0",
+          "text": "Qian wins back all the lies.",
+          "source": "钱赢回来所有的谎话",
+          "wav_sha256": "d1c576bd4e3fa3ee56cf838d20def13782780f1316f9d19467f5e19ec469e3bf"
+        },
+        {
+          "key": "21/part/0",
+          "text": "can not be treated as a threat",
+          "source": "就可以不当等伤害",
+          "wav_sha256": "23894688d7687de7d8a9c9172edbb02d07da487a74a5b8b07fc8e2de0ada62aa"
+        },
+        {
+          "key": "22/part/0",
+          "text": "At this point, the mother has become increasingly doubtful.",
+          "source": "这个时候妈妈已经有点不相信了",
+          "wav_sha256": "07e22418efbb9aec42d01c580d6fe581a9250752d0b2eda24d6cce3da25f58d1"
+        },
+        {
+          "key": "23/part/0",
+          "text": "Mother still doubted me because of me.",
+          "source": "妈妈还是怀疑了但是由于我",
+          "wav_sha256": "5a8623ff3b3deee0436743d0d23594b38e5068192964f2013fa32434858d9185"
+        }
+      ]
+    }
+  ],
+  "median_reduction": 0.7821391467115462
+}

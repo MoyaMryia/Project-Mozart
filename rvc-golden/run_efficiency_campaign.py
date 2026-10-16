@@ -14,7 +14,6 @@ import time
 import urllib.request
 
 import numpy as np
-import soundfile as sf
 
 
 def request(port):
@@ -38,6 +37,14 @@ def process_memory(pid):
     return {key: int(re.search(rf'^{key}:\s+(\d+)', text, re.M)[1])*1024 for key in ['VmRSS', 'VmHWM']}
 
 
+def validate_cases(cases):
+    allowed = {'baseline', 'compatible', 'chain', 'parallel'}
+    if any(case not in allowed for case in cases):
+        raise ValueError('Invalid cases')
+    if 'baseline' not in cases or len(set(cases)) < 2:
+        raise ValueError('Cases must include baseline and at least one different case')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--baseline', type=Path, required=True)
@@ -48,10 +55,19 @@ def main():
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--repeats', type=int, default=3)
     parser.add_argument('--playout-delay-ms', type=int, default=0)
-    parser.add_argument('--cases', nargs='+', default=['baseline', 'compatible', 'chain', 'parallel'])
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--cases', nargs='+', default=['baseline', 'compatible', 'chain', 'parallel'])
+    mode.add_argument('--measure-case', choices=['baseline', 'compatible', 'chain', 'parallel'])
     args = parser.parse_args()
-    if args.repeats < 1 or any(case not in {'baseline', 'compatible', 'chain', 'parallel'} for case in args.cases):
+    if args.repeats < 1:
         parser.error('Invalid repeats or cases')
+    if args.measure_case:
+        args.cases = [args.measure_case]
+    else:
+        try:
+            validate_cases(args.cases)
+        except ValueError as error:
+            parser.error(str(error))
     root = args.output_dir.resolve()
     root.mkdir(parents=True, exist_ok=True)
     model_id = 'qiqi-zh-realtime'
@@ -125,6 +141,7 @@ def main():
                         except subprocess.TimeoutExpired:
                             os.killpg(process.pid, signal.SIGKILL)
                             process.wait()
+            import soundfile as sf
             audio, rate = sf.read(output, dtype='float32')
             text = (directory/'backend.log').read_text()
             times = [float(value) for value in re.findall(r'\[profile\]\[realtime\][^\n]* total=([0-9.]+)ms', text)]
@@ -146,9 +163,11 @@ def main():
             print(json.dumps(record), flush=True)
             if validation_errors:
                 raise RuntimeError(f'Realtime validation failed: {validation_errors}')
-    report['all_pcm_identical'] = all(np.array_equal(all_audio[0], audio) for audio in all_audio[1:])
+    report['comparison_performed'] = args.measure_case is None
+    report['all_pcm_identical'] = (all(np.array_equal(all_audio[0], audio) for audio in all_audio[1:])
+                                   if report['comparison_performed'] else None)
     (root/'campaign.json').write_text(json.dumps(report, indent=2)+'\n')
-    if not report['all_pcm_identical']:
+    if report['comparison_performed'] and not report['all_pcm_identical']:
         raise RuntimeError('Backend PCM differs across optimization cases')
 
 

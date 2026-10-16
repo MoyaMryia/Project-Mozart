@@ -1,0 +1,44 @@
+{
+  "job": "72f4dd718b4a41aaadc19ab2926cb7c4",
+  "backend": "libavfilter_inprocess",
+  "tempo": 1.15,
+  "actual_vs_ffmpeg": {
+    "samples_a": 55313,
+    "samples_b": 55237
+  },
+  "actual_vs_native": {
+    "samples": 55313,
+    "different_samples": 0,
+    "max_pcm16_difference": 0,
+    "rms_pcm16_difference": 0.0,
+    "first_differences": []
+  },
+  "native_vs_ffmpeg": {
+    "samples_a": 55313,
+    "samples_b": 55237
+  },
+  "ffmpeg_frame_sizes": {
+    "512": {
+      "samples": 55313,
+      "different_samples": 0,
+      "max_pcm16_difference": 0,
+      "rms_pcm16_difference": 0.0,
+      "first_differences": []
+    },
+    "1024": {
+      "samples": 55313,
+      "different_samples": 0,
+      "max_pcm16_difference": 0,
+      "rms_pcm16_difference": 0.0,
+      "first_differences": []
+    },
+    "2048": {
+      "samples_a": 55313,
+      "samples_b": 55237
+    },
+    "4096": {
+      "samples_a": 55313,
+      "samples_b": 55237
+    }
+  }
+}
