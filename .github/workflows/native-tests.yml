@@ -21,6 +21,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python test dependencies
+        run: python3 -m pip install numpy==2.1.3
       - name: Install native test dependencies
         run: |
           sudo apt-get update
