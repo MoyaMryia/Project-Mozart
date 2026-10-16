@@ -144,8 +144,9 @@ Use `--tts-threads 4` for another test with CPU int8.
 ### Early audio output
 
 Early audio needs an independent Pocket runtime with the project native patch.
-The patch decodes each group of 15 latent frames during generation and keeps the decoder state.
-It keeps the existing text pieces, five generation steps, seed, and decoder block size.
+The patch decodes latent frames during generation and keeps the decoder state.
+The current default group contains three frames, or 240 ms of audio.
+It keeps the existing text pieces, five generation steps, and seed.
 The worker publishes each PCM block before the complete text piece returns.
 One raw ALSA playback process receives all blocks of a logical job in order.
 
@@ -168,6 +169,39 @@ For early playback, add these supervisor options:
 ```
 
 Keep CPU int8 and two speech threads for the initial comparison.
+Use `--tts-audio-chunk-frames 15` to restore the previous group size.
+The standalone speech service accepts `--audio-chunk-frames`.
+The supported values are 3, 5, 10, and 15.
+Changing the group size can change PCM samples.
+Read the [2026-10-15 measurements](../reports/latency-reduction-20261015/RESULTS.md) for the tested quality and timing scope.
+
+The supervisor and speech-service commands default to `--playback-tempo flexible`.
+For live speech, the service calculates speed from predicted duration, observed source duration, and queue delay.
+The default range is 1.000–1.050×. Each speed has three decimal places.
+Speed can increase immediately. Speed decreases by a maximum of 0.010× between nearby task decisions.
+After five seconds without a new decision, the controller clears that speed history.
+Each logical job keeps one speed. One continuous `atempo` filter preserves its state across audio blocks.
+The service keeps all text and synthesis WAV files. Preview jobs keep their original speed.
+Use `--playback-tempo normal` to restore original playback speed.
+Use `--playback-tempo adaptive` to restore the previous two-speed policy.
+Use `--playback-tempo-max`, `--playback-target-delay`, and `--playback-recovery-seconds` to configure the controller.
+The default values are 1.05, 1.5 seconds, and 30 seconds.
+Values above 1.05 require separate quality evaluation. The accepted maximum is 1.10.
+The tiny duration model has four regression parameters. Inference uses the Python standard library.
+Its features are word count, approximate syllable count, and clause punctuation.
+It requires the matching reference revision, engine configuration, runtime version, and ONNX asset hashes.
+Unsupported numbers, abbreviations, text lengths, languages, or profiles use a conservative estimate.
+Use `--duration-profile PATH` to select another calibrated profile.
+The built-in profile applies to the measured Qiqi/Pocket CPU int8 configuration.
+The [duration design](../docs/FLEXIBLE_TEMPO.md) describes calibration, timing limits, and diagnostic fields.
+Read the [playback measurements](../reports/playback-latency-20261015/RESULTS.md) for the tested scope.
+With libavfilter 9 and libavutil 58 development files, CMake also builds `mozart_tempo_filter`.
+The service loads `build-gpu/preprocessor/libmozart-tempo.so` before live input starts.
+Without that library, the service uses a separate FFmpeg filter process for each accelerated job.
+That fallback has additional startup delay.
+For actual filtered WAV capture, add `--capture-playback`. This diagnostic option is disabled by default.
+The job reports its selected speed, backend, first PCM delivery time, and actual filtered duration.
+These timestamps do not measure physical speaker output.
 Without the manifest, an early-audio request fails during worker startup.
 Without `--early-audio`, the service keeps complete-piece output.
 Download-only jobs also keep complete-piece output.
@@ -317,6 +351,15 @@ The [source review report](../reports/sentence-context-20261007/RESULTS.md) give
 | `POST /api/speech/events` | Accepts final translation `{text,utterance_id}` from the bridge. |
 | `POST /api/speech/stop` | Disables live admission and cancels unfinished jobs. |
 
+Speech jobs and events also accept optional `source_duration_seconds` and `source_emitted_at` fields.
+Use seconds for both fields. Use Unix time for `source_emitted_at`.
+Source duration must be positive and at most 300 seconds. Invalid timing values return HTTP 400.
+The source timestamp cannot exceed server time by more than five seconds.
+The bridge calculates duration from observed audio timestamps.
+Early clauses receive separate observed intervals. These intervals include lookahead and do not represent exact word alignment.
+The job exposes `duration_prediction` and `tempo_decision` for diagnostics.
+The decision reports the requested ratio, selected speed, and whether the maximum restricted that speed.
+
 Job states are `queued`, `processing`, `ready`, `playing`, `completed`, `failed`, `cancelled`, and `expired`.
 Duplicate utterance IDs return the previous logical job.
 The service keeps up to 128 finished logical results.
@@ -333,6 +376,7 @@ Waiting speech does not expire after 30 seconds. Queue delay and estimated durat
 The service accepts waiting text before audio capacity becomes available.
 The existing 12-second audio buffer limit still controls synthesis. The service keeps generated WAV files on disk.
 Delay can increase when the output duration exceeds the input duration.
+Adaptive tempo can reduce this accumulation. It cannot guarantee a bounded delay for every input rate.
 Invalid text, unavailable translation candidates, engine errors, and explicit cancellation can still prevent speech.
 The [coverage report](../reports/realtime-patches-20261008/COVERAGE.md) gives the replay results and limits.
 

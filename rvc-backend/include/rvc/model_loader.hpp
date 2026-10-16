@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <mutex>
 #include <optional>
+#include <atomic>
 
 #include "rvc/onnx_engine.hpp"
 #include "rvc/index_search.hpp"
@@ -56,7 +57,7 @@ private:
     std::filesystem::path index_path_;
     std::filesystem::path config_path_;
     RVCModelConfig config_;
-    bool loaded_ = false;
+    std::atomic<bool> loaded_{false};
 
     std::unique_ptr<IEngine> generator_engine_;
     std::unique_ptr<IEngine> realtime_front_engine_;
@@ -73,23 +74,32 @@ public:
     ModelManager(
         const std::filesystem::path& models_dir,
         const std::string& device = "cuda",
-        bool half = false
+        bool half = false,
+        size_t cache_limit = 2
     );
 
     std::vector<std::map<std::string, std::string>> list_models() const;
     std::shared_ptr<RVCModel> get_model(const std::string& model_id);
     bool load_model(const std::string& model_id);
     std::shared_ptr<RVCModel> current_model() const;
+    void trim_cache();
+    size_t cached_model_count() const;
+    size_t cache_limit() const { return cache_limit_; }
 
 private:
     std::shared_ptr<RVCModel> get_model_locked(const std::string& model_id);
+    void trim_cache_locked();
 
     std::filesystem::path models_dir_;
     std::string device_;
     bool half_;
     mutable std::mutex mutex_;
+    std::mutex load_mutex_;
     std::string current_model_id_;
     std::map<std::string, std::shared_ptr<RVCModel>> models_;
+    std::map<std::string, uint64_t> last_used_;
+    uint64_t access_sequence_ = 0;
+    const size_t cache_limit_;
 };
 
 } // namespace rvc

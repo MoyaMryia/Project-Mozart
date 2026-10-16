@@ -84,6 +84,7 @@ void ModeController::start_realtime_locked() {
     worker_config.output_sample_rate = config_.output_sample_rate;
     worker_config.frame_duration_ms = config_.frame_duration_ms;
     worker_config.skip_silence = config_.skip_silence;
+    worker_config.realtime_playout_delay_ms = config_.realtime_playout_delay_ms;
     realtime_worker_ = std::make_unique<RealtimeRvcWorker>(pipeline_, std::move(worker_config));
     realtime_worker_->start();
     // 路由状态（静音/直通）归 ModeController 持有：worker 在每次模式切换时
@@ -350,7 +351,8 @@ nlohmann::json ModeController::status() const {
                     {"input_overruns", stream.input_overruns}, {"output_overruns", stream.output_overruns},
                     {"inference_errors", stream.inference_errors}, {"history_resets", stream.history_resets},
                   {"output_underruns", stream.output_underruns},
-                    {"startup_output_underruns", stream.startup_output_underruns}}},
+                    {"startup_output_underruns", stream.startup_output_underruns},
+                    {"playout_delay_ms", stream.playout_delay_ms}, {"queued_output_ms", stream.queued_output_ms}}},
         {"queue", queue}, {"file_queue_paused", file_queue_paused_}, {"last_error", last_error_},
         {"capabilities", { {"rt_rvc", config_.rvc_enabled}, {"file_rvc", config_.rvc_enabled}, {"rt_zero_shot", false}, {"file_zero_shot", false} }}
     };

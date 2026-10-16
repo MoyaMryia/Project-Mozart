@@ -12,6 +12,7 @@
 #include "rvc/model_loader.hpp"
 #include "rvc/feature_extractor.hpp"
 #include "rvc/inferencer.hpp"
+#include "rvc/cancellation.hpp"
 
 namespace rvc {
 
@@ -35,6 +36,14 @@ public:
     virtual ~RVCPipelineBase() = default;
 
     virtual std::vector<float> process(const std::vector<float>& audio) = 0;
+    virtual std::vector<float> process_cancellable(
+        const std::vector<float>& audio, const std::atomic<bool>& cancelled
+    ) {
+        check_cancelled(&cancelled);
+        auto output = process(audio);
+        check_cancelled(&cancelled);
+        return output;
+    }
 
     virtual std::vector<float> process_realtime(
         const std::vector<float>& audio, const RvcRealtimeRequest& request
@@ -93,6 +102,9 @@ public:
     );
 
     std::vector<float> process(const std::vector<float>& audio) override;
+    std::vector<float> process_cancellable(
+        const std::vector<float>& audio, const std::atomic<bool>& cancelled
+    ) override;
     std::vector<float> process_realtime(
         const std::vector<float>& audio,
         const RvcRealtimeRequest& request

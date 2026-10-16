@@ -5,6 +5,7 @@
 // 与 OnnxEngine 同接口（IEngine），由 make_engine() 在发现 <stem>.engine
 // 时选用。固定和 optimization-profile 动态引擎都支持，运行时：
 //   deserialize → setInputShape → 按需扩容绑定 → enqueueV3 → D2H 回拷。
+// run_chained() 在同一 stream 连接两个引擎，只回拷最终音频。
 // 输入类型 float / int64 / int32（int64 输入若引擎要 int32 会自动降转换）。
 #include "rvc/onnx_engine.hpp"
 
@@ -25,6 +26,10 @@ public:
 
     std::vector<float> run(const std::vector<OnnxInput>& inputs,
                            const std::vector<const char*>& output_names) override;
+    std::vector<float> run_chained(
+        const std::vector<OnnxInput>& inputs, const char* output,
+        IEngine& consumer, std::vector<OnnxInput>& consumer_inputs,
+        const char* consumer_input, const char* consumer_output) override;
     std::vector<float> run(
         const std::vector<const char*>& input_names,
         const std::vector<std::vector<int64_t>>& input_shapes,
@@ -33,6 +38,7 @@ public:
 
     // 引擎某输入的静态形状（load 后有效）；无此张量返回空
     std::vector<int64_t> input_shape(const std::string& name) const override;
+    std::vector<int64_t> max_input_shape(const std::string& name) const override;
 
     void unload() override;
 
@@ -46,7 +52,13 @@ private:
         size_t bytes = 0;
         size_t capacity_bytes = 0;
         void* dev = nullptr;
+        std::vector<int32_t> int32_staging;
     };
+
+    Tensor& enqueue(const std::vector<OnnxInput>& inputs, const char* output,
+                    void* stream, const char* linked_name = nullptr,
+                    const Tensor* linked = nullptr);
+    std::vector<float> read_output(const Tensor& output, void* stream);
 
     static std::string dtype_name(int32_t dtype);
 
@@ -55,6 +67,7 @@ private:
     void* stream_ = nullptr;             // cudaStream_t
     std::vector<Tensor> tensors_;
     std::unordered_map<std::string, OnnxInput::Type> input_types_;
+    std::mutex execution_mutex_;
 };
 
 #else // 无 TensorRT：不可用桩

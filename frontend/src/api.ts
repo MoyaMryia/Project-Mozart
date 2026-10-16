@@ -21,8 +21,9 @@ export interface Status {
   last_error: string;
   capabilities: Partial<Record<ActiveMode, boolean>>;
   file_queue_paused: boolean;
-  model: { has_index?: string };
+  model: { has_index?: string; [key: string]: string | undefined };
   realtime?: { available: boolean; mic_muted: boolean; bypass: boolean };
+  stream?: { playout_delay_ms?: number; queued_output_ms?: number };
 }
 
 export interface ModelList {

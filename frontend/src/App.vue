@@ -3,6 +3,7 @@
 // 视觉体系：语义化设计令牌（styles.css），亮/暗双主题；圆角两档（卡片 lg、控件 md）。
 // 逻辑：组合式状态 + SSE 字幕订阅。新增：主题切换（localStorage: mozart-theme）。
 import SpeechPanel from './SpeechPanel.vue';
+import { runtimeStages } from './runtime';
 import { latestTranslation, upsertSubtitle } from './subtitles';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
@@ -22,6 +23,7 @@ const MODES: ActiveMode[] = [
 ];
 const isFileMode = (mode: string) => mode === 'file_rvc';
 const speechOnly = computed(() => !!status.value && !status.value.capabilities.rt_rvc && !status.value.capabilities.file_rvc);
+const engineStages = computed(() => status.value ? runtimeStages(status.value.mode, status.value.model) : []);
 
 // ---- 主题（亮/暗）----
 // 初始值由 index.html 的首帧脚本写入 documentElement.dataset.theme。
@@ -103,8 +105,8 @@ const statLatency = computed(() => monitor.value
     : `${monitor.value.cpu_percent.toFixed(1)} ${statUnit('%')}`)
   : `-- ${statUnit('%')}`);
 const statCache = computed(() => monitor.value
-  ? `${gib(monitor.value.memory.used_bytes)} ${statUnit(`/ ${gib(monitor.value.memory.total_bytes)} GB`)}`
-  : `-- ${statUnit('/ -- GB')}`);
+  ? `${gib(monitor.value.memory.used_bytes)} ${statUnit(`/ ${gib(monitor.value.memory.total_bytes)} GiB`)}`
+  : `-- ${statUnit('/ -- GiB')}`);
 const statVram = computed(() => {
   if (!monitor.value) return 'N/A';
   return monitor.value.gpu.available
@@ -685,6 +687,18 @@ onUnmounted(() => {
           <option v-if="!models.length" value="" selected disabled>{{ models.length === 0 && status === null ? '正在加载模型...' : '未找到可用模型' }}</option>
           <option v-for="model in models" :key="model.id" :value="model.id">{{ model.id }}</option>
         </select>
+        <details v-if="engineStages.length" class="mt-3 text-micro text-ink-3">
+          <summary class="cursor-pointer">推理运行状态</summary>
+          <dl class="mt-2 space-y-2">
+            <div v-for="stage in engineStages" :key="stage.role">
+              <dt class="font-bold">{{ stage.label }}：{{ stage.backend }}</dt>
+              <dd v-if="stage.asset" class="break-all font-mono mt-1">{{ stage.asset }}</dd>
+              <dd v-if="stage.reason" class="state-err mt-1">回退原因：{{ stage.reason }}</dd>
+            </div>
+          </dl>
+          <p v-if="status?.model.cached_models" class="mt-2">缓存模型：{{ status.model.cached_models }}；保留上限：{{ status.model.model_cache_limit }}。正在使用的模型继续保留。</p>
+          <p v-if="status?.mode === 'rt_rvc' && status.stream?.playout_delay_ms !== undefined" class="mt-2">启动缓冲预算：{{ status.stream.playout_delay_ms }} ms；当前输出缓冲：{{ Math.round(status.stream.queued_output_ms ?? 0) }} ms。</p>
+        </details>
       </div>
 
       <!-- FILE 模式：共享队列位于右侧状态区 -->

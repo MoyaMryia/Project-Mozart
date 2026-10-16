@@ -129,3 +129,48 @@ reports/**/__pycache__/
 !reports/repository-audit-20261013/jetson/test-python.log
 !reports/repository-audit-20261013/jetson/smoke/daemon.log
 !reports/repository-audit-20261013/jetson/smoke/result.json
+
+# 效率验证的摘要、源码清单和小型回归证据。
+!reports/efficiency-20261014/metrics.json
+!reports/efficiency-20261014/source-runtime.json
+!reports/efficiency-20261014/assets-manifest.json
+!reports/efficiency-20261014/host-tests.log
+!reports/efficiency-20261014/python-tests.log
+!reports/efficiency-20261014/frontend-tests.log
+!reports/efficiency-20261014/frontend-build.log
+!reports/efficiency-20261014/jetson-tests.log
+!reports/efficiency-20261014/frontend-runtime.png
+
+# 逐功能延迟测量的小型摘要。
+!reports/feature-latency-20261014/metrics.json
+!reports/feature-latency-20261014/manifest.json
+
+# 延迟优化的可复查小型证据。
+!reports/latency-reduction-20261015/metrics.json
+!reports/latency-reduction-20261015/manifest.json
+!reports/latency-reduction-20261015/host-tests.log
+!reports/latency-reduction-20261015/python-tests.log
+!reports/latency-reduction-20261015/jetson-tests.log
+
+# 播放积压优化的小型证据。
+!reports/playback-latency-20261015/metrics.json
+!reports/playback-latency-20261015/manifest.json
+!reports/playback-latency-20261015/python-tests.log
+!reports/playback-latency-20261015/jetson-python-tests.log
+!reports/playback-latency-20261015/host-tests.log
+!reports/playback-latency-20261015/jetson-tests.log
+!reports/playback-latency-20261015/tempo-library-tests.log
+
+# 灵活变速的模型、计时和质量摘要。
+!reports/flexible-tempo-20261015/metrics.json
+!reports/flexible-tempo-20261015/manifest.json
+!reports/flexible-tempo-20261015/quality-summary.json
+!reports/flexible-tempo-20261015/duration-fit.json
+!reports/flexible-tempo-20261015/pitch-comparison.json
+!reports/flexible-tempo-20261015/policy-cycle.json
+!reports/flexible-tempo-20261015/python-tests.log
+!reports/flexible-tempo-20261015/jetson-python-tests.log
+!reports/flexible-tempo-20261015/host-tests.log
+!reports/flexible-tempo-20261015/host-build.log
+!reports/flexible-tempo-20261015/jetson-build.log
+!reports/flexible-tempo-20261015/playback-verification.log

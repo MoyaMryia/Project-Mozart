@@ -11,6 +11,7 @@ import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import io
 import json
+import math
 import os
 from pathlib import Path
 import select
@@ -25,6 +26,9 @@ import uuid
 import wave
 from speech_chunks import estimated_audio_seconds, split_speech_text
 from durable_jobs import DiskJobs, DiskPending
+from tempo_player import TempoPlayer, tempo_library
+from speech_duration import DurationEstimator, DEFAULT_PROFILE
+from tempo_control import TempoController
 
 TERMINAL = {'completed', 'failed', 'cancelled', 'expired'}
 
@@ -43,7 +47,16 @@ def atomic_json(path, value):
 class SpeechService:
     def __init__(self, root, worker_command, engine='pocket', playback_device='default',
                  queue_limit=4, timeout=90, history_limit=128, preload=False,
-                 delivery_policy='realtime'):
+                 delivery_policy='realtime', playback_tempo='normal', capture_playback=False,
+                 duration_profile=DEFAULT_PROFILE, playback_tempo_max=1.05,
+                 playback_target_delay=1.5, playback_recovery_seconds=30.):
+        if playback_tempo not in ('normal', 'adaptive', 'flexible'):
+            raise ValueError('Unknown playback tempo policy')
+        self.playback_tempo, self.capture_playback = playback_tempo, capture_playback
+        self.duration_estimator = DurationEstimator(duration_profile)
+        self.tempo_controller = TempoController(playback_tempo_max, playback_target_delay, playback_recovery_seconds)
+        if playback_tempo in ('adaptive', 'flexible'):
+            tempo_library()
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         (self.root/'voices').mkdir(exist_ok=True)
@@ -84,6 +97,7 @@ class SpeechService:
         self.prune()
         self.session = {'enabled': False, 'voice_id': '', 'language': 'en', 'playback': False}
         self.child = self.player = None
+        self.player_job_id = None
         self.output_buffer = b''
         self.closed = False
         self.runtime = None
@@ -114,10 +128,22 @@ class SpeechService:
                 'deferred_jobs': 0 if coverage else sum(j.get('admission_pending', False) and j['status'] not in TERMINAL for j in self.jobs.values()),
                 'session': dict(self.session), 'queue_limit': self.queue_limit,
                 'playback_device': self.device, 'playback_queue_limit_seconds': self.playback_limit_seconds,
+                'playback_tempo_policy': self.playback_tempo,
+                'playback_tempo_max': self.tempo_controller.maximum,
+                'duration_profile': (self.duration_estimator.profile or {}).get('id'),
+                'duration_profile_warning': self.duration_estimator.warning,
                 'voices': list(self.voices.values()),
                 'jobs': jobs}
 
+    def sync_playback_start(self, job):
+        if (getattr(self, 'active_play', None) == job['id'] and
+                getattr(self, 'player_job_id', None) == job['id'] and
+                isinstance(self.player, TempoPlayer) and self.player.first_audio_at):
+            job.setdefault('playback_started_at', self.player.first_audio_at)
+            job['playback_timing'] = 'null_paced_filtered_pcm' if self.device == 'null' else 'filtered_pcm_pipe_delivery'
+
     def save_job(self, job):
+        self.sync_playback_start(job)
         if self.delivery_policy == 'coverage':
             self.jobs[job['id']] = job
         try:
@@ -200,6 +226,13 @@ class SpeechService:
         text = str(body.get('text', '')).strip()
         language = body.get('language', 'en')
         degraded = body.get('speech_degraded', False)
+        timing = {}
+        for name, maximum in [('source_duration_seconds', 300), ('source_emitted_at', time.time()+5)]:
+            value = body.get(name)
+            if value is not None:
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 < value <= maximum or not math.isfinite(value):
+                    raise ApiError(400, f'{name} must be a finite positive number within its range')
+                timing[name] = value
         if not isinstance(degraded, bool):
             raise ApiError(400, 'speech_degraded must be a boolean')
         if language not in (['en'] if self.engine == 'pocket' else ['en', 'zh']):
@@ -226,6 +259,11 @@ class SpeechService:
                 raise ApiError(400, 'live and playback must be booleans')
             texts = split_speech_text(text, language) if live or playback else [text]
             estimate = sum(estimated_audio_seconds(piece, language) for piece in texts)
+            prediction = None
+            if self.playback_tempo == 'flexible':
+                prediction = self.duration_estimator.predict(texts, language, voice['revision'], self.runtime)
+                # 容量限制保留原有保守估计；学习模型只增加必要的误差余量。
+                estimate = max(estimate, prediction['reserve_seconds'])
             unfinished = [] if self.delivery_policy == 'coverage' else [j for j in self.jobs.values() if j['status'] not in TERMINAL]
             admission_pending = False
             if self.delivery_policy == 'coverage':
@@ -260,7 +298,9 @@ class SpeechService:
                 'generated_chunks': 0, 'played_chunks': 0, 'generation_done': False,
                 'estimated_duration_seconds': estimate, 'played_duration_seconds': 0,
                 'max_duration_seconds': min(45, max(4, (len(text)*.35 if language == 'zh' else len(text.split())*.9)+2)),
-                'result_url': f'/api/speech/jobs/{job_id}/result'}
+                'result_url': f'/api/speech/jobs/{job_id}/result', **timing}
+            if prediction:
+                job['duration_prediction'] = prediction
             try:
                 self.jobs[job_id] = job
                 self.save_job(job)
@@ -289,7 +329,7 @@ class SpeechService:
             remaining = duration-job.get('played_duration_seconds', 0)
             if self.active_play_piece and self.active_play_piece['job_id'] == job['id']:
                 remaining -= min(self.active_play_piece['duration_seconds'],
-                                 max(0, now-self.active_play_piece['playback_started_at']))
+                                 max(0, now-self.active_play_piece['playback_started_at'])*job.get('playback_tempo', 1))
             total += max(0, remaining)
         return total
 
@@ -298,7 +338,8 @@ class SpeechService:
                     if self.jobs[p['job_id']]['status'] not in TERMINAL)
         if self.active_play_piece:
             total += max(0, self.active_play_piece['duration_seconds']-
-                         (time.time()-self.active_play_piece['playback_started_at']))
+                         (time.time()-self.active_play_piece['playback_started_at'])*
+                         self.jobs[self.active_play_piece['job_id']].get('playback_tempo', 1))
         return total
 
     def prune(self):
@@ -313,6 +354,7 @@ class SpeechService:
                 (self.root/'results'/f'{job_id}.json').unlink(missing_ok=True)
                 for path in (self.root/'results').glob(f'{job_id}-part-*.wav'):
                     path.unlink(missing_ok=True)
+                (self.root/'results'/f'{job_id}-playback.wav').unlink(missing_ok=True)
 
     def cancel(self, job_id):
         with self.lock:
@@ -336,10 +378,16 @@ class SpeechService:
 
     @staticmethod
     def kill(process):
-        if process and process.poll() is None:
+        if process and (isinstance(process, TempoPlayer) or process.poll() is None):
+            # 先关闭输入，解除 aplay 对原始音频管道的阻塞读取。
+            if process.stdin and not process.stdin.closed:
+                try:
+                    process.stdin.close()
+                except OSError:
+                    pass
             process.terminate()
             try:
-                process.wait(timeout=3)
+                process.wait(timeout=.1)
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=3)
@@ -423,6 +471,8 @@ class SpeechService:
                 try:
                     self.ensure_child()
                     job['early_audio'] = self.runtime.get('audio_stream_protocol') == 1 and job['playback']
+                    job['continuous_playback'] = job['early_audio'] or (
+                        self.playback_tempo == 'flexible' and job['live'] and job['playback'])
                     job['text_part_results'] = []
                     if job['early_audio']:
                         job['text_chunk_count'] = len(job['chunk_texts'])
@@ -527,7 +577,7 @@ class SpeechService:
                         temporary.replace(output)
                         job['generation_done'] = True
                         job['generation_finished_at'] = time.time()
-                        if not job['playback'] or (not job['early_audio'] and job['played_chunks'] == job['chunk_count']):
+                        if not job['playback'] or (not job['continuous_playback'] and job['played_chunks'] == job['chunk_count']):
                             self.complete(job)
                 except Exception as error:
                     self.kill(self.child)
@@ -574,6 +624,7 @@ class SpeechService:
             return True
 
     def expire_before_first_audio(self, job):
+        self.sync_playback_start(job)
         if self.delivery_policy == 'coverage':
             return False
         first_output = 'playback_started_at' if job['playback'] else 'audio_ready_at'
@@ -604,9 +655,18 @@ class SpeechService:
             with self.lock:
                 if self.closed or job['status'] in TERMINAL:
                     return
-                self.player = subprocess.Popen(['aplay', '-q', '-D', self.device,
-                    '-t', 'raw', '-f', 'S16_LE', '-r', str(first['sample_rate']), '-c', '1'],
-                    stdin=subprocess.PIPE, stderr=log, bufsize=0)
+                tempo = self.select_playback_tempo(job)
+                job['playback_tempo'] = tempo
+                job['playback_input_started_at'] = time.time()
+                if tempo > 1:
+                    capture = self.root/'results'/f"{job['id']}-playback.wav" if self.capture_playback else None
+                    self.player = TempoPlayer(first['sample_rate'], self.device, tempo, log, capture)
+                    job['playback_tempo_backend'] = self.player.backend
+                else:
+                    self.player = subprocess.Popen(['aplay', '-q', '-D', self.device,
+                        '-t', 'raw', '-f', 'S16_LE', '-r', str(first['sample_rate']), '-c', '1'],
+                        stdin=subprocess.PIPE, stderr=log, bufsize=0)
+                self.player_job_id = job['id']
                 os.set_blocking(self.player.stdin.fileno(), False)
             chunk = first
             while True:
@@ -615,9 +675,12 @@ class SpeechService:
                         return
                     self.active_play_piece = chunk
                     chunk.update(status='playing', playback_started_at=time.time(),
-                        playback_timing='null_paced' if self.device == 'null' else 'pipe_delivery')
+                        playback_tempo=tempo,
+                        playback_timing=('tempo_filter_input' if tempo > 1 else
+                            'null_paced' if self.device == 'null' else 'pipe_delivery'))
                     job['status'] = 'playing'
-                    job.setdefault('playback_started_at', chunk['playback_started_at'])
+                    if tempo == 1:
+                        job.setdefault('playback_started_at', chunk['playback_started_at'])
                     self.save_job(job)
                 with wave.open(str(self.root/'results'/chunk['filename']), 'rb') as source:
                     if (source.getnchannels(), source.getsampwidth(), source.getframerate()) != (1, 2, first['sample_rate']):
@@ -638,7 +701,7 @@ class SpeechService:
                         except BlockingIOError:
                             pass
                 if self.device == 'null':
-                    remaining = chunk['duration_seconds']-(time.time()-chunk['playback_started_at'])
+                    remaining = chunk['duration_seconds']/tempo-(time.time()-chunk['playback_started_at'])
                     if remaining > 0:
                         with self.lock:
                             self.lock.wait_for(lambda: self.closed or job['status'] in TERMINAL, timeout=remaining)
@@ -649,7 +712,10 @@ class SpeechService:
                     job['played_chunks'] += 1
                     job['played_duration_seconds'] += chunk['duration_seconds']
                     self.active_play_piece = None
-                    self.save_job(job)
+                    # 下一块已就绪时，在其开始记录中一并保存完成状态。
+                    # 避免两次串行磁盘提交插在连续音频块之间。
+                    if not (self.play_pending and self.play_pending[0]['job_id'] == job['id']):
+                        self.save_job(job)
                     self.lock.notify_all()
                     self.lock.wait_for(lambda: self.closed or job['status'] in TERMINAL or
                         self.play_pending or job['generation_done'])
@@ -667,6 +733,13 @@ class SpeechService:
                 raise RuntimeError(f'Early audio playback failed (aplay exit {code})')
             with self.lock:
                 if not self.closed and job['status'] not in TERMINAL:
+                    if tempo > 1:
+                        if not self.player.output_samples:
+                            raise RuntimeError('Tempo playback produced no audio')
+                        job['playback_output_samples'] = self.player.output_samples
+                        job['playback_duration_seconds'] = self.player.output_samples/first['sample_rate']
+                        if self.capture_playback:
+                            job['playback_audio_filename'] = f"{job['id']}-playback.wav"
                     self.complete(job)
         except Exception as error:
             with self.lock:
@@ -684,8 +757,34 @@ class SpeechService:
                     job['finished_at'] = time.time()
                 self.save_job(job)
                 self.active_play = self.active_play_piece = None
+                self.player_job_id = None
                 self.prune()
                 self.lock.notify_all()
+
+    def select_playback_tempo(self, job):
+        if self.playback_tempo == 'flexible' and job.get('live'):
+            if job.get('chunk_texts'):
+                job['duration_prediction'] = self.duration_estimator.predict(
+                    job['chunk_texts'], job['language'], job['voice_revision'], self.runtime)
+            prediction = job.get('duration_prediction', {}).get('seconds', job.get('estimated_duration_seconds', .8))
+            duration = job.get('duration_seconds', prediction) if job.get('generation_done') else max(job.get('duration_seconds', 0), prediction)
+            backlog = self.audio_backlog_seconds(include_deferred=True)
+            own = max(job.get('duration_seconds', 0), job.get('estimated_duration_seconds', 0))-job.get('played_duration_seconds', 0)
+            now = time.time()
+            decision = self.tempo_controller.select(max(.01, duration), job.get('source_duration_seconds'),
+                max(0, now-job.get('source_emitted_at', job['created_at'])),
+                max(0, backlog-own)+duration, job.get('voice_revision', ''), now)
+            decision['duration_basis'] = 'measured' if job.get('generation_done') else job.get('duration_prediction', {}).get('method', 'heuristic')
+            decision['predicted_unserved_seconds'] = max(0, duration/decision['tempo']-(job.get('source_duration_seconds') or duration))
+            job['tempo_decision'] = decision
+            return decision['tempo']
+        if self.playback_tempo != 'adaptive' or not job.get('live'):
+            return 1.
+        duration = max(job.get('duration_seconds', 0), job.get('estimated_duration_seconds', 0))
+        ahead = max(0, self.audio_backlog_seconds(include_deferred=True)-duration+job.get('played_duration_seconds', 0))
+        delay = max(ahead, time.time()-job['created_at'])
+        # 每个逻辑任务固定一个速度，避免在 240 ms 块边界重置过滤器。
+        return 1.05 if delay >= 1 else 1.
 
     def play_loop(self):
         with (self.root/'playback.log').open('a') as log:
@@ -698,7 +797,7 @@ class SpeechService:
                     job = self.jobs[chunk['job_id']]
                     if job['status'] in TERMINAL or self.expire_before_first_audio(job):
                         continue
-                if chunk.get('streamed'):
+                if chunk.get('streamed') or job.get('continuous_playback'):
                     self.play_stream(job, chunk, log)
                     continue
                 with self.lock:
@@ -812,6 +911,7 @@ class SpeechService:
                 return self.submit({**body, **self.session, 'live': True})
             if parts == ['api', 'speech', 'stop'] and method == 'POST':
                 self.session['enabled'] = False
+                self.tempo_controller.previous.clear()
                 keys = self.jobs.ids("status NOT IN ('completed','failed','cancelled','expired')") if self.delivery_policy == 'coverage' else list(self.jobs)
                 for job_id in keys:
                     self.cancel(job_id)
@@ -880,19 +980,33 @@ def main():
     parser.add_argument('--port', type=int, default=18081)
     parser.add_argument('--data-dir', type=Path, default=Path.home()/'.local/share/mozart/speech')
     parser.add_argument('--playback-device', default='default')
+    parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='flexible')
+    parser.add_argument('--duration-profile', type=Path, default=DEFAULT_PROFILE)
+    parser.add_argument('--playback-tempo-max', type=float, default=1.05)
+    parser.add_argument('--playback-target-delay', type=float, default=1.5)
+    parser.add_argument('--playback-recovery-seconds', type=float, default=30.)
+    parser.add_argument('--capture-playback', action='store_true', help='Save filtered playback WAVs for diagnostics')
     parser.add_argument('--preload',action='store_true',help='Initialize the worker before admitting live input')
     parser.add_argument('--early-audio', action='store_true', help='Use the independent early Pocket audio runtime')
+    parser.add_argument('--audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=3)
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     args = parser.parse_args()
+    try:
+        TempoController(args.playback_tempo_max, args.playback_target_delay, args.playback_recovery_seconds)
+    except ValueError as error:
+        parser.error(str(error))
     command = [sys.executable, str(Path(__file__).with_name('clone_worker.py')),
         '--model', args.model, '--engine', args.engine, '--threads', str(args.threads), '--vocoder', args.vocoder,
         '--provider', args.provider, '--precision', args.precision]
     if args.provider_config:
         command += ['--provider-config', str(args.provider_config)]
     if args.early_audio:
-        command += ['--early-audio']
+        command += ['--early-audio', '--audio-chunk-frames', str(args.audio_chunk_frames)]
     service = SpeechService(args.data_dir, command, args.engine, args.playback_device,
-                            preload=args.preload, delivery_policy=args.delivery_policy)
+                            preload=args.preload, delivery_policy=args.delivery_policy,
+                            playback_tempo=args.playback_tempo, capture_playback=args.capture_playback,
+                            duration_profile=args.duration_profile, playback_tempo_max=args.playback_tempo_max,
+                            playback_target_delay=args.playback_target_delay, playback_recovery_seconds=args.playback_recovery_seconds)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(service))
     server.daemon_threads = True
     def terminate(*_):

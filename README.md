@@ -9,16 +9,29 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 
 | 功能 | 已实现行为 | 验证范围与限制 |
 | --- | --- | --- |
-| 实时 RVC | ALSA 预处理客户端与 UDP 后端 | `qiqi-zh-realtime` 的 TensorRT 配置已验证，首帧约 320 ms |
+| 实时 RVC | ALSA 预处理客户端与 UDP 后端 | `qiqi-zh-realtime` 已通过 400 ms 启动预算下的 120 s 组合检查 |
 | 文件 RVC | 上传、串行队列、取消请求、结果下载 | 输入最长 300 s；FFmpeg 可取消；整段推理仍需等待返回 |
 | 翻译字幕 | Zipformer 转写、可选 SenseVoice 校正、Qwen 翻译、SSE 字幕 | 已接通；人称、领域词和跨句语义仍有错误 |
 | 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查不能证明语义或声线正确 |
 | PipeWire 设备接口 | 占位实现 | 当前物理音频使用 `mozart-pre` 的 ALSA 路径 |
 | 零样本语音转换 | 预留模式 | `rt_zero_shot` / `file_zero_shot` 返回 HTTP 501 |
 
-`320 ms` 来自已验证配置的首帧输入至首帧输出。稳态推理块耗时中位数为 `88 ms`，p95 为 `93 ms`。
+早期配置的首帧输入至首帧输出约为 `320 ms`。该次稳态推理块耗时中位数为 `88 ms`，p95 为 `93 ms`。
 这些数字不是任意模型、动态 ONNX 或全部并发组件的性能保证。
 详细证据见 [Golden 参考](rvc-golden/README.md) 和 [报告索引](reports/README.md)。
+
+2026-10-14 的优化加入 GPU 张量直连、特征并行和 quality 特征按需加载。
+同一固定输入的十二轮短测中，四种配置的 PCM 音频逐样本一致。
+启动、进程内存、推理耗时和组合运行的配置与结果见[效率验证报告](reports/efficiency-20261014/RESULTS.md)。
+
+变声、识别、翻译、字幕、参考音色播报及控制接口的计时范围与实测结果见[逐功能延迟报告](reports/feature-latency-20261014/RESULTS.md)。
+
+文件转换、字幕传输、取消及早期播报的后续优化见[延迟优化报告](reports/latency-reduction-20261015/RESULTS.md)。
+
+播放积压的后续优化与称谓漏译修复见[播放延迟报告](reports/playback-latency-20261015/RESULTS.md)。
+
+时长控制的开源方案、语音学论文及中英计时见[译文时长参考](docs/TRANSLATION_DURATION.md)。
+逐段比例控制与四参数时长模型见[灵活变速说明](docs/FLEXIBLE_TEMPO.md)。
 
 ## 数据流
 
@@ -145,6 +158,25 @@ split-only 模型不能代替普通文件 Generator。
 
 显式选择模型后，日志应出现 `upstream realtime (240ms block + 2.5s past + SOLA)`。
 `2.5 s` 是滚动历史上下文，不是额外等待时间。
+
+实时 TensorRT 路径默认直接连接 Generator front 与 decoder 的 GPU 张量。
+HuBERT 与 RMVPE 默认重叠执行。CPU／ONNX 路径保留主机张量连接。
+对照测试可设置 `MOZART_RVC_DEVICE_CHAIN=0` 或 `MOZART_RVC_PARALLEL_FEATURES=0`，分别关闭对应优化。
+设置 `MOZART_RVC_PROFILE=1` 可记录分段耗时。并行模式下，HuBERT 等待耗时不代表完整 HuBERT 计算时间。
+
+`rvc.realtime_playout_delay_ms` 默认设为 `400`，表示实时输出的最小启动等待预算，单位为 ms。
+计量从首个输入契约帧开始。该预算覆盖静音转有声及组合负载下的计算抖动，不修改音频样本。
+允许值为 `0` 至 `1000`，按 `20` 递增。单独运行 RVC 时可设为 `0`，关闭此预算并测量欠载。
+较慢的首块仍可能使实际启动等待超过预算。该配置只用于 upstream realtime 路径。
+状态中的 `stream.playout_delay_ms` 报告配置预算，`stream.queued_output_ms` 报告当前输出缓冲时长。
+
+配置两个 realtime 特征路径后，普通 quality 特征引擎在首次使用时加载。
+模型管理器默认保留两个缓存对象；正在使用的模型继续保留，暂时允许超过此数量。
+切换模型后，管理器回收多余的闲置对象。该数量限制不是整个进程的内存上限。
+
+`/api/status` 的 `model` 对象报告各阶段的 `*_backend`、`*_asset` 和 `*_fallback_reason`。
+`onnx_cuda_ep` 表示配置了 CUDA 执行提供程序，不证明全部算子都运行于 GPU。
+前端的“推理运行状态”可展开查看这些信息。
 
 ```bash
 python3 tools/stream_audio_udp.py input.wav realtime-output.wav \
