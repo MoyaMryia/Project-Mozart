@@ -33,7 +33,7 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 时长控制的开源方案、语音学论文及中英计时见[译文时长参考](docs/TRANSLATION_DURATION.md)。
 逐段比例控制与四参数时长模型见[灵活变速说明](docs/FLEXIBLE_TEMPO.md)。
 2026-10-16 起，灵活变速默认上限为 1.15 倍，系统仍按需选择比例。
-此前 1.05 倍上限的性能与识别结果不能直接用于新上限。
+新上限的结果见 [1.15 倍验证报告](reports/tempo-limit-20261016/RESULTS.md)。
 
 ## 数据流
 

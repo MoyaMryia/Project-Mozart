@@ -186,7 +186,7 @@ Use `--playback-tempo normal` to restore original playback speed.
 Use `--playback-tempo adaptive` to restore the previous two-speed policy.
 Use `--playback-tempo-max`, `--playback-target-delay`, and `--playback-recovery-seconds` to configure the controller.
 The default values are 1.15, 1.5 seconds, and 30 seconds.
-Values above 1.05 require separate quality evaluation. The accepted maximum is 1.15.
+The accepted maximum is 1.15. See the [test scope](../reports/tempo-limit-20261016/RESULTS.md#适用范围).
 Use `--playback-tempo-max 1.05` to restore the previous limit.
 The tiny duration model has four regression parameters. Inference uses the Python standard library.
 Its features are word count, approximate syllable count, and clause punctuation.

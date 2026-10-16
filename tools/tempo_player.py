@@ -1,12 +1,10 @@
 """使用持续 FFmpeg 过滤器播放完整任务，保留音高和过滤器状态。"""
 import os
-import math
 from pathlib import Path
 import subprocess
 import threading
 import time
 import wave
-from tempo_control import MAX_TEMPO
 
 _library = None
 _library_lock = threading.Lock()
@@ -58,8 +56,6 @@ class NativeFilter:
 
 class TempoPlayer:
     def __init__(self, rate, device, tempo, log, capture=None):
-        if not math.isfinite(tempo) or not 1 <= tempo <= MAX_TEMPO:
-            raise ValueError('Invalid playback tempo')
         self.rate, self.tempo = rate, tempo
         self.stopped = threading.Event()
         self.error = None

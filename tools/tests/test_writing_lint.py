@@ -61,6 +61,15 @@ class CodeTests(unittest.TestCase):
         for handler in ['except OSError:\n    pass\n', 'except Exception:\n    raise\n']:
             self.assertEqual(check_code('a.py', f'try:\n    f()\n{handler}'), [])
 
+    def test_conditional_or_nested_raise_does_not_hide_swallowed_errors(self):
+        for body in ['    if retryable:\n        raise\n    pass\n',
+                     '    if recoverable:\n        return\n    raise\n',
+                     '    try:\n        raise\n    finally:\n        return\n    raise\n',
+                     '    def helper():\n        raise RuntimeError()\n    pass\n']:
+            with self.subTest(body=body):
+                text = 'try:\n    f()\nexcept Exception:\n'+body
+                self.assertEqual(rules(check_code('a.py', text)), ['broad-except'])
+
 
 class BaselineTests(unittest.TestCase):
     def test_baseline_only_absorbs_known_counts(self):

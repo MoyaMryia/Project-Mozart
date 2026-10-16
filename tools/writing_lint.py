@@ -158,7 +158,10 @@ def broad_excepts(path, text):
             continue
         broad = node.type is None or (isinstance(node.type, ast.Name)
                                       and node.type.id in ('Exception', 'BaseException'))
-        if broad and not any(isinstance(n, ast.Raise) for n in ast.walk(node)):
+        exits = (ast.Return, ast.Break, ast.Continue, ast.FunctionDef,
+                 ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+        reraises = isinstance(node.body[-1], ast.Raise) and not any(isinstance(n, exits) for n in ast.walk(node))
+        if broad and not reraises:
             yield violation(path, node.lineno, 'broad-except', lines[node.lineno-1])
 
 
