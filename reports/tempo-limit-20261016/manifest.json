@@ -1,0 +1,17 @@
+{
+  "source_sha256": {
+    "tools/tempo_control.py": "a536ab34fea674b7737fb33a61d19d8284f4f00cf6c8d822c9155aeaa4717ec0",
+    "tools/tempo_player.py": "bd9db05b8b6c729f328016fd8f1552744eb07c7c8cf06e974e5ca063c9c6128d",
+    "tools/speech_service.py": "fca11dec25b0a38146b2ab7bff23a828335ebb0a50f795f64fc4d42b5534ead1",
+    "tools/run_translated_speech.py": "a93b1bc4106bbbf1a6d64e6db1cad06a2cfd28f3eecaeced5cb400565eb14f15",
+    "preprocessor/src/tempo_filter.c": "bab346929094db593fad8aa357b9b503fb36c01b9a3b0792053f920f9b796a3e",
+    "tools/duration_profiles/qiqi-pocket.json": "48fd30b90d024dd4e7abd77171d1d3ed5e6870198e4e720f7bd722310977d3a6"
+  },
+  "native_library_sha256": "0cfd124e603e50c767dfd30b7469297dd6b8d8fee7455da9b8cb331848a76464",
+  "ffmpeg_version": "ffmpeg version n8.0.1-9-g90b8004959-1ubuntu0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+  "native_libraries": [
+    "11.4.100",
+    "60.8.100"
+  ],
+  "native_cli_above_maximum_exit_code": 2
+}

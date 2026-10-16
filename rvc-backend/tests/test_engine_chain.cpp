@@ -30,10 +30,14 @@ int main() {
             } catch (const std::invalid_argument&) {}
         }
         if (decoder.calls != 1) return 1;
+        inputs[0].shape = {1, 3};
         try {
             front.run_chained({}, "z", decoder, inputs, "missing", "audio");
             return 1;
-        } catch (const std::invalid_argument&) {}
+        } catch (const std::invalid_argument& error) {
+            if (std::string(error.what()) != "Chained input tensor not found") return 1;
+        }
+        if (decoder.calls != 1) return 1;
         front.load("selected.engine");
         front.add_fallback_reason("First failure");
         auto snapshot = front.runtime_info();

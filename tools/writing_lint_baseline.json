@@ -1,0 +1,2729 @@
+{
+ "version": 1,
+ "entries": [
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "ASR 读取、翻译和播报提交仍在同一循环串行执行，尚未完成有界异步解耦。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "Qwen 默认使用 0.8B 模型；其他翻译模型仍需完整的质量和内存验证。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "与“请求 CUDA EP”日志都不能证明所有计算实际使用 GPU。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "尚无初始模型配置；启动器仍需显式选择目标音色。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "尚无按这两个模式分配 CUDA 流优先级的机制，也不保证实时硬件抢占。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "检查点版本、F0 支持、说话人数和特征维度仍需在导出前核对。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "物理音频当前经外部 ALSA 客户端传输； 抽象尚未实现，文件工作线程直接使用 FFmpeg。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "环满时返回失败；上层按路径记录溢出或丢弃旧输入。输出不足时补零，仍需统计欠载和试听连续性。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "该目标不是磁盘硬配额；队列与任务状态不跨重启保存。",
+   "count": 1
+  },
+  {
+   "path": "DESIGN.md",
+   "rule": "hedge-in-body",
+   "text": "输入包在常见 1500 字节 MTU 下无需 IP 分片；输出包需要分片，不能保证无分片丢包。",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "| 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查不能证明语义或声线正确 |",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "| 文件 RVC | 上传、串行队列、取消请求、结果下载 | 输入最长 300 s；FFmpeg 可取消；整段推理仍需等待返回 |",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "不能证明实际使用 GPU。同名  加载成功时优先 TensorRT；",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "切换模型后，管理器回收多余的闲置对象。该数量限制不是整个进程的内存上限。",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "字幕保留原文。数字、否定和部分边界检查只能发现已覆盖的错误，不能证明翻译正确。",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "是滚动历史上下文，不是额外等待时间。",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "设置  可记录分段耗时。并行模式下，HuBERT 等待耗时不代表完整 HuBERT 计算时间。",
+   "count": 1
+  },
+  {
+   "path": "README.md",
+   "rule": "hedge-in-body",
+   "text": "这些数字不是任意模型、动态 ONNX 或全部并发组件的性能保证。",
+   "count": 1
+  },
+  {
+   "path": "TARGET.md",
+   "rule": "hedge-in-body",
+   "text": "| 翻译字幕 | ASR 转写后本地翻译 | 已接通；语义准确性和跨句上下文仍需验证 |",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "- [ ] **空闲资产回收与总内存预算**： 仍不保证卸载全部资产。模型数量限制不等于总内存上限。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "- [ ] **零样本语音转换**：保留 Seed-VC 调研，两种 VC 模式尚未实现。该任务不是参考 TTS 的前置条件。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "- [x] PocketTTS 帧数上限没有生效：通过 setter 设置完整 options；达到上限且结尾未验证时拒绝结果。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "- [x] 原文字幕先发布，译文与播报提交结果按版本更新同一行；Python 88 项、前端字幕四项及构建通过，尚未板测收益。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "PocketTTS 英文为当前路线；ZipVoice 和其他模型仍是候选。API 合成成功不等于声线通过。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "不修改默认启动目标，测试后恢复桌面。当前  已可连接；本轮没有停止桌面服务。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "仍需最终配置的长期共存验收。短测不能替代 30 分钟连续输入。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "单次底层模型调用仍不能抢占。长输入 CPU 回退的取消上限和分块内存预算仍需验证。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "回归使用测试引擎，不代表真实模型音质验收。启动器仍需显式选择目标音色。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "文件推理已完成指定形状范围的 TensorRT 加速。长输入回退和总内存预算仍需处理。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "本地验证结果见本轮报告；GitHub 托管工作流尚未运行本次修改。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "计时为父字幕最终 ASR 事件至首次 PCM 送入播放管道；物理输出尚未重测。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "记录尾延迟、欠载、内存、swap 与全部源句覆盖。有界短测不能证明长期稳定。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "该报告使用定速 ALSA ，不代表物理声卡首播延迟。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "这些是部署主机上的历史路径，不保证当前检出环境存在。",
+   "count": 1
+  },
+  {
+   "path": "TODO.md",
+   "rule": "hedge-in-body",
+   "text": "这是后续截止时间、延后队列与预热修复之前的历史配置，不代表当前演示的最新延迟。",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "1.15 倍是按用户要求提高的上限，不是固定播放速度。",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "|  |  | 播放比例上限。允许 1.00–1.15，向下取到 0.001 精度。高于 1.05 的发音与听感仍需另测。 |",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "只表示该段相对源区间的预测超长量，不是累计积压或实测延迟。",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "它不是物理扬声器的实际剩余播放量。",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "观测区间包含识别前视音频，不等于分句的精确发音区间。",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "该余量不是单句时长误差的硬上限。",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "近似音节数来自字母规则，不是逐音素对齐。",
+   "count": 1
+  },
+  {
+   "path": "docs/FLEXIBLE_TEMPO.md",
+   "rule": "hedge-in-body",
+   "text": "默认目标延迟为 1.5 s，恢复时间为 30 s。这些是控制参数，不是延迟保证。",
+   "count": 1
+  },
+  {
+   "path": "docs/REALTIME_LATENCY.md",
+   "rule": "hedge-in-body",
+   "text": "- 使用持续 PCM 播放器，减少每片段启动  的开销；该开销尚未独立测量，不能声称可节省数秒。",
+   "count": 1
+  },
+  {
+   "path": "docs/REALTIME_LATENCY.md",
+   "rule": "hedge-in-body",
+   "text": "0.39 s 是当前路径可重叠的已观察时间窗口，不是保证收益或整个引擎的理论上限。",
+   "count": 1
+  },
+  {
+   "path": "docs/REALTIME_LATENCY.md",
+   "rule": "hedge-in-body",
+   "text": "SSE 当前每 200 ms 检查文件。事件通知或较短的等待可进一步减少发布延迟，但不是十秒级播报等待的主要来源。",
+   "count": 1
+  },
+  {
+   "path": "docs/REALTIME_LATENCY.md",
+   "rule": "hedge-in-body",
+   "text": "以上改法可以使原文不再等待这段处理；不能据此保证完整字幕显示延迟减少相同数值。",
+   "count": 1
+  },
+  {
+   "path": "docs/REALTIME_LATENCY.md",
+   "rule": "hedge-in-body",
+   "text": "未完成同一输入的 Golden、ONNX 和后端对照前，保留已验证模型与默认配置；先增加分段计时。",
+   "count": 1
+  },
+  {
+   "path": "docs/REALTIME_LATENCY.md",
+   "rule": "hedge-in-body",
+   "text": "本方案暂缓文件变声性能优化。下文区分代码确认、历史实测与待验证改法。",
+   "count": 1
+  },
+  {
+   "path": "docs/REALTIME_LATENCY.md",
+   "rule": "hedge-in-body",
+   "text": "若前方仍有待播音频，提前得到回调也可能不改变实际首播时刻。",
+   "count": 1
+  },
+  {
+   "path": "docs/SIMULTANEOUS.md",
+   "rule": "hedge-in-body",
+   "text": "- 数字尚未结束、条件关系未确定、括号未闭合或末尾明显未完时，继续等待。",
+   "count": 1
+  },
+  {
+   "path": "docs/SIMULTANEOUS.md",
+   "rule": "hedge-in-body",
+   "text": "提前输出音频仍需指定独立运行时；详见[播报说明](../tools/REFERENCE_SPEECH.md)。",
+   "count": 1
+  },
+  {
+   "path": "docs/SIMULTANEOUS.md",
+   "rule": "hedge-in-body",
+   "text": "该计时不含识别前等待；实验仍有播放积压，也未完成人工听检。",
+   "count": 1
+  },
+  {
+   "path": "docs/SIMULTANEOUS.md",
+   "rule": "hedge-in-body",
+   "text": "这些规则是保守启发式，不能证明语义已经稳定。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "**下表是实际 ASR 与翻译管线的输出，未经人工校对。它是时长样本，不是翻译质量基准。**",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "4. 待验证：优先一次生成，只对预测超预算且尚未播出的译文尝试一次重写。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "5. 待验收：检查数字、人称、否定、因果与分句覆盖。现有自动检查不能证明全部语义正确。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "6. 有限变速已实现。仍需 30 分钟输入的积压趋势、语义覆盖及实际音频验收。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "| Coupé 等，2019：[不同语言的信息编码效率](https://hub.hku.hk/bitstream/10722/283058/1/content.pdf?accept=1) | 17 种语言、170 名说话人、15 组平行文本。信息速率比音节速率更接近，模型估计均值约为 39 bits/s。 | 这里的信息量来自音节分布的条件熵，不是事实条数或语言模型 token 数。研究均值不能作为逐句定律。 |",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "| Ren 等，2020／ICLR 2021：[FastSpeech 2](https://arxiv.org/html/2006.04558) | 预测各音素对应的声学帧数；训练时长来自文本与音频的强制对齐。 | 可借鉴合成前的时长预测。PocketTTS 不是 FastSpeech 2，不能直接接用它的预测参数。 |",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "| Zhu、Matsui，2000：[普通话音素与音节时长研究](https://www.isca-archive.org/iscslp_2000/zhu00b_iscslp.pdf) | 使用一名女性播音员的 6752 个音节。声母、韵母、声调、邻接音节及短语位置影响时长。 | 可使用上下文特征。论文的声母／韵母单位不等于逐个国际音标音素。单说话人结果不能直接迁移到当前音色。 |",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "| [SeamlessExpressive](https://github.com/facebookresearch/seamless_communication/blob/main/docs/expressive/README.md) | 迁移语速、停顿，并通过 duration factor 调节预测时长。 | 在模型内部控制时长。该参数不是跨语言的通用时长倍率，也不是 PocketTTS 的现有接口。 |",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "两组使用不同说话人，不是同一个人的双语对照。计时同样剔除了超过 150 ms 的静音。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "以上是本轮对公开数据的重算，不是作者给出的通用中英倍率。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "以下内容来自原始论文。工程建议属于推断，尚未在 Mozart 验证。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "它不代表 92% 的句子翻译正确，也不是实测的音频区间重叠率。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "实时任务还需考虑尚未到来的输入；离线配音的完整字幕时间线不能直接当作在线可用信息。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "测试集总时长相除约为 0.71 和 0.77。这是由论文舍入统计值计算的加权总量比，不是逐句中位数。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "翻译生成时的时长约束仍为候选设计，长期持续输入效果仍需验证。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "该实验不能证明通过时长约束就能保留全部事实。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "该研究计时剔除了超过 150 ms 的静音。数字不是含完整停顿的端到端播报速率。",
+   "count": 1
+  },
+  {
+   "path": "docs/TRANSLATION_DURATION.md",
+   "rule": "hedge-in-body",
+   "text": "该结果只代表论文的预测器和评估条件，不是 Mozart 的误差保证。",
+   "count": 1
+  },
+  {
+   "path": "frontend/DEPLOYMENT.md",
+   "rule": "hedge-in-body",
+   "text": "It does not guarantee a particular initial model.",
+   "count": 1
+  },
+  {
+   "path": "frontend/DEPLOYMENT.md",
+   "rule": "hedge-in-body",
+   "text": "Such a build does not prove that real model inference is available.",
+   "count": 1
+  },
+  {
+   "path": "frontend/DEPLOYMENT.md",
+   "rule": "hedge-in-body",
+   "text": "The  setting does not prove GPU execution.",
+   "count": 1
+  },
+  {
+   "path": "frontend/DEPLOYMENT.zh-CN.md",
+   "rule": "hedge-in-body",
+   "text": "取消请求可以终止 FFmpeg。正在执行的整段 RVC 推理仍需等待返回。",
+   "count": 1
+  },
+  {
+   "path": "frontend/DEPLOYMENT.zh-CN.md",
+   "rule": "hedge-in-body",
+   "text": "此类构建不能证明真实模型可用。独立构建  不产生守护进程。",
+   "count": 1
+  },
+  {
+   "path": "reports/README.md",
+   "rule": "hedge-in-body",
+   "text": "本目录保存带日期的审计、实验和审查记录。报告只代表对应日期和配置，不是长期接口契约。",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Speech must begin within 30 seconds; already-started speech can finish its remaining pieces. Live piece synthesis has a 20-second timeout and a 12-second duration ceiling. The initially added Pocket latent-frame cap was ineffective because the native options getter returns a copy. The v3 correction assigns the full options dictionary through its setter; reaching the cap rejects the result rather than accepting an unverified truncated ending.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "A separate check of the three longest pieces found an additional defect in the longest: **“After winning 25,000, I am afraid to tell them it is gambling.”** automatically transcribed with **“I am afraid to tell them” repeated**. Its 10.64-second audio remained below the duration guard, showing that passing the guard does not establish quality. The other two long pieces matched their expected text. The repeated piece was not admitted in the original baseline, so there is no matched original WAV comparison for it; it is an observed quality issue, not proof of a baseline regression.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Across recorded samples, aggregate CPU median/p95/maximum were **51.1% / 60.5% / 68.5%** across six cores. Pocket worker median CPU was approximately **2.28 cores**, maximum RSS **0.584 GiB**; recognition median CPU **0.50 core**, maximum RSS **0.641 GiB**; translation server maximum RSS **3.225 GiB**. RSS is not a precise shared-memory CPU/GPU split. Minimum available RAM was **1.847 GiB**; existing swap ranged **824–908 MiB**, with **775 swap-in pages (3.03 MiB)**. The Jetson did not reach sustained total CPU saturation in these samples, but this bounded run does not prove unlimited memory stability.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "All **32 regression tests passed on both hosts**, including a copy-on-read native-options regression; the actual Jetson binding retains . Buffers, playback tempo and source text have not been enlarged, accelerated or discarded to manufacture success.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Both runs rejected three overlength translations, 19 containing unsupported Chinese, and six translations failing numeral preservation. The new admission skips account for **586 offered English words**. Completed-text coverage does not prove every word was spoken correctly, and partial failed sentences are excluded from complete-job coverage.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Current [campaign state](/home/moyamryia/Projects/Project-Mozart/rvc-golden/chunked-speech-20261006/campaign-state.json) and the remote run files are authoritative for progress. Physical speaker behavior and human voice similarity remain unverified. No GPU runtime migration or RVC neural-pipeline change was made in this work.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Fixed-reference clause controls kept every word and number and used the same seed 42/five steps/two threads. **“After winning 25,000.”** generated 2.16 seconds and **“I am afraid to tell them it is gambling.”** generated 2.64, totaling **4.80 seconds** versus 10.64. Cached transcription retained the number and found no repeated phrase; it rendered “I am” as the contraction “I'm”. Both variants were within the original limits. The trial does not prove that every numeric sentence needs this change or that all 608 pieces are free of repetition.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Job completion does not equal semantic or word coverage. The saved [word coverage measurements](/home/moyamryia/Projects/Project-Mozart/rvc-golden/chunked-speech-20261006/word-coverage.json) count words in completed translated text against all valid offered translations. They do not prove every word was pronounced correctly. Two valid captions still exceeded the estimated live budget and remain a performance limitation to investigate.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Long-v4 exited cleanly after **1,841.04 seconds**; harness/supervisor and test-owned workload services stopped and the workload lock was released before scoring. All **407 recognition/translation outputs match the original baseline**. Input delivered **90,000 frames, zero overruns**. It completed **365/379 valid jobs (96.3%)**, with **zero failures or expiry**, 14 budget skips, the same three overlength/19 unsupported-language rejections and six numeral-preservation translation rejections. Completed text contains **4,810/5,258 words (91.5%)**; skipped captions account for 448 words. This counts text, not verified pronunciation.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "On **230 identical matched completed jobs**, first-ready median improved **6.47 → 4.32 seconds**. First-play median improved slightly **10.62 → 10.34**, p95 **25.63 → 18.25**, maximum **29.84 → 20.87**. Overall first-play median was 11.88 seconds, maximum 22.40. CPU median/p95/maximum were **52.3% / 61.8% / 70.7%** across the recorded run. Pocket worker median CPU was approximately **2.28 cores**, maximum RSS **0.584 GiB**; recognition median approximately 0.50 core/max RSS 0.557 GiB; translator max RSS approximately 3.26 GiB (shared memory accounting is not a precise CPU/GPU allocation). Minimum available RAM was **1.902 GiB**; existing swap ranged **811–845 MiB**, with 680 swap-in pages (**2.66 MiB**). These bounded measurements do not establish unlimited operation.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "On 13 matched jobs, median first-ready delay changed **9.94 → 6.64 seconds** and median first-play **15.99 → 11.14**, maximum **23.95 → 20.28**. Minimum available RAM was **3.498 GiB**, median CPU **49.9%**, and swap-in five pages. All completed WAVs were finite with zero clipping. Nine cached Whisper samples again scored **4.55% weighted WER**, with zero edits on the previously repeated first sentence. Physical output and human voice similarity remain unverified.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Remote verification passed **365 parent WAV hashes / 622 piece hashes / combined hash**, exact ordered parent/piece/combined PCM and preserved original text/synthesis words. Combined SHA-256 is . Exact final source files were retained with hashes matching the run protocol. Complete local transfer is now verified: archive **183,919,868 bytes**, SHA-256 ; all 365 parent/622 piece/combined hashes, exact ordered combined/parent/piece PCM, and original/synthesis word preservation passed locally. All seven retained final-source hashes match the run protocol. Physical speaker behavior, human reference-voice similarity and unlimited operation remain unverified.",
+   "count": 1
+  },
+  {
+   "path": "reports/chunked-speech-20261006/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/delivery-20261016/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "30 分钟连续输入、物理声卡延迟和新增人工听感验收仍未完成。",
+   "count": 1
+  },
+  {
+   "path": "reports/delivery-20261016/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮核对发现 8 个已完成提交尚未推送，工作区没有未提交修改。",
+   "count": 1
+  },
+  {
+   "path": "reports/delivery-20261016/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有修改运行时源文件或模型配置。",
+   "count": 1
+  },
+  {
+   "path": "reports/delivery-20261016/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "译文生成阶段的时长预算也尚未实现。",
+   "count": 1
+  },
+  {
+   "path": "reports/delivery-20261016/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/demo-20261007/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "This is a functioning demonstration of the pipeline and reference-voice generation with selected checked sentences. Faithful translation of the complete input remains unfinished. Human voice identity and precise pronunciation are not approved by waveform checks; the user's physical hardware check does not establish that every translated sentence is correct.",
+   "count": 1
+  },
+  {
+   "path": "reports/demo-20261007/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "123.60 s 播报仍长于 120 s 输入；本轮没有证明长期同声播报时延稳定。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "不同模型和更高负载仍需分别测量。超过预算的首块会继续等待，不发布未就绪音频。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "启动和 RSS 表内数值为三轮中位数。RSS 不代表整机或全部 GPU 共享内存。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "截图为测试快照，不是实体设备现场运行画面。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "播报首播从最终识别事件至首个播放管道块计时，不代表实体扬声器发声时间。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "此项为功能回归，不宣称文件推理提速或新的动态 Generator 支持。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "读取的功耗模式为 。本轮没有修改功耗配置或桌面服务。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这是实时参考的客观比较，不是逐样本等价关系。优化前后后端的等价关系另以 PCM 检查确认。",
+   "count": 1
+  },
+  {
+   "path": "reports/efficiency-20261014/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- P95 使用样本线性插值。单样本不列 P95；少量重复只描述本次样本，不代表长期尾部延迟。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- USB 声卡采集、数模转换、扬声器、虚拟 USB 主机及浏览器绘制均未进行物理闭环计时。已有 USB 声卡不等于已接好回环线路。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- VAD 进入与退出的 3 帧、25 帧门限来自代码，分别对应 60 ms、500 ms 的条件累计。该值不是本次实测的声学检测延迟。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- 播放使用按音频时长等待的 ALSA 。时间戳描述软件管道，不代表扬声器出声。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "23/23 个父字幕覆盖源文本范围，41/41 个播报任务完成。22/23 个父字幕通过现有翻译检查；第 5 个保留了包含中文“大妈”的失败候选。完成率不代表识别或翻译语义正确率。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| 实时 RVC UDP 往返 | 契约包发送→对应编号回包；不等于缓冲音频内容延迟 | 570 | 0.27 ms | 0.86 ms |",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "在线识别的首帧时间不等于人工标注的第一音节。定稿测试使用截取文件的末尾，随后输入 2 s 静音。三次产生相同识别文本，但本次未做字错率验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "模型缓存切换只证明两个模型标识之间的缓存命中耗时。两者使用同一七七资产。该结果不代表任意两个人声模型的加载时间。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "正在合成的播报取消耗时 37.79 ms。正在播放的播报停止耗时 3.073 s。两项仅各测 1 次。后者与当前进程终止最长 3 s 等待相符；尚未通过系统调用追踪确定等待发生在哪个子进程。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "生成音频合计 123.60 s，超过 120 s 输入。97 个父字幕内部片段间隔中，1 个超过 20 ms，最大为 21.32 ms。本次测试不能证明长时间播放队列延迟稳定。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "首次文件请求发生在模型激活以后。首次计时包含按需加载的质量特征引擎，排除守护进程启动和前面的模式切换。CPU 对照不代表 TensorRT 文件路径。",
+   "count": 1
+  },
+  {
+   "path": "reports/feature-latency-20261014/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "不能据此声称音高完全一致。详细记录见[音高比较](pitch-comparison.json)。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "尚未完成 30 分钟连续输入及物理声卡验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "当前高积压回放已经触及 1.05 倍上限，不能保证所有输入都可消除积压。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "提高上限需要重新验证发音和听感；本轮没有自动提高上限。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "最短句仍有明显低估，误差余量不是硬保证。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有单独消融模型与控制器，不能把全部整机收益归因于机器学习。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有新增人工听感确认。默认上限仍为 1.05 倍。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "独立语音 worker 的启动至就绪为 1.517 s，仅测 1 次，不能据此分离资产哈希的启动成本。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "自动翻译检查通过不代表语义已人工验收；本轮没有把这些译文作为翻译训练标签。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "该测试证明比例选择和恢复路径可执行，不是端到端推理延迟测量。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这些是并发运行结果，不是对 RVC 模型或导出资产的修改。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这些结果说明自动识别差异不能直接等同音质退化，也不能证明原速发音正确。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "音节特征采用字母规则，不是音素强制对齐。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "首轮初版结果不作为最终代码的延迟值。",
+   "count": 1
+  },
+  {
+   "path": "reports/flexible-tempo-20261015/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/full-run-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "**The selected complete stack fits the 8 GB Jetson, but the current project does not yet deliver reliable translated speech in a cloned voice. The largest blockers are segmentation, recognition/translation accuracy, speech-job integration and voice acceptance.**",
+   "count": 1
+  },
+  {
+   "path": "reports/full-run-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Default RNNoise produced complete utterances, but repeated runs changed  into  (“that child”). Qwen then introduced claims about a child being born or graduating. Even an utterance with a correct year could lose the “thirty-six years ago” clause. The median full-utterance translation request took **801.5 ms**; low latency does not establish translation faithfulness.",
+   "count": 1
+  },
+  {
+   "path": "reports/full-run-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "RVC index parsing regression checks pass, but production index loading remains intentionally disabled in . Enabling retrieval requires its own quality/memory check; moving the index-rate slider currently cannot establish that retrieval is active.",
+   "count": 1
+  },
+  {
+   "path": "reports/full-run-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Reported API/packet ages around 20–31 ms measure packet metadata/return timing. **They are not the latency of the buffered converted audio.** The clean realtime startup was 300 ms. Pocket's first callback is also an application callback, not sound reaching a physical speaker. Complete translated utterances still require endpoint detection, translation and several seconds of speech generation.",
+   "count": 1
+  },
+  {
+   "path": "reports/full-run-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The first follow-up SSE reader expired during an idle interval; its subsequent false append results are superseded by the fresh-connection  check. STT shutdown logs included broken-pipe errors during test teardown, so graceful child-process shutdown still needs attention; they are not counted as inference failures.",
+   "count": 1
+  },
+  {
+   "path": "reports/full-run-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| Hardware audio | Interfaces work; drain needs attention | Five-second real USB microphone → RNNoise → RVC → USB playback run: **250/250** replies, no inference errors, **249 packets played and one ALSA underrun**; capture was nearly silent. A generated clone WAV also played through the stable USB ALSA device with exit code 0. Human hearing/voice identity and live speech recognition were not verified. |",
+   "count": 1
+  },
+  {
+   "path": "reports/full-run-20261005/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "代码从  开始修改。测试使用隔离副本，没有覆盖 Jetson 原有  检出。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "原始 Golden、ONNX 和后端 WAV 均保留供并排试听。本轮没有新增人工听感验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "完整预览仍需等待全部音频就绪。本轮没有缩短其完整生成耗时。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "当前结果不能证明更换模型、改变播放节奏或调整文本策略后仍不能继续降低延迟。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "普通完整预览和下载任务不使用早期解码块。改变早期解码块会改变 PCM，不能宣称逐样本兼容。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本机 CUDA EP 运行实际模型时出现 。附着 CUDA provider 不代表成功的 GPU 推理。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "测试没有改变电源模式、固定频率或清空磁盘缓存。新进程启动不等于冷磁盘读取。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "相同采样位置的块边界跳变与旧音频接近。该比较不等于所有文本和音色的质量认证。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "该异常没有在随后复测中重现，根因尚未确认。新代码增加了分段计时日志。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这一结果说明轻微加速有潜力，但它改变播放节奏，且本轮未验证保音高变速的音质。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这是管道提交时间戳间隔，不是物理声卡静音间隔。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "首块就绪的 P95 为 510.26 ms，最大为 1248.31 ms，不能保证每个任务均在 300 ms 内就绪。",
+   "count": 1
+  },
+  {
+   "path": "reports/latency-reduction-20261015/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/long-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Three of ten samples matched the requested text under the scorer's word normalization, including a 12.32-second sentence. Correctly spoken text does not prove its preceding translation was correct.",
+   "count": 1
+  },
+  {
+   "path": "reports/long-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Minimum system available RAM was **1.69 GiB**. Swap was already in use: 844,390,400 bytes at baseline/median and 844,652,544 bytes at maximum, an increase of 0.25 MiB. The run did not exhaust RAM or hit the supervisor's low-memory guard. Available memory declined during the run; per-process RSS was not recorded, so these measurements do not establish whether allocator growth or another system workload caused that decline. This is not evidence of swap-free operation or a proven absence of leaks.",
+   "count": 1
+  },
+  {
+   "path": "reports/long-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The duration failure occurred on an incomplete sentence ending ; generation exceeded its 20-second allowance and was rejected after about 30 seconds wall time. Its worker interruption/reload caused additional pressure. No unsafe result was published as completed. Four expired jobs had generated audio; one expired before generation. One expired job reached terminal state at 43.81 seconds age: the 30-second freshness check prevents stale playback, but does not guarantee termination precisely at 30 seconds.",
+   "count": 1
+  },
+  {
+   "path": "reports/long-speech-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The recognition/translation path still contains clear semantic problems. A recorded source caption beginning  continued with mangled words and produced . The TTS intelligibility check mostly matched that English text, demonstrating why TTS success cannot substitute for ASR/translation validation. Six translations were withheld by numeral checks; those checks can also reject valid written month names and do not establish semantic accuracy.",
+   "count": 1
+  },
+  {
+   "path": "reports/long-speech-20261006/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/next-steps-audit-20261002/AUDIT.md",
+   "rule": "hedge-in-body",
+   "text": "During this cold file job, available memory fell to about **467 MiB**, with about **566 MiB swap** used. The 21.8-second input took roughly 83 seconds including cold setup/fallback, not a steady throughput benchmark. After test daemons exited, available memory recovered to about 4.5 GiB, with 455 MiB still swapped. Existing older low-occupancy concurrency numbers remain scoped to those earlier assets and cannot establish current full-path headroom.",
+   "count": 1
+  },
+  {
+   "path": "reports/next-steps-audit-20261002/AUDIT.md",
+   "rule": "hedge-in-body",
+   "text": "Implement guarded/lazy activation and distinguish index file existence, successful load and active retrieval in status. Avoid unconditional extra resident memory. Compare captured HuBERT queries/retrieved features with the corresponding Python FAISS/RVC path before a backend audio A/B. Match nprobe, neighbor aggregation and mixing semantics explicitly; parser correctness alone does not establish RVC retrieval equivalence.  still requires the training-side asset.",
+   "count": 1
+  },
+  {
+   "path": "reports/next-steps-audit-20261002/AUDIT.md",
+   "rule": "hedge-in-body",
+   "text": "Observed startup from the retained backend configuration selected , with . Factory selection follows directory iteration and the first usable model. Selecting realtime mode alone therefore does not guarantee the accepted split profile. No Mozart/subtitle/LLM service was running during the initial inspection, and no matching service units were installed.",
+   "count": 1
+  },
+  {
+   "path": "reports/next-steps-audit-20261002/AUDIT.md",
+   "rule": "hedge-in-body",
+   "text": "The Generator comparison used the case-specific qiqi full export at **T=2380**. It does not establish dynamic sequence support or change the current standard Generator T=200 contract. The legacy streaming test has 129 initial underrun frames (2.58 seconds); all underruns were at startup. It does not reproduce the accepted split realtime profile's approximately 320 ms first output. The UDP test uses preprocessed contract frames and bypasses physical capture/RNNoise/VAD.",
+   "count": 1
+  },
+  {
+   "path": "reports/next-steps-audit-20261002/AUDIT.md",
+   "rule": "hedge-in-body",
+   "text": "The two de_narrator exports tested during PR #2 review still fail at T=50/100 and contain internal random operators. Their cross-export error cannot justify replacing an asset. The qiqi result in this audit does not prove de_narrator correctness.",
+   "count": 1
+  },
+  {
+   "path": "reports/next-steps-audit-20261002/AUDIT.md",
+   "rule": "hedge-in-body",
+   "text": "defines  with no enabling assignment. The hidden panel contains working mic-mute/bypass actions; waveform canvases have no data connection. Model management remains disabled. The production build passes, but that does not establish usability.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "Read-only inspection of  found sherpa-onnx 1.13.6 in Mozart's Python 3.12 environment. Its extension links its own bundled . The separate Python ONNX Runtime 1.27.0 package exposes only Azure and CPU execution providers; replacing that separate package alone does not establish GPU support in sherpa.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "| PocketTTS reference voice | sherpa-onnx CPU provider | Largest CPU target; GPU performance of these int8 assets remains unverified |",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/PERFORMANCE.md",
+   "rule": "hedge-in-body",
+   "text": "Average capacity also does not guarantee low latency. Speech arrives in bursts, output lengths vary, complete sentences block first playback, and a four-job cap does not represent a fixed duration budget. In the same full-stack experiment, enabling paced playback reduced completion from 22 to 14 valid jobs while median CPU utilization stayed around 53–54%; all 14 shared completed outputs were byte-identical.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/PERFORMANCE.md",
+   "rule": "hedge-in-body",
+   "text": "In the two controlled full-stack probes, median aggregate utilization was 53–54% across six CPU cores, with peaks of 78–81%. Available RAM stayed above 3.35 GiB, swap-in was zero, and maximum CPU temperature was 51.25 °C. GPU median utilization was zero with short peaks up to 99%. PocketTTS uses the CPU provider; translation uses CUDA. Sampled board input power had medians of approximately 9.2 W and peaks around 19.3 W; those samples do not establish a configured power limit or power throttling.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/PERFORMANCE.md",
+   "rule": "hedge-in-body",
+   "text": "The 30-minute run had only 1.69 GiB minimum available RAM and no per-process memory trace. Longer-term memory growth remains unassigned. RVC was disabled in these probes. Prior short combined tests verified the RVC path with existing Golden fixtures but recorded some non-startup underruns; they do not establish sustained combined RVC plus translated-speech performance. No new RVC inference/export change or Golden comparison was performed here. Physical microphone/speaker reliability is also outside these paced-null measurements.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/PERFORMANCE.md",
+   "rule": "hedge-in-body",
+   "text": "Unused aggregate CPU/GPU capacity does not imply that one autoregressive model can scale proportionally. The thread test demonstrates limited scaling over two threads for these texts. GPU acceleration and memory bandwidth require separate runtime/kernel measurements before assigning a hardware cause.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "5. **Stalls create additional gaps.** Completed playbacks in the 30-minute run had 449.4 seconds of intervening gaps in total. The largest gap was 41.48 seconds. One generation ran for 30.40 seconds before failing its duration guard; 29.13 seconds of that attempt overlapped the largest gap, followed by worker reload overhead. Playback is not continuously busy, so its duration mismatch alone does not explain every skip. Gaps also do not prove the CPU was idle.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "GPU utilization had a median of 0%, with brief peaks of 99%/96%. PocketTTS is explicitly configured for CPU inference; the translator uses CUDA. This does not establish that a CUDA PocketTTS conversion would be straightforward or faster. The probes recorded small swap-outs (37/188 pages), but no swap-in activity. There was no observed high-temperature slowdown in these probes.",
+   "count": 1
+  },
+  {
+   "path": "reports/overload-diagnosis-20261006/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "1.05 倍速度只能缓解积压，不能保证任意持续输入都能跟上。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "其中存在需要人工核对的指代变化，自动检查未覆盖全部语义错误。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "原速和变速音频均保留供并排试听。本轮没有新增人工听感验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "原速识别结果本身不是人工真值。该比较用于检测变化，不能认证发音正确。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "实时 RVC 使用原有资产和推理路径。本轮没有修改 RVC 张量、模型或分块算法。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "播放队列仍然存在。最慢父字幕仍需等待前方音频播放，不能保证所有输入达到亚秒首播。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有通过删除或概括译文降低播放需求。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "测试使用 Jetson 的隔离检出，没有覆盖 。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "相邻块的输入提交时间戳仍有超过 20 ms 的记录，不能据此证明物理输出完全无缝。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这些结果支持消除逐任务程序启动的收益，不代表物理扬声器首音时间。",
+   "count": 1
+  },
+  {
+   "path": "reports/playback-latency-20261015/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/polish-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Real frontend Generate Preview reached completed state and exposed a WAV download with 3.0 seconds audio / 2.4 seconds synthesis. Browser file-chooser automation stalled; **upload via the UI was not verified**. The upload API passed with the actual Qiqi WAV. Screenshot below records completed frontend generation.",
+   "count": 1
+  },
+  {
+   "path": "reports/polish-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Uploaded 3–15-second reference WAVs are validated and stored as immutable, hashed profiles. The UI can select a voice, generate/listen/download previews, enable translated speech, cancel jobs and stop the queue. Preview availability does not mean human identity approval.",
+   "count": 1
+  },
+  {
+   "path": "reports/polish-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The initial run generated WAVs without playback. The ten-minute run loaded RVC assets and used ALSA  before null pacing was corrected; it exercised synthesis and output calls but cannot establish real playback throughput. The final two-minute run paced  to audio duration and exposed overload honestly: six 429 admissions, one unsupported-text/language admission, two withheld numeral-check translations, and one generated sentence skipped because waiting playback exceeded 12 seconds. Nineteen completed jobs produced 85.76 seconds of audio.",
+   "count": 1
+  },
+  {
+   "path": "reports/polish-20261005/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The ten-minute run had seven 429 admissions, three 422 admissions, one 400 admission, four rejected numeral-check translations and one former amplitude rejection. Its 107 completed jobs produced 620.64 seconds of audio. The exact amplitude rejection was fixed and separately retested; the ten-minute workload was not rerun after that fix. Across runs, unfinished work never exceeded four. System swap was already in use: observed usage ranged approximately 0.77–0.92 GiB on combined runs, and about 0.80 GiB in the speech-only run. Available-memory measurements do not prove swap-free operation or causally assign all swap to Mozart.",
+   "count": 1
+  },
+  {
+   "path": "reports/polish-20261005/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/pr-2-review-20261002/REVIEW.md",
+   "rule": "hedge-in-body",
+   "text": "See . This is a synthetic-input export diagnostic, not a Golden speech-quality comparison. Both exports produce 96,000 samples at T=200 and fail at T=50/100 despite symbolic frame axes. Both contain RandomNormalLike and RandomUniform operators; repeated inference with identical inputs differs. Therefore the large cross-model numerical difference cannot establish which model is correct or justify replacement. No model assets were changed.",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "两组退出状态均为 0，等待与未完成播报任务均为零。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "分类器不调用 Qwen 判断语义。模型预测句界，不能证明意思完整。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "对照与实验各有 22／23 句通过自动检查；该检查不是语义质量验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "播放目标为按音频时长等待的 ALSA ；本轮没有实体声卡测试或人工听检。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "本轮支持保留该可选实验路径。它仍未实现稳定的同声传译时延。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有人工听检，不能据此保证听感连续性。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有分类错误，也没有触发原文更正。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有改变播放速度。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "第 6 句增加约 2.531 s；多数句子仍需等待已有播报任务。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "该检查没有完成，不能据此确认脚本在设备上的新下载流程已经通过。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/BOUNDARY_CLASSIFIER.md",
+   "rule": "hedge-in-body",
+   "text": "该计时不含说话至识别事件的等待，不是说话至扬声器出声的总延迟。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "CUDA Graph 也不是当前可直接启用的加速开关。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "但完整 CUDA 音频没有获得提速，且并非逐字节等同于原模型输出。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "因此，计算优化可以减少启动和断供等待，但不能保证任意输入下的延迟始终有界。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "它需要同时修改原生实现和工作进程协议，尚未实现。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "当前实测只找到小幅线程配置收益，尚未找到可靠的 GPU 加速方案。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有人工听检。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "这些数字来自单轮顺序对照，不能证明小幅差异可长期稳定复现。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/CONTINUITY.md",
+   "rule": "hedge-in-body",
+   "text": "这些方向仍需实现和验证，不能提前承诺延迟降幅。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/COVERAGE.md",
+   "rule": "hedge-in-body",
+   "text": "- 正常退出保留等待任务。重启恢复尚未开始播放的任务。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/COVERAGE.md",
+   "rule": "hedge-in-body",
+   "text": "有限时长回放不代表长期压力测试。队列仍受磁盘空间限制。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/COVERAGE.md",
+   "rule": "hedge-in-body",
+   "text": "本次结果说明覆盖率增加，不能证明长时间连续输入的等待有界。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/COVERAGE.md",
+   "rule": "hedge-in-body",
+   "text": "结束时，未完成播报数、等待播报数和翻译队列行数均为零。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/COVERAGE.md",
+   "rule": "hedge-in-body",
+   "text": "输出使用按音频时长等待的 ALSA 。本轮没有实体扬声器测试或人工听检。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/EARLY_AUDIO.md",
+   "rule": "hedge-in-body",
+   "text": "RMS 指均方根幅值。差异原因尚未定位。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/EARLY_AUDIO.md",
+   "rule": "hedge-in-body",
+   "text": "单轮结果不能证明长期延迟稳定性。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/EARLY_AUDIO.md",
+   "rule": "hedge-in-body",
+   "text": "因此，本报告不声称新编译运行时与旧安装包的音频逐样本相同。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/EARLY_AUDIO.md",
+   "rule": "hedge-in-body",
+   "text": "时间戳可用于本次调度比较，不能证明实体扬声器没有欠载。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/EARLY_AUDIO.md",
+   "rule": "hedge-in-body",
+   "text": "本次全部实测样本均未触发限制；这不保证其他输入逐样本相同。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FALLBACK.md",
+   "rule": "hedge-in-body",
+   "text": "完成播报只能证明输出路径可用，不能证明该候选的语义或中文读音正确。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FALLBACK.md",
+   "rule": "hedge-in-body",
+   "text": "该行为按本次用户要求优先保留输出，不代表译文质量通过验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FOLLOWUP.md",
+   "rule": "hedge-in-body",
+   "text": "后续应先评估较短的播报文本、播放速度，以及尚未开始任务的过期策略。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FOLLOWUP.md",
+   "rule": "hedge-in-body",
+   "text": "因此，本轮没有采用简短提示词。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FOLLOWUP.md",
+   "rule": "hedge-in-body",
+   "text": "最长请求仍需重试，但第一次扩写在 128 token 处结束，而不是继续到 300 token。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FOLLOWUP.md",
+   "rule": "hedge-in-body",
+   "text": "此次对照支持削减异常扩写长尾，不能证明所有长句都能在新上限内完成。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FOLLOWUP.md",
+   "rule": "hedge-in-body",
+   "text": "第 21 句反而变长。文本检查通过不能证明语义完整或准确。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FOLLOWUP.md",
+   "rule": "hedge-in-body",
+   "text": "这是理想下界，不是 GPU 实测，也没有模拟重新准入任务。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/FOLLOWUP.md",
+   "rule": "hedge-in-body",
+   "text": "首次脚本启动因运行库搜索路径缺失而失败，尚未加载模型。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "CUDA 路径已在 Jetson 实际生成音频，但本轮没有获得延迟收益。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "但相对现有 CPU int8，中位数增加约 40.9%。这不是现有部署的加速方案。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "大量小算子、跨执行层工作和状态传输可能抵消 GPU 收益。这是待定位的原因，尚未测得各项耗时占比。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "性能对照使用此前回放的 8 条首片段文本。文本是自动译文，不是人工确认译文。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "播放队列仍需按音频时长消费输出；GPU 迁移不会缩短已有音频。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "本补丁只增加 CUDA 执行层选择，尚未实现状态张量常驻 GPU 或 I/O Binding。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "本轮未做人工听检，不能据此认定音色、发音或语义质量等同。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有验证 FP16、CUDA Graph、TensorRT 或完整 Pocket PyTorch 路径。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "翻译与播报同时使用 GPU，可能产生资源竞争；本轮没有单独测量竞争占比。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "节点事件计数只覆盖这五个文件和诊断运行的 8 条文本，不代表无分析运行的耗时分布。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "该示例本轮未执行。麦克风与实体扬声器的设备名仍需符合实际硬件。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "这两个字段均不能证明模型已经执行 GPU 内核。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/GPU.md",
+   "rule": "hedge-in-body",
+   "text": "这些是 ONNX Runtime 的节点事件计数，不是硬件内核总数或设备时间占比。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "实测约 100 ms 的接收中位数与该周期一致。这是待验证的优化点，本轮没有修改原生服务。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "播报仍有明显积压，不能据此声称已经实现低延迟语音翻译。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有关闭 GNOME 或其他系统服务。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有证据表明 GPU 持续饱和，但 1 s 采样可能漏掉短峰值。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这不是 GPU 满载压力测试，也没有验证 GPU 语音合成的收益。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这些检查和播报容量限制在补丁前已经存在；本轮没有关闭检查。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这只验证了文件和顺序，没有完成听感、边界连续性或翻译准确率验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "首播计时止于播放线程记录开始播放的位置，紧邻  调用；它不代表实体扬声器出声。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "6. 合并尚未执行的草稿请求，并优先处理最终翻译，防止草稿计算拖慢主队列。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "| [SASST 论文](https://ojs.aaai.org/index.php/AAAI/article/download/40733/44694) | 用句法分块与等待标记构建训练数据，让模型学习输出时机 | 论文使用经过训练的 8B 模型；不是给现有 0.8B 添加一条提示词即可复用的判断器 |",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "| [WhisperStreaming](https://github.com/ufal/whisper_streaming) |  比较相邻识别假设，提交共同前缀，保留可修改尾部 | 可借鉴确认区与草稿区的划分；原文稳定不等于译文稳定 |",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "以下为源码和论文确认，不是 Mozart 或 Jetson 的实测结果。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "以下为设计建议，尚未接入或验证性能收益：",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "共同前缀只表示两次输出一致，不能证明翻译正确。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "其中 44 个组成未完成／已完成配对，另 8 个包含已经观察到的后文。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "单次判断增加的计算也不能直接等同于整条链路新增延迟，仍需测量排队与计算重叠。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有修改实时应用代码，因此没有重复运行全量应用回归。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有改变播放速度，也没有给出未经实测的降延迟比例。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有比较模型精度、思考模式或专门训练。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有测试自动寻找边界，也没有测试完整语义分割流程。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "现有翻译接口每次返回独立译文；它尚未提供经过验证的已提交译文续写契约。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "这个结论不等于所有 0.8B 模型、其他提示或专门训练的分类器都不可用。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "这是小型诊断集，没有独立留出集；不能据此声明真实语流准确率。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/SEMANTIC_GATE.md",
+   "rule": "hedge-in-body",
+   "text": "预期结果采用本项目保守提交策略，不代表所有对话场景的语言学标注。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "两轮退出状态均为 0，未完成与等待播报数均为零。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "前缀须满足字符数、连接词或标点边界，以及数字和未完成关系的保守限制。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "实验总语音增加 3.12 s，但本轮没有单独测量每项变化对排队的贡献。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "播放加速是后续独立候选；本轮没有修改或测试语速。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有改变语速，也没有实体声卡测试或人工听检。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有触发已提交前缀的改写；更正流程通过本地模拟测试。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "继续放宽字符阈值不能证明语义稳定，继续拆分也不能保证总输出更短。",
+   "count": 1
+  },
+  {
+   "path": "reports/realtime-patches-20261008/STABLE_CLAUSES.md",
+   "rule": "hedge-in-body",
+   "text": "这只确认具体已复现问题得到改善，不是完整语义验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Live download-only jobs now stop first-output expiry at audio readiness. Playback jobs still require actual playback start. A real control reproduced the former expiry-after-audio bug before correction.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Numeric sources disagree across recognizers, and source15's term毒狗 remains unverified. No amount or homophone was silently substituted.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Source17's fragment严 becomes the person/nameYan; the previous span ends with要跑. The intended joined phrase is unverified. Source13's5-day plan also remains uncertain despite formatted/literal agreement. These need source-level review and segmentation evidence rather than guessed replacement words.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Source19's Chinese includes他不管对面是谁, while the English continues withwhether I'm there. This changes a third-person role and interprets an unfinished clause. Independent Chinese Whisper also retains他; it does not establish a full human transcript.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Translation retries start from the original source rather than a rejected answer. Checks reject missing/repeated/added large quantities, explicit goods values misread as item counts, untranslated Chinese and token-limit truncation. Calendar equivalents and explicit 万/亿 quantities are handled conservatively; malformed/composite quantities are not guessed. Source-grounded hints replace global unrelated examples. Every response, rejection and normalized model input is audited. These checks do not establish semantic correctness.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "A focused two-span control found source13 formatted5天 and literal五天 agree; source14's ordinary一天also agrees. Therefore lowering the numeric threshold would not fix this observed problem, and no numeric-threshold/source-term change was adopted. Both input hashes are locally verified. The source's intended phrase remains unverified.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "All20parent WAVs are finite and unclipped, maximumpeak0.90256. Across21internal joins the maximum sample jump is0.01868. Nine deterministic cached official Whisper-small English samples scored weightedWER7.69%,median7.14%. The selected samples differ from short-v4's sample set. All17matched completed jobs with identical source/English have **byte-identical parent and piece WAVs** in both runs; the WER change does not establish a waveform regression. One sample, source8, transcribes exactly against the generated English. Other samples include principal/interest, scamming/scanning, and dropped or changed small words. These are automatic transcription observations, not human pronunciation approval.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Paced ALSA null is not physical speaker testing. Human reference-voice identity and exact pronunciation are unverified. The bounded120s run does not establish unlimited memory stability. The4B translator remains unapproved and the production supervisor still defaults to0.8B; retaining that default is not an endorsement of its quality. Source audits and queue reliability improved, but speech still contains meaning errors. No fresh30-minute reliability replay was launched.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Physical speakers, human voice identity and unlimited memory stability remain unverified. Combined result WAVs join completed sentences and omit original pauses, skips and rejected translations; text completion is not proof that every word was pronounced correctly.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "Sources1/2/16 preserve the numeric conflicts700 versus七千,500 versus ambiguous千五千, and11万 versus ambiguous一一万. Source15 preserves streaming可能 versus refined不可能. Neither amount nor polarity was guessed or corrected. Parser interpretations of ambiguous numeral strings are diagnostic evidence, not verified intended amounts. The numeric check uses the same PCM; streaming/final polarity readings have imperfect endpoint alignment. Guard agreement cannot prove source truth, and other pronouns, negation and terms remain outside these narrow checks.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The admission estimate now includes deferred FIFO text when predicting first playback. Deferred text remains excluded from actual audio reservations, but is no longer excluded from the predicted work ahead of a new sentence. Known unlikely30-second starts receive explicit429 before synthesis. Expired jobs record their admission/synthesis/playback stage and deadline reason. Actual24s/12s budgets and30s deadline remain unchanged. This is a deadline/admission correction, not proven increased throughput: early rejection must still count as unspoken source coverage. All58regression tests passed locally and onJetson, including rejection before unnecessary synthesis when deferred text already consumes the projected deadline. A fresh real queue control remains required before another replay.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The all-source denominator includes the four blocked captions. They have no generated English and are therefore absent from the offered-English denominator. Completing all admitted text is **not**100%source coverage or semantic correctness. Reduced offered work relieved queue pressure; these results do not establish faster inference. All24source PCM hashes and Chinese captions match short-v4. Compared with the older0.8B short baseline,23English outputs differ and only one completed identical-source/English pair remains, which is insufficient for a broad speed comparison. CPU was not saturated throughout this short run, but long-run4B memory stability is unmeasured.",
+   "count": 1
+  },
+  {
+   "path": "reports/reliability-20261006/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "## 首片段已经较短，生成仍需明显计算时间",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "3. 如仍需压缩播放时长，再单独评估忠实精简译文或温和语速策略；需要语义和试听验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "值得评估真正的增量生成、实际 GPU 执行与首片段完整从句策略；收益和音质仍需固定输入对照。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "前方播放覆盖约 99.93% 的就绪等待。每项未覆盖等待的中位数仅约 3.3 ms。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "各任务的等待区间可以重叠；表内求和不等于整段运行时长。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "持续 PCM 播放器仍可能改善物理设备启动与片段接缝，但本数据来自模拟输出，不能推断物理收益。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "这是任务提交窗口，不是源音频时长或整段平均负载。它说明局部播放需求会造成积压，即使整段音频总长小于输入时长。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "这是针对固定 18 个任务的反事实推演，不是优化后的实测或任意输入的通用下限。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/REALTIME_STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "首片段并非普遍长到 12 词，不能假定将目标减半就能把首播延迟减半。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "### P1：未完成 HTTP 请求阻塞控制面与退出（已复现）",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- protect 位于 Generator 前，混合特征；不是最终波形混合。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- 健康检查只代表存活；、stub loaded 和历史组件耗时都不能证明当前 GPU/整机能力。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "GPU 迁移与加入实时 RVC 的共存压测列为独立优化/扩展验收，不作为受控播报演示完成的必要条件。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| P2 | 文件终态历史无数量上限 |  入队只限制未完成数；终态仍进入  序列化，长期自动任务可增加内存与响应时间。 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| P2 | 语义、快速输入覆盖和声线仍未验收 | 见 2026-10-06/07 报告；有限数字、极性与边界规则不能替代源文和试听。 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| TTS GPU | 已检查的 sherpa 运行时请求 CUDA 后提示回退 CPU；当前 worker 显式使用 CPU | 可选优化，尚无 GPU 加速实测；不是当前演示的必要条件 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| 持续吞吐 | ：365/379 有效任务完成，14 个容量拒绝，448 个英文词未播报 | 最新短测零容量拒绝；最终配置仍需长测，不能断言旧拒绝数仍适用 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| 播放需求 | 早期固定 120 s 片段生成 132.56 s 音频 | 该片段即使立即生成，正常速度播放也会积压；不是全部输入都固定多 10.5% |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| 文档内部链接、代码块与 diff 空白检查 | 通过；历史引用的本地实验产物不作为当前部署依赖 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| 项目 | 保存的证据 | 仍需处理的问题 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "句长检查通过不等于完整词表、词性和语义符合性审核；本轮不声明认证或全部符合性已获独立确认。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "同样的 false 返回路径也适用于配置无效或其他资产加载失败；本轮没有使用真实神经模型验证这些分支。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "后续 4B 短测增加了不确定性拦截，输入到 TTS 的工作量减少，不能据此宣称推理提速。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "因此构建成功、管线为 real 或模型 loaded 都不能证明真实 ONNX 已就绪。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "旧全组件测试中的 TTS 生成结果保存为文件，未进入实时物理播报；不能据此宣称当前配置长期共存已验收。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有制造 OOM 或运行无界解码。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这只验证 stub 和初始化行为，不是任何真实模型的 ONNX 正确性证据。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "这次审查不是模型质量验收，也不证明全部代码没有其他缺陷。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "验收包含不完整头部、未完成请求体、慢下载、断连和停止；其他控制请求及退出都需要时间上限。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "验收：长压缩输入和异常解码不会耗尽资源；取消/退出有时限；未完成结果不发布为成功。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/TEMPORARY_PATCHES.md",
+   "rule": "hedge-in-body",
+   "text": "- 临时字幕最多约每 100 ms 输出一次变化；这不是从音频输入到显示的延迟保证。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261008/TEMPORARY_PATCHES.md",
+   "rule": "hedge-in-body",
+   "text": "这些补丁没有实现 GPU 优先级或算力隔离，不保证并发模型互不影响。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "## 仍未关闭的事项",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- 保持同一未完成请求时，停止耗时约 516 ms。计时从发送 SIGTERM 前开始，到测试父进程确认退出后结束。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- 保持未完成请求头时，另一健康请求耗时约 0.65 ms。计时从发送 HTTP 请求前开始，到响应 JSON 解析后结束。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| A01 | P1 | 普通 HTTP 请求占用 accept 线程。未完成请求可阻塞后续请求及停止；上一轮探针已复现。 | 最多 16 个连接；请求头 5 s；完整请求 30 s；响应写入 30 s。停止时中断活动 socket。 | 已修复，主机及 Jetson 回归通过 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| A08 | P2 | 上传文件写入和入队之间没有缓存保护。增加并发处理后，时间戳文件名也不能保证唯一。 | 名称增加原子序号。上传先写 ；控制器在同一把锁内重命名并入队。缓存清理保护上传文件。 | 已修复，缓存保护及入队回归通过 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| A09 | P2 | CI 未运行 Python、前端和原生 HTTP 生命周期回归。预处理测试开关也未显式启用。 | 增加 Python、前端字幕、类型检查、构建和 HTTP 测试。显式启用预处理测试，删除重复回放步骤。 | 配置已更新；对应检查本地通过，托管 CI 尚未运行 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| GPU 回退可观察性 | 本轮从日志确认 TensorRT 资产。状态接口仍未完整显示所有运行时及回退原因。 | 每个目标配置都显示实际资产、执行后端和失败原因。 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "| 模型缓存及文件终态历史 | 两者仍缺少独立保留数量上限。 不保证卸载全部模型。 | 重复切换及长时间任务下，内存和历史保留数量有界。 |",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "以下数字仅来自一次启动检查，不是性能基准：",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "旧  有未提交修改，本轮没有覆盖该目录。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有向实时流输入音频，没有执行 Golden/ONNX 张量对比或物理试听。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "模型选择单元测试替换引擎，不代表神经模型数值正确性。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "活动请求数据共享 128 MiB 配额。该配额不包含字符串容量、响应或模型内存，不是进程总内存上限。",
+   "count": 1
+  },
+  {
+   "path": "reports/repository-audit-20261013/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/seedvc-zeroshot-research-20261003/RESEARCH.md",
+   "rule": "hedge-in-body",
+   "text": "| OpenVoice | 音色转换 | ❌ | 需基底 TTS 先出音，再转音色 | 不是纯 VC，适合\"翻译后朗读\" |",
+   "count": 1
+  },
+  {
+   "path": "reports/seedvc-zeroshot-research-20261003/RESEARCH.md",
+   "rule": "hedge-in-body",
+   "text": "迭代循环仍需宿主代码；前期收益不抵成本。",
+   "count": 1
+  },
+  {
+   "path": "reports/sentence-context-20261007/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "CPU median34.17% across6cores. Minimum available RAM1.599GiB, existing swap948.03–1,051.01MiB and7,529swap-in pages29.41MiB. This is bounded short-run behavior, not unlimited or 30-minute4B memory stability. Human source correctness, pronunciation, reference-voice similarity and physical speakers remain unverified. Output is paced ALSA null.",
+   "count": 1
+  },
+  {
+   "path": "reports/sentence-context-20261007/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "The self-contained review page was visually checked:24passages,72editable fields,120s embedded source audio andzero rows marked reviewed. It works from the saved HTML without needing the preview server. The evaluator correctly refuses the unreviewed draft. A reviewed source transcript/English reference remains the next required evidence before evaluating a bounded utterance assembler. Blanket merging, a larger translator, extended buffers/deadlines and faster tempo were not adopted. Source and remote changes remain uncommitted/unpushed. The production model default remains0.8B; the4B candidate is not approved for live semantic reliability. Physical speaker output, human voice similarity and long-run memory stability remain unverified.",
+   "count": 1
+  },
+  {
+   "path": "reports/sentence-context-20261007/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/sentence-context-20261007/SOURCE-REVIEW-MOYA-V1.md",
+   "rule": "hedge-in-body",
+   "text": "**Note:** Draft preserved; review checkbox not yet checked.",
+   "count": 6
+  },
+  {
+   "path": "reports/sentence-context-20261007/SOURCE-REVIEW-MOYA-V1.md",
+   "rule": "hedge-in-body",
+   "text": "**Note:** 考研 crosses passages 16–17 in the user drafts. Do not introduce a person named Yan from the isolated syllable 严. Politics/course wording still needs clarification.",
+   "count": 1
+  },
+  {
+   "path": "reports/sentence-context-20261007/SOURCE-REVIEW-MOYA-V1.md",
+   "rule": "hedge-in-body",
+   "text": "- **13/14:** 补天计划 is a recurring term, not an automatically justified “5-day plan.” Its precise English rendering still needs context.",
+   "count": 1
+  },
+  {
+   "path": "reports/translation-duration-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- 数据许可：[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。下表是原始时长的分组均值和比值，不是原论文表格。",
+   "count": 1
+  },
+  {
+   "path": "reports/translation-duration-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "是规范发音的音节数，不是实际逐音素对齐结果。",
+   "count": 1
+  },
+  {
+   "path": "reports/translation-duration-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "本轮没有新增人工录音或 Mozart 语音生成。",
+   "count": 1
+  },
+  {
+   "path": "reports/translation-duration-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "每篇文本有 10 次普通话朗读和 4 次英语朗读。两种语言不是同一组人的双语录音。",
+   "count": 1
+  },
+  {
+   "path": "reports/translation-duration-20261015/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "跨说话人的组均值比也不等于逐人比值的均值或中位数。",
+   "count": 1
+  },
+  {
+   "path": "reports/translation-duration-20261015/RESULTS.md",
+   "rule": "report-missing-scope",
+   "text": "",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/GITHUB_ALTERNATIVES.md",
+   "rule": "hedge-in-body",
+   "text": "The earlier **0.8–1.5 GiB cloning allowance is a budget hypothesis**, not a verified prediction for every candidate or runtime. No lower memory estimate should replace it just because a repository says C++, ONNX, int8 or “realtime.” The selection still requires at least 1 GiB available RAM and no sustained swap growth in the intended workload.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/GITHUB_ALTERNATIVES.md",
+   "rule": "hedge-in-body",
+   "text": "| [SWivid/F5-TTS](https://github.com/SWivid/F5-TTS) | Reference-conditioned flow-matching TTS; official README links community ONNX and TensorRT deployment projects. | Quality/export fallback. Validate the complete text/conditioning/sampling/vocoder path; an available export does not establish board compatibility or low memory. |",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/GITHUB_ALTERNATIVES.md",
+   "rule": "hedge-in-body",
+   "text": "| [bshall/knn-vc](https://github.com/bshall/knn-vc) | Audio-to-audio conversion using WavLM, nearest-neighbor matching and HiFi-GAN. | Separate VC alternative. It still needs base TTS for translated text, and simpler matching does not establish a smaller total footprint. |",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/GITHUB_ALTERNATIVES.md",
+   "rule": "hedge-in-body",
+   "text": "| [kyutai-labs/pocket-tts](https://github.com/kyutai-labs/pocket-tts) via Sherpa | Small CPU-oriented reference-conditioned TTS; released English ONNX package | Keep as the English-output challenger. Chinese reference → English identity and the exact pinned ONNX bundle require validation; current upstream multilingual releases do not establish compatibility for that English bundle. |",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/GITHUB_ALTERNATIVES.md",
+   "rule": "hedge-in-body",
+   "text": "| [predict-woo/qwen3-tts.cpp](https://github.com/predict-woo/qwen3-tts.cpp) | C++17/GGML runtime for Qwen3-TTS, including cloning, GGUF F16/Q8 and CUDA backend support | Strong alternative runtime for the Qwen 0.6B Base fallback. It avoids Python at inference, but does not prove smaller memory. Its README reports clone speedup 4.07× and peak RSS **+7.7%** relative to its PyTorch baseline; those numbers are not Nano results. |",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/PLAN.md",
+   "rule": "hedge-in-body",
+   "text": "- Current idle inspection: 7.4 GiB total RAM, approximately 6.0 GiB available and 640 MiB swap already occupied; no matching Mozart/STT/translation/Seed-VC service process was found. Idle headroom does not establish concurrent capacity.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/PLAN.md",
+   "rule": "hedge-in-body",
+   "text": "Create reusable fixtures under : at least three reference voices, Chinese/English reference variants, short/long sentences, numbers/names and translated text with a changed word order. Reuse exact audio and text; record hashes, prompt transcript/crop, versions, RNG/settings, sample rates and generated outputs. Use clean human reference samples for identity; espeak can supply deterministic input to the separate ASR/translation baseline. Synthetic references alone cannot prove convincing human cloning.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/PLAN.md",
+   "rule": "hedge-in-body",
+   "text": "Status: investigation and proposed implementation plan, with the initial Jetson TTS benchmark complete. Pocket is the English performance prototype; ZipVoice remains the stronger measured identity comparator. Final engine selection still needs human listening and the user's own references.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/PLAN.md",
+   "rule": "hedge-in-body",
+   "text": "| **PocketTTS int8 through sherpa-onnx** | English-output challenger | Published English ONNX package, reference audio without transcript, C/C++ examples | Performance on this ARM CPU and fidelity with Chinese reference speech; current upstream multilingual updates do not prove this pinned ONNX package supports other languages |",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/SEEDVC_RESEARCH_20261003.md",
+   "rule": "hedge-in-body",
+   "text": "| OpenVoice | 音色转换 | ❌ | 需基底 TTS 先出音，再转音色 | 不是纯 VC，适合\"翻译后朗读\" |",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/SEEDVC_RESEARCH_20261003.md",
+   "rule": "hedge-in-body",
+   "text": "迭代循环仍需宿主代码；前期收益不抵成本。",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/qiqi-20261004/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "3. Keep ZipVoice as a **Chinese preview candidate** using the speech-derived Qiqi clip. It still needs listening acceptance; a cosine score and correct transcript cannot establish naturalness or faithful character identity.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/qiqi-20261004/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "4. Use a clean original Qiqi recording with a confirmed transcript for the next quality test. A clone of an RVC-generated clip carries its source articulation and conversion artifacts. The current test does not establish that Pocket or ZipVoice will fail with original recordings.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/qiqi-20261004/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "ZipVoice scored closer to Qiqi, but English text accuracy varied substantially. Initial espeak-derived English generations had 30.8% and 84.6% WER; the WAV-transcript follow-up produced an unreliable output with WER over 100%, including recognizer insertions. Initial speech-derived English generations had 15.4% and 23.1% WER. Changing the transcript did not establish a reliable English fix. ZipVoice was unseeded, so transcript effects and generation variation cannot be cleanly separated from these few runs.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/test-20261004/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "- Pre-existing swap was about 637.5 MiB. Maximum increase was **0.25 MiB**, not literally zero. This short run showed ample headroom and no progressive large swap increase; it does not establish prolonged stability.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/test-20261004/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "1. **Use Pocket as the English performance prototype**, with one warm engine, bounded voice conditioning cache and two configured CPU threads. Keep ZipVoice four-step as the bilingual/identity comparator. These measurements support the earlier small-TTS memory budget; they do not establish a footprint for Qwen-TTS, OpenVoice or every alternative.",
+   "count": 1
+  },
+  {
+   "path": "reports/zero-shot-tts-redesign-20261004/test-20261004/RESULTS.md",
+   "rule": "hedge-in-body",
+   "text": "3. Start with complete-sentence WAV playback. Pocket callbacks in this implementation begin after sentence token generation; ZipVoice delivered one callback at completion for these single-sentence cases. Their existence does not imply frame-by-frame low-latency synthesis.",
+   "count": 1
+  },
+  {
+   "path": "rvc-backend/src/rvc/feature_extractor.cpp",
+   "rule": "hedge-in-comment",
+   "text": "// 加载期触发自愈降级而不是首个真实窗口",
+   "count": 1
+  },
+  {
+   "path": "rvc-backend/src/rvc/model_loader.cpp",
+   "rule": "hedge-in-comment",
+   "text": "// NOTE(index): 检索链路尚未验证（TODO.md P3），且所有已验证配置",
+   "count": 1
+  },
+  {
+   "path": "rvc-backend/src/rvc/streaming_pipeline.cpp",
+   "rule": "hedge-in-comment",
+   "text": "// 环已回绕、前缀被丢弃：重新锚定而不是永久失败",
+   "count": 1
+  },
+  {
+   "path": "rvc-backend/tests/gen_index_fixture.py",
+   "rule": "hedge-in-comment",
+   "text": "若未来 faiss 改动序列化格式，本脚本会立即失败而不是悄悄产出坏 fixture。",
+   "count": 1
+  },
+  {
+   "path": "rvc-backend/tests/test_feature_extractor.cpp",
+   "rule": "hedge-in-comment",
+   "text": "// 预期：这些方法从未实现，必须显式失败而不是返回全零 F0",
+   "count": 1
+  },
+  {
+   "path": "rvc-backend/tests/test_index_search.cpp",
+   "rule": "hedge-in-comment",
+   "text": "//  3) 各类损坏/不支持的文件必须 load 失败而不是静默接受。",
+   "count": 1
+  },
+  {
+   "path": "rvc-backend/tests/test_index_search.cpp",
+   "rule": "hedge-in-comment",
+   "text": "// 不存在的文件：返回 false 而不是抛异常",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/README.md",
+   "rule": "hedge-in-body",
+   "text": "An attached CUDA provider does not prove GPU execution.",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/README.md",
+   "rule": "hedge-in-body",
+   "text": "Different repeated outputs indicate internal randomness and do not prove numerical equivalence.",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "**0.2 音分**，voiced/nonzero 帧数 276 vs 275 基本一致。RMVPE 不是分歧源。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "-  返回 event/future，而不是每个 engine 内部立即 synchronize",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "- warm up 所有实际 shape，而不是只 warm up 一个邻近 shape",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "- 系统  的 ORT 1.19.2（CPU-only）保持原样，未删除、未覆盖。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "4. 使用 normalized-correlation SOLA 选择 overlap offset，而不是固定位置线性",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "CPU 结果如下；CPU 时间只验证语义，不代表 TensorRT 性能：",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "builder-optimization-level 5 在 10 分钟诊断命令限制内未完成，留下的 0-byte",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "ring 合计约 0.53 ms。流式拼接不是优化重点。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "teacher 蒸馏的新流式网络，不是原 RVC checkpoint 的普通部署优化。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "不作为最终极限效率架构。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "历史中的不可变锁。本日志只记录工作区状态，不代表已经创建 commit。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "当前改动只解决 CUDA EP API 兼容性和编译问题，尚未解决 provider 动态库",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "文件不是有效 engine，不能据此判断 FP16 的性能或音质。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "本次未完成 engine 生成",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "残余微差来自不同 tensor shape 下的 convolution 算法/浮点累加，而不是缺少远端",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "没有相互数据依赖，当前串行是 runtime API 限制，不是模型限制。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "注意：manifest、校验器和黄金 WAV 当前仍需要由 Git 提交后，才会成为仓库",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "流式时间线错位，而不是已经证明 Generator 音质错误。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "目标不是只勉强通过 4 s，而是满足以下不变量：",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "第一版应忠实复现 upstream realtime contract，而不是继续缩短 quality-first",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "这个比较尚未形成有效结论，因为当前 Golden 流式 block 的 RMVPE mel 捕获",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "这些指标证明两个事实：主流 RVC 的百毫秒延迟是真实架构结果，不是把 2 s future",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "这是调试质量上界，不是生产性能结果。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/STREAMING_BACKEND_INVESTIGATION.md",
+   "rule": "hedge-in-body",
+   "text": "（CUDA EP 已确认；仍需实测推理耗时是否满足实时）。",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/benchmark_translation_retry.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/compare_generator_models.py",
+   "rule": "broad-except",
+   "text": "except Exception as exc:",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/compare_generator_models.py",
+   "rule": "broad-except",
+   "text": "except Exception as exc:  # noqa: BLE001 — 探测只关心成败",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/compare_generator_models.py",
+   "rule": "hedge-in-comment",
+   "text": "# 兼容较旧的 onnxruntime（IR 14 尚未普及）",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/realtime-patches-20261008/run_probe.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/realtime-patches-20261008/semantic_gate_probe.py",
+   "rule": "broad-except",
+   "text": "except Exception as exc:",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/realtime-patches-20261008/translation_probe.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 1
+  },
+  {
+   "path": "rvc-golden/verify_golden.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 2
+  },
+  {
+   "path": "state/API.md",
+   "rule": "hedge-in-body",
+   "text": "A real pipeline label or a CUDA request does not prove satisfactory GPU execution.",
+   "count": 1
+  },
+  {
+   "path": "state/API.md",
+   "rule": "hedge-in-body",
+   "text": "The  field marks final ASR text. It does not mean translation or speech has finished.",
+   "count": 1
+  },
+  {
+   "path": "state/API.md",
+   "rule": "hedge-in-body",
+   "text": "The API does not yet give full information about the actual runtime and asset selection.",
+   "count": 1
+  },
+  {
+   "path": "state/API.md",
+   "rule": "hedge-in-body",
+   "text": "They do not prove neural quality, GPU latency, or physical audio correctness.",
+   "count": 1
+  },
+  {
+   "path": "state/README.md",
+   "rule": "hedge-in-body",
+   "text": "仍需处理 HTTP 请求超时、文件处理资源上限、取消时延和有界模型缓存。",
+   "count": 1
+  },
+  {
+   "path": "state/README.md",
+   "rule": "hedge-in-body",
+   "text": "排队、处理和取消中的任务文件受到保护；该目标不是硬磁盘配额。",
+   "count": 1
+  },
+  {
+   "path": "state/src/main.cpp",
+   "rule": "hedge-in-comment",
+   "text": "// 信号处理器内只置位：spdlog 会加锁/分配，不是 async-signal-safe。",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "Adaptive tempo can reduce this accumulation. It cannot guarantee a bounded delay for every input rate.",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "Agreement between readings does not prove transcript accuracy.",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "Output that reaches this limit has an unverified end.",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "The frontend labels the candidate as unverified.",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "These checks do not prove semantic accuracy.",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "These constraints do not prove full role or meaning accuracy.",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "These results do not prove translation accuracy or long-run coverage.",
+   "count": 1
+  },
+  {
+   "path": "tools/REFERENCE_SPEECH.md",
+   "rule": "hedge-in-body",
+   "text": "They do not prove GPU kernel execution or satisfactory performance.",
+   "count": 1
+  },
+  {
+   "path": "tools/asr_checks.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 1
+  },
+  {
+   "path": "tools/asr_checks.py",
+   "rule": "hedge-in-comment",
+   "text": "Agreement does not establish that either reading matches the speaker.",
+   "count": 1
+  },
+  {
+   "path": "tools/asr_refinement.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 2
+  },
+  {
+   "path": "tools/bench_concurrent.py",
+   "rule": "broad-except",
+   "text": "except Exception:",
+   "count": 1
+  },
+  {
+   "path": "tools/boundary_classifier.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 1
+  },
+  {
+   "path": "tools/clone_worker.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 2
+  },
+  {
+   "path": "tools/run_translated_speech.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 1
+  },
+  {
+   "path": "tools/speech_service.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 5
+  },
+  {
+   "path": "tools/stable_clauses.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 2
+  },
+  {
+   "path": "tools/stable_clauses.py",
+   "rule": "hedge-in-comment",
+   "text": "# 当前识别前缀对应的观测区间包含前视音频，不是逐词强制对齐。",
+   "count": 1
+  },
+  {
+   "path": "tools/subtitle_bridge.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 4
+  },
+  {
+   "path": "tools/tempo_player.py",
+   "rule": "broad-except",
+   "text": "except Exception as error:",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/DECISION.md",
+   "rule": "hedge-in-body",
+   "text": "- 历史系统恢复步骤见 [RESTORE-20260906.md](RESTORE-20260906.md)，不作为当前部署步骤执行。",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/RESTORE-20260906.md",
+   "rule": "hedge-in-body",
+   "text": "2. **购买支持 USB device 音频的 USB 对录线/音频桥。** 关键不是外形，而是",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/RESTORE-20260906.md",
+   "rule": "hedge-in-body",
+   "text": "bulk 设备。普通 A-to-A 线不是对录线，不能使用。",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/RESTORE-20260906.md",
+   "rule": "hedge-in-body",
+   "text": "备份目录中，没有删除调查证据。仓库源码和日志不是当前 OS 启动配置。",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "5. 疑点清单（凭记忆，未验证）：IAD bFirstInterface 与 composite 分配的",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/STATUS.md",
+   "rule": "hedge-in-body",
+   "text": "尚未定位到具体描述符字段。Linux 主机侧验证（self-loopback）还没做。",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/candidate/COMPLETION-FIX.md",
+   "rule": "hedge-in-body",
+   "text": "have not been performed for this candidate.",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/candidate/ISO-DIAGNOSTICS.md",
+   "rule": "hedge-in-body",
+   "text": "The software queue and submitted-TRB count do not prove unconsumed hardware",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/candidate/ISO-DIAGNOSTICS.md",
+   "rule": "hedge-in-body",
+   "text": "has NOT yet been verified after that reboot.",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/candidate/ISO-DIAGNOSTICS.md",
+   "rule": "hedge-in-body",
+   "text": "or automatic recovery in this change. A snapshot alone cannot establish stale",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/candidate/README.md",
+   "rule": "hedge-in-body",
+   "text": "The underlying ISO ring scheduling error is not proven fixed. Error handling",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/candidate/README.md",
+   "rule": "hedge-in-body",
+   "text": "module and has NOT been hardware-tested. Historical Build IDs below refer to",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/candidate/README.md",
+   "rule": "hedge-in-body",
+   "text": "re-enable. No panic was observed; this does not prove all lifetime bugs fixed.",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/crash-20260905-serial-test/README.md",
+   "rule": "hedge-in-body",
+   "text": "The ring error names do not establish a C buffer overrun.",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/crash-20260905-serial-test/README.md",
+   "rule": "hedge-in-body",
+   "text": "history is not proven. tegra-xudc.c:1469 also accesses a request after",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/crash-20260905-serial-test/README.md",
+   "rule": "hedge-in-body",
+   "text": "is implicated in that progress; this does not prove audio streaming works.",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/crash-20260905-serial-test/README.md",
+   "rule": "hedge-in-body",
+   "text": "panic is plausible, but the saved panic log does not prove the reset source.",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/iso-test-20260906/README.md",
+   "rule": "hedge-in-body",
+   "text": "The ftrace buffer is volatile and ordinary file output is not guaranteed",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/iso-test-20260906/README.md",
+   "rule": "hedge-in-body",
+   "text": "panic does not prove all lifetime defects fixed.",
+   "count": 1
+  },
+  {
+   "path": "usb-gadget/iso-test-20260906/README.md",
+   "rule": "hedge-in-body",
+   "text": "unpublished slot without software retiring either TD. It does not establish",
+   "count": 1
+  }
+ ]
+}
