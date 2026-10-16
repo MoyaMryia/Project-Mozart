@@ -59,11 +59,19 @@ static int filter_pcm(FILE *source_stream, FILE *destination, long rate, double 
     if (code < 0) goto done;
     code = avfilter_graph_config(graph, NULL);
     if (code < 0) goto done;
-    /* 与 FFmpeg 原始 PCM 解码的 2048 采样帧保持一致。 */
-    unsigned char pcm[2048 * sizeof(int16_t)];
+    /* 使用所链接 FFmpeg 版本的原始 PCM 分帧规则。 */
+#if LIBAVFILTER_VERSION_MAJOR >= 10
+    size_t frame_samples = 1;
+    while (frame_samples * 2 <= (size_t)rate / 10) frame_samples *= 2;
+#else
+    size_t frame_samples = (size_t)rate / 25;
+    if (frame_samples > 1024) frame_samples = 1024;
+#endif
+    unsigned char pcm[4096 * sizeof(int16_t)];
+    size_t frame_bytes = frame_samples * sizeof(int16_t);
     int64_t pts = 0;
     for (;;) {
-        size_t count = fread(pcm, 1, sizeof(pcm), source_stream);
+        size_t count = fread(pcm, 1, frame_bytes, source_stream);
         if (!count) {
             if (ferror(source_stream)) { code = AVERROR(EIO); goto done; }
             break;
