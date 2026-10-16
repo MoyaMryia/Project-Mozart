@@ -1,10 +1,13 @@
 """根据逐段时长和积压选择播放比例。每个任务只选择一次比例。"""
 import math
 
+MAX_TEMPO = 1.15
+DEFAULT_TEMPO_MAX = MAX_TEMPO
+
 
 class TempoController:
-    def __init__(self, maximum=1.05, target_delay=1.5, recovery_seconds=30.):
-        if (not math.isfinite(maximum) or not 1 <= maximum <= 1.1
+    def __init__(self, maximum=DEFAULT_TEMPO_MAX, target_delay=1.5, recovery_seconds=30.):
+        if (not math.isfinite(maximum) or not 1 <= maximum <= MAX_TEMPO
                 or not math.isfinite(target_delay) or target_delay < 0
                 or not math.isfinite(recovery_seconds) or recovery_seconds <= 0):
             raise ValueError('Invalid tempo controller limits')

@@ -17,10 +17,10 @@ def main():
     parser.add_argument('--input-dir', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--pitch-only', action='store_true')
-    parser.add_argument('--tempos', type=float, nargs='+', default=[1., 1.05, 1.08, 1.1])
+    parser.add_argument('--tempos', type=float, nargs='+', default=[1., 1.05, 1.08, 1.1, 1.125, 1.15])
     args = parser.parse_args()
-    if args.tempos[0] != 1 or any(not np.isfinite(t) or not 1 <= t <= 1.1 for t in args.tempos):
-        parser.error('tempos must start with 1 and remain between 1 and 1.1')
+    if args.tempos[0] != 1 or any(not np.isfinite(t) or not 1 <= t <= 1.15 for t in args.tempos):
+        parser.error('tempos must start with 1 and remain between 1 and 1.15')
     if args.pitch_only:
         import sys
         import torch

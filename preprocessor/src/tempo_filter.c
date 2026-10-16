@@ -107,7 +107,7 @@ int mozart_tempo_filter(int input_fd, int output_fd, int rate, double tempo) {
         return 1;
     }
     int code = 1;
-    if (rate >= 8000 && rate <= 48000 && tempo >= 1.0 && tempo <= 1.1)
+    if (rate >= 8000 && rate <= 48000 && tempo >= 1.0 && tempo <= 1.15)
         code = filter_pcm(source, destination, rate, tempo);
     fclose(source);
     if (fclose(destination)) code = 1;
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
     long rate = strtol(argv[1], &end, 10);
     if (*end || rate < 8000 || rate > 48000) return 2;
     double tempo = strtod(argv[2], &end);
-    if (*end || !(tempo >= 1.0 && tempo <= 1.1)) return 2;
+    if (*end || !(tempo >= 1.0 && tempo <= 1.15)) return 2;
     return filter_pcm(stdin, stdout, rate, tempo);
 }
 #endif

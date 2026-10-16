@@ -17,6 +17,7 @@ import tempfile
 import time
 import urllib.request
 import threading
+from tempo_control import DEFAULT_TEMPO_MAX
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -94,7 +95,7 @@ def main():
     parser.add_argument('--playback-device', default='plughw:CARD=Device,DEV=0')
     parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='flexible')
     parser.add_argument('--duration-profile', type=Path)
-    parser.add_argument('--playback-tempo-max', type=float, default=1.05)
+    parser.add_argument('--playback-tempo-max', type=float, default=DEFAULT_TEMPO_MAX)
     parser.add_argument('--playback-target-delay', type=float, default=1.5)
     parser.add_argument('--playback-recovery-seconds', type=float, default=30.)
     parser.add_argument('--capture-playback', action='store_true')
