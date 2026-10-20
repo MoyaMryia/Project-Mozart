@@ -10,6 +10,7 @@
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
 | 2026-10-20 | [demo-readiness-20261020/RESULTS.md](demo-readiness-20261020/RESULTS.md) | 稳定运行候选；启动、音频故障、配置与客户端归属修复，含板端 1000 帧短测和 USB 检查 |
+| 2026-10-20 | [tempo-cap-20261020/RESULTS.md](tempo-cap-20261020/RESULTS.md) | 变速上限提高至 1.50 倍、积压需求分布及高比例识别对照 |
 | 2026-10-19 | [product-readiness-20261019/RESULTS.md](product-readiness-20261019/RESULTS.md) | 产品交付审核；主链路、故障恢复、部署、资源和验收缺口，含 5 个定向探针 |
 | 2026-10-19 | [backlog-fix-20261019/RESULTS.md](backlog-fix-20261019/RESULTS.md) | 175 分段重放；数字误拒与失败入队修复，峰值 47.55→23.20 s，保留翻译及合成失败 |
 | 2026-10-19 | [diagnostic-20261019/RESULTS.md](diagnostic-20261019/RESULTS.md) | 完整独立变声与静态播报；逐段中英文时长、翻译重复、合成尾段及播放预算 |

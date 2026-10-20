@@ -48,7 +48,7 @@ class TempoTests(unittest.TestCase):
         fixture = Path(__file__).resolve().parents[2]/'rvc-golden/tempo-frame-boundary-pocket.wav'
         with wave.open(str(fixture), 'rb') as source:
             pcm = source.readframes(source.getnframes())
-        for tempo in [1.037, 1.1, 1.125, 1.15]:
+        for tempo in [1.037, 1.1, 1.15, 1.2, 1.3, 1.4, 1.5]:
             with self.subTest(tempo=tempo):
                 expected = subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', '24000', '-ac', '1',
                     '-i', 'pipe:0', '-af', f'atempo={tempo:.3f}', '-f', 's16le', 'pipe:1'], input=pcm,
@@ -86,9 +86,9 @@ class TempoTests(unittest.TestCase):
                 pcm = subprocess.run(['ffmpeg', '-v', 'error', '-i', str(fixture),
                     '-ar', str(rate), '-f', 's16le', 'pipe:1'], stdout=subprocess.PIPE, check=True).stdout
                 expected = subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', str(rate),
-                    '-ac', '1', '-i', 'pipe:0', '-af', 'atempo=1.15', '-f', 's16le', 'pipe:1'],
+                    '-ac', '1', '-i', 'pipe:0', '-af', 'atempo=1.5', '-f', 's16le', 'pipe:1'],
                     input=pcm, stdout=subprocess.PIPE, check=True).stdout
-                player = self.player(tempo=1.15, rate=rate)
+                player = self.player(tempo=1.5, rate=rate)
                 player.stdin.write(pcm)
                 player.stdin.close()
                 self.assertEqual(player.wait(timeout=5), 0)
