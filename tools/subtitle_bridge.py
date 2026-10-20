@@ -21,7 +21,7 @@ from durable_jobs import DiskFifo
 from collections import OrderedDict
 from translation_checks import repeated_source_terms
 from speech_duration import source_duration
-from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles
+from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles, added_negation
 import re
 from asr_checks import boundary_fragment_audit
 
@@ -146,6 +146,7 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
         context_repeated = any(text.strip() != item['source'].strip() and normalized and
             normalized == re.sub(r'\W', '', item['translation']).casefold() for item in (context or []))
         term_loops = repeated_source_terms(text, content)
+        negation = added_negation(translation_source, content)
         if audit is not None:
             audit.append({'attempt':attempt+1,'content':content,'missing_numbers':missing,
                           'repeated_numbers':repeated,'added_large_numbers':added,
@@ -154,15 +155,16 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
                           'untranslated_chinese':untranslated,'finish_reason':choice.get('finish_reason'),
                           'repeated_context_translation':context_repeated,
                           'translation_source':translation_source,
-                          'term_repair':term_repair})
+                          'term_repair':term_repair,'added_negation':negation})
             audit[-1]['repeated_source_terms'] = term_loops
-        if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated and not context_repeated and not term_loops:
+        if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated and not context_repeated and not term_loops and not negation:
             return content, time.monotonic()-started
         # Start a fresh request: including the rejected answer in chat history
         # caused the small model to reproduce its hallucinated quantities.
         messages = [{'role': 'system', 'content': base_system}, dict(messages[1])]
         messages[0]['content'] += (
             ' Translate every source clause once. Do not repeat amounts or add explanations. '
+            'Do not add negation that the source does not contain. '
             'Return a complete translation within the output limit.')
         if term_loops:
             messages[0]['content'] += ' Preserve the source occurrence counts: '+', '.join(
@@ -170,7 +172,8 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
         # 仅修复原文中存在的残留中文。修复后仍执行全部数字和角色检查。
         repair_candidate = content if (repair_untranslated and untranslated and not missing
             and not repeated and not added and not value_counts and not repayment_changed
-            and not role_issues and not truncated and not context_repeated and not term_loops) else None
+            and not role_issues and not truncated and not context_repeated and not term_loops
+            and not negation) else None
     reasons=[]
     if missing:reasons.append('required numerals missing: '+', '.join(missing))
     if repeated:reasons.append('unsupported repeated quantities: '+', '.join(repeated))
@@ -182,6 +185,7 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
     if truncated:reasons.append('output token limit reached before completion')
     if context_repeated:reasons.append('translation repeats a different previous source segment')
     if term_loops:reasons.append('unsupported repeated source terms: '+', '.join(item['term'] for item in term_loops))
+    if negation:reasons.append('added negation absent from the source: '+', '.join(negation))
     raise ValueError('Translation rejected: '+'; '.join(reasons))
 
 

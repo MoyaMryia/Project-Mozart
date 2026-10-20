@@ -362,6 +362,24 @@ def added_large_numbers(source, translation):
                    if count and float(n) >= 1000 and n not in required), key=float)
 
 
+# 原文的否定标记。命中任意一个就不再检查，避免误伤「应付」「免不了」这类正常用法。
+NEGATION_ZH = re.compile(r'不|没|别|未|无|非|免|拒绝|否|禁止|取消|避免|停止|缺乏')
+# 译文中的否定。know、now 这类词靠词界排除。
+NEGATION_EN = re.compile(r"\b(?:not|never|without|none|nothing|nobody|nowhere|cannot|no)\b|n't\b",
+                         re.IGNORECASE)
+
+
+def added_negation(source, translation):
+    """列出原文没有否定时译文凭空的否定词。
+
+    只覆盖显式否定。原文缺少否定词而用其他方式表达否定时，本检查会多报，
+    因此调用方按重试处理，由第二次译文决定结果。
+    """
+    if NEGATION_ZH.search(source):
+        return []
+    return [match.group(0) for match in NEGATION_EN.finditer(translation)]
+
+
 def values_changed_to_item_counts(source, translation):
     """Catch the measured 'goods worth 38,000' -> '38,000 items' error.
 
