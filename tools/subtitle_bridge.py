@@ -6,6 +6,7 @@ translations enter speech. The speech service owns its queue and playback device
 """
 import argparse
 import difflib
+import glossary
 import json
 import os
 from pathlib import Path
@@ -72,22 +73,8 @@ def request_json(url, body, timeout=10):
 
 # 通用年龄称谓。这里不修正识别原文，也不推断亲属关系。
 TITLE_GLOSSARY = {'大妈': 'older woman', '大爷': 'older man'}
-# 领域术语：只在源文出现时写入提示词。词表来自戒社题材的固定说法。
-DOMAIN_GLOSSARY = {
-    '网赌': 'online gambling',
-    '网贷': 'online lending',
-    '戒赌': 'quit gambling',
-    '借条': 'IOU note',
-    '额度': 'credit limit',
-    '套路贷': 'predatory lending',
-    '高利贷': 'loan sharking',
-    '催收': 'debt collection',
-    '逾期': 'overdue',
-    '征信': 'credit record',
-    '庄家': 'the house',
-    '赌徒': 'gambler',
-}
-TRANSLATION_GLOSSARY = {**TITLE_GLOSSARY, **DOMAIN_GLOSSARY, '麻醉剂': 'anesthetic'}
+# 领域术语：只在源文出现时写入提示词。默认词表可被 MOZART_GLOSSARY 指向的 JSON 覆盖。
+TRANSLATION_GLOSSARY = {**TITLE_GLOSSARY, **glossary.load(), '麻醉剂': 'anesthetic'}
 
 
 def repair_chinese_terms(source, candidate):
