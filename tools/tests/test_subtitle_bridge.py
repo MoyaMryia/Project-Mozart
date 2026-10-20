@@ -20,6 +20,14 @@ class RefinementSourceTests(unittest.TestCase):
         refined = '你给人家送的礼物是借网贷的钱买的，你不羞愧吗？'
         self.assertEqual(translation_source(raw, refined), refined)
 
+    def test_refinement_wait_scales_with_utterance_length(self):
+        from subtitle_bridge import refinement_wait, REFINED_WAIT_MAX
+        short = dict(seq=1, text='短句', audio_start_pts_ns=0, audio_end_pts_ns=1_000_000_000)
+        long = dict(seq=1, text='长句', audio_start_pts_ns=0, audio_end_pts_ns=7_000_000_000)
+        self.assertLess(refinement_wait(short), refinement_wait(long))
+        self.assertEqual(refinement_wait(long), REFINED_WAIT_MAX)
+        self.assertAlmostEqual(refinement_wait(short), 0.7, places=6)
+
     def test_missing_refinement_keeps_streaming_text(self):
         self.assertEqual(translation_source('这句话没有问题', None), '这句话没有问题')
 
