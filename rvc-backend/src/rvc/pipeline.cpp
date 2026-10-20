@@ -1,8 +1,20 @@
 #include "rvc/pipeline.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <cmath>
 
 namespace rvc {
+
+const char* invalid_rvc_parameter(const RvcParameters& parameters) {
+    if (parameters.f0_method != "rmvpe") return "f0_method";
+    if (parameters.pitch_shift < -12 || parameters.pitch_shift > 12) return "pitch_shift";
+    if (!std::isfinite(parameters.index_rate) || parameters.index_rate < 0.0f || parameters.index_rate > 1.0f) return "index_rate";
+    if (parameters.filter_radius < 0 || parameters.filter_radius > 7) return "filter_radius";
+    if (!std::isfinite(parameters.rms_mix_rate) || parameters.rms_mix_rate < 0.0f || parameters.rms_mix_rate > 1.0f) return "rms_mix_rate";
+    if (!std::isfinite(parameters.protect) || parameters.protect < 0.0f || parameters.protect > 0.5f) return "protect";
+    return nullptr;
+}
+
 
 MockRVCPipeline::MockRVCPipeline(
     uint32_t input_sample_rate,
@@ -66,13 +78,6 @@ RealRVCPipeline::RealRVCPipeline(
     , mock_(mock)
     , parameters_(std::move(parameters))
 {
-    // 旧配置里可能残留 harvest/pm：Coerce 到 rmvpe 并大声记录，
-    // 不让一个废弃取值在启动时炸掉已部署设备。
-    if (parameters_.f0_method != "rmvpe") {
-        spdlog::warn("[rvc] config f0_method '{}' is not supported (only rmvpe is "
-                     "implemented); forcing rmvpe", parameters_.f0_method);
-        parameters_.f0_method = "rmvpe";
-    }
     feature_extractor_ = std::make_shared<FeatureExtractor>(
         hubert_path, rmvpe_path, device, half, mock_.hubert, mock_.rmvpe,
         realtime_hubert_path, realtime_rmvpe_path,
@@ -102,13 +107,6 @@ std::shared_ptr<RVCInferencer> RealRVCPipeline::current_inferencer() const {
 }
 
 bool RealRVCPipeline::set_parameters(const RvcParameters& parameters) {
-    // harvest/pm F0 从未实现（曾静默返回全零 F0），只接受 rmvpe。
-    if (parameters.f0_method != "rmvpe") return false;
-    if (parameters.pitch_shift < -12 || parameters.pitch_shift > 12) return false;
-    if (parameters.index_rate < 0.0f || parameters.index_rate > 1.0f) return false;
-    if (parameters.filter_radius < 0 || parameters.filter_radius > 7) return false;
-    if (parameters.rms_mix_rate < 0.0f || parameters.rms_mix_rate > 1.0f) return false;
-    if (parameters.protect < 0.0f || parameters.protect > 0.5f) return false;
     std::lock_guard<std::mutex> lock(mutex_);
     parameters_ = parameters;
     rebuild_inferencer_locked();

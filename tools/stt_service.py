@@ -244,7 +244,7 @@ def main():
         if transcript_f:
             transcript_f.close()
         sock.close()
-        print(f"\n[stt] exit: packets={packets} finals={finals}", flush=True)
+        print(f"\n[stt] exit: packets={packets} finals={finals}", flush=True, file=sys.stderr)
 
 
 if __name__ == "__main__":

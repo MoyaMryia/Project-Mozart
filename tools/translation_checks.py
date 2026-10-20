@@ -14,9 +14,133 @@ MONTHS = ('January', 'February', 'March', 'April', 'May', 'June',
 MONTH_PATTERN = r'(?<!\d)(1[0-2]|[1-9])月'
 SMALL_WORDS = ('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
                'eight', 'nine', 'ten', 'eleven', 'twelve')
+MIN_TERM_RUN = 3
+LATIN_TERMS = re.compile(r'[A-Za-z](?:\.[A-Za-z])+\.?|[A-Za-z][A-Za-z0-9]*')
+TRANSLATION_TOKENS = re.compile(LATIN_TERMS.pattern+r'|\d+')
+ENGLISH_SMALL = {word: value for value, word in enumerate(
+    SMALL_WORDS+('thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'))}
+ENGLISH_TENS = {word: value for word, value in zip(
+    ('twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'), range(20, 100, 10))}
+ENGLISH_SCALES = {'hundred': 100, 'thousand': 1000, 'million': 1000000, 'billion': 1000000000}
+ENGLISH_NUMBER_WORD = (r'(?:'+ '|'.join((*ENGLISH_SMALL, *ENGLISH_TENS, *ENGLISH_SCALES))+
+    r'|(?:a|an)(?=\s+(?:'+'|'.join(ENGLISH_SCALES)+r')\b))')
+ENGLISH_NUMBER_PHRASE = ENGLISH_NUMBER_WORD+r'(?:[\s-]+(?:(?:and|or|to)\s+)?'+ENGLISH_NUMBER_WORD+r')*'
+ENGLISH_NUMBER = re.compile(r'\b(?:between\s+)?'+ENGLISH_NUMBER_PHRASE+r'\b', re.I)
+
+def _english_integer(words):
+    """解析按递减数量级组成的英文整数，拒绝不完整的数字词组。"""
+    for scale_word, scale in sorted(ENGLISH_SCALES.items(), key=lambda item: item[1], reverse=True):
+        if scale_word not in words:
+            continue
+        if words.count(scale_word) != 1:
+            return None
+        index = words.index(scale_word)
+        head, tail = words[:index], words[index+1:]
+        high = 1 if head in (['a'], ['an']) else _english_integer(head)
+        if tail[:1] == ['and']:
+            tail = tail[1:]
+        low = _english_integer(tail) if tail else 0
+        if high is None or low is None or not 0 < high < (10 if scale == 100 else 1000) or not 0 <= low < scale:
+            return None
+        return high*scale+low
+    if len(words) == 1:
+        return ENGLISH_SMALL.get(words[0], ENGLISH_TENS.get(words[0]))
+    if len(words) == 2 and words[0] in ENGLISH_TENS and 0 < ENGLISH_SMALL.get(words[1], 0) < 10:
+        return ENGLISH_TENS[words[0]]+ENGLISH_SMALL[words[1]]
+    return None
+
+
+def _range_values(left_words, right_words):
+    left, right = _english_integer(left_words), _english_integer(right_words)
+    if left is None or right is None:
+        return None
+    right_scales = [w for w in right_words if w in ENGLISH_SCALES]
+    if not right_scales:
+        return None
+    suffix = []
+    for word in reversed(right_words):
+        if word not in ENGLISH_SCALES:
+            break
+        suffix.insert(0, word)
+    left_scales = [w for w in left_words if w in ENGLISH_SCALES]
+    explicit_left = left
+    if not left_scales:
+        factor = 1
+        for word in suffix:
+            factor *= ENGLISH_SCALES[word]
+        left *= max(factor, max(ENGLISH_SCALES[w] for w in right_scales))
+    elif suffix[:len(left_scales)] == left_scales:
+        for word in suffix[len(left_scales):]:
+            left *= ENGLISH_SCALES[word]
+    if left != explicit_left and left >= right:
+        left = explicit_left
+    return left, right
+
+
+def english_quantity_digits(text):
+    """仅在数字核对中展开英文整数及共享数量级的范围，保留字幕原文。"""
+    def number_digits(match):
+        tokens = re.split(r'[\s-]+', match[0].casefold())
+        between = tokens[:1] == ['between']
+        if between:
+            tokens = tokens[1:]
+        operators = ['and'] if between else ['or', 'to']
+        splits = [i for i, t in enumerate(tokens) if t in operators]
+        if splits:
+            values = {_range_values(tokens[:i], tokens[i+1:]) for i in splits}
+            values.discard(None)
+            if len(values) == 1:
+                return ' '.join(str(v) for v in values.pop())
+            return match[0]
+        value = _english_integer(tokens)
+        if value is not None:
+            if value >= len(SMALL_WORDS) or any(t in ENGLISH_SCALES for t in tokens):
+                return str(value)
+            return match[0]
+        # 完整数额并列时保留每次出现。存在可合并的相邻词组时保留原串。
+        parts = []
+        start = 0
+        for i, token in enumerate(tokens):
+            if token == 'and':
+                parts.append(tokens[start:i])
+                start = i+1
+        parts.append(tokens[start:])
+        values = [_english_integer(part) for part in parts]
+        if len(parts) > 1 and all(v is not None for v in values) and all(
+                _english_integer(a+['and']+b) is None for a, b in zip(parts, parts[1:])):
+            return ' and '.join(str(v) if v >= len(SMALL_WORDS) or any(t in ENGLISH_SCALES for t in part)
+                else ' '.join(part) for part, v in zip(parts, values))
+        return match[0]
+    return ENGLISH_NUMBER.sub(number_digits, text)
+
+
+def source_term_counts(source):
+    """保留源文拉丁术语的拼写与出现次数。"""
+    terms = LATIN_TERMS.findall(source)
+    counts = Counter(term.replace('.', '').casefold() for term in terms)
+    spellings = {term.replace('.', '').casefold(): term for term in terms}
+    return [{'term': spellings[term], 'source_count': count} for term, count in counts.items()]
+
+
+def repeated_source_terms(source, translation):
+    """检查译文中超过原文次数的连续拉丁术语循环。"""
+    longest = Counter()
+    previous, run = None, 0
+    for token in TRANSLATION_TOKENS.findall(translation):
+        token = token.replace('.', '').casefold()
+        run = run+1 if token == previous else 1
+        longest[token] = max(longest[token], run)
+        previous = token
+    issues = []
+    for item in source_term_counts(source):
+        run = longest[item['term'].replace('.', '').casefold()]
+        if run >= MIN_TERM_RUN and run > item['source_count']:
+            issues.append({**item, 'longest_run': run})
+    return issues
 
 
 def translation_number_counts(translation):
+    translation = english_quantity_digits(translation)
     actual = Counter(re.findall(r'\d+(?:\.\d+)?', translation.replace(',', '')))
     # Accept an equivalent small count only with an explicit unit. An unrelated
     # "one" or modal "may" must not mask a missing source quantity.
@@ -211,7 +335,7 @@ def values_changed_to_item_counts(source, translation):
     """
     normalized = normalize_translation_quantities(source)
     values = re.findall(r'(?:等值的商品|价值(?:超过)?)(\d+(?:\.\d+)?)', normalized)
-    english = translation.replace(',', '')
+    english = english_quantity_digits(translation).replace(',', '')
     return [n for n in values if re.search(r'\b'+re.escape(n)+r'\+?\s+(?:items|products|goods)\b',english,re.I)]
 
 

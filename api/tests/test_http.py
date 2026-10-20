@@ -19,10 +19,19 @@ class HttpTests(unittest.TestCase):
         self.output = Path(self.temporary.name) / 'result.wav'
         self.payload = bytes(range(256)) * (24 * 1024)
         self.output.write_bytes(self.payload)
+        self.stack_path = Path(self.temporary.name)/'stack-status.json'
+        self.instance_id = 'fixture-instance'
+        self.start_fixture()
+
+    def start_fixture(self, managed=True):
         with socket.socket() as reserve:
             reserve.bind(('127.0.0.1', 0))
             self.port = reserve.getsockname()[1]
         env = dict(os.environ, MOZART_SUBTITLES_JSONL=str(Path(self.temporary.name) / 'captions.jsonl'))
+        env.pop('MOZART_STACK_STATUS_JSON', None)
+        env.pop('MOZART_STACK_INSTANCE_ID', None)
+        if managed:
+            env.update(MOZART_STACK_STATUS_JSON=str(self.stack_path), MOZART_STACK_INSTANCE_ID=self.instance_id)
         self.process = subprocess.Popen([EXECUTABLE, str(self.port), str(self.output)],
                                         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                                         stderr=subprocess.PIPE, env=env)
@@ -36,6 +45,17 @@ class HttpTests(unittest.TestCase):
                 if time.monotonic() >= deadline:
                     raise
                 time.sleep(.01)
+
+    def stack_record(self):
+        return {'version': 1, 'instance_id': self.instance_id, 'supervisor_pid': os.getpid(),
+                'state': 'starting', 'phase': 'waiting_for_voice', 'mode': 'full', 'updated_at': time.time(),
+                'readiness': {'translation': True, 'speech_runtime': True, 'voice_session': False},
+                'requirements': {'language': 'en', 'playback': True, 'voice_required': True},
+                'degraded': {}, 'children': {'backend': {'pid': self.process.pid}}}
+
+    def stack_request(self, suffix=''):
+        response = self.request(f'GET /api/stack/status{suffix} HTTP/1.1\r\n\r\n'.encode())
+        return response, json.loads(response.split(b'\r\n\r\n', 1)[1])
 
     def stop(self):
         if self.process.poll() is None:
@@ -70,6 +90,68 @@ class HttpTests(unittest.TestCase):
         with self.connect() as client:
             client.sendall(data)
             return self.read_all(client)
+
+    def test_stack_status_uses_only_configured_record(self):
+        record = self.stack_record()
+        self.stack_path.write_text(json.dumps(record))
+        response, result = self.stack_request('?path=/etc/passwd')
+        self.assertIn(b'200 OK', response)
+        self.assertTrue(result['managed'])
+        self.assertTrue(result['available'])
+        self.assertEqual(result['phase'], 'waiting_for_voice')
+        self.assertEqual(result['requirements']['playback'], True)
+        self.assertEqual(result['updated_at'], record['updated_at'])
+        before = self.stack_path.read_bytes()
+        self.assertIn(b'404 Not Found', self.request(b'POST /api/stack/status HTTP/1.1\r\nContent-Length: 2\r\n\r\n{}'))
+        self.assertEqual(self.stack_path.read_bytes(), before)
+
+    def test_stack_status_unconfigured_is_explicit(self):
+        self.stop()
+        self.start_fixture(managed=False)
+        response, result = self.stack_request()
+        self.assertIn(b'200 OK', response)
+        self.assertEqual(result, {'managed': False, 'available': False})
+
+    def test_stack_status_missing_or_bad_record_has_visible_reason(self):
+        for content in [None, b'{', b'[]', b'{}', b'{"updated_at":1e9999}', b' ' * (1024 * 1024)]:
+            with self.subTest(content=None if content is None else len(content)):
+                if content is not None:
+                    self.stack_path.write_bytes(content)
+                response, result = self.stack_request()
+                self.assertIn(b'503 Service Unavailable', response)
+                self.assertTrue(result['managed'])
+                self.assertFalse(result['available'])
+                self.assertTrue(result['error'])
+        self.stack_path.write_text(json.dumps(self.stack_record()))
+        self.assertIn(b'200 OK', self.stack_request()[0])
+
+    def test_stack_status_rejects_fifo_without_blocking(self):
+        os.mkfifo(self.stack_path)
+        response, result = self.stack_request()
+        self.assertIn(b'503 Service Unavailable', response)
+        self.assertIn('regular file', result['error'])
+
+    def test_stack_status_rejects_stale_identity_and_invalid_fields(self):
+        mutations = [lambda r: r.update(instance_id='previous-run'),
+                     lambda r: r.update(supervisor_pid=1),
+                     lambda r: r.update(supervisor_pid=float(os.getpid())),
+                     lambda r: r['children']['backend'].update(pid=1),
+                     lambda r: r['readiness'].update(translation='yes'),
+                     lambda r: r['requirements'].update(playback='yes'),
+                     lambda r: r.update(updated_at='yesterday'),
+                     lambda r: r.update(updated_at=-1),
+                     lambda r: r.update(version=True),
+                     lambda r: r.update(degraded={'speech': {'error': 'not a string'}}),
+                     lambda r: r.update(error={'message': []})]
+        for mutate in mutations:
+            record = self.stack_record()
+            mutate(record)
+            with self.subTest(record=record):
+                self.stack_path.write_text(json.dumps(record))
+                response, result = self.stack_request()
+                self.assertIn(b'503 Service Unavailable', response)
+                self.assertFalse(result['available'])
+                self.assertTrue(result['error'])
 
     def test_partial_header_keeps_health_and_stop_available(self):
         client = self.connect()

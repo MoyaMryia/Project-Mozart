@@ -1,27 +1,26 @@
 // playback.c — ALSA 播放（48 kHz / S16_LE / 2ch）
 // ============================================================================
 // 接收后端输出的 48 kHz / f32 / 960 样本单声道帧，转换为 S16_LE 立体声
-// （L=R=mono）后写入 ALSA。按 period 阻塞写；xrun (-EPIPE) 时 prepare 恢复并
-// 计数。与 capture.c 对称。
+// （L=R=mono）后写入 ALSA。非阻塞 I/O 支持停止请求与有期限恢复。
 #define _POSIX_C_SOURCE 200809L
 #include "mozart/playback.h"
 #include "mozart/frame_meta.h"
 
 #include <alloca.h>
 #include <alsa/asoundlib.h>
-#include <sched.h>
+#include "pcm_io.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#define PLAYBACK_MAX_CONSECUTIVE_ERRORS 50
 
 struct mozart_playback {
     snd_pcm_t *pcm;
     unsigned   channels;
     unsigned   period_frames;
     long       underruns;
+    bool     (*should_stop)(void *);
+    void      *stop_context;
 };
 
 mozart_playback_t *mozart_playback_open(const mozart_playback_config_t *cfg)
@@ -32,10 +31,12 @@ mozart_playback_t *mozart_playback_open(const mozart_playback_config_t *cfg)
     if (!p) return NULL;
     p->channels      = cfg->channels ? cfg->channels : 2;
     p->period_frames = cfg->period_frames ? cfg->period_frames : 960;
+    p->should_stop = cfg->should_stop;
+    p->stop_context = cfg->stop_context;
 
     snd_pcm_t *pcm = NULL;
     int dir = 0;
-    int err = snd_pcm_open(&pcm, cfg->device, SND_PCM_STREAM_PLAYBACK, 0);
+    int err = snd_pcm_open(&pcm, cfg->device, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
     if (err < 0) {
         fprintf(stderr, "[playback] open(%s): %s\n",
                 cfg->device, snd_strerror(err));
@@ -93,11 +94,6 @@ mozart_playback_t *mozart_playback_open(const mozart_playback_config_t *cfg)
     return p;
 }
 
-static void msleep(int ms)
-{
-    struct timespec ts = { ms / 1000, (long)(ms % 1000) * 1000000L };
-    nanosleep(&ts, NULL);
-}
 
 static void float_to_s16_stereo(const float *src, int16_t *dst, size_t n)
 {
@@ -124,38 +120,10 @@ int mozart_playback_write(mozart_playback_t *p, const float *pcm, size_t nframes
     }
     float_to_s16_stereo(pcm, buf, nframes);
 
-    snd_pcm_uframes_t frames = nframes;
-    int16_t *ptr = buf;
-    int consecutive_errors = 0;
-    int result = 0;
-
-    while (frames > 0) {
-        snd_pcm_sframes_t n = snd_pcm_writei(p->pcm, ptr, frames);
-        if (n == (snd_pcm_sframes_t)frames) break;
-        if (n > 0) {
-            ptr += n * p->channels;
-            frames -= (snd_pcm_uframes_t)n;
-            continue;
-        }
-        if (n == -EAGAIN) { sched_yield(); continue; }
-        if (n == -EPIPE) {           // underrun
-            p->underruns++;
-            if (snd_pcm_prepare(p->pcm) < 0) { result = -2; break; }
-            continue;
-        }
-        if (n == -ESTRPIPE) {        // 挂起，等待恢复
-            while ((n = snd_pcm_resume(p->pcm)) == -EAGAIN)
-                msleep(10);
-            if (n < 0 && snd_pcm_prepare(p->pcm) < 0) { result = -3; break; }
-            continue;
-        }
-        if (++consecutive_errors > PLAYBACK_MAX_CONSECUTIVE_ERRORS) {
-            fprintf(stderr, "[playback] giving up: %s\n", snd_strerror((int)n));
-            result = -4;
-            break;
-        }
-        msleep(1);
-    }
+    const int result = pcm_transfer(p->pcm, buf, nframes, p->channels,
+                                    false, p->should_stop, p->stop_context, &p->underruns);
+    if (result < 0 && result != -ECANCELED)
+        fprintf(stderr, "[playback] write: %s\n", snd_strerror(result));
     if (buf != stack_buf) free(buf);
     return result;
 }

@@ -7,6 +7,13 @@ def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
 
 class BridgeChecks(unittest.TestCase):
+    def test_spelled_amount_keeps_original_candidate_without_retry(self):
+        candidate = 'Then I downloaded a little bit of money that had a seven thousand limit.'
+        with patch('subtitle_bridge.request_json', return_value=answer(candidate)) as request:
+            result, _ = translate('translator', '然后我就下载了一点居然有七千的额度')
+        self.assertEqual(result, candidate)
+        self.assertEqual(request.call_count, 1)
+
     def test_speech_receives_observed_duration_and_source_timestamp(self):
         event = dict(seq=1, text='测试。', emitted_at=123.,
             audio_start_pts_ns=1_000_000_000, audio_end_pts_ns=3_000_000_000)
@@ -49,33 +56,73 @@ class BridgeChecks(unittest.TestCase):
         self.assertNotIn('The result is a loss.',first)
         self.assertNotIn('最后的结果一定是输',retry)
 
-    def test_rejected_translation_remains_visible_and_requests_speech(self):
+    def test_rejected_translation_remains_visible_without_speech(self):
         for source, candidate, finish, reason in [
                 ('这个叫跑分', 'This is called 跑分.', 'stop', 'untranslated Chinese'),
                 ('要付12000元', 'Pay 1,000.', 'stop', 'numerals missing'),
                 ('你好。', 'Hello and', 'length', 'token limit')]:
             with self.subTest(candidate=candidate), patch('subtitle_bridge.request_json',
-                    side_effect=[answer(candidate, finish), answer(candidate, finish), {'id': 'speech-job'}]) as request:
+                    side_effect=[answer(candidate, finish), answer(candidate, finish)]) as request:
                 updates = list(caption_updates({'seq': 7, 'text': source},
                     1, 'session', 'http://example', 'http://speech'))
-            self.assertEqual(len(updates), 3)
+            self.assertEqual(len(updates), 2)
             self.assertEqual(updates[1]['en'], candidate)
             self.assertEqual(updates[1]['translation_status'], 'failed')
             self.assertIn(reason, updates[1]['translation_error'])
-            self.assertEqual(updates[2]['speech'], 'speech-job')
-            self.assertTrue(updates[2]['speech_degraded'])
-            self.assertEqual(request.call_args.args[1]['text'], candidate)
-            self.assertTrue(request.call_args.args[1]['speech_degraded'])
+            self.assertEqual(updates[1]['speech_skipped_reason'], 'translation_failed')
+            self.assertEqual(request.call_count, 2)
+            self.assertTrue(all(c.args[0].endswith('/v1/chat/completions') for c in request.call_args_list))
 
-    def test_failed_retry_uses_previous_candidate_and_reports_speech_error(self):
+    def test_failed_retry_keeps_previous_candidate_without_speech(self):
         with patch('subtitle_bridge.request_json', side_effect=[answer('This is 跑分.'),
-                TimeoutError('Translation timeout'), TimeoutError('Speech timeout')]):
+                TimeoutError('Translation timeout')]) as request:
             updates = list(caption_updates({'seq': 7, 'text': '这个叫跑分'},
                 1, 'session', 'http://example', 'http://speech'))
         self.assertEqual(updates[-1]['en'], 'This is 跑分.')
         self.assertEqual(updates[-1]['translation_error'], 'Translation timeout')
-        self.assertEqual(updates[-1]['speech_error'], 'Speech timeout')
-        self.assertTrue(updates[-1]['speech_degraded'])
+        self.assertEqual(updates[-1]['speech_skipped_reason'], 'translation_failed')
+        self.assertEqual(request.call_count, 2)
+
+    def test_internal_translation_error_propagates(self):
+        with patch('subtitle_bridge.translate_recognized_event', side_effect=RuntimeError('model bug')):
+            with self.assertRaisesRegex(RuntimeError, 'model bug'):
+                list(caption_updates({'seq': 7, 'text': '你好。'}, 1, 'session', 'translator', 'speech'))
+
+    def test_term_loop_retries_with_source_count_and_keeps_legitimate_pf(self):
+        source = 'PF准备好了。PF是什么？PF可以吗？你懂PF吗？'
+        valid = 'PF is ready. What is PF? Is PF possible? Do you understand PF?'
+        audit = []
+        with patch('subtitle_bridge.request_json', side_effect=[answer('PF, '*20), answer(valid)]) as request:
+            result, _ = translate('translator', source, audit=audit)
+        self.assertEqual(result, valid)
+        self.assertEqual(audit[0]['repeated_source_terms'][0]['source_count'], 4)
+        self.assertIn('PF=4', request.call_args.args[1]['messages'][0]['content'])
+
+    def test_term_loop_never_enters_speech(self):
+        with patch('subtitle_bridge.request_json', return_value=answer('PF, '*20)) as request:
+            updates = list(caption_updates({'seq': 7, 'text': '你懂PF吗？'}, 1, 'session', 'translator', 'speech'))
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(updates[-1]['translation_status'], 'failed')
+        self.assertIn('repeated source terms', updates[-1]['translation_error'])
+        self.assertNotIn('speech', updates[-1])
+
+    def test_source_duration_does_not_request_translation_compression(self):
+        event = dict(text='测试。', audio_start_pts_ns=1_000_000_000, audio_end_pts_ns=3_500_000_000)
+        with patch('subtitle_bridge.request_json', return_value=answer('A test.')) as request:
+            translate_recognized_event('translator', event)
+        prompt = request.call_args.args[1]['messages'][0]['content']
+        self.assertNotIn('2.50 seconds', prompt)
+        self.assertNotIn('time budget', prompt)
+
+    def test_glossary_follows_only_observed_source_terms(self):
+        with patch('subtitle_bridge.request_json', return_value=answer('An anesthetic.')) as request:
+            translate('translator', '这就是麻醉剂。')
+        prompt = request.call_args.args[1]['messages'][0]['content']
+        self.assertIn('anesthetic', prompt)
+        self.assertNotIn('older woman', prompt)
+        with patch('subtitle_bridge.request_json', return_value=answer('DNA is a nucleic acid.')) as request:
+            translate('translator', 'DNA是一种核酸。')
+        self.assertNotIn('anesthetic', request.call_args.args[1]['messages'][0]['content'])
 
     def test_unavailable_translator_keeps_source_and_error_without_candidate(self):
         with patch('subtitle_bridge.request_json', side_effect=TimeoutError('Translation timeout')) as request:

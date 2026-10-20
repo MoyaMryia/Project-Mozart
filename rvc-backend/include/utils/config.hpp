@@ -23,22 +23,21 @@ public:
     // Access via dot notation: e.g. "input.contract.sample_rate"
     YAML::Node get(const std::string& key) const;
 
-    // Typed getters with defaults
-    template<typename T>
-    T get_or(const std::string& key, T default_val) const;
-
     int get_int(const std::string& key, int default_val) const;
+    int get_int(const std::string& key, int default_val, int minimum, int maximum) const;
+    [[noreturn]] void reject_value(const std::string& key, const std::string& expected) const;
     double get_double(const std::string& key, double default_val) const;
     bool get_bool(const std::string& key, bool default_val) const;
     std::string get_string(const std::string& key, const std::string& default_val) const;
     std::filesystem::path resolve_file_path(const std::string& key,
-                                            const std::string& default_val) const;
+                                            const std::string& default_val, bool allow_empty = false) const;
 
 private:
-    YAML::Node root_;
+    YAML::Node root_{YAML::NodeType::Map};
     mutable std::map<std::string, YAML::Node> cache_;
     std::filesystem::path base_dir_ = std::filesystem::current_path();
 
+    YAML::Node scalar(const std::string& key, const std::string& type) const;
     YAML::Node resolve_path(const std::string& key) const;
 };
 

@@ -179,8 +179,10 @@ class StableClauseTests(unittest.TestCase):
         first = [r for r in rows if r['utterance_id'] == 'session:1'][-1]
         self.assertEqual(first['en'], 'Candidate 候选.')
         self.assertEqual(first['translation_status'], 'failed')
-        self.assertTrue(first['speech_degraded'])
-        self.assertEqual(speech.call_args_list[0].args[1]['text'], 'Candidate 候选.')
+        self.assertFalse(first['speech_degraded'])
+        self.assertEqual(first['translation_segments'][0]['speech_skipped_reason'], 'translation_failed')
+        self.assertEqual(speech.call_count, 139)
+        self.assertTrue(all(call.args[1]['text'] == 'Next sentence.' for call in speech.call_args_list))
 
     def test_final_numeric_warning_remains_active_after_early_commit(self):
         rows = []
