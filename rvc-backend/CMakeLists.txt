@@ -221,6 +221,12 @@ endif()
 if(BUILD_TESTS)
     enable_testing()
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_executable(config_daemon_fixture ../state/src/main.cpp ../state/src/daemon.cpp)
+    target_include_directories(config_daemon_fixture PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../state/include)
+    target_link_libraries(config_daemon_fixture PRIVATE mozart_rvc_runtime mozart_api)
+    add_test(NAME daemon_configuration COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../state/tests/test_config.py $<TARGET_FILE:config_daemon_fixture>)
+    set_tests_properties(daemon_configuration PROPERTIES TIMEOUT 45)
     add_executable(http_fixture ../api/tests/http_fixture.cpp src/state/log_store.cpp)
     target_link_libraries(http_fixture PRIVATE mozart_api)
     add_test(NAME http_lifecycle COMMAND ${Python3_EXECUTABLE}
@@ -247,6 +253,7 @@ if(BUILD_TESTS)
     endforeach()
 
     add_executable(test_udp_loopback tests/test_udp_loopback.cpp
+        src/state/realtime_rvc_worker.cpp
         src/rvc/audio_worker.cpp
         src/rvc/streaming_pipeline.cpp
         src/rvc/trt_engine.cpp

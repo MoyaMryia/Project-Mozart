@@ -1,8 +1,81 @@
 import pathlib, sys, unittest
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 from translation_checks import required_numbers, required_number_counts, missing_numbers, repeated_numbers, added_large_numbers, normalize_translation_quantities, changed_loan_repayment, changed_explicit_roles, source_role_constraints
+from translation_checks import repeated_source_terms
 
 class TranslationChecks(unittest.TestCase):
+    def test_spelled_integer_amounts_match_without_changing_their_values(self):
+        for source, translation in [
+                ('七千的额度', 'A seven thousand limit.'),
+                ('给了七千块', 'Gave seven thousand dollars.'),
+                ('一百元', 'A one hundred yuan item.'),
+                ('七千五百元', 'Seven thousand and five hundred yuan.'),
+                ('100元', 'A hundred yuan.'),
+                ('两千五百万', 'Twenty-five million.')]:
+            with self.subTest(translation=translation):
+                self.assertEqual(missing_numbers(source, translation), [])
+                self.assertEqual(added_large_numbers(source, translation), [])
+        self.assertEqual(missing_numbers('160元', 'One hundred sixty-one yuan.'), ['160'])
+        self.assertEqual(missing_numbers('1元', 'One person was there.'), ['1'])
+
+    def test_spelled_ranges_preserve_both_endpoints(self):
+        for translation in ['One or two thousand yuan.', 'Between one and two thousand yuan.',
+                            'One thousand to two thousand yuan.']:
+            self.assertEqual(missing_numbers('花一两千', translation), [], translation)
+            self.assertEqual(added_large_numbers('花一两千', translation), [], translation)
+        self.assertEqual(missing_numbers('花一两千', 'One or three thousand yuan.'), ['2000'])
+        self.assertEqual(added_large_numbers('花一两千', 'One or three thousand yuan.'), ['3000'])
+        self.assertEqual(missing_numbers('1000至2000000', 'Between one thousand and two million.'), [])
+        self.assertEqual(missing_numbers('100至2000', 'Between one hundred and two thousand.'), [])
+
+    def test_compound_range_scales_do_not_certify_wrong_endpoints(self):
+        translation = 'One or two hundred thousand yuan.'
+        self.assertEqual(missing_numbers('100000至200000元', translation), [])
+        self.assertEqual(missing_numbers('1000至200000元', translation), ['1000'])
+        self.assertEqual(added_large_numbers('1000至200000元', translation), ['100000'])
+        translation = 'Between one and two thousand five hundred yuan.'
+        self.assertEqual(missing_numbers('1000至2500元', translation), [])
+        self.assertEqual(added_large_numbers('1000至2500元', translation), [])
+
+    def test_conjoined_complete_amounts_keep_each_occurrence(self):
+        translation = 'Seven thousand and eight thousand yuan.'
+        self.assertEqual(missing_numbers('七千和八千', translation), [])
+        self.assertEqual(repeated_numbers('七千和八千', translation), [])
+        self.assertEqual(repeated_numbers('七千', 'Seven thousand and seven thousand.'), ['7000'])
+        self.assertEqual(missing_numbers('七千和八千和九千', 'Seven thousand and eight thousand and nine thousand.'), [])
+
+    def test_shared_scale_does_not_collapse_distinct_range_endpoints(self):
+        translation = 'Between one and one thousand yuan.'
+        self.assertEqual(missing_numbers('1元至1000元', translation), [])
+        self.assertEqual(missing_numbers('1000元，再给1000元', translation), ['1000'])
+        translation = 'Between one hundred and one hundred thousand yuan.'
+        self.assertEqual(missing_numbers('100元至100000元', translation), [])
+        self.assertEqual(missing_numbers('100000元，再给100000元', translation), ['100000'])
+
+    def test_spelled_amount_checks_still_reject_added_missing_and_repeated_values(self):
+        self.assertEqual(added_large_numbers('几千块', 'Seventy thousand yuan.'), ['70000'])
+        self.assertEqual(added_large_numbers('二零一几年', 'Two thousand eighteen.'), ['2018'])
+        self.assertEqual(missing_numbers('七千元', 'Six thousand yuan.'), ['7000'])
+        self.assertEqual(repeated_numbers('七千元', 'Seven thousand, then seven thousand.'), ['7000'])
+        self.assertEqual(missing_numbers('七千，再给七千', 'Seven thousand.'), ['7000'])
+        self.assertEqual(missing_numbers('100元', 'A and one hundred yuan.'), [])
+
+    def test_spelled_value_does_not_bypass_item_count_check(self):
+        from translation_checks import values_changed_to_item_counts
+        self.assertEqual(values_changed_to_item_counts('价值38000元', 'Thirty-eight thousand items.'), ['38000'])
+
+    def test_excessive_pf_loop_is_rejected_without_rejecting_source_repetitions(self):
+        source = 'PF。PF。PF。PF。'
+        self.assertEqual(repeated_source_terms(source, 'PF, PF, PF, PF.'), [])
+        issues = repeated_source_terms(source, 'PF, '*238)
+        self.assertEqual(issues, [{'term': 'PF', 'source_count': 4, 'longest_run': 238}])
+        self.assertEqual(repeated_source_terms('PF是项目名', 'PF is ready. PF works.'), [])
+        self.assertEqual(repeated_source_terms('yes yes yes', 'Yes, yes, yes.'), [])
+        self.assertEqual(repeated_source_terms('PF', 'P.F. P.F. P.F.')[0]['longest_run'], 3)
+        self.assertEqual(repeated_source_terms('R', 'R R R')[0]['term'], 'R')
+        self.assertEqual(repeated_source_terms('P.F. P.F. P.F.', 'PF PF PF'), [])
+        self.assertEqual(repeated_source_terms('PF的型号有1、2、3。', 'PF 1, PF 2, PF 3.'), [])
+
     def test_repeated_units_do_not_create_an_invented_sum(self):
         self.assertEqual(required_numbers('七千五千又是大几千'), [])
         self.assertEqual(missing_numbers('七千五千又是大几千',

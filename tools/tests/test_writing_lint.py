@@ -1,4 +1,5 @@
 from collections import Counter
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -85,9 +86,14 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(compare([], Counter({key(item): 1}), {'a.md'}), ([], Counter()))
 
 
+# 提交钩子会给子进程设置这些变量，指向外层仓库。测试使用自己的临时仓库。
+GIT_ENV = ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE')
+
+
 class IndexTests(unittest.TestCase):
     def test_index_mode_reads_staged_content_not_worktree(self):
-        with tempfile.TemporaryDirectory() as directory:
+        environment = {name: value for name, value in os.environ.items() if name not in GIT_ENV}
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, environment, clear=True):
             root = Path(directory)
             subprocess.run(['git', 'init', '-q', str(root)], check=True)
             # 多字节字符和缺少末尾换行用于检查 cat-file 输出的偏移。

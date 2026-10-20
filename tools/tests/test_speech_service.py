@@ -139,10 +139,14 @@ class SpeechTests(unittest.TestCase):
     def test_language_and_profile_rejection(self):
         for args in [{'language':'zh'}, {'text':'你好'}, {'voice_id':'missing'}]:
             with self.assertRaises(ApiError): self.service.submit({'text':'hello','voice_id':'test',**args})
-    def test_degraded_candidate_can_reach_the_speech_worker(self):
-        job = self.submit('This is called 跑分.', speech_degraded=True)
-        self.assertTrue(job['speech_degraded'])
-        self.assertEqual(self.wait(job['id'])['status'], 'completed')
+    def test_degraded_candidate_fails_before_queue_admission(self):
+        with self.service.lock:
+            before = len(self.service.jobs)
+            for text in ['This is called 跑分.', 'Rejected but ASCII.']:
+                with self.assertRaises(ApiError) as error:
+                    self.submit(text, speech_degraded=True)
+                self.assertEqual(error.exception.code, 422)
+            self.assertEqual(len(self.service.jobs), before)
         with self.assertRaises(ApiError) as error:
             self.submit('This is called 跑分.', speech_degraded='true')
         self.assertEqual(error.exception.code, 400)

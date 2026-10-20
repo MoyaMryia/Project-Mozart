@@ -2487,12 +2487,6 @@
   },
   {
    "path": "tools/asr_checks.py",
-   "rule": "broad-except",
-   "text": "except Exception as error:",
-   "count": 1
-  },
-  {
-   "path": "tools/asr_checks.py",
    "rule": "hedge-in-comment",
    "text": "Agreement does not establish that either reading matches the speaker.",
    "count": 1
@@ -2522,16 +2516,10 @@
    "count": 2
   },
   {
-   "path": "tools/run_translated_speech.py",
-   "rule": "broad-except",
-   "text": "except Exception as error:",
-   "count": 1
-  },
-  {
    "path": "tools/speech_service.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 5
+   "count": 4
   },
   {
    "path": "tools/stable_clauses.py",
@@ -2549,7 +2537,7 @@
    "path": "tools/subtitle_bridge.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 4
+   "count": 2
   },
   {
    "path": "tools/tempo_player.py",
