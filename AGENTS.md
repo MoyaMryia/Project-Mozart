@@ -76,8 +76,8 @@ GB/T 15834—2011 的标点规则，以及 GB/T 1.1—2020 中适用的结构和
 `TempoPlayer.__init__` 又检查一次，该分支只有测试能触发。
 合格做法：只在 `TempoController` 和命令行入口校验。删除 `TempoPlayer` 中的检查及其测试。
 
-同一限制定义多处：`tools/tempo_control.py` 定义 `MAX_TEMPO = 1.15`。
-`preprocessor/src/tempo_filter.c` 又硬编码两处 `1.15`。
+同一限制定义多处：`tools/tempo_control.py` 定义 `MAX_TEMPO`。
+`preprocessor/src/tempo_filter.c` 曾经硬编码两处上限。
 合格做法：C 侧使用一个宏。增加一个测试，比较 Python 和 C 的上限。
 
 宽泛捕获：`tools/asr_checks.py` 用 `except Exception` 把所有错误记为 `numeric_check_failed`。
