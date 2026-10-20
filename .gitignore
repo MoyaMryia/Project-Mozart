@@ -175,6 +175,9 @@ reports/**/__pycache__/
 !reports/flexible-tempo-20261015/jetson-build.log
 !reports/flexible-tempo-20261015/playback-verification.log
 
+# 1.30 倍上限的识别对照证据。
+!rvc-golden/tempo-cap-20261020/
+
 # 1.15 倍上限的小型对照证据。
 !reports/tempo-limit-20261016/quality-summary.json
 !reports/tempo-limit-20261016/manifest.json

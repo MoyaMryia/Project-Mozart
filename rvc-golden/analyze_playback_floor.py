@@ -17,7 +17,7 @@ def main():
         item = json.loads(row)
         parents[item['seq']] = item
     results = []
-    for speed in [1.0, 1.05, 1.1, 1.15]:
+    for speed in [1.0, 1.05, 1.1, 1.15, 1.3, 1.4, 1.5]:
         available = 0
         first, records = {}, []
         for job in jobs:

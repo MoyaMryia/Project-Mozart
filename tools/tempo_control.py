@@ -1,7 +1,7 @@
 """根据逐段时长和积压选择播放比例。每个任务只选择一次比例。"""
 import math
 
-MAX_TEMPO = 1.15
+MAX_TEMPO = 1.5
 DEFAULT_TEMPO_MAX = MAX_TEMPO
 
 
