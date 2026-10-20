@@ -189,6 +189,14 @@ class BridgeChecks(unittest.TestCase):
             translate('translator', 'DNA是一种核酸。')
         self.assertNotIn('anesthetic', request.call_args.args[1]['messages'][0]['content'])
 
+    def test_domain_terms_reach_the_prompt_only_when_present(self):
+        with patch('subtitle_bridge.request_json', return_value=answer('He borrowed through an app.')) as request:
+            translate('translator', '他先从网贷借钱。')
+        prompt = request.call_args.args[1]['messages'][0]['content']
+        self.assertIn('online lending', prompt)
+        self.assertNotIn('online gambling', prompt)
+        self.assertNotIn('credit limit', prompt)
+
     def test_unavailable_translator_keeps_source_and_error_without_candidate(self):
         with patch('subtitle_bridge.request_json', side_effect=TimeoutError('Translation timeout')) as request:
             updates = list(caption_updates({'seq': 7, 'text': '你好。'},
