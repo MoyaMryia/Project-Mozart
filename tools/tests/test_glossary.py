@@ -18,15 +18,13 @@ class GlossaryTests(unittest.TestCase):
 
     def test_defaults_apply_without_a_file(self):
         terms = glossary.load(self.path)
-        self.assertEqual(terms['网赌'], 'online gambling')
-        self.assertEqual(len(terms), len(glossary.DEFAULT_GLOSSARY))
+        self.assertEqual(terms, {})
 
     def test_file_adds_and_overrides_terms(self):
         self.path.write_text(json.dumps({'网赌': 'Gambling Online', '新词': 'new term'}), encoding='utf-8')
         terms = glossary.load(self.path)
         self.assertEqual(terms['网赌'], 'gambling online')
         self.assertEqual(terms['新词'], 'new term')
-        self.assertEqual(terms['网贷'], 'online lending')
 
     def test_invalid_entries_fail_before_use(self):
         for bad in ({'gambling': 'online gambling'}, {'网赌': '在线赌博'}, {'网赌': ''}):

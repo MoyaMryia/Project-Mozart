@@ -1,4 +1,4 @@
-import pathlib,sys,time,unittest
+import json,os,pathlib,sys,tempfile,time,unittest
 from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 from subtitle_bridge import (CaptionDispatcher, caption_updates, translate,
@@ -190,12 +190,16 @@ class BridgeChecks(unittest.TestCase):
         self.assertNotIn('anesthetic', request.call_args.args[1]['messages'][0]['content'])
 
     def test_domain_terms_reach_the_prompt_only_when_present(self):
-        with patch('subtitle_bridge.request_json', return_value=answer('He borrowed through an app.')) as request:
-            translate('translator', '他先从网贷借钱。')
-        prompt = request.call_args.args[1]['messages'][0]['content']
-        self.assertIn('online lending', prompt)
-        self.assertNotIn('online gambling', prompt)
-        self.assertNotIn('credit limit', prompt)
+        directory = tempfile.TemporaryDirectory()
+        path = pathlib.Path(directory.name)/'glossary.json'
+        path.write_text(json.dumps({'网贷': 'online lending', '网赌': 'online gambling'}), encoding='utf-8')
+        with patch.dict(os.environ, {'MOZART_GLOSSARY': str(path)}):
+            with patch('subtitle_bridge.request_json', return_value=answer('He borrowed through an app.')) as request:
+                translate('translator', '他先从网贷借钱。')
+            prompt = request.call_args.args[1]['messages'][0]['content']
+            self.assertIn('online lending', prompt)
+            self.assertNotIn('online gambling', prompt)
+        directory.cleanup()
 
     def test_unavailable_translator_keeps_source_and_error_without_candidate(self):
         with patch('subtitle_bridge.request_json', side_effect=TimeoutError('Translation timeout')) as request:

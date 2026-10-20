@@ -27,7 +27,9 @@ class HttpTests(unittest.TestCase):
         with socket.socket() as reserve:
             reserve.bind(('127.0.0.1', 0))
             self.port = reserve.getsockname()[1]
-        env = dict(os.environ, MOZART_SUBTITLES_JSONL=str(Path(self.temporary.name) / 'captions.jsonl'))
+        self.glossary_path = Path(self.temporary.name)/'glossary.json'
+        env = dict(os.environ, MOZART_SUBTITLES_JSONL=str(Path(self.temporary.name) / 'captions.jsonl'),
+                   MOZART_GLOSSARY=str(self.glossary_path))
         env.pop('MOZART_STACK_STATUS_JSON', None)
         env.pop('MOZART_STACK_INSTANCE_ID', None)
         if managed:
@@ -56,6 +58,35 @@ class HttpTests(unittest.TestCase):
     def stack_request(self, suffix=''):
         response = self.request(f'GET /api/stack/status{suffix} HTTP/1.1\r\n\r\n'.encode())
         return response, json.loads(response.split(b'\r\n\r\n', 1)[1])
+
+    def glossary_request(self, method, payload=None):
+        body = json.dumps(payload).encode() if payload is not None else b''
+        head = f'{method} /api/glossary HTTP/1.1\r\nContent-Length: {len(body)}\r\n\r\n'.encode()
+        response = self.request(head + body)
+        return response, json.loads(response.split(b'\r\n\r\n', 1)[1])
+
+    def test_glossary_starts_empty_and_round_trips(self):
+        response, data = self.glossary_request('GET')
+        self.assertIn(b'200 OK', response)
+        self.assertEqual(data['terms'], {})
+        response, data = self.glossary_request('PUT', {'terms': {'网赌': 'online gambling'}})
+        self.assertIn(b'200 OK', response)
+        self.assertEqual(json.loads(self.glossary_path.read_text(encoding='utf-8')), {'网赌': 'online gambling'})
+        response, data = self.glossary_request('GET')
+        self.assertEqual(data['terms'], {'网赌': 'online gambling'})
+
+    def test_glossary_rejects_non_chinese_keys_and_non_english_meanings(self):
+        for payload in ({'terms': {'gambling': 'online gambling'}},
+                        {'terms': {'网赌': '在线赌博'}},
+                        {'terms': {'网赌': ''}},
+                        {'terms': 'not an object'}):
+            with self.subTest(payload=payload):
+                response, _ = self.glossary_request('PUT', payload)
+                self.assertIn(b'400', response)
+
+    def test_glossary_write_is_atomic(self):
+        self.glossary_request('PUT', {'terms': {'网赌': 'online gambling'}})
+        self.assertFalse(Path(str(self.glossary_path)+'.tmp').exists())
 
     def stop(self):
         if self.process.poll() is None:

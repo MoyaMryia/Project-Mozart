@@ -2,6 +2,7 @@
 // App.vue — 控制中心主应用。
 // 视觉体系：语义化设计令牌（styles.css），亮/暗双主题；圆角两档（卡片 lg、控件 md）。
 // 逻辑：组合式状态 + SSE 字幕订阅。新增：主题切换（localStorage: mozart-theme）。
+import GlossaryPanel from './GlossaryPanel.vue';
 import SpeechPanel from './SpeechPanel.vue';
 import StackPanel from './StackPanel.vue';
 import { createPoll } from './poll';
@@ -523,6 +524,8 @@ onUnmounted(() => {
           <p class="text-xs text-ink-2 leading-5">在右侧选择参考音色，生成语音预览，或启用翻译播报。</p>
           <a href="#reference-speech" class="block text-xs font-bold text-ink underline">管理参考音色与翻译播报</a>
         </div>
+
+        <GlossaryPanel />
 
         <!-- 挂起切换状态槽 -->
         <div :class="['banner-warn flex items-start gap-2.5 p-3.5', !status?.pending_target_mode && 'hidden']" aria-live="polite">

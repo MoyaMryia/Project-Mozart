@@ -10,20 +10,8 @@ import os
 import re
 from pathlib import Path
 
-DEFAULT_GLOSSARY = {
-    '网赌': 'online gambling',
-    '网贷': 'online lending',
-    '戒赌': 'quit gambling',
-    '借条': 'IOU note',
-    '额度': 'credit limit',
-    '套路贷': 'predatory lending',
-    '高利贷': 'loan sharking',
-    '催收': 'debt collection',
-    '逾期': 'overdue',
-    '征信': 'credit record',
-    '庄家': 'the house',
-    '赌徒': 'gambler',
-}
+# 默认不带任何词条。词条由配置文件提供，空文件表示不使用术语表。
+DEFAULT_GLOSSARY = {}
 
 CHINESE = re.compile(r'^[\u3400-\u9fff]+$')
 ENGLISH = re.compile(r'^[A-Za-z][A-Za-z\-\' ]*$')

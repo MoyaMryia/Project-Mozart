@@ -73,8 +73,15 @@ def request_json(url, body, timeout=10):
 
 # 通用年龄称谓。这里不修正识别原文，也不推断亲属关系。
 TITLE_GLOSSARY = {'大妈': 'older woman', '大爷': 'older man'}
-# 领域术语：只在源文出现时写入提示词。默认词表可被 MOZART_GLOSSARY 指向的 JSON 覆盖。
-TRANSLATION_GLOSSARY = {**TITLE_GLOSSARY, **glossary.load(), '麻醉剂': 'anesthetic'}
+# 领域术语：只在源文出现时写入提示词。词表随配置文件变化，改完不必重启。
+GLOSSARY_LIMIT = 64*1024
+
+
+def translation_glossary():
+    path = glossary.path()
+    if path and path.exists() and path.stat().st_size <= GLOSSARY_LIMIT:
+        return {**TITLE_GLOSSARY, **glossary.load(path), '麻醉剂': 'anesthetic'}
+    return {**TITLE_GLOSSARY, '麻醉剂': 'anesthetic'}
 
 
 def repair_chinese_terms(source, candidate):
@@ -111,9 +118,9 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
     role_constraints = source_role_constraints(text)
     if role_constraints:
         messages[0]['content'] += ' ' + ' '.join(role_constraints)
-    glossary = {term: meaning for term, meaning in TRANSLATION_GLOSSARY.items() if term in text}
-    if glossary:
-        messages[0]['content'] += ' Use these source terms: '+json.dumps(glossary, ensure_ascii=False)+'.'
+    terms = {term: meaning for term, meaning in translation_glossary().items() if term in text}
+    if terms:
+        messages[0]['content'] += ' Use these source terms: '+json.dumps(terms, ensure_ascii=False)+'.'
     base_system = messages[0]['content']
     if context:
         messages[0]['content'] += (
