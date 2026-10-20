@@ -28,7 +28,16 @@ from asr_checks import boundary_fragment_audit
 # 复核（final model）只在片段足够长、且与流式原文足够接近时替换译文源。
 REFINED_MIN_CHARS = 6
 REFINED_MIN_SIMILARITY = 0.5
-REFINED_WAIT_SECONDS = 1.0
+# 复核耗时随片段长度增长：实测 7 s 片段 1.93 s、3 s 片段 0.58 s。
+# 等待窗口按时长缩放，并设上限，避免无限推迟翻译。
+REFINED_WAIT_BASE = 0.4
+REFINED_WAIT_RATIO = 0.3
+REFINED_WAIT_MAX = 2.5
+
+
+def refinement_wait(event):
+    seconds = source_duration(event) or 0
+    return min(REFINED_WAIT_MAX, REFINED_WAIT_BASE + REFINED_WAIT_RATIO*seconds)
 
 
 def normalise_source(text):
@@ -343,7 +352,7 @@ class CaptionDispatcher:
         raw = event['text'].strip()
         if event.get('refined_text'):
             return translation_source(raw, event['refined_text'])
-        deadline = time.monotonic() + REFINED_WAIT_SECONDS
+        deadline = time.monotonic() + refinement_wait(event)
         with self.refined_ready:
             while event['seq'] not in self.refined and not self.closing.is_set():
                 remaining = deadline - time.monotonic()
