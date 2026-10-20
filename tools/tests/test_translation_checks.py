@@ -18,6 +18,33 @@ class TranslationChecks(unittest.TestCase):
         self.assertEqual(missing_numbers('160元', 'One hundred sixty-one yuan.'), ['160'])
         self.assertEqual(missing_numbers('1元', 'One person was there.'), ['1'])
 
+    def test_colloquial_tail_amount_counts_the_thousands(self):
+        # 两万七 = 27,000。2026-10-20 现场实测该式被误判为 20,000。
+        cases = [('两万七说成三万', ['27000', '30000']),
+                 ('两万七', ['27000']),
+                 ('两亿七', ['270000000']),
+                 ('七万五', ['75000'])]
+        for source, expected in cases:
+            with self.subTest(source=source):
+                self.assertEqual(required_numbers(source), expected)
+
+    def test_colloquial_tail_amount_is_normalized_for_the_translator(self):
+        self.assertEqual(normalize_translation_quantities('两万七说成三万'), '27000说成30000')
+
+    def test_complete_composites_and_ranges_are_not_rewritten_as_tail_amounts(self):
+        for source, expected in [('两万七千', ['27000']),
+                                 ('七八万', ['70000', '80000']),
+                                 ('三万人', ['30000'])]:
+            with self.subTest(source=source):
+                self.assertEqual(required_numbers(source), expected)
+        self.assertEqual(normalize_translation_quantities('两万七千'), '27000')
+
+    def test_tail_digit_before_a_unit_stays_a_complete_amount(self):
+        # 两万七百与两万七十按完整复合数计算，千位短式在此不适用。
+        for source, expected in [('两万七百', ['20700']), ('两万七十', ['20070'])]:
+            with self.subTest(source=source):
+                self.assertEqual(required_numbers(source), expected)
+
     def test_spelled_ranges_preserve_both_endpoints(self):
         for translation in ['One or two thousand yuan.', 'Between one and two thousand yuan.',
                             'One thousand to two thousand yuan.']:
@@ -147,7 +174,8 @@ class TranslationChecks(unittest.TestCase):
             self.assertEqual(normalize_translation_quantities(source), amount, source)
 
     def test_ambiguous_or_mixed_composites_are_not_normalized(self):
-        for source in ['七八万五千','一一万五千','七千五千','一0百','2万5千','一万五亿','七万五','七万五千五']:
+        # 七万五 是口语短式（75,000），已由 normalize_tail_amounts 处理，故不在本列。
+        for source in ['七八万五千','一一万五千','七千五千','一0百','2万5千','一万五亿','七万五千五']:
             self.assertEqual(normalize_translation_quantities(source), source)
 
     def test_missing_intentional_repeated_amount_is_rejected(self):
