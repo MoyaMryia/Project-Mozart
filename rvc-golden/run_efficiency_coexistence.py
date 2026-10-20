@@ -10,6 +10,9 @@ import sys
 import time
 import urllib.request
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'tools'))
+from tempo_control import DEFAULT_TEMPO_MAX
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -21,6 +24,7 @@ def main():
     parser.add_argument('--tts-audio-chunk-frames', type=int, choices=[3,5,10,15], default=3)
     parser.add_argument('--tts-threads', type=int, default=2)
     parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='normal')
+    parser.add_argument('--playback-tempo-max', type=float, default=DEFAULT_TEMPO_MAX)
     parser.add_argument('--capture-playback', action='store_true')
     parser.add_argument('--commit', default='1e4d8e5+latency-working')
     args = parser.parse_args()
@@ -38,13 +42,13 @@ def main():
         '--early-audio', '--tts-pythonpath', str(home/'mozart-realtime-patches-20261008/early-audio-runtime-20261009/python'),
         '--tts-audio-chunk-frames', str(args.tts_audio_chunk_frames), '--tts-threads', str(args.tts_threads),
         '--boundary-model', str(args.boundary_model)]
-    probe += ['--playback-tempo', args.playback_tempo]
+    probe += ['--playback-tempo', args.playback_tempo, '--playback-tempo-max', str(args.playback_tempo_max)]
     if args.capture_playback:
         probe += ['--capture-playback']
     campaign = [sys.executable, '-u', str(root/'rvc-golden/run_efficiency_campaign.py'),
         '--baseline', str(args.build/'state/mozart_stated'), '--candidate', str(args.build/'state/mozart_stated'),
         '--repo', str(root), '--assets', str(home/'Mozart/rvc-golden/qiqi-zh-run'),
-        '--input', str(source), '--output-dir', str(args.work/'rvc'), '--repeats', '1', '--cases', 'parallel',
+        '--input', str(source), '--output-dir', str(args.work/'rvc'), '--repeats', '1', '--measure-case', 'parallel',
         '--playout-delay-ms', '400']
     began = time.time()
     (args.work/'protocol.json').write_text(json.dumps(dict(probe=probe, campaign=campaign, started_at=began,

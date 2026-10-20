@@ -184,14 +184,14 @@ class EarlyAudioTests(unittest.TestCase):
         self.service.playback_tempo = 'flexible'
         self.service.capture_playback = True
         with patch.object(self.service.tempo_controller, 'select', return_value={
-                'tempo': 1.037, 'limited': False}):
+                'tempo': 1.15, 'limited': False}):
             result = self.wait(self.submit('quick flexible', playback=True, live=True)['id'])
         self.assertEqual(result['status'], 'completed', result.get('error'))
-        self.assertEqual(result['playback_tempo'], 1.037)
+        self.assertEqual(result['playback_tempo'], 1.15)
         with wave.open(str(self.root/'results'/f"{result['id']}.wav"), 'rb') as source:
             source_pcm = source.readframes(source.getnframes())
         expected = subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', '24000',
-            '-ac', '1', '-i', 'pipe:0', '-af', 'atempo=1.037', '-f', 's16le', 'pipe:1'],
+            '-ac', '1', '-i', 'pipe:0', '-af', 'atempo=1.150', '-f', 's16le', 'pipe:1'],
             input=source_pcm, stdout=subprocess.PIPE, check=True).stdout
         self.assertEqual(self.players[0].read_bytes(), expected)
         self.assertEqual(result['playback_output_samples'], len(expected)//2)

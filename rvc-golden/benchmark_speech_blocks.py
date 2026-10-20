@@ -8,8 +8,23 @@ import subprocess
 import sys
 
 import numpy as np
-import soundfile as sf
 from run_efficiency_campaign import stats
+
+
+def compare_audio(value, reference):
+    if not len(value) or not len(reference):
+        raise ValueError('音频块试验输出为空')
+    if not np.isfinite(value).all() or not np.isfinite(reference).all():
+        raise ValueError('音频块试验输出包含非有限值')
+    if len(value) != len(reference):
+        raise ValueError('音频块试验改变了输出长度')
+    with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
+        difference_norm = np.linalg.norm(value-reference)
+        reference_norm = np.linalg.norm(reference)
+        relative_rmse = float(difference_norm/max(reference_norm, 1e-30))
+    if not np.isfinite([difference_norm, reference_norm, relative_rmse]).all():
+        raise ValueError('音频块试验比较指标非有限或溢出')
+    return dict(exact=bool(np.array_equal(value, reference)), relative_rmse=relative_rmse)
 
 
 def main():
@@ -17,6 +32,8 @@ def main():
     parser.add_argument('--repo', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    import soundfile as sf
+
     args.output.mkdir(parents=True, exist_ok=False)
     source = json.loads((args.repo/'rvc-golden/realtime-patches-20261008/pocket-gpu-texts.json').read_text())
     texts = args.output/'texts.json'
@@ -43,11 +60,8 @@ def main():
             if name == 'baseline':
                 baseline[row['index']] = value
             reference = baseline[row['index']]
-            if len(value) != len(reference):
-                raise ValueError('音频块试验改变了输出长度')
-            comparisons.append(dict(index=row['index'], repeat=row['repeat'],
-                exact=bool(np.array_equal(value, reference)),
-                relative_rmse=float(np.linalg.norm(value-reference)/max(np.linalg.norm(reference),1e-30)),
+            comparison = compare_audio(value, reference)
+            comparisons.append(dict(index=row['index'], repeat=row['repeat'], **comparison,
                 pcm_sha256=hashlib.sha256(value.tobytes()).hexdigest()))
         item = dict(case=name, frames=frames, threads=threads,
             first_audio=stats([r['first_audio_seconds']*1000 for r in result['records']]),

@@ -177,7 +177,7 @@ Read the [2026-10-15 measurements](../reports/latency-reduction-20261015/RESULTS
 
 The supervisor and speech-service commands default to `--playback-tempo flexible`.
 For live speech, the service calculates speed from predicted duration, observed source duration, and queue delay.
-The default range is 1.000–1.050×. Each speed has three decimal places.
+The default range is 1.000–1.150×. Each speed has three decimal places.
 Speed can increase immediately. Speed decreases by a maximum of 0.010× between nearby task decisions.
 After five seconds without a new decision, the controller clears that speed history.
 Each logical job keeps one speed. One continuous `atempo` filter preserves its state across audio blocks.
@@ -185,8 +185,9 @@ The service keeps all text and synthesis WAV files. Preview jobs keep their orig
 Use `--playback-tempo normal` to restore original playback speed.
 Use `--playback-tempo adaptive` to restore the previous two-speed policy.
 Use `--playback-tempo-max`, `--playback-target-delay`, and `--playback-recovery-seconds` to configure the controller.
-The default values are 1.05, 1.5 seconds, and 30 seconds.
-Values above 1.05 require separate quality evaluation. The accepted maximum is 1.10.
+The default values are 1.15, 1.5 seconds, and 30 seconds.
+The accepted maximum is 1.15. See the [test scope](../reports/tempo-limit-20261016/RESULTS.md#适用范围).
+Use `--playback-tempo-max 1.05` to restore the previous limit.
 The tiny duration model has four regression parameters. Inference uses the Python standard library.
 Its features are word count, approximate syllable count, and clause punctuation.
 It requires the matching reference revision, engine configuration, runtime version, and ONNX asset hashes.

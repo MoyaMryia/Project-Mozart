@@ -28,7 +28,7 @@ from speech_chunks import estimated_audio_seconds, split_speech_text
 from durable_jobs import DiskJobs, DiskPending
 from tempo_player import TempoPlayer, tempo_library
 from speech_duration import DurationEstimator, DEFAULT_PROFILE
-from tempo_control import TempoController
+from tempo_control import DEFAULT_TEMPO_MAX, TempoController
 
 TERMINAL = {'completed', 'failed', 'cancelled', 'expired'}
 
@@ -48,7 +48,7 @@ class SpeechService:
     def __init__(self, root, worker_command, engine='pocket', playback_device='default',
                  queue_limit=4, timeout=90, history_limit=128, preload=False,
                  delivery_policy='realtime', playback_tempo='normal', capture_playback=False,
-                 duration_profile=DEFAULT_PROFILE, playback_tempo_max=1.05,
+                 duration_profile=DEFAULT_PROFILE, playback_tempo_max=DEFAULT_TEMPO_MAX,
                  playback_target_delay=1.5, playback_recovery_seconds=30.):
         if playback_tempo not in ('normal', 'adaptive', 'flexible'):
             raise ValueError('Unknown playback tempo policy')
@@ -982,7 +982,7 @@ def main():
     parser.add_argument('--playback-device', default='default')
     parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='flexible')
     parser.add_argument('--duration-profile', type=Path, default=DEFAULT_PROFILE)
-    parser.add_argument('--playback-tempo-max', type=float, default=1.05)
+    parser.add_argument('--playback-tempo-max', type=float, default=DEFAULT_TEMPO_MAX)
     parser.add_argument('--playback-target-delay', type=float, default=1.5)
     parser.add_argument('--playback-recovery-seconds', type=float, default=30.)
     parser.add_argument('--capture-playback', action='store_true', help='Save filtered playback WAVs for diagnostics')
@@ -991,10 +991,6 @@ def main():
     parser.add_argument('--audio-chunk-frames', type=int, choices=[3, 5, 10, 15], default=3)
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     args = parser.parse_args()
-    try:
-        TempoController(args.playback_tempo_max, args.playback_target_delay, args.playback_recovery_seconds)
-    except ValueError as error:
-        parser.error(str(error))
     command = [sys.executable, str(Path(__file__).with_name('clone_worker.py')),
         '--model', args.model, '--engine', args.engine, '--threads', str(args.threads), '--vocoder', args.vocoder,
         '--provider', args.provider, '--precision', args.precision]

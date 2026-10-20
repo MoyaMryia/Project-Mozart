@@ -9,6 +9,7 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-16 | [tempo-limit-20261016/RESULTS.md](tempo-limit-20261016/RESULTS.md) | 1.15 倍上限、同输入播放等待对照及代表比例质量检查 |
 | 2026-10-16 | [delivery-20261016/RESULTS.md](delivery-20261016/RESULTS.md) | 待交付提交、证据清单、CI 覆盖及设备复核限制 |
 | 2026-10-16 | [flexible-tempo-20261015/RESULTS.md](flexible-tempo-20261015/RESULTS.md) | 逐段比例控制、四参数时长模型、独立文本及全部默认比例扫描 |
 | 2026-10-15 | [translation-duration-20261015/RESULTS.md](translation-duration-20261015/RESULTS.md) | 语音学论文和 15 篇人工中英朗读时长对照 |

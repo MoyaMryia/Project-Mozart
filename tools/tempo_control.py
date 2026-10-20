@@ -1,23 +1,25 @@
 """根据逐段时长和积压选择播放比例。每个任务只选择一次比例。"""
 import math
 
+MAX_TEMPO = 1.15
+DEFAULT_TEMPO_MAX = MAX_TEMPO
+
+
+def validate_tempo_limits(maximum, target_delay, recovery_seconds):
+    if (not math.isfinite(maximum) or not 1 <= maximum <= MAX_TEMPO
+            or not math.isfinite(target_delay) or target_delay < 0
+            or not math.isfinite(recovery_seconds) or recovery_seconds <= 0):
+        raise ValueError('Invalid tempo controller limits')
+
 
 class TempoController:
-    def __init__(self, maximum=1.05, target_delay=1.5, recovery_seconds=30.):
-        if (not math.isfinite(maximum) or not 1 <= maximum <= 1.1
-                or not math.isfinite(target_delay) or target_delay < 0
-                or not math.isfinite(recovery_seconds) or recovery_seconds <= 0):
-            raise ValueError('Invalid tempo controller limits')
+    def __init__(self, maximum=DEFAULT_TEMPO_MAX, target_delay=1.5, recovery_seconds=30.):
+        validate_tempo_limits(maximum, target_delay, recovery_seconds)
         self.maximum = math.floor(maximum*1000+1e-9)/1000
         self.target_delay, self.recovery_seconds = target_delay, recovery_seconds
         self.previous = {}
 
     def select(self, duration, source_seconds, delay, backlog, key, now):
-        inputs = [duration, delay, backlog, now]
-        if any(not math.isfinite(x) for x in inputs) or duration <= 0:
-            raise ValueError('Invalid tempo controller input')
-        if source_seconds is not None and (not math.isfinite(source_seconds) or source_seconds <= 0):
-            raise ValueError('Invalid source duration')
         source_ratio = duration/source_seconds if source_seconds and source_seconds > 0 else 1.
         pressure = max(0., delay-self.target_delay, backlog-duration-self.target_delay)
         recovery_ratio = 1.+pressure/self.recovery_seconds

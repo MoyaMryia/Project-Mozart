@@ -15,6 +15,8 @@
 #include <libavutil/frame.h>
 #include <libavutil/opt.h>
 
+#define MOZART_MAX_TEMPO 1.15
+
 static int drain(AVFilterContext *sink, AVFrame *output, FILE *destination) {
     int code;
     while ((code = av_buffersink_get_frame(sink, output)) >= 0) {
@@ -57,10 +59,19 @@ static int filter_pcm(FILE *source_stream, FILE *destination, long rate, double 
     if (code < 0) goto done;
     code = avfilter_graph_config(graph, NULL);
     if (code < 0) goto done;
-    unsigned char pcm[2048];
+    /* 使用所链接 FFmpeg 版本的原始 PCM 分帧规则。 */
+#if LIBAVFILTER_VERSION_MAJOR >= 10
+    size_t frame_samples = 1;
+    while (frame_samples * 2 <= (size_t)rate / 10) frame_samples *= 2;
+#else
+    size_t frame_samples = (size_t)rate / 25;
+    if (frame_samples > 1024) frame_samples = 1024;
+#endif
+    unsigned char pcm[4096 * sizeof(int16_t)];
+    size_t frame_bytes = frame_samples * sizeof(int16_t);
     int64_t pts = 0;
     for (;;) {
-        size_t count = fread(pcm, 1, sizeof(pcm), source_stream);
+        size_t count = fread(pcm, 1, frame_bytes, source_stream);
         if (!count) {
             if (ferror(source_stream)) { code = AVERROR(EIO); goto done; }
             break;
@@ -107,7 +118,7 @@ int mozart_tempo_filter(int input_fd, int output_fd, int rate, double tempo) {
         return 1;
     }
     int code = 1;
-    if (rate >= 8000 && rate <= 48000 && tempo >= 1.0 && tempo <= 1.1)
+    if (rate >= 8000 && rate <= 48000 && tempo >= 1.0 && tempo <= MOZART_MAX_TEMPO)
         code = filter_pcm(source, destination, rate, tempo);
     fclose(source);
     if (fclose(destination)) code = 1;
@@ -124,7 +135,7 @@ int main(int argc, char **argv) {
     long rate = strtol(argv[1], &end, 10);
     if (*end || rate < 8000 || rate > 48000) return 2;
     double tempo = strtod(argv[2], &end);
-    if (*end || !(tempo >= 1.0 && tempo <= 1.1)) return 2;
+    if (*end || !(tempo >= 1.0 && tempo <= MOZART_MAX_TEMPO)) return 2;
     return filter_pcm(stdin, stdout, rate, tempo);
 }
 #endif
