@@ -1,10 +1,67 @@
-import pathlib,sys,unittest
+import pathlib,sys,time,unittest
 from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
-from subtitle_bridge import caption_updates, translate, translate_recognized_event
+from subtitle_bridge import (CaptionDispatcher, caption_updates, translate,
+    translate_recognized_event, translation_source)
 
 def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
+
+class RefinementSourceTests(unittest.TestCase):
+    def test_short_fragment_keeps_streaming_text(self):
+        self.assertEqual(translation_source('一起学习', '学习大。'), '一起学习')
+
+    def test_unrelated_refinement_keeps_streaming_text(self):
+        raw = '今天天气不错我们出去走走吧'
+        self.assertEqual(translation_source(raw, '完全无关的另一句话内容'), raw)
+
+    def test_close_refinement_replaces_streaming_text(self):
+        raw = '你给人家种的礼物这电网贷的钱买的你不修课吗'
+        refined = '你给人家送的礼物是借网贷的钱买的，你不羞愧吗？'
+        self.assertEqual(translation_source(raw, refined), refined)
+
+    def test_missing_refinement_keeps_streaming_text(self):
+        self.assertEqual(translation_source('这句话没有问题', None), '这句话没有问题')
+
+    def test_caption_updates_translates_the_given_source(self):
+        event = dict(seq=1, text='原始识别文本')
+        with patch('subtitle_bridge.translate_recognized_event',
+                   return_value=('A test.', .1)) as translate_call:
+            list(caption_updates(event, 1, 'session', 'translator', translate_text='复核后的文本'))
+        self.assertEqual(translate_call.call_args.args[1]['text'], '复核后的文本')
+
+
+class RefinementOrderingTests(unittest.TestCase):
+    def test_refined_text_wins_when_it_arrives_after_the_final(self):
+        seen = []
+        def fake_translate(url, event, audit=None):
+            seen.append(event['text'])
+            return 'A test.', .1
+        dispatcher = CaptionDispatcher(lambda record: None, 'session', 'translator', refine=True)
+        self.addCleanup(dispatcher.close)
+        final = dict(type='final', seq=7, text='你给人家种的礼物这电网贷的钱买的你不修课吗')
+        refined = dict(type='refined', seq=7, refinement_status='completed',
+                       refined_text='你给人家送的礼物是借网贷的钱买的，你不羞愧吗？')
+        with patch('subtitle_bridge.translate_recognized_event', side_effect=fake_translate):
+            dispatcher.accept(final)
+            time.sleep(.2)
+            dispatcher.accept(refined)
+            dispatcher.close()
+        self.assertEqual(seen, [refined['refined_text']])
+
+    def test_translation_proceeds_without_refinement_after_the_wait(self):
+        seen = []
+        def fake_translate(url, event, audit=None):
+            seen.append(event['text'])
+            return 'A test.', .1
+        dispatcher = CaptionDispatcher(lambda record: None, 'session', 'translator', refine=True)
+        self.addCleanup(dispatcher.close)
+        final = dict(type='final', seq=8, text='没有复核结果时使用流式原文')
+        with patch('subtitle_bridge.translate_recognized_event', side_effect=fake_translate):
+            dispatcher.accept(final)
+            dispatcher.close()
+        self.assertEqual(seen, [final['text']])
+
 
 class BridgeChecks(unittest.TestCase):
     def test_spelled_amount_keeps_original_candidate_without_retry(self):

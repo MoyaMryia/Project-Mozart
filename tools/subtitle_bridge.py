@@ -5,6 +5,7 @@ Captions retain source text, translation candidates, and errors. Only accepted
 translations enter speech. The speech service owns its queue and playback device.
 """
 import argparse
+import difflib
 import json
 import os
 from pathlib import Path
@@ -23,6 +24,27 @@ from speech_duration import source_duration
 from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles
 import re
 from asr_checks import boundary_fragment_audit
+
+# 复核（final model）只在片段足够长、且与流式原文足够接近时替换译文源。
+REFINED_MIN_CHARS = 6
+REFINED_MIN_SIMILARITY = 0.5
+REFINED_WAIT_SECONDS = 1.0
+
+
+def normalise_source(text):
+    return ''.join(ch for ch in text if ch.isalnum() or '\u4e00' <= ch <= '\u9fff')
+
+
+def translation_source(raw, refined):
+    """复核文本可信时用它做译文源，否则退回流式原文。"""
+    if not refined:
+        return raw
+    raw_n, refined_n = normalise_source(raw), normalise_source(refined)
+    if len(raw_n) < REFINED_MIN_CHARS:
+        return raw
+    if difflib.SequenceMatcher(None, raw_n, refined_n).ratio() < REFINED_MIN_SIMILARITY:
+        return raw
+    return refined.strip()
 
 SYSTEM_PROMPT = (
     'Translate the Chinese utterance into English. Return only the translation. '
@@ -187,16 +209,21 @@ def source_caption(event, seq, session_id):
     return record
 
 
-def caption_updates(event, seq, session_id, llama_url, speech_url=None):
-    """Publish source text, then translation, then the speech request result."""
+def caption_updates(event, seq, session_id, llama_url, speech_url=None, translate_text=None):
+    """Publish source text, then translation, then the speech request result.
+
+    translate_text 是实际送去翻译的源文本：复核可信时为复核文本，否则为流式原文。
+    """
     text = event['text'].strip()
+    source_text = (translate_text or text).strip()
     record = source_caption(event, seq, session_id)
     yield dict(record)
 
     translating = time.monotonic()
     try:
         record['translation_audit'] = []
-        record['en'], _ = translate_recognized_event(llama_url, event, audit=record['translation_audit'])
+        source = {**event, 'text': source_text}
+        record['en'], _ = translate_recognized_event(llama_url, source, audit=record['translation_audit'])
         record['translation_status'] = 'completed'
     except (OSError, ValueError) as error:
         record.update(translation_error=str(error), translation_status='failed')
@@ -220,7 +247,7 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
     if speech_url and record['translation_status'] == 'completed':
         try:
             result = request_json(speech_url+'/api/speech/events', {
-                'text': record['en'], 'source_text': text,
+                'text': record['en'], 'source_text': source_text,
                 'source_duration_seconds': source_duration(event),
                 'source_emitted_at': event.get('emitted_at'),
                 'utterance_id': record['utterance_id']}, timeout=3)
@@ -235,7 +262,7 @@ class CaptionDispatcher:
     """Publish source captions while one worker processes queued translations."""
 
     def __init__(self, publish, session_id, llama_url, speech_url=None, pending_limit=4,
-                 spool_path=None):
+                 spool_path=None, refine=False):
         self.publish, self.session_id = publish, session_id
         self.llama_url, self.speech_url = llama_url, speech_url
         self.durable = spool_path is not None
@@ -244,6 +271,9 @@ class CaptionDispatcher:
         self.lock = threading.RLock()
         self.closing = threading.Event()
         self.aborted = False
+        self.refine = refine
+        self.refined = {}
+        self.refined_ready = threading.Condition(self.lock)
         self.worker = threading.Thread(target=self.run, daemon=True)
         self.worker.start()
 
@@ -265,6 +295,12 @@ class CaptionDispatcher:
         if self.closing.is_set():
             return
         if event.get('type') == 'refined':
+            if self.refine and event.get('refinement_status') == 'completed':
+                with self.refined_ready:
+                    self.refined[event['seq']] = event.get('refined_text') or ''
+                    while len(self.refined) > 64:
+                        self.refined.pop(next(iter(self.refined)))
+                    self.refined_ready.notify_all()
             changes = {'refinement_status': event['refinement_status']}
             for source, target in (('refined_text', 'refined_zh'), ('refinement_error', 'refinement_error'),
                                    ('final_decode_ms', 'refinement_decode_ms'),
@@ -302,6 +338,21 @@ class CaptionDispatcher:
             if self.durable:
                 self.pending.close()
 
+    def await_refinement(self, event):
+        """等待同一 seq 的复核结果，超时或不可信时使用流式原文。"""
+        raw = event['text'].strip()
+        if event.get('refined_text'):
+            return translation_source(raw, event['refined_text'])
+        deadline = time.monotonic() + REFINED_WAIT_SECONDS
+        with self.refined_ready:
+            while event['seq'] not in self.refined and not self.closing.is_set():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                self.refined_ready.wait(remaining)
+            refined = self.refined.pop(event['seq'], '')
+        return translation_source(raw, refined)
+
     def process_pending(self):
         while not self.aborted and (not self.closing.is_set() or not self.pending.empty()):
             try:
@@ -311,9 +362,11 @@ class CaptionDispatcher:
             event = item['event'] if self.durable else item
             session_id = item['session_id'] if self.durable else self.session_id
             key = f'{session_id}:{event["seq"]}'
+            translate_text = self.await_refinement(event) if self.refine else event['text'].strip()
             try:
                 updates = caption_updates(event, event['seq'], session_id,
-                                          self.llama_url, self.speech_url)
+                                          self.llama_url, self.speech_url,
+                                          translate_text=translate_text)
                 next(updates)
                 for record in updates:
                     if self.aborted:
@@ -321,7 +374,7 @@ class CaptionDispatcher:
                     changes = {name: value for name, value in record.items()
                                if name.startswith(('translation_', 'speech')) or name in
                                ('en', 'translate_ms', 'translated_at')}
-                    changes['translation_source_text'] = event['text'].strip()
+                    changes['translation_source_text'] = translate_text
                     self.update(key, changes)
             except Exception as error:
                 self.update(key, {'translation_status': 'failed', 'translation_error': str(error)})
@@ -402,7 +455,9 @@ def main():
             if args.stable_clauses:
                 from stable_clauses import StableClauseDispatcher
                 dispatcher_type = StableClauseDispatcher
-            dispatcher_options = {'boundary_classifier': boundary_classifier} if boundary_classifier else {}
+            dispatcher_options = {'refine': bool(args.final_model)}
+            if boundary_classifier:
+                dispatcher_options['boundary_classifier'] = boundary_classifier
             queue_name = ('translation-boundaries.sqlite3' if boundary_classifier else
                 'translation-clauses.sqlite3' if args.stable_clauses else 'translation-queue.sqlite3')
             dispatcher = dispatcher_type(publish, session_id, args.llama_url,
