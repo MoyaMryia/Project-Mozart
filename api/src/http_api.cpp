@@ -232,6 +232,8 @@ HttpApiServer::HttpApiServer(const std::string& host, uint16_t port, ControlPlan
     : host_(host), port_(port), controller_(controller), limits_(limits) {
     const char* status_path = std::getenv("MOZART_STACK_STATUS_JSON");
     if (status_path) stack_status_path_ = status_path;
+    const char* glossary_path = std::getenv("MOZART_GLOSSARY");
+    if (glossary_path) glossary_path_ = glossary_path;
     const char* instance_id = std::getenv("MOZART_STACK_INSTANCE_ID");
     if (instance_id) stack_instance_id_ = instance_id;
 }
@@ -447,6 +449,12 @@ void HttpApiServer::handle_request(int client_fd) {
     }
     else if (route == "/api/logs" && method == "DELETE") {
         response = handle_logs_clear();
+    }
+    else if (route == "/api/glossary" && method == "GET") {
+        response = handle_glossary_get();
+    }
+    else if (route == "/api/glossary" && method == "PUT") {
+        response = handle_glossary_set(body);
     }
     else if (route == "/api/parameters" && method == "GET") {
         response = handle_parameters_get();
@@ -728,6 +736,60 @@ std::string HttpApiServer::handle_logs(const std::string& path) {
 std::string HttpApiServer::handle_logs_clear() {
     clear_backend_logs();
     return http_response(200, R"({"status":"cleared"})");
+}
+
+namespace {
+// 词条键为中文，释义为英文。校验放在写入前，加载时的错误不会污染管线。
+bool valid_entry(const std::string& term, const std::string& meaning) {
+    if (term.empty() || meaning.empty()) return false;
+    bool chinese = false;
+    for (unsigned char c : term) {
+        if ((c & 0x80) != 0) chinese = true;
+        else if (!std::isspace(c)) return false;
+    }
+    if (!chinese) return false;
+    for (unsigned char c : meaning) {
+        if (c >= 0x80) return false;
+        if (!std::isalpha(c) && !std::isspace(c) && c != '-' && c != '\'') return false;
+    }
+    return std::isalpha(static_cast<unsigned char>(meaning.front())) != 0;
+}
+}  // namespace
+
+std::string HttpApiServer::handle_glossary_get() {
+    if (glossary_path_.empty())
+        return http_response(409, R"({"error":"未配置 MOZART_GLOSSARY"})");
+    std::ifstream file(glossary_path_);
+    if (!file) return http_response(200, R"({"terms":{}})");
+    nlohmann::json terms = nlohmann::json::parse(file, nullptr, false);
+    if (terms.is_discarded() || !terms.is_object())
+        return http_response(500, R"({"error":"术语表文件内容不是对象"})");
+    return http_response(200, nlohmann::json{{"terms", terms}, {"path", glossary_path_}}.dump());
+}
+
+std::string HttpApiServer::handle_glossary_set(const std::string& body) {
+    if (glossary_path_.empty())
+        return http_response(409, R"({"error":"未配置 MOZART_GLOSSARY"})");
+    nlohmann::json request = nlohmann::json::parse(body, nullptr, false);
+    if (request.is_discarded() || !request.is_object())
+        return http_response(400, R"({"error":"请求体必须是对象"})");
+    const nlohmann::json terms = request.contains("terms") ? request["terms"] : request;
+    if (!terms.is_object())
+        return http_response(400, R"({"error":"terms 必须是对象"})");
+    for (const auto& item : terms.items()) {
+        if (!item.value().is_string() || !valid_entry(item.key(), item.value().get<std::string>()))
+            return http_response(400, R"({"error":"词条键必须是中文，释义必须是英文"})");
+    }
+    const std::string temporary = glossary_path_ + ".tmp";
+    {
+        std::ofstream out(temporary, std::ios::trunc);
+        if (!out) return http_response(500, R"({"error":"无法写入术语表"})");
+        out << terms.dump(2) << '\n';
+        if (!out.good()) return http_response(500, R"({"error":"写入术语表失败"})");
+    }
+    if (std::rename(temporary.c_str(), glossary_path_.c_str()) != 0)
+        return http_response(500, R"({"error":"替换术语表失败"})");
+    return http_response(200, nlohmann::json{{"terms", terms}, {"path", glossary_path_}}.dump());
 }
 
 std::string HttpApiServer::handle_parameters_get() {

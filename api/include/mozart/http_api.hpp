@@ -45,6 +45,7 @@ public:
 private:
     std::string host_;
     std::string stack_status_path_;
+    std::string glossary_path_;
     std::string stack_instance_id_;
     uint16_t port_;
     ControlPlane* controller_;
@@ -81,6 +82,8 @@ private:
     std::string handle_parameters_get();
     std::string handle_parameters_set(const std::string& body);
     std::string handle_parameters_reset();
+    std::string handle_glossary_get();
+    std::string handle_glossary_set(const std::string& body);
     std::string handle_presets_get();
     std::string handle_presets_post(const std::string& body);
     std::string handle_presets_delete(const std::string& path);
