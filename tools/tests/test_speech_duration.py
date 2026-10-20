@@ -69,9 +69,9 @@ class DurationTests(unittest.TestCase):
 class TempoControlTests(unittest.TestCase):
     def test_ratio_cap_and_unserved_time_are_explicit(self):
         control = TempoController()
-        result = control.select(3, 2, .5, 3, 'voice', 100)
-        self.assertEqual(result['source_ratio'], 1.5)
-        self.assertEqual(result['tempo'], 1.15)
+        result = control.select(4, 2, .5, 4, 'voice', 100)
+        self.assertEqual(result['source_ratio'], 2.0)
+        self.assertEqual(result['tempo'], 1.5)
         self.assertTrue(result['limited'])
 
     def test_continuous_ratio_and_feedback_do_not_require_source_timing(self):
@@ -90,7 +90,7 @@ class TempoControlTests(unittest.TestCase):
         self.assertEqual(control.select(2, 3, 0, 2, 'a', 107)['tempo'], 1)
 
     def test_invalid_limits_and_inputs_fail_before_audio(self):
-        for maximum in [float('nan'), .9, 1.1501, 1.2]:
+        for maximum in [float('nan'), .9, 1.5001, 1.6]:
             with self.assertRaises(ValueError):
                 TempoController(maximum)
         self.assertLessEqual(TempoController(1.0374).select(3, 2, 0, 3, 'a', 100)['tempo'], 1.0374)
@@ -103,8 +103,8 @@ class TempoControlTests(unittest.TestCase):
 
     def test_extended_cap_keeps_intermediate_ratios_and_gradual_release(self):
         control = TempoController()
-        self.assertEqual(control.select(3, 2, 0, 3, 'a', 100)['tempo'], 1.15)
-        self.assertEqual(control.select(2, 3, 0, 2, 'a', 101)['tempo'], 1.14)
+        self.assertEqual(control.select(3, 2, 0, 3, 'a', 100)['tempo'], 1.5)
+        self.assertEqual(control.select(2, 3, 0, 2, 'a', 101)['tempo'], 1.49)
         self.assertEqual(control.select(2.25, 2, 0, 2.25, 'b', 101)['tempo'], 1.125)
         self.assertEqual(control.select(2, 3, 0, 2, 'a', 107)['tempo'], 1)
 

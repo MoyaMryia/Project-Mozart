@@ -15,7 +15,7 @@
 #include <libavutil/frame.h>
 #include <libavutil/opt.h>
 
-#define MOZART_MAX_TEMPO 1.15
+#define MOZART_MAX_TEMPO 1.5
 
 static int drain(AVFilterContext *sink, AVFrame *output, FILE *destination) {
     int code;
