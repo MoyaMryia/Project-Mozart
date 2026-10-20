@@ -87,6 +87,23 @@ class TranslationChecks(unittest.TestCase):
         self.assertEqual(missing_numbers('七千，再给七千', 'Seven thousand.'), ['7000'])
         self.assertEqual(missing_numbers('100元', 'A and one hundred yuan.'), [])
 
+    def test_spoken_decade_requires_the_decade_not_a_truncated_year(self):
+        self.assertEqual(normalize_translation_quantities('二零一几年以后'), '2010年代以后')
+        self.assertEqual(required_numbers('二零一几年以后'), ['2010'])
+        self.assertEqual(missing_numbers('二零一几年以后', 'After 201.'), ['2010'])
+        self.assertEqual(missing_numbers('二零一几年以后', 'After the 2010s.'), [])
+        self.assertEqual(added_large_numbers('二零一几年以后', 'After the 2010s.'), [])
+
+    def test_refined_arabic_decade_uses_the_same_check(self):
+        self.assertEqual(normalize_translation_quantities('就201几年以后'), '就2010年代以后')
+        self.assertEqual(required_numbers('就201几年以后'), ['2010'])
+        self.assertEqual(missing_numbers('就201几年以后', 'After 201, someone.'), ['2010'])
+        self.assertEqual(missing_numbers('就201几年以后', 'After the 2010s, someone.'), [])
+
+    def test_four_digit_year_is_not_read_as_a_decade(self):
+        self.assertEqual(normalize_translation_quantities('二零一四年'), '二零一四年')
+        self.assertEqual(required_numbers('二零一四年'), ['2014'])
+
     def test_spelled_value_does_not_bypass_item_count_check(self):
         from translation_checks import values_changed_to_item_counts
         self.assertEqual(values_changed_to_item_counts('价值38000元', 'Thirty-eight thousand items.'), ['38000'])

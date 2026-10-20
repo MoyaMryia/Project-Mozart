@@ -241,8 +241,17 @@ def normalize_exact_composites(text):
     return re.sub(r'(?<![\d'+numerals+r'])['+numerals+r']+(?![\d'+numerals+r'])', replace, text)
 
 
+def decade(text):
+    """把口语年代写成 2010年代，例如 二零一几年、201几年。"""
+    def chinese(match):
+        return str(int(''.join(str(DIGITS[c]) for c in match[1]))*10)+'年代'
+    def arabic(match):
+        return str(int(match[1])*10)+'年代'
+    return DECADE_AR.sub(arabic, DECADE_CN.sub(chinese, text))
+
+
 def required_number_counts(text):
-    text = normalize_tail_amounts(normalize_exact_composites(text))
+    text = decade(normalize_tail_amounts(normalize_exact_composites(text)))
     numbers = Counter()
     for digits, unit in re.findall(r'(\d+(?:\.\d+)?)([万亿千百]?)', text.replace(',', '')):
         if unit:
@@ -253,6 +262,11 @@ def required_number_counts(text):
     # Read a year digit by digit, e.g. 一九八七年.
     for year in re.findall(r'([零〇一二三四五六七八九]{4})年', text):
         numbers[''.join(str(DIGITS[c]) for c in year)] += 1
+    # Read a spoken decade, e.g. 二零一几年 is 2010年代.
+    for spoken in DECADE_CN.findall(text):
+        numbers[str(int(''.join(str(DIGITS[c]) for c in spoken))*10)] += 1
+    for digits in DECADE_AR.findall(text):
+        numbers[str(int(digits)*10)] += 1
     def large(match):
         amount, unit = match.groups()
         scale = {'万':10000, '亿':100000000}[unit]
@@ -285,6 +299,10 @@ def required_numbers(text):
 
 # 口语短式：两万七 = 27,000，两亿七 = 270,000,000。
 # 后一个字不能是百/千/十，否则是完整复合数（两万七千），由 _exact_composite 处理。
+# 口语年代：二零一几年与 201几年 都表示 2010 年代。几 表示同十年内。
+DECADE_CN = re.compile(r'([零〇一二三四五六七八九]{3})几(?:年代|年)')
+DECADE_AR = re.compile(r'(\d{3})几(?:年代|年)')
+
 TAIL_AMOUNT = re.compile(r'(?<![\d零〇一二两三四五六七八九十百千万亿])'
                          r'([零〇一二两三四五六七八九十百千]+)(万|亿)([一二三四五六七八九])'
                          r'(?![百千十\d万亿])')
@@ -306,6 +324,7 @@ def normalize_translation_quantities(text):
     quantities (几万), broken mixed numerals (一0百), dates or idioms.
     """
     text = normalize_tail_amounts(normalize_exact_composites(text))
+    text = decade(text)
     def arabic(match):
         value = float(match[1])*{'万':10000, '亿':100000000}[match[2]]
         return str(int(value)) if value.is_integer() else str(value)
