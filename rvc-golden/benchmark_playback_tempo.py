@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--input-dir', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--pitch-only', action='store_true')
-    parser.add_argument('--tempos', type=float, nargs='+', default=[1., 1.05, 1.08, 1.1, 1.125, 1.15])
+    parser.add_argument('--tempos', type=float, nargs='+', default=[1., 1.05, 1.15, 1.3, 1.4, 1.5])
     args = parser.parse_args()
     if args.tempos[0] != 1 or any(not np.isfinite(t) or not 1 <= t <= MAX_TEMPO for t in args.tempos):
         parser.error(f'tempos must start with 1 and remain between 1 and {MAX_TEMPO}')

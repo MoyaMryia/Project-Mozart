@@ -5,7 +5,8 @@
 文件、字幕和取消优化见[延迟优化报告](reports/latency-reduction-20261015/RESULTS.md)。
 播放积压与称谓漏译修复见[播放延迟报告](reports/playback-latency-20261015/RESULTS.md)。
 逐段比例与轻量时长模型见[灵活变速报告](reports/flexible-tempo-20261015/RESULTS.md)。
-1.15 倍上限的最终对照见[新上限报告](reports/tempo-limit-20261016/RESULTS.md)。
+1.15 倍上限的对照见[新上限报告](reports/tempo-limit-20261016/RESULTS.md)。
+1.50 倍上限的识别对照见[变速上限报告](reports/tempo-cap-20261020/RESULTS.md)。
 本轮问题清单、修复和验证范围见 [修复报告](reports/repository-audit-20261013/RESULTS.md)。
 上一轮审计见 [2026-10-08 报告](reports/repository-audit-20261008/RESULTS.md)。
 历史实验和旧基准见 [报告索引](reports/README.md) 与 [Golden 参考](rvc-golden/README.md)。
@@ -49,8 +50,8 @@
   相同输入文本的 230 项配对比较为 median 10.62 → 10.16 s、p95 25.63 → 18.26 s。
   这是后续截止时间、延后队列与预热修复之前的历史配置，不代表当前演示的最新延迟。
   2026-10-07 的 4B 短测中，ASR final 至首播中位数为 12.31 s，最大 27.41 s；输入工作量不同。
-  当前播放路径使用 3 帧早期输出及 1.000–1.150 倍逐段比例控制。
-  1.15 倍上限于 2026-10-16 按用户要求提高；此前 Jetson 整机实测使用 1.05 倍上限。
+  当前播放路径使用 3 帧早期输出及 1.000–1.500 倍逐段比例控制。
+  上限于 2026-10-16 提高至 1.15 倍，2026-10-20 提高至 1.50 倍；两轮 Jetson 整机实测分别使用 1.05 倍和 1.15 倍上限。
   Jetson 同一 120 s 输入、实时 RVC 共存下，1.15 倍上限的首音等待中位数为 0.775 s，统计 23 个父字幕。
   计时为父字幕最终 ASR 事件至首次 PCM 送入播放管道；物理输出尚未重测。
   该报告使用定速 ALSA `null`，不代表物理声卡首播延迟。
