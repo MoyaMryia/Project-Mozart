@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+import math
 from pathlib import Path
 import statistics
 import subprocess
@@ -15,13 +16,19 @@ def pcm(path):
     with wave.open(str(path), 'rb') as source:
         if (source.getnchannels(), source.getsampwidth()) != (1, 2):
             raise ValueError('Expected mono PCM16')
-        return source.readframes(source.getnframes()), source.getframerate()
+        data = source.readframes(source.getnframes())
+        if not data or len(data) != source.getnframes()*2:
+            raise ValueError(f'Empty or truncated PCM16 audio: {path}')
+        return data, source.getframerate()
 
 
 def stats(values):
     values = sorted(values)
+    position = .95*(len(values)-1)
+    lower, upper = math.floor(position), math.ceil(position)
     return dict(count=len(values), median=statistics.median(values), min=values[0],
-        p95=values[min(len(values)-1, int(.95*(len(values)-1)))], max=values[-1]) if values else None
+        p95=values[lower]+(values[upper]-values[lower])*(position-lower),
+        percentile_method='linear', max=values[-1]) if values else None
 
 
 def main():
@@ -63,13 +70,23 @@ def main():
         checks = []
         for job in jobs:
             if not job.get('playback_audio_filename'):
+                if job.get('playback_tempo', 1) > 1:
+                    raise ValueError(f"Missing playback capture: {job['id']}")
                 continue
             source, rate = pcm(args.replay/'speech/results'/f"{job['id']}.wav")
             actual, actual_rate = pcm(args.replay/'speech/results'/job['playback_audio_filename'])
             expected = subprocess.run(['ffmpeg','-v','error','-f','s16le','-ar',str(rate),'-ac','1',
                 '-i','pipe:0','-af',f"atempo={job['playback_tempo']:.3f}",'-f','s16le','pipe:1'],
                 input=source,stdout=subprocess.PIPE,check=True).stdout
+            native_exact = None
+            if args.helper and job.get('playback_tempo_backend') == 'libavfilter_inprocess':
+                native_expected = subprocess.run([str(args.helper), str(rate), f"{job['playback_tempo']:.3f}"],
+                    input=source, stdout=subprocess.PIPE, check=True).stdout
+                native_exact = actual == native_expected
             checks.append(dict(job=job['id'], exact=actual==expected,
+                expected_backend='ffmpeg', native_exact=native_exact, ffmpeg_exact=actual==expected,
+                ffmpeg_samples=len(expected)//2,
+                ffmpeg_sample_difference=(len(actual)-len(expected))//2,
                 rate_matches=rate==actual_rate, samples=len(actual)//2,
                 metadata_matches=len(actual)//2==job['playback_output_samples'],
                 pcm_sha256=hashlib.sha256(actual).hexdigest(),
@@ -79,7 +96,8 @@ def main():
             first_pcm_after_input_ms=stats([r['first_pcm_after_input_ms'] for r in checks]),
             total_source_seconds=sum(j['duration_seconds'] for j in jobs),
             total_playback_seconds=sum(j.get('playback_duration_seconds',j['duration_seconds']) for j in jobs))
-        if not checks or not all(r['exact'] and r['rate_matches'] and r['metadata_matches'] for r in checks):
+        if not checks or not all(r['exact'] and r['native_exact'] is not False and r['rate_matches']
+                                 and r['metadata_matches'] for r in checks):
             args.output.write_text(json.dumps(result,indent=2)+'\n')
             raise RuntimeError('Playback PCM verification failed')
     args.output.write_text(json.dumps(result,indent=2)+'\n')

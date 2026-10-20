@@ -23,12 +23,23 @@ def pcm(path):
 def compare(left, right):
     if len(left) != len(right):
         raise ValueError('音频输出长度不同')
+    if not len(left):
+        raise ValueError('音频输出为空')
     if not np.isfinite(left).all() or not np.isfinite(right).all():
         raise ValueError('音频输出包含非有限值')
-    return dict(samples=len(left), exact=bool(np.array_equal(left, right)),
-                relative_rmse=float(np.linalg.norm(left-right)/np.linalg.norm(left)),
-                cosine=float(np.dot(left, right)/np.linalg.norm(left)/np.linalg.norm(right)),
-                max_absolute_error=float(np.max(abs(left-right))))
+    with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
+        left_norm = np.linalg.norm(left)
+        right_norm = np.linalg.norm(right)
+        if left_norm == 0 or right_norm == 0:
+            raise ValueError('音频输出范数为零')
+        metrics = dict(samples=len(left), exact=bool(np.array_equal(left, right)),
+                       relative_rmse=float(np.linalg.norm(left-right)/left_norm),
+                       cosine=float(np.dot(left, right)/left_norm/right_norm),
+                       max_absolute_error=float(np.max(abs(left-right))))
+    if not np.isfinite([left_norm, right_norm, metrics['relative_rmse'], metrics['cosine'],
+                        metrics['max_absolute_error']]).all():
+        raise ValueError('音频比较指标非有限或溢出')
+    return metrics
 
 
 def native(root):
