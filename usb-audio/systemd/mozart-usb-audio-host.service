@@ -1,0 +1,16 @@
+[Unit]
+Description=Mozart USB 音频桥（主机侧 bulk ↔ snd-aloop）
+After=sound.target
+
+[Service]
+Type=simple
+Environment=MOZART_MIC_SINK=plughw:CARD=Loopback,DEV=0,SUBDEV=0
+Environment=MOZART_APP_SOURCE=plughw:CARD=Loopback,DEV=1,SUBDEV=1
+ExecStart=/usr/bin/python3 /home/moyamryia/aec-study-20261020/host-daemon.py
+Restart=always
+RestartSec=2
+KillMode=mixed
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
