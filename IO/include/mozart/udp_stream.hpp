@@ -11,7 +11,9 @@
 //   Playback → WriteFrame 消费 mozart_output_frame_t (48kHz / 3856B)
 //              ReadFrame  不可用（纯发送端）
 //
-// 客户端追踪：Capture 流记录首个合法发送方地址，WriteFrame 自动回发该地址；
+// 客户端追踪：Capture 流绑定首个合法发送方，并拒绝其他发送方。
+//             关闭流后释放归属。重新启动实时模式可建立新会话。
+//             WriteFrame 自动回发当前会话地址。
 //             Playback 流在构造时传入目标地址。
 #ifndef MOZART_UDP_STREAM_HPP
 #define MOZART_UDP_STREAM_HPP
@@ -25,6 +27,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <cstdint>
+#include <utility>
 
 #ifdef _WIN32
   #include <winsock2.h>
@@ -63,6 +66,8 @@ public:
     uint64_t packets_received() const noexcept { return packets_received_.load(); }
     uint64_t packets_sent()     const noexcept { return packets_sent_.load(); }
     uint64_t packets_dropped()  const noexcept { return packets_dropped_.load(); }
+    uint64_t rejected_clients() const noexcept { return rejected_clients_.load(); }
+    std::pair<std::string, uint16_t> client_endpoint() const;
 
 private:
     std::string      host_;
@@ -96,6 +101,7 @@ private:
     std::atomic<uint64_t> packets_received_{0};
     std::atomic<uint64_t> packets_sent_{0};
     std::atomic<uint64_t> packets_dropped_{0};
+    std::atomic<uint64_t> rejected_clients_{0};
 
     void receive_loop();
     bool send_to_client(const void* data, size_t len);

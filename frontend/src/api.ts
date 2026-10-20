@@ -26,6 +26,20 @@ export interface Status {
   stream?: { playout_delay_ms?: number; queued_output_ms?: number };
 }
 
+export interface StackRequirements { language: string; playback: boolean; voice_required: boolean; }
+export interface StackStatus {
+  managed: boolean;
+  available: boolean;
+  instance_id?: string;
+  state?: string;
+  phase?: string;
+  updated_at?: number;
+  requirements?: StackRequirements;
+  readiness?: { translation: boolean; speech_runtime: boolean; voice_session: boolean };
+  degraded?: Record<string, string>;
+  error?: { type?: string; message: string };
+}
+
 export interface ModelList {
   models: Array<{ id: string; exists: boolean; current: boolean }>;
 }
