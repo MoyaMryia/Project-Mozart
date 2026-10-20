@@ -242,7 +242,7 @@ def normalize_exact_composites(text):
 
 
 def required_number_counts(text):
-    text = normalize_exact_composites(text)
+    text = normalize_tail_amounts(normalize_exact_composites(text))
     numbers = Counter()
     for digits, unit in re.findall(r'(\d+(?:\.\d+)?)([万亿千百]?)', text.replace(',', '')):
         if unit:
@@ -283,13 +283,29 @@ def required_numbers(text):
     return sorted(required_number_counts(text), key=lambda n: float(n))
 
 
+# 口语短式：两万七 = 27,000，两亿七 = 270,000,000。
+# 后一个字不能是百/千/十，否则是完整复合数（两万七千），由 _exact_composite 处理。
+TAIL_AMOUNT = re.compile(r'(?<![\d零〇一二两三四五六七八九十百千万亿])'
+                         r'([零〇一二两三四五六七八九十百千]+)(万|亿)([一二三四五六七八九])'
+                         r'(?![百千十\d万亿])')
+
+
+def normalize_tail_amounts(text):
+    """把口语短式补成完整金额，供译文提示和数字核对共用。"""
+    def replace(match):
+        whole, unit, digit = match.groups()
+        scale = {'万': 10000, '亿': 100000000}[unit]
+        return str(integer(whole)*scale + DIGITS[digit]*(scale//10))
+    return TAIL_AMOUNT.sub(replace, text)
+
+
 def normalize_translation_quantities(text):
     """Spell explicit 万/亿 quantities as equivalent Arabic numerals for the LLM.
 
     Keep the original source for captions and validation. Do not guess vague
     quantities (几万), broken mixed numerals (一0百), dates or idioms.
     """
-    text = normalize_exact_composites(text)
+    text = normalize_tail_amounts(normalize_exact_composites(text))
     def arabic(match):
         value = float(match[1])*{'万':10000, '亿':100000000}[match[2]]
         return str(int(value)) if value.is_integer() else str(value)
