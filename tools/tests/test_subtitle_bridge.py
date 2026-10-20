@@ -330,6 +330,21 @@ class BridgeChecks(unittest.TestCase):
             with patch('subtitle_bridge.request_json',return_value=answer(output)):
                 with self.assertRaisesRegex(ValueError,reason):translate('http://example',source)
 
+    def test_added_negation_absent_from_the_source_is_rejected(self):
+        # 实测样本：然后我就下载了一点 => I downloaded a little bit, but it's not enough.
+        source = '然后我就下载了一点'
+        with patch('subtitle_bridge.request_json', return_value=answer("I downloaded a little bit, but it's not enough.")):
+            with self.assertRaisesRegex(ValueError, 'added negation'):
+                translate('http://example', source)
+        with patch('subtitle_bridge.request_json', return_value=answer('I downloaded a little.')):
+            self.assertEqual(translate('http://example', source)[0], 'I downloaded a little.')
+
+    def test_source_negation_does_not_block_negated_translation(self):
+        source = '刚成年为什么不能用三叉零借条'
+        output = 'Why a new adult cannot use the pledge.'
+        with patch('subtitle_bridge.request_json', return_value=answer(output)):
+            self.assertEqual(translate('http://example', source)[0], output)
+
     def test_value_cannot_be_spoken_as_item_count(self):
         source='我的库存里有等值的商品38000多。'
         with patch('subtitle_bridge.request_json',return_value=answer('My inventory has 38,000+ items.')):
