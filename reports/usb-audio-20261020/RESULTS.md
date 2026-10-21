@@ -97,4 +97,7 @@ MOZART_PLAYBACK_DEVICE=plughw:CARD=Loopback,DEV=0,SUBDEV=1
 真人语音校验：视频第 63–123 秒（真人讲述），识别 261 字、人工字幕 267 字，字符相似度 0.909；
 12 个分段译文完成 11 个。脚本为 `usb-audio/verify-human-voice.sh`。
 重连校验：重启主机侧守护进程后两个方向恢复出帧，脚本为 `usb-audio/verify-reconnect.sh`。
-未验证项：整机重启后的自动重连，阻塞：重启会中断当前会话，解除条件：主机重启后查看 `/var/log/mozart-usb-reconnect.log` 中开机自检结果。
+整机重启校验：主机重启后 45 秒自检，主机侧 `发 8100 收 8102 丢 0`，
+Jetson 侧 `发 13996 收 13982`，缺口 1，两端均自动恢复。
+Jetson 的发送看门狗在重启过渡期触发一次重开端点（错误计数 27），随后恢复出帧。
+自检结果见 `/var/log/mozart-usb-reconnect.log`。
