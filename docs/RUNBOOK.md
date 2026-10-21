@@ -53,6 +53,19 @@ export MOZART_PLAYBACK_DEVICE=plughw:CARD=Loopback,DEV=0,SUBDEV=1
 
 停止用 `Ctrl+C`，或在另一个终端 `pkill -f run_translated_speech`。
 
+## 控制台
+
+先把前端构建一次，再用静态服务对外提供页面并转发接口：
+
+```bash
+npm --prefix frontend ci
+npm --prefix frontend run build
+python3 tools/serve-console.py --host 0.0.0.0 --port 8080 --api 127.0.0.1:18080
+```
+
+浏览器访问 `http://<演示机>:8080/`。静态文件与 `/api`、`/health`、`/status`、`/models`
+同源，前端不需要再配置代理。服务单元见 `systemd/mozart-console.service`。
+
 ## 健康检查
 
 ```bash
