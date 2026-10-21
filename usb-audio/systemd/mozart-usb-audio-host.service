@@ -1,0 +1,14 @@
+[Unit]
+Description=Mozart USB 音频桥（主机侧 bulk ↔ snd-aloop）
+After=sound.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/mozart/usb-audio/host-daemon.py
+Restart=always
+RestartSec=2
+KillMode=mixed
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
