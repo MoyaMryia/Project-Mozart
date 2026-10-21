@@ -22,7 +22,21 @@ class HomophoneTests(unittest.TestCase):
                 self.assertEqual(homophones.correct(text, TERMS), (text, []))
 
     def test_stopwords_protect_common_words(self):
-        self.assertEqual(homophones.correct('我和姐姐一起去的', {'戒戒': 'Jiejie'})[0], '我和姐姐一起去的')
+        self.assertEqual(homophones.correct('我和哥哥一起去的', {'格格': 'Gege'})[0], '我和哥哥一起去的')
+
+    def test_explicit_corrections_win_over_the_stopword_list(self):
+        self.assertEqual(homophones.correct('我和姐姐一起去的', {}, corrections={'姐姐': '戒戒'}),
+                         ('我和戒戒一起去的', [{'from': '姐姐', 'to': '戒戒', 'count': 1}]))
+
+    def test_corrections_file_is_validated(self):
+        import json, tempfile, pathlib
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory)/'corrections.json'
+            path.write_text(json.dumps({'姐姐': '戒戒'}), encoding='utf-8')
+            self.assertEqual(homophones.load_corrections(path), {'姐姐': '戒戒'})
+            path.write_text(json.dumps({'sister': '戒戒'}), encoding='utf-8')
+            with self.assertRaises(ValueError):
+                homophones.load_corrections(path)
 
     def test_empty_terms_disable_correction_without_pinyin(self):
         self.assertEqual(homophones.correct('碰到王独的人', {}), ('碰到王独的人', []))
