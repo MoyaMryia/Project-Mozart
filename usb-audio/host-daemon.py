@@ -37,11 +37,13 @@ class Bridge:
         self.capture = None
         self.audio_lock = threading.Lock()
         self.link_lock = threading.Lock()
-        self.pending = b''
+        self.link_generation = 0
         self.sent = 0
         self.received = 0
         self.dropped = 0
         self.errors = 0
+        self.gaps = 0
+        self.expected_seq = None
         self.last_error = ''
 
     # --- 记录 ---
@@ -152,7 +154,7 @@ class Bridge:
                 self.fail('设备缺少 bulk 端点')
                 return False
             self.device = device
-            self.pending = b''
+            self.link_generation += 1
             print(f'USB 就绪 out=0x{self.ep_out.bEndpointAddress:02x} '
                   f'in=0x{self.ep_in.bEndpointAddress:02x}', flush=True)
             return True
@@ -168,7 +170,7 @@ class Bridge:
                 self.fail(f'释放设备失败: {error}')
             self.device = None
             self.ep_out = self.ep_in = None
-            self.pending = b''
+            self.link_generation += 1
 
     def supervisor(self):
         while not self.stopping.is_set():
@@ -177,14 +179,19 @@ class Bridge:
             time.sleep(2.0)
 
     def usb_to_alsa(self):
+        buffer = b''
+        generation = -1
         while not self.stopping.is_set():
             with self.link_lock:
                 endpoint = self.ep_in
+                current = self.link_generation
             if endpoint is None:
                 time.sleep(0.2)
                 continue
+            if current != generation:
+                generation, buffer = current, b''
             try:
-                self.pending += bytes(endpoint.read(65536, timeout=300))
+                buffer += bytes(endpoint.read(65536, timeout=300))
             except usb.core.USBTimeoutError:
                 continue
             except (usb.core.USBError, OSError) as error:
@@ -192,17 +199,23 @@ class Bridge:
                 continue
             while True:
                 try:
-                    frame = proto.decode(self.pending)
+                    frame = proto.decode(buffer)
                 except proto.FrameError as error:
                     self.fail(f'帧格式错误，丢弃缓冲: {error}')
-                    self.pending = b''
+                    buffer = b''
                     break
                 if frame is None:
                     break
-                _version, kind, stream, _flags, _seq, _ts, payload = frame
-                self.pending = self.pending[proto.HEADER_BYTES + len(payload):]
+                version, kind, stream, _flags, seq, _ts, payload = frame
+                buffer = buffer[proto.HEADER_BYTES + len(payload):]
                 if kind != proto.TYPE_PCM or stream != proto.STREAM_AUDIO:
                     continue
+                if version != proto.VERSION:
+                    self.fail(f'未知协议版本 {version}')
+                    continue
+                if self.expected_seq is not None and seq != self.expected_seq:
+                    self.gaps += 1
+                self.expected_seq = seq + 1
                 self.received += 1
                 self.write_speaker(payload)
 
@@ -223,9 +236,9 @@ class Bridge:
             samples = memoryview(payload).cast('h')
             picked = samples[::16]
             rms = (sum(int(s) * int(s) for s in picked) / len(picked)) ** 0.5 / 32768
-            if rms < 1e-6:
+            if rms < proto.SILENCE_RMS:
                 silent += 1
-                if silent > 150:
+                if silent > proto.SILENCE_FRAMES:
                     silent = 0
                     self.restart_capture()
                     continue
@@ -270,7 +283,8 @@ class Bridge:
 
     def report(self):
         suffix = f' 最近错误 {self.last_error}' if self.last_error else ''
-        print(f'发 {self.sent} 收 {self.received} 丢 {self.dropped} 错 {self.errors}{suffix}',
+        print(f'发 {self.sent} 收 {self.received} 丢 {self.dropped} 缺口 {self.gaps} '
+              f'错 {self.errors}{suffix}',
               flush=True)
 
     def run(self):

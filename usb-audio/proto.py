@@ -44,6 +44,9 @@ SAMPLE_BYTES = 2
 FRAME_MS = 20
 FRAME_BYTES = RATE * FRAME_MS // 1000 * CHANNELS * SAMPLE_BYTES   # 3840
 MAX_PAYLOAD = 1 << 20          # 单帧负载上限，发送与接收共用
+# snd-aloop 的采集流在播放开始前会永久输出静音，超过该时长就重开采集。
+SILENCE_RMS = 1e-6
+SILENCE_FRAMES = 150           # 150 帧 = 3 秒
 
 # 控制操作码（预留：0x1000 以上给实验用途）
 CONTROL_HELLO = 0x0001        # 负载：version u8 + 能力位 u32

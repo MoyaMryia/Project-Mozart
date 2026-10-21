@@ -12,6 +12,7 @@ modprobe usb_f_fs
 
 if [ -e "$G/mozart" ] && [ ! -e "$G/mozart/functions/ffs.mozart" ]; then
     echo "" > "$G/mozart/UDC" 2>/dev/null || true
+    mountpoint -q "$MNT" && umount "$MNT"
     rm -rf "$G/mozart"
 fi
 

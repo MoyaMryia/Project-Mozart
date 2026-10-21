@@ -72,6 +72,8 @@ class Daemon:
         self.frames_out = 0
         self.dropped = 0
         self.errors = 0
+        self.gaps = 0
+        self.expected_seq = None
         self.last_rms = 0.0
         self.last_error = ''
         self.started = 0.0
@@ -181,9 +183,9 @@ class Daemon:
             samples = memoryview(payload).cast('h')
             picked = samples[::16]
             rms = (sum(int(s) * int(s) for s in picked) / len(picked)) ** 0.5 / 32768
-            if rms < 1e-6:
+            if rms < proto.SILENCE_RMS:
                 silent += 1
-                if silent > 150:
+                if silent > proto.SILENCE_FRAMES:
                     silent = 0
                     self.restart_capture()
                     continue
@@ -227,10 +229,16 @@ class Daemon:
                     break
                 if frame is None:
                     break
-                _version, kind, stream, _flags, _seq, _ts, payload = frame
+                version, kind, stream, _flags, seq, _ts, payload = frame
                 self.pending = self.pending[proto.HEADER_BYTES + len(payload):]
                 if kind != proto.TYPE_PCM or stream != proto.STREAM_AUDIO:
                     continue
+                if version != proto.VERSION:
+                    self.fail(f'未知协议版本 {version}')
+                    continue
+                if self.expected_seq is not None and seq != self.expected_seq:
+                    self.gaps += 1
+                self.expected_seq = seq + 1
                 self.frames_out += 1
                 self.write_speaker(payload)
 
@@ -244,7 +252,7 @@ class Daemon:
     def report(self):
         level = 20 * math.log10(max(self.last_rms, 1e-9))
         suffix = f' 最近错误 {self.last_error}' if self.last_error else ''
-        print(f'发 {self.frames_in} 收 {self.frames_out} 丢 {self.dropped} '
+        print(f'发 {self.frames_in} 收 {self.frames_out} 丢 {self.dropped} 缺口 {self.gaps} '
               f'错 {self.errors} 采集RMS {level:.1f} dBFS{suffix}', flush=True)
 
     def enable(self):
@@ -295,16 +303,14 @@ class Daemon:
         while not self.stopping.is_set():
             ready, _, _ = select.select([self.ep0], [], [], 0.5)
             if ready:
-                event = os.read(self.ep0, 64)
-                if len(event) >= 9:
-                    kind = event[8]
-                    if kind == EVENT_ENABLE and not self.active.is_set():
-                        self.enable()
-                    elif kind == EVENT_DISABLE and self.active.is_set():
-                        self.disable()
-                    elif kind == EVENT_UNBIND:
-                        print('unbind', flush=True)
-                        self.stopping.set()
+                kind = os.read(self.ep0, 64)[8]
+                if kind == EVENT_ENABLE and not self.active.is_set():
+                    self.enable()
+                elif kind == EVENT_DISABLE and self.active.is_set():
+                    self.disable()
+                elif kind == EVENT_UNBIND:
+                    print('unbind', flush=True)
+                    self.stopping.set()
             if time.monotonic() - last_report >= REPORT_SECONDS:
                 self.report()
                 last_report = time.monotonic()

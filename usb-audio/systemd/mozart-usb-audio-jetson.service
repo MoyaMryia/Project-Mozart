@@ -6,8 +6,6 @@ Wants=sound.target
 [Service]
 Type=simple
 ExecStartPre=/usr/local/sbin/mozart-gadget-setup.sh
-Environment=MOZART_MIC=plughw:CARD=Loopback,DEV=1,SUBDEV=1
-Environment=MOZART_SPEAKER=plughw:CARD=Loopback,DEV=0,SUBDEV=0
 Environment=MOZART_UDC=3550000.usb
 ExecStart=/usr/bin/python3 /usr/local/lib/mozart/usb-audio/jetson-daemon.py
 Restart=always
