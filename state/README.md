@@ -45,8 +45,8 @@ HTTP API -> StateManagerDaemon -> ModeController
 文件任务忙时，切出文件模式的请求写入一个待切换槽；当前任务结束后执行。
 同模式重复请求和模型切换的忙碌处理见 API 文档。
 
-进入 `IDLE` 不会卸载全部引擎。当前没有跨算法模型置换、`cudaDeviceReset` 回收流程，
-也没有按实时/文件模式分配高低优先级 CUDA 流的机制。
+`IDLE` 保留已加载引擎。仓库中没有模型置换、`cudaDeviceReset` 回收流程，
+也没有按模式分配 CUDA 流的代码。
 
 RVC 的 UDP 工作线程不直接占用麦克风。物理采集和播放由外部 `mozart-pre` 使用 ALSA 完成。
 切换守护进程模式不会停止外部采集进程。`IO/PipeWireStream` 仍是占位实现。

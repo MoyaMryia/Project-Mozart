@@ -111,20 +111,14 @@ int mozart_playback_write(mozart_playback_t *p, const float *pcm, size_t nframes
 {
     if (!p || !pcm || nframes != p->period_frames) return -1;
 
-    // period_frames 可配置；超过契约帧长时不能在栈上定长转换。
-    int16_t stack_buf[MOZART_OUTPUT_SAMPLES * 2];
-    int16_t *buf = stack_buf;
-    if (nframes > MOZART_OUTPUT_SAMPLES) {
-        buf = malloc(nframes * sizeof(int16_t) * 2);
-        if (!buf) return -1;
-    }
+    // nframes 已等于 period_frames，唯一调用方固定传入 MOZART_OUTPUT_SAMPLES。
+    int16_t buf[MOZART_OUTPUT_SAMPLES * 2];
     float_to_s16_stereo(pcm, buf, nframes);
 
     const int result = pcm_transfer(p->pcm, buf, nframes, p->channels,
                                     false, p->should_stop, p->stop_context, &p->underruns);
     if (result < 0 && result != -ECANCELED)
         fprintf(stderr, "[playback] write: %s\n", snd_strerror(result));
-    if (buf != stack_buf) free(buf);
     return result;
 }
 

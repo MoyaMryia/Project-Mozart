@@ -51,7 +51,7 @@
 
 移除 `--stable-clauses` 后，新输入恢复整句翻译。
 若实验队列中仍有等待任务，先使用该选项完成队列处理，再切回普通模式。
-两个模式使用不同队列，不会自动迁移等待任务。
+两个模式各用一个队列文件：`translation-queue.sqlite3` 与 `translation-clauses.sqlite3`。切换模式不迁移等待任务。
 
 本实验不改变识别模型、识别断句、生成步数、语速或 RVC 路径。
 验收须同时报告原文范围覆盖、实际播报完成率、首播等待、片段间隙和语义变化。
@@ -80,7 +80,7 @@ GitHub 方法对照、样例分母、耗时定义和后续设计见[调研与短
 下载程序直连官方 GitHub，并验证 SHA-256。
 默认路径为 `~/models/mozart-boundaries/nnsplit-zh.onnx`。
 若已有文件的摘要不同，程序报告错误，不覆盖该文件。
-实时运行时不会自动下载模型。
+边界模型由 `tools/fetch_boundary_model.py` 下载。实时运行只读 `--boundary-model` 指定的文件。
 
 在既有实时启动命令中添加：
 
