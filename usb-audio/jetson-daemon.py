@@ -2,10 +2,10 @@
 """Jetson 侧守护进程：FunctionFS bulk ↔ ALSA loopback。
 
 设计要点：
-- ALSA 一直打开，USB 未连接时进入离线模式：仍然消费管线播放、给管线采集喂静音，
-  这样没有本地 USB 连接时管线照常运行，便于单独调试。
-- 主机重新配置（DISABLE 后 ENABLE）时重新打开端点，只有 UNBIND/SIGTERM 退出。
-- MOZART_UDC 非空时，写完描述符后自动绑定 UDC，退出时解绑。
+- ALSA 一直打开。USB 未连接时进入离线模式：继续消费管线播放、给管线采集喂静音。
+- 主机重新配置（DISABLE 后 ENABLE）时重开端点，只有 UNBIND/SIGTERM 退出进程。
+- MOZART_UDC 非空时，写完描述符后绑定 UDC，退出时解绑。
+- 端点读写失败时记录原因并结束当前搬运线程；下一次 ENABLE 会重新拉起。
 """
 import math
 import os
@@ -30,6 +30,7 @@ STRINGS_MAGIC = 2
 HAS_FS = 1
 HAS_HS = 2
 EVENT_BIND, EVENT_UNBIND, EVENT_ENABLE, EVENT_DISABLE = 0, 1, 2, 3
+REPORT_SECONDS = 5.0
 
 
 def descriptors():
@@ -45,9 +46,16 @@ def descriptors():
     return blob[:4] + struct.pack('<I', len(blob)) + blob[8:]
 
 
+def ffs_string(text, lang=0x0409):
+    """单个字符串：1 字节字符数，随后 UTF-16LE 编码。"""
+    encoded = text.encode('utf-16-le')
+    return struct.pack('<B', len(encoded)//2) + encoded
+
+
 def strings():
+    # 语言 ID 与字符串都按内核 functionfs 的格式编码。
     payload = struct.pack('<IIII', STRINGS_MAGIC, 0, 1, 1)
-    payload += struct.pack('<H', 0x0409) + b'Mozart USB audio\x00'
+    payload += struct.pack('<H', 0x0409) + ffs_string('Mozart USB audio')
     return payload[:4] + struct.pack('<I', len(payload)) + payload[8:]
 
 
@@ -56,30 +64,42 @@ class Daemon:
         self.stopping = threading.Event()
         self.active = threading.Event()
         self.audio_lock = threading.Lock()
+        self.generation = 0
         self.ep0 = self.ep_out = self.ep_in = -1
         self.mic = self.speaker = None
         self.speaker_fd = -1
         self.frames_in = 0
         self.frames_out = 0
         self.dropped = 0
+        self.errors = 0
         self.last_rms = 0.0
+        self.last_error = ''
         self.started = 0.0
         self.pending = b''
 
+    # --- 子进程 ---
     def spawn(self, argv, **kwargs):
-        return subprocess.Popen(argv, preexec_fn=os.setsid, **kwargs)
+        return subprocess.Popen(argv, start_new_session=True, **kwargs)
+
+    def stop_process(self, process):
+        if process is None or process.poll() is not None:
+            return
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except OSError:
+            return
+        try:
+            process.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.fail('子进程无法结束')
 
     def restart_capture(self):
         with self.audio_lock:
-            if self.mic and self.mic.poll() is None:
-                try:
-                    os.killpg(self.mic.pid, signal.SIGTERM)
-                except OSError:
-                    pass
-                try:
-                    self.mic.wait(timeout=3)
-                except subprocess.TimeoutExpired:
-                    self.mic.kill()
+            self.stop_process(self.mic)
             for attempt in range(10):
                 self.mic = self.spawn(
                     ['arecord', '-D', MIC, '-f', 'S16_LE', '-r', str(proto.RATE),
@@ -89,32 +109,36 @@ class Daemon:
                 if self.mic.poll() is None:
                     return True
                 error = self.mic.stderr.read().decode(errors='replace').strip()
-                print(f'采集打开失败({attempt}): {error}', flush=True)
+                self.fail(f'采集打开失败({attempt}): {error}')
                 time.sleep(0.6)
         return False
 
+    def start_speaker(self):
+        with self.audio_lock:
+            self.stop_process(self.speaker)
+            self.speaker = self.spawn(
+                ['aplay', '-D', SPEAKER, '-f', 'S16_LE', '-r', str(proto.RATE),
+                 '-c', str(proto.CHANNELS), '-t', 'raw', '-q'],
+                stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            self.speaker_fd = self.speaker.stdin.fileno()
+            os.set_blocking(self.speaker_fd, False)
+
     def start_audio(self):
         self.restart_capture()
-        self.speaker = self.spawn(
-            ['aplay', '-D', SPEAKER, '-f', 'S16_LE', '-r', str(proto.RATE),
-             '-c', str(proto.CHANNELS), '-t', 'raw', '-q'],
-            stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        self.speaker_fd = self.speaker.stdin.fileno()
-        os.set_blocking(self.speaker_fd, False)
+        self.start_speaker()
 
     def stop_audio(self):
-        for process in (self.mic, self.speaker):
-            if process and process.poll() is None:
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                except OSError:
-                    process.terminate()
-                try:
-                    process.wait(timeout=3)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-        self.mic = self.speaker = None
-        self.speaker_fd = -1
+        with self.audio_lock:
+            self.stop_process(self.mic)
+            self.stop_process(self.speaker)
+            self.mic = self.speaker = None
+            self.speaker_fd = -1
+
+    # --- 错误记录 ---
+    def fail(self, reason):
+        self.errors += 1
+        self.last_error = reason
+        print(f'错误: {reason}', flush=True)
 
     def close_endpoints(self):
         for name in ('ep_out', 'ep_in'):
@@ -128,30 +152,35 @@ class Daemon:
 
     def write_speaker(self, payload):
         try:
-            os.write(self.speaker_fd, payload)
-            return True
+            written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
             return False
-        except OSError:
+        except OSError as error:
+            self.fail(f'写扬声器失败: {error}')
             return False
+        if written != len(payload):
+            self.fail(f'写扬声器短写: {written}/{len(payload)}')
+            return False
+        return True
 
-    def mic_pump(self):
+    # --- 搬运 ---
+    def mic_pump(self, generation):
         sequence = 0
         silent = 0
-        while not self.stopping.is_set():
+        while self.active.is_set() and not self.stopping.is_set() and generation == self.generation:
             if self.mic is None or self.mic.stdout is None:
                 time.sleep(0.2)
                 continue
             payload = self.mic.stdout.read(proto.FRAME_BYTES)
-            if not payload or len(payload) < proto.FRAME_BYTES:
-                print('采集流结束，重开', flush=True)
+            if len(payload) < proto.FRAME_BYTES:
                 if self.stopping.is_set():
                     return
+                self.fail('采集流结束')
                 self.restart_capture()
                 continue
             samples = memoryview(payload).cast('h')
             picked = samples[::16]
-            rms = (sum(int(s) * int(s) for s in picked) / max(len(picked), 1)) ** 0.5 / 32768
+            rms = (sum(int(s) * int(s) for s in picked) / len(picked)) ** 0.5 / 32768
             if rms < 1e-6:
                 silent += 1
                 if silent > 150:
@@ -161,36 +190,44 @@ class Daemon:
             else:
                 silent = 0
             self.last_rms = rms
-            if not self.active.is_set():
-                self.dropped += 1
-                continue
+            if not self.active.is_set() or generation != self.generation:
+                return
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6), payload)
             try:
                 os.write(self.ep_in, frame)
-            except OSError:
+            except OSError as error:
+                self.fail(f'写 IN 端点失败: {error}')
+                self.active.clear()
                 return
             sequence += 1
             self.frames_in += 1
 
-    def usb_pump(self):
-        while self.active.is_set() and not self.stopping.is_set():
+    def usb_pump(self, generation):
+        while self.active.is_set() and not self.stopping.is_set() and generation == self.generation:
+            if self.ep_out < 0:
+                return
             ready, _, _ = select.select([self.ep_out], [], [], 0.3)
             if not ready:
                 continue
             try:
                 chunk = os.read(self.ep_out, 65536)
-            except OSError:
+            except OSError as error:
+                self.fail(f'读 OUT 端点失败: {error}')
+                self.active.clear()
                 return
             if not chunk:
                 continue
             self.pending += chunk
             while True:
-                frame = proto.decode(self.pending)
-                if frame is None:
-                    if len(self.pending) > 4 << 20:
-                        self.pending = b''
+                try:
+                    frame = proto.decode(self.pending)
+                except proto.FrameError as error:
+                    self.fail(f'帧格式错误，丢弃缓冲: {error}')
+                    self.pending = b''
                     break
-                _, kind, stream, _flags, _seq, _ts, payload = frame
+                if frame is None:
+                    break
+                _version, kind, stream, _flags, _seq, _ts, payload = frame
                 self.pending = self.pending[proto.HEADER_BYTES + len(payload):]
                 if kind != proto.TYPE_PCM or stream != proto.STREAM_AUDIO:
                     continue
@@ -206,8 +243,35 @@ class Daemon:
 
     def report(self):
         level = 20 * math.log10(max(self.last_rms, 1e-9))
+        suffix = f' 最近错误 {self.last_error}' if self.last_error else ''
         print(f'发 {self.frames_in} 收 {self.frames_out} 丢 {self.dropped} '
-              f'采集RMS {level:.1f} dBFS', flush=True)
+              f'错 {self.errors} 采集RMS {level:.1f} dBFS{suffix}', flush=True)
+
+    def enable(self):
+        generation = self.generation + 1
+        self.generation = generation
+        try:
+            ep_out = os.open(f'{MNT}/ep1', os.O_RDWR)
+            ep_in = os.open(f'{MNT}/ep2', os.O_RDWR)
+        except OSError as error:
+            self.fail(f'打开端点失败: {error}')
+            for fd in (locals().get('ep_out', -1), locals().get('ep_in', -1)):
+                if fd >= 0:
+                    os.close(fd)
+            return
+        self.ep_out, self.ep_in = ep_out, ep_in
+        self.pending = b''
+        self.active.set()
+        threading.Thread(target=self.usb_pump, args=(generation,), daemon=True).start()
+        threading.Thread(target=self.mic_pump, args=(generation,), daemon=True).start()
+        print('enabled', flush=True)
+
+    def disable(self):
+        self.active.clear()
+        self.generation += 1
+        time.sleep(0.2)
+        self.close_endpoints()
+        print('disabled；等待重新启用', flush=True)
 
     def run(self):
         signal.signal(signal.SIGTERM, lambda *_: self.stopping.set())
@@ -218,7 +282,6 @@ class Daemon:
         os.write(self.ep0, strings())
         print('descriptors written', flush=True)
         self.start_audio()
-        threading.Thread(target=self.mic_pump, daemon=True).start()
         threading.Thread(target=self.silencer, daemon=True).start()
         udc = os.environ.get('MOZART_UDC', '')
         if udc:
@@ -227,39 +290,32 @@ class Daemon:
                     handle.write(udc)
                 print(f'UDC 绑定 {udc}', flush=True)
             except OSError as error:
-                print(f'UDC 绑定失败: {error}（离线模式）', flush=True)
-        last = None
+                self.fail(f'UDC 绑定失败: {error}（离线模式）')
+        last_report = time.monotonic()
         while not self.stopping.is_set():
             ready, _, _ = select.select([self.ep0], [], [], 0.5)
-            counter = (self.frames_in, self.frames_out, self.dropped)
-            if counter != last and time.monotonic() - self.started > 2:
+            if ready:
+                event = os.read(self.ep0, 64)
+                if len(event) >= 9:
+                    kind = event[8]
+                    if kind == EVENT_ENABLE and not self.active.is_set():
+                        self.enable()
+                    elif kind == EVENT_DISABLE and self.active.is_set():
+                        self.disable()
+                    elif kind == EVENT_UNBIND:
+                        print('unbind', flush=True)
+                        self.stopping.set()
+            if time.monotonic() - last_report >= REPORT_SECONDS:
                 self.report()
-                last = counter
-            if not ready:
-                continue
-            event = os.read(self.ep0, 64)
-            if len(event) < 9:
-                continue
-            kind = event[8]
-            if kind == EVENT_ENABLE:
-                if self.active.is_set():
-                    continue
-                self.ep_out = os.open(f'{MNT}/ep1', os.O_RDWR)
-                self.ep_in = os.open(f'{MNT}/ep2', os.O_RDWR)
-                self.active.set()
-                threading.Thread(target=self.usb_pump, daemon=True).start()
-                print('enabled', flush=True)
-            elif kind == EVENT_DISABLE:
-                print('disabled；等待重新启用', flush=True)
-                self.active.clear()
-                time.sleep(0.2)
-                self.close_endpoints()
-            elif kind == EVENT_UNBIND:
-                print('unbind', flush=True)
-                self.stopping.set()
+                last_report = time.monotonic()
         self.active.clear()
         self.stop_audio()
         self.close_endpoints()
+        if self.ep0 >= 0:
+            try:
+                os.close(self.ep0)
+            except OSError:
+                pass
         if udc:
             try:
                 with open(UDC_FILE, 'w') as handle:
