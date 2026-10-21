@@ -93,6 +93,19 @@ npm --prefix frontend run dev
 需要 nvm 时，先执行 `source ~/.nvm/nvm.sh`。
 完整部署步骤见 [中文](frontend/DEPLOYMENT.zh-CN.md) / [English](frontend/DEPLOYMENT.md)。
 
+### Python 依赖
+
+管线使用 `tools/` 下的 Python 脚本，运行环境需要 `numpy`、`soundfile`、`sherpa-onnx`、`pyusb`。
+
+术语表启用后额外需要两项，未配置术语表时不加载：
+
+```bash
+pip install pypinyin jieba
+```
+
+`pypinyin` 生成同音索引，`jieba` 提供词频，用于区分真词与识别错字。
+词表与纠错表格式见 [state/glossary.example.json](state/glossary.example.json) 与 [state/corrections.example.json](state/corrections.example.json)。
+
 ## 首次文件转换
 
 普通模型目录结构：
