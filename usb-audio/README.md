@@ -56,13 +56,15 @@ Tegra234 的 USB 控制器不支持 UAC2 等时端点，见 [usb-gadget/DECISION
 | 3 | 1 | 类型 |
 | 4 | 1 | 流 ID |
 | 5 | 1 | 标志 |
-| 6 | 2 | 序号 |
-| 8 | 8 | 发送时间戳，微秒 |
-| 16 | 4 | 负载长度 |
-| 20 | 4 | 保留 |
+| 6 | 2 | 保留，必须为 0 |
+| 8 | 4 | 序号 |
+| 12 | 8 | 发送时间戳，微秒 |
+| 20 | 4 | 负载长度 |
 
-类型：`PCM`、`CONTROL`、`TELEMETRY`、`APP`。
-流 ID：`AUDIO`、`CONTROL`、`WEBUI`、`SUBTITLE`、`STATUS`、`AUDIO_2`。
+类型：`PCM`、`CONTROL`、`TELEMETRY`。
+流 ID：`AUDIO`、`CONTROL`。
+其余类型与流 ID 为预留值，接收方忽略并保持连接。
+单帧负载上限为 1 MiB。
 
 负载为 20 ms 的 48 kHz 立体声 16 位 PCM，3840 字节。
 控制、字幕、WebUI 复用同一对端点，新增流只增加流 ID。
@@ -84,6 +86,13 @@ SUBSYSTEM=="sound", KERNEL=="card*", ATTRS{id}=="Loopback*", ENV{PULSE_IGNORE}="
 EOF
 sudo udevadm control --reload-rules
 sudo udevadm trigger --subsystem-match=sound
+```
+
+两台机器都把程序装到同一路径，单元文件按该路径引用：
+
+```bash
+sudo mkdir -p /usr/local/lib/mozart
+sudo cp -r usb-audio /usr/local/lib/mozart/
 ```
 
 主机：
@@ -116,7 +125,7 @@ Jetson 单元会自动停用 `nv-l4t-usb-device-mode.service`。
 主机侧向虚拟麦克风写入静音，并丢弃虚拟扬声器的数据。
 Jetson 侧继续消费管线播放，并向管线采集端写入静音。
 
-上层应用照常启动和运行，计数器中的丢弃数增长，日志打印 `离线模式`。
+上层应用照常启动和运行，计数器中的丢弃数增长，状态行带上最近一次错误。
 这样可以在没有 USB 连接的情况下单独调试管线。
 
 ## 管线接入
@@ -129,6 +138,15 @@ export MOZART_PLAYBACK_DEVICE=plughw:CARD=Loopback,DEV=0,SUBDEV=1
 ```
 
 命令行参数 `--mic-device` 与 `--playback-device` 的优先级更高。
+
+## 环境变量
+
+| 变量 | 作用 |
+| --- | --- |
+| `MOZART_FFS` | FunctionFS 挂载点，默认 `/dev/ffs-mozart` |
+| `MOZART_UDC` | 写描述符后绑定的 UDC 名；留空只做本地声卡调试 |
+| `MOZART_MIC` / `MOZART_SPEAKER` | Jetson 侧采集与播放设备 |
+| `MOZART_MIC_SINK` / `MOZART_APP_SOURCE` | 主机侧虚拟麦克风与虚拟扬声器设备 |
 
 ## 验证
 
@@ -143,3 +161,4 @@ journalctl -u mozart-usb-audio -n 5 -o cat
 ```
 
 实测数据见 [reports/usb-audio-20261020/RESULTS.md](../reports/usb-audio-20261020/RESULTS.md)。
+计数器每次启动从零开始，日志每 2–5 秒输出一行。

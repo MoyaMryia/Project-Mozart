@@ -9,7 +9,7 @@ ExecStartPre=/usr/local/sbin/mozart-gadget-setup.sh
 Environment=MOZART_MIC=plughw:CARD=Loopback,DEV=1,SUBDEV=1
 Environment=MOZART_SPEAKER=plughw:CARD=Loopback,DEV=0,SUBDEV=0
 Environment=MOZART_UDC=3550000.usb
-ExecStart=/home/moyamryia/Mozart/.venv/bin/python3 /home/moyamryia/aec-study-20261020/jetson-daemon.py
+ExecStart=/usr/bin/python3 /usr/local/lib/mozart/usb-audio/jetson-daemon.py
 Restart=always
 RestartSec=2
 KillMode=mixed

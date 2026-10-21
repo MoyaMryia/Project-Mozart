@@ -7,7 +7,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 # 阶段名、触发路径（扩展正则，匹配暂存文件路径）。
 NATIVE_PATHS='^(rvc-backend|IO|preprocessor|api|state|rvc-golden)/|^CMakeLists\.txt$'
-PYTHON_PATHS='^tools/|^rvc-golden/.*\.py$|^rvc-golden/tempo-frame-boundary-pocket\.wav$|^preprocessor/src/tempo_filter\.c$'
+PYTHON_PATHS='^tools/|^usb-audio/|^rvc-golden/.*\.py$|^rvc-golden/tempo-frame-boundary-pocket\.wav$|^preprocessor/src/tempo_filter\.c$'
 TEMPO_PATHS='^preprocessor/|^tools/|^rvc-golden/tempo-frame-boundary-pocket\.wav$'
 FRONTEND_PATHS='^frontend/'
 

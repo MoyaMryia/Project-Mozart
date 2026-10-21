@@ -43,6 +43,7 @@ CHANNELS = 2
 SAMPLE_BYTES = 2
 FRAME_MS = 20
 FRAME_BYTES = RATE * FRAME_MS // 1000 * CHANNELS * SAMPLE_BYTES   # 3840
+MAX_PAYLOAD = 1 << 20          # 单帧负载上限，发送与接收共用
 
 # 控制操作码（预留：0x1000 以上给实验用途）
 CONTROL_HELLO = 0x0001        # 负载：version u8 + 能力位 u32
@@ -70,16 +71,16 @@ def encode(kind, seq, timestamp_us, payload=b'', stream=STREAM_AUDIO, flags=0):
 
 
 def decode(buffer):
-    """返回 (kind, stream, flags, seq, ts_us, payload)；数据不完整时返回 None。
+    """返回 (version, kind, stream, flags, seq, ts_us, payload)；数据不完整时返回 None。
 
-    未知的 version/type/stream 由调用方决定忽略；magic 或长度异常抛错。
+    未知的 version/type/stream 由调用方决定忽略；magic、长度或保留位异常抛错。
     """
     if len(buffer) < HEADER_BYTES:
         return None
     magic, version, kind, stream, flags, reserved, seq, ts_us, length = HEADER.unpack_from(buffer, 0)
     if magic != MAGIC:
         raise FrameError(f'magic 0x{magic:04x}')
-    if length > 1 << 20:
+    if length > MAX_PAYLOAD:
         raise FrameError(f'length {length}')
     if reserved:
         raise FrameError(f'reserved {reserved}')
