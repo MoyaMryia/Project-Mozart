@@ -254,6 +254,9 @@ def required_number_counts(text):
     text = decade(normalize_tail_amounts(normalize_exact_composites(text)))
     numbers = Counter()
     for digits, unit in re.findall(r'(\d+(?:\.\d+)?)([万亿千百]?)', text.replace(',', '')):
+        # 识别残句会把「一千」写成「一00」。前导零的纯数字串跳过，不参与金额核对。
+        if not unit and len(digits) > 1 and digits.startswith('0') and '.' not in digits:
+            continue
         if unit:
             value = float(digits)*{'万':10000, '亿':100000000, '千':1000, '百':100}[unit]
             numbers[str(int(value)) if value.is_integer() else str(value)] += 1

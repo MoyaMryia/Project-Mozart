@@ -87,6 +87,12 @@ class TranslationChecks(unittest.TestCase):
         self.assertEqual(missing_numbers('七千，再给七千', 'Seven thousand.'), ['7000'])
         self.assertEqual(missing_numbers('100元', 'A and one hundred yuan.'), [])
 
+    def test_broken_mixed_numeral_does_not_become_a_required_value(self):
+        # 实测：复核把「一千」写成「一00」，00 不应成为待核对数字。
+        self.assertNotIn('00', required_numbers('充值了500输光，一00输光'))
+        self.assertEqual(required_numbers('充值了500输光，一00输光'), ['500'])
+        self.assertEqual(required_numbers('0.5元'), ['0.5'])
+
     def test_spoken_decade_requires_the_decade_not_a_truncated_year(self):
         self.assertEqual(normalize_translation_quantities('二零一几年以后'), '2010年代以后')
         self.assertEqual(required_numbers('二零一几年以后'), ['2010'])
