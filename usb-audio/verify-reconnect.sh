@@ -7,7 +7,20 @@
 # 用法：usb-audio/verify-reconnect.sh [--check-only|--reboot]
 set -euo pipefail
 
-jetson="${MOZART_JETSON:-jetson}"
+# 开机时 DNS 可能还没就绪，默认直接用局域网地址。
+jetson="${MOZART_JETSON:-192.168.10.214}"
+
+wait_for_jetson() {
+    local deadline=$(( $(date +%s) + 120 ))
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+        if ssh -o ConnectTimeout=3 -o BatchMode=yes "$jetson" true 2>/dev/null; then
+            return 0
+        fi
+        sleep 5
+    done
+    echo "等待 Jetson 超时：$jetson" >&2
+    return 1
+}
 wait_seconds="${MOZART_WAIT:-10}"
 
 counters() {
@@ -28,6 +41,7 @@ growing() {
 
 case "${1:-}" in
 --check-only)
+    wait_for_jetson || exit 1
     first=$(counters)
     sleep 10
     second=$(counters)

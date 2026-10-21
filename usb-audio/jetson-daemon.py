@@ -46,16 +46,10 @@ def descriptors():
     return blob[:4] + struct.pack('<I', len(blob)) + blob[8:]
 
 
-def ffs_string(text, lang=0x0409):
-    """单个字符串：1 字节字符数，随后 UTF-16LE 编码。"""
-    encoded = text.encode('utf-16-le')
-    return struct.pack('<B', len(encoded)//2) + encoded
-
-
 def strings():
-    # 语言 ID 与字符串都按内核 functionfs 的格式编码。
+    # 本机内核接受 UTF-8 原文写法；带 1 字节长度的变体返回 EINVAL。
     payload = struct.pack('<IIII', STRINGS_MAGIC, 0, 1, 1)
-    payload += struct.pack('<H', 0x0409) + ffs_string('Mozart USB audio')
+    payload += struct.pack('<H', 0x0409) + b'Mozart USB audio\x00'
     return payload[:4] + struct.pack('<I', len(payload)) + payload[8:]
 
 
@@ -72,6 +66,7 @@ class Daemon:
         self.frames_out = 0
         self.dropped = 0
         self.errors = 0
+        self.last_frame_at = 0.0
         self.gaps = 0
         self.expected_seq = None
         self.last_rms = 0.0
@@ -203,6 +198,7 @@ class Daemon:
                 return
             sequence += 1
             self.frames_in += 1
+            self.last_frame_at = time.monotonic()
 
     def usb_pump(self, generation):
         while self.active.is_set() and not self.stopping.is_set() and generation == self.generation:
@@ -249,6 +245,19 @@ class Daemon:
                 self.write_speaker(chunk)
             time.sleep(0.02)
 
+    def watchdog(self):
+        """主机重启后端点可能失效：链路在用但不再出帧时重新打开。"""
+        while not self.stopping.is_set():
+            time.sleep(2.0)
+            if not self.active.is_set() or self.last_frame_at == 0:
+                continue
+            if time.monotonic() - self.last_frame_at > 3.0:
+                self.fail('发送停止，重新打开端点')
+                self.disable()
+                time.sleep(0.5)
+                if not self.stopping.is_set():
+                    self.enable()
+
     def report(self):
         level = 20 * math.log10(max(self.last_rms, 1e-9))
         suffix = f' 最近错误 {self.last_error}' if self.last_error else ''
@@ -291,6 +300,7 @@ class Daemon:
         print('descriptors written', flush=True)
         self.start_audio()
         threading.Thread(target=self.silencer, daemon=True).start()
+        threading.Thread(target=self.watchdog, daemon=True).start()
         udc = os.environ.get('MOZART_UDC', '')
         if udc:
             try:
