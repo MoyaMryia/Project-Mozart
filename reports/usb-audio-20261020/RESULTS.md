@@ -94,5 +94,7 @@ MOZART_PLAYBACK_DEVICE=plughw:CARD=Loopback,DEV=0,SUBDEV=1
 
 配置：工作站与 Jetson Orin 各一张 `snd-aloop`；Jetson 设备 `plughw:CARD=Loopback,DEV=0,SUBDEV=0` 与 `SUBDEV=1`；VID:PID `1d6b:0105`；48 kHz 立体声、20 ms 帧长；两端守护进程经 systemd 启动。
 样本：端点回环 3000 帧与 60 秒浸泡；音频内容校验各 1 次；受压 640 秒与 1800 秒各 1 次，后者含 19 分钟双向计数窗口与 1830 秒回传录音；拔插恢复 1 次。
-未验证项：真实人声的识别与播报质量，阻塞：输入为合成语音，解除条件：用同一设备名复测一段真人录音。
-未验证项：主机重启后 Jetson 侧自动重连，阻塞：本轮只测了拔插，解除条件：重启工作站后确认两端服务自启且帧计数恢复。
+真人语音校验：视频第 63–123 秒（真人讲述），识别 261 字、人工字幕 267 字，字符相似度 0.909；
+12 个分段译文完成 11 个。脚本为 `usb-audio/verify-human-voice.sh`。
+重连校验：重启主机侧守护进程后两个方向恢复出帧，脚本为 `usb-audio/verify-reconnect.sh`。
+未验证项：整机重启后的自动重连，阻塞：重启会中断当前会话，解除条件：主机重启后查看 `/var/log/mozart-usb-reconnect.log` 中开机自检结果。
