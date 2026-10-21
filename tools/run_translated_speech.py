@@ -107,8 +107,10 @@ def main():
                         help='Keep the API and voice previews available after file replay finishes')
     parser.add_argument('--start', type=float, default=0)
     parser.add_argument('--seconds', type=float, default=60, help='File replay length; microphone runs until stopped')
-    parser.add_argument('--mic-device', default='plughw:CARD=Device,DEV=0')
-    parser.add_argument('--playback-device', default='plughw:CARD=Device,DEV=0')
+    parser.add_argument('--mic-device',
+                        default=os.environ.get('MOZART_MIC_DEVICE', 'plughw:CARD=Device,DEV=0'))
+    parser.add_argument('--playback-device',
+                        default=os.environ.get('MOZART_PLAYBACK_DEVICE', 'plughw:CARD=Device,DEV=0'))
     parser.add_argument('--playback-tempo', choices=['normal', 'adaptive', 'flexible'], default='flexible')
     parser.add_argument('--duration-profile', type=Path)
     parser.add_argument('--playback-tempo-max', type=float, default=DEFAULT_TEMPO_MAX)
