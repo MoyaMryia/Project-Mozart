@@ -1,7 +1,7 @@
 import json,os,pathlib,sys,tempfile,time,unittest
 from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
-from subtitle_bridge import (CaptionDispatcher, caption_updates, translate,
+from subtitle_bridge import (CaptionDispatcher, caption_updates, source_caption, translate,
     translate_recognized_event, translation_source)
 
 def answer(text,finish='stop'):
@@ -193,6 +193,17 @@ class BridgeChecks(unittest.TestCase):
         with patch('subtitle_bridge.request_json', return_value=answer('DNA is a nucleic acid.')) as request:
             translate('translator', 'DNA是一种核酸。')
         self.assertNotIn('anesthetic', request.call_args.args[1]['messages'][0]['content'])
+
+    def test_caption_shows_corrected_term_and_keeps_asr_text(self):
+        directory = tempfile.TemporaryDirectory()
+        path = pathlib.Path(directory.name)/'glossary.json'
+        path.write_text(json.dumps({'网赌': 'online gambling'}), encoding='utf-8')
+        with patch.dict(os.environ, {'MOZART_GLOSSARY': str(path)}):
+            record = source_caption({'text': '现在就碰到王独的人', 'seq': 3, 'type': 'final'}, 3, 'session')
+        self.assertEqual(record['zh'], '现在就碰到网赌的人')
+        self.assertEqual(record['zh_raw'], '现在就碰到王独的人')
+        self.assertEqual(record['homophone_fixes'], [{'from': '王独', 'to': '网赌'}])
+        directory.cleanup()
 
     def test_domain_terms_reach_the_prompt_only_when_present(self):
         directory = tempfile.TemporaryDirectory()
