@@ -6,6 +6,7 @@ translations enter speech. The speech service owns its queue and playback device
 """
 import argparse
 import difflib
+import os
 import glossary
 import homophones
 import json
@@ -34,7 +35,8 @@ REFINED_MIN_SIMILARITY = 0.5
 # 等待窗口按时长缩放，并设上限，避免无限推迟翻译。
 REFINED_WAIT_BASE = 0.4
 REFINED_WAIT_RATIO = 0.3
-REFINED_WAIT_MAX = 2.5
+# 可用 MOZART_REFINE_WAIT_MAX 覆盖，用于对比等待窗口对延迟与复核使用率的影响。
+REFINED_WAIT_MAX = float(os.environ.get('MOZART_REFINE_WAIT_MAX', '2.5'))
 
 
 def refinement_wait(event):
