@@ -5,6 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+# 用交互用户运行：root 没有 Jetson 的 SSH 凭据。
+User=moyamryia
+Group=moyamryia
 ExecStartPre=/bin/sleep 20
 ExecStart=/home/moyamryia/Projects/Project-Mozart/usb-audio/verify-reconnect.sh --check-only
 StandardOutput=append:/var/log/mozart-usb-reconnect.log
