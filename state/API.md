@@ -34,12 +34,6 @@ The `state/translated-speech.yaml` profile uses this setting.
 The native daemon does not own external microphone processes.
 An RVC mode change does not stop their capture.
 
-Each realtime UDP session binds the first valid sender address and port.
-The stream rejects packets from other senders before inference.
-To change clients, stop the old sender and request `rt_rvc` again through `/api/mode/switch`.
-The controller closes the old stream and joins its workers before it creates the next session.
-Start the new sender after the mode request succeeds.
-
 ## Model selection
 
 A mode request accepts `model_id`.
@@ -81,13 +75,10 @@ Bypass resamples the input from 16 kHz to 48 kHz without inference.
 These controls do not close the physical microphone.
 
 The status statistics include `latency`, `stream`, `bypass`, and `vad`.
-The `stream` object reports `packets_received`, `packets_sent`, `packets_dropped`, and `rejected_clients`.
-These counters apply to the active transport session.
-The `rejected_clients` counter counts rejected packets from foreign senders.
-The `peer_host` and `peer_port` fields identify the bound sender; an unbound session reports an empty host and port zero.
 The `realtime` object gives the routing settings.
-A real pipeline label or a CUDA request does not prove satisfactory GPU execution.
-The API does not yet give full information about the actual runtime and asset selection.
+The `*_backend` field reports the loaded engine: `tensorrt`, `onnx_cuda_ep`, or `onnx_cpu`.
+The `*_asset` field reports the loaded file.
+The `model` object reports the runtime and asset selection for each engine role.
 
 ## File routes
 
@@ -160,7 +151,7 @@ Use `utterance_id` to update the same caption. Accept only a newer revision.
 Treat a missing revision as `0` for older producers.
 The bridge increases the revision for each update. Stage numbers are not fixed revision values.
 Count utterances by ID, not by JSONL line count.
-The `final` field marks final ASR text. It does not mean translation or speech has finished.
+The `final` field marks the final ASR text. Translation and speech finish after it.
 One background worker processes translation and speech requests in order.
 The default coverage policy stores waiting final utterances in a disk queue.
 It keeps only recent caption records in memory.
@@ -172,14 +163,9 @@ The frontend shows a different `refined_zh` separately.
 If a newer partial caption arrives, the frontend keeps the most recent available translation in a separate, labeled line.
 If translation checks fail, `en` contains the last available candidate and `translation_status` stays `failed`.
 The frontend labels this candidate and keeps it visible when a newer partial caption arrives.
-The bridge sets `speech_skipped_reason: translation_failed` and retains that candidate without a speech request.
-Speech job admission returns HTTP 422 for `speech_degraded: true` before queue admission.
+With speech enabled, the bridge submits that candidate and sets `speech_degraded: true`.
+This flag permits Chinese characters in an English speech candidate. It does not add Chinese support to the engine.
 The record keeps `translation_error`, `translation_audit`, and any `speech_error`.
-Source-specific term hints address observed translation failures.
-Number checks treat `seven thousand` and `7000` as equal values.
-They treat `one or two thousand` as the values `1000` and `2000`.
-Captions keep the original candidate text.
-The audit records unsupported consecutive repetitions of source Latin terms under `repeated_source_terms`.
 Without a candidate, `en` stays empty. The source text and error remain available.
 Refinement audits use `refinement_numeric_audit` and `refinement_polarity_audit`.
 With the coverage policy, normal shutdown waits for queued translations.
