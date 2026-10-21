@@ -4,8 +4,6 @@ After=sound.target
 
 [Service]
 Type=simple
-Environment=MOZART_MIC_SINK=plughw:CARD=Loopback,DEV=0,SUBDEV=0
-Environment=MOZART_APP_SOURCE=plughw:CARD=Loopback,DEV=1,SUBDEV=1
 ExecStart=/usr/bin/python3 /usr/local/lib/mozart/usb-audio/host-daemon.py
 Restart=always
 RestartSec=2
