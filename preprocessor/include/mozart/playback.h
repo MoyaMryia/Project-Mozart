@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,6 +21,8 @@ typedef struct {
     unsigned    channels;      // 2
     unsigned    period_frames; // 960 (20 ms)
     unsigned    n_periods;     // buffer = period * n_periods，默认 4
+    bool      (*should_stop)(void *); // 在等待及恢复期间查询停止请求
+    void       *stop_context;
 } mozart_playback_config_t;
 
 /** 打开播放设备。失败返回 NULL（错误信息打印到 stderr）。 */
@@ -27,8 +30,8 @@ mozart_playback_t *mozart_playback_open(const mozart_playback_config_t *cfg);
 
 /**
  * 阻塞写一 period 的浮点单声道 PCM（nframes 应等于 period_frames）。
- * 内部转换为 S16_LE 立体声（L=R=mono），处理 xrun（-EPIPE）与恢复。
- * @return 0 成功，负数失败。
+ * 内部转换为 S16_LE 立体声（L=R=mono），使用可取消的非阻塞 I/O 与有期限恢复。
+ * @return 0 成功，-ECANCELED 表示停止请求，其他负数为 ALSA 或超时错误。
  */
 int mozart_playback_write(mozart_playback_t *p, const float *pcm, size_t nframes);
 

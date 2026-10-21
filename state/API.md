@@ -76,8 +76,9 @@ These controls do not close the physical microphone.
 
 The status statistics include `latency`, `stream`, `bypass`, and `vad`.
 The `realtime` object gives the routing settings.
-A real pipeline label or a CUDA request does not prove satisfactory GPU execution.
-The API does not yet give full information about the actual runtime and asset selection.
+The `*_backend` field reports the loaded engine: `tensorrt`, `onnx_cuda_ep`, or `onnx_cpu`.
+The `*_asset` field reports the loaded file.
+The `model` object reports the runtime and asset selection for each engine role.
 
 ## File routes
 
@@ -150,7 +151,7 @@ Use `utterance_id` to update the same caption. Accept only a newer revision.
 Treat a missing revision as `0` for older producers.
 The bridge increases the revision for each update. Stage numbers are not fixed revision values.
 Count utterances by ID, not by JSONL line count.
-The `final` field marks final ASR text. It does not mean translation or speech has finished.
+The `final` field marks the final ASR text. Translation and speech finish after it.
 One background worker processes translation and speech requests in order.
 The default coverage policy stores waiting final utterances in a disk queue.
 It keeps only recent caption records in memory.

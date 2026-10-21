@@ -48,11 +48,23 @@ After capture and queued speech end, the API and voice previews stay available.
 The supervisor continues its child-process checks and 768 MiB available-memory guard.
 
 The supervisor starts the native API, ASR, translator, and speech service.
-It rejects occupied ports. Capture starts after the native API and online ASR become ready.
-Speech engine warmup and reference selection run in a background thread.
-During model startup, translation can fail and speech can skip. The bridge reports these outcomes without replaying earlier utterances.
-Translation and speech service failures keep source captions running.
-Native API or ASR failures still stop the stack. The 768 MiB available-memory guard remains active.
+It rejects occupied ports.
+The default `--mode full` waits for translation health, speech runtime, an enabled English voice session, and online ASR before capture.
+The session playback setting must match the launcher playback option.
+With `--reference`, the supervisor registers and selects that voice before capture.
+Without `--reference`, select and enable a voice through the frontend.
+The supervisor stays in `waiting_for_voice` until the session is ready or a stop request arrives.
+
+For bilingual captions without speech, add `--mode captions`.
+For source captions during optional-service startup or failure, add `--allow-degraded`.
+This explicit option permits translation failures and skipped speech while capture continues.
+Without this option, required-service failures stop the stack.
+Native API and ASR failures stop both modes.
+The 768 MiB available-memory guard remains active.
+
+The supervisor writes `stack-status.json` in `--run-dir` through an atomic replacement.
+The record includes mode, phase, readiness, degradation reasons, child exit codes, and cleanup results.
+Read `capture_started_at` to identify the input start time.
 With the default coverage policy, the supervisor waits for queued translation and speech after file input ends.
 An explicit stop still ends capture and playback. Waiting tasks remain on disk.
 It does not start the frontend or optional RVC monitor.
@@ -267,13 +279,16 @@ The bridge uses `--speak` for speech requests.
 It uses the selected speech session and accepts only translated text for speech.
 A failed translation publishes the source caption, the last available candidate, and an error.
 The frontend labels the candidate as unverified.
-With speech enabled, the bridge also submits that candidate and sets `speech_degraded: true`.
-The speech service stores this flag and permits Chinese characters in the candidate.
-The English engine has no verified Chinese pronunciation support.
-The [fallback report](../reports/realtime-patches-20261008/FALLBACK.md) gives the validation results and limits.
+The bridge keeps that candidate without a speech request and sets `speech_skipped_reason: translation_failed`.
+Speech job admission returns HTTP 422 for `speech_degraded: true` before queue admission.
 Translation status stays `failed`; the record retains the checks and any speech request error.
 Without a candidate, the bridge publishes the source and error without a speech request.
 It does not use source-language speech as a substitute.
+Source-specific term hints address observed translation failures.
+Number checks treat `seven thousand` and `7000` as equal values.
+They treat `one or two thousand` as the values `1000` and `2000`.
+Captions keep the original candidate text.
+The audit reports excessive consecutive source-term repetitions under `repeated_source_terms`.
 Partial Zipformer captions reach the frontend before endpoint detection.
 One background worker translates final utterances in order.
 The default coverage policy stores waiting final utterances in a disk queue.

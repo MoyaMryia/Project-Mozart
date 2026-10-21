@@ -12,7 +12,7 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 | 实时 RVC | ALSA 预处理客户端与 UDP 后端 | `qiqi-zh-realtime` 已通过 400 ms 启动预算下的 120 s 组合检查 |
 | 文件 RVC | 上传、串行队列、取消请求、结果下载 | 输入最长 300 s；FFmpeg 可取消；整段推理仍需等待返回 |
 | 翻译字幕 | Zipformer 转写、可选 SenseVoice 校正、Qwen 翻译、SSE 字幕 | 已接通；人称、领域词和跨句语义仍有错误 |
-| 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查不能证明语义或声线正确 |
+| 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查覆盖数额，语义与声线由听测确认 |
 | PipeWire 设备接口 | 占位实现 | 当前物理音频使用 `mozart-pre` 的 ALSA 路径 |
 | 零样本语音转换 | 预留模式 | `rt_zero_shot` / `file_zero_shot` 返回 HTTP 501 |
 
@@ -93,6 +93,19 @@ npm --prefix frontend run dev
 需要 nvm 时，先执行 `source ~/.nvm/nvm.sh`。
 完整部署步骤见 [中文](frontend/DEPLOYMENT.zh-CN.md) / [English](frontend/DEPLOYMENT.md)。
 
+### Python 依赖
+
+管线使用 `tools/` 下的 Python 脚本，运行环境需要 `numpy`、`soundfile`、`sherpa-onnx`、`pyusb`。
+
+术语表启用后额外需要两项，未配置术语表时不加载：
+
+```bash
+pip install pypinyin jieba
+```
+
+`pypinyin` 生成同音索引，`jieba` 提供词频，用于区分真词与识别错字。
+词表与纠错表格式见 [state/glossary.example.json](state/glossary.example.json) 与 [state/corrections.example.json](state/corrections.example.json)。
+
 ## 首次文件转换
 
 普通模型目录结构：
@@ -123,9 +136,11 @@ storage:
   file_rnnoise: false
 ```
 
-`device: cuda` 不能证明实际使用 GPU。同名 `.engine` 加载成功时优先 TensorRT；
-ONNX CUDA EP 需要相应运行时与 `-DUSE_CUDA_EP=ON`。检查实际加载日志。
-生产当前不预加载 `.index`，设置 `index_rate` 也不会启用缺失的索引。
+`device` 只写入模型加载日志。运行后端由同名 `.engine` 资产与编译选项决定。
+同名 `.engine` 存在且加载成功时，后端使用 TensorRT；加载失败时回退 ONNX Runtime，原因记入 `*_fallback_reason`。
+ONNX CUDA EP 在 `-DUSE_CUDA_EP=ON` 且 ONNX Runtime 提供 CUDA EP 时附加。
+`/api/status` 的 `model.*_backend` 报告实际后端。
+生产不预加载 `.index`。索引未加载时 `index_rate` 不参与计算，`model.has_index` 为 `false`。
 
 先查询状态，再显式选择目标模型：
 
@@ -157,7 +172,7 @@ curl -X POST http://127.0.0.1:18080/api/file/convert \
 
 配置中的 `realtime_hubert_path` 和 `realtime_rmvpe_path` 指向对应 `.onnx`，
 旁边保留同名 `.engine`。普通 `hubert_path` / `rmvpe_path` 继续供文件和 quality 路径使用。
-split-only 模型不能代替普通文件 Generator。
+文件与 quality 路径只加载 `<model_id>.onnx`。仅配置 split 资产时，文件路径不可用。
 
 显式选择模型后，日志应出现 `upstream realtime (240ms block + 2.5s past + SOLA)`。
 `2.5 s` 是滚动历史上下文，不是额外等待时间。
@@ -165,7 +180,7 @@ split-only 模型不能代替普通文件 Generator。
 实时 TensorRT 路径默认直接连接 Generator front 与 decoder 的 GPU 张量。
 HuBERT 与 RMVPE 默认重叠执行。CPU／ONNX 路径保留主机张量连接。
 对照测试可设置 `MOZART_RVC_DEVICE_CHAIN=0` 或 `MOZART_RVC_PARALLEL_FEATURES=0`，分别关闭对应优化。
-设置 `MOZART_RVC_PROFILE=1` 可记录分段耗时。并行模式下，HuBERT 等待耗时不代表完整 HuBERT 计算时间。
+设置 `MOZART_RVC_PROFILE=1` 可记录分段耗时。并行模式下，日志字段 `hubert_wait_prepare` 记录等待耗时，HuBERT 计算耗时见 `[profile][hubert]` 行的 `engine` 字段。
 
 `rvc.realtime_playout_delay_ms` 默认设为 `400`，表示实时输出的最小启动等待预算，单位为 ms。
 计量从首个输入契约帧开始。该预算覆盖静音转有声及组合负载下的计算抖动，不修改音频样本。
@@ -178,7 +193,7 @@ HuBERT 与 RMVPE 默认重叠执行。CPU／ONNX 路径保留主机张量连接�
 切换模型后，管理器回收多余的闲置对象。该数量限制不是整个进程的内存上限。
 
 `/api/status` 的 `model` 对象报告各阶段的 `*_backend`、`*_asset` 和 `*_fallback_reason`。
-`onnx_cuda_ep` 表示配置了 CUDA 执行提供程序，不证明全部算子都运行于 GPU。
+`onnx_cuda_ep` 记录会话附加的 CUDA 执行提供程序；`tensorrt` 记录加载的 TensorRT 引擎。
 前端的“推理运行状态”可展开查看这些信息。
 
 ```bash

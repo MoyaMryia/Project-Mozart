@@ -305,8 +305,18 @@ void UdpStream::Close() {
         wsa_started_ = false;
     }
 #endif
-    spdlog::info("UdpStream closed: recv={} sent={} dropped={}",
-                 packets_received_.load(), packets_sent_.load(), packets_dropped_.load());
+    spdlog::info("UdpStream closed: recv={} sent={} dropped={} rejected_clients={}",
+                 packets_received_.load(), packets_sent_.load(), packets_dropped_.load(),
+                 rejected_clients_.load());
+}
+
+std::pair<std::string, uint16_t> UdpStream::client_endpoint() const {
+    std::lock_guard<std::mutex> lock(client_mutex_);
+    if (!client_known_.load()) return {"", 0};
+    const auto& address = reinterpret_cast<const sockaddr_in&>(client_addr_);
+    char text[INET_ADDRSTRLEN]{};
+    inet_ntop(AF_INET, &address.sin_addr, text, sizeof(text));
+    return {text, ntohs(address.sin_port)};
 }
 
 void UdpStream::receive_loop() {
@@ -336,17 +346,31 @@ void UdpStream::receive_loop() {
             continue;
         }
 
-        // 仅首个通过协议校验的发送方可成为回复目标。
-        if (!client_known_.load()) {
+        packets_received_.fetch_add(1, std::memory_order_relaxed);
+
+        // 会话切换由控制面关闭并重建流，同时排空旧推理线程。
+        // 直接改成最近发送方会把已有输出发送给另一个客户端。
+        bool foreign_client = false;
+        {
             std::lock_guard<std::mutex> client_lock(client_mutex_);
             if (!client_known_.load()) {
                 std::memcpy(&client_addr_, &src, static_cast<size_t>(src_len));
                 client_addr_len_ = src_len;
                 client_known_.store(true);
+            } else {
+                const auto& owner = reinterpret_cast<const sockaddr_in&>(client_addr_);
+                const auto& sender = reinterpret_cast<const sockaddr_in&>(src);
+                foreign_client = sender.sin_addr.s_addr != owner.sin_addr.s_addr
+                    || sender.sin_port != owner.sin_port;
             }
         }
-
-        packets_received_.fetch_add(1, std::memory_order_relaxed);
+        if (foreign_client) {
+            packets_dropped_.fetch_add(1, std::memory_order_relaxed);
+            if (rejected_clients_.fetch_add(1, std::memory_order_relaxed) == 0) {
+                spdlog::warn("UDP client rejected: restart realtime mode before reconnecting a different client");
+            }
+            continue;
+        }
 
         {
             std::lock_guard<std::mutex> input_lock(input_mutex_);

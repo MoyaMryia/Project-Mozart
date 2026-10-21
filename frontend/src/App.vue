@@ -2,14 +2,17 @@
 // App.vue — 控制中心主应用。
 // 视觉体系：语义化设计令牌（styles.css），亮/暗双主题；圆角两档（卡片 lg、控件 md）。
 // 逻辑：组合式状态 + SSE 字幕订阅。新增：主题切换（localStorage: mozart-theme）。
+import GlossaryPanel from './GlossaryPanel.vue';
 import SpeechPanel from './SpeechPanel.vue';
+import StackPanel from './StackPanel.vue';
+import { createPoll } from './poll';
 import { runtimeStages } from './runtime';
 import { latestTranslation, upsertSubtitle } from './subtitles';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
   type Mode, type MonitorSnapshot, type Preset, type RvcParameters, type Status,
-  type SubtitleEvent,
+  type SubtitleEvent, type StackStatus,
 } from './api';
 
 // ---- 类型/常量 ----
@@ -37,7 +40,11 @@ const toggleTheme = () => {
 
 // ---- 响应式状态 ----
 const status = ref<Status | null>(null);
-const apiOnline = ref(true);
+const apiOnline = ref(false);
+const stackStatus = ref<StackStatus | null>(null);
+const stackError = ref('');
+const lifecycle = new AbortController();
+const appApi = <T,>(path: string, init?: RequestInit) => api<T>(path, { ...init, signal: init?.signal ?? lifecycle.signal });
 const switching = ref(false);                         // 模式切换请求进行中
 const selectedMode = ref<ActiveMode>('rt_rvc');       // UI 选中的行
 const uploadFile = ref<File | null>(null);
@@ -63,6 +70,7 @@ const subtitleState = ref<'connecting' | 'online' | 'offline'>('connecting');
 // ---- toast ----
 let toastTimer: number | undefined;
 const showError = (error: unknown) => {
+  if (lifecycle.signal.aborted) return;
   toastMessage.value = error instanceof Error ? error.message : '操作失败';
   clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => { toastMessage.value = ''; }, 4000);
@@ -77,11 +85,14 @@ const canSubmitFile = computed(() =>
   && status.value?.mode === 'file_rvc'
   && Boolean(uploadFile.value)
   && apiOnline.value);
-const running = computed(() => !!status.value && status.value.mode === selectedMode.value);
+const running = computed(() => !!status.value && apiOnline.value && status.value.mode !== 'idle'
+  && (status.value.mode !== 'rt_rvc' || status.value.worker_running));
 const systemStatusText = computed(() => {
-  if (!status.value) return '已停止';
-  if (running.value) return '运行中';
-  return status.value.mode === 'idle' ? '已停止' : '模式切换中';
+  if (!apiOnline.value) return 'RVC 状态不可用';
+  if (!status.value) return '正在读取 RVC 状态';
+  if (status.value.last_error) return 'RVC 故障';
+  if (status.value.pending_target_mode) return 'RVC 切换中';
+  return running.value ? 'RVC 已启用' : 'RVC 已停止';
 });
 const taskBadgeText = computed(() => {
   if (activeJob.value) return activeJob.value.status.toUpperCase();
@@ -140,14 +151,13 @@ const parameterLabel = (key: keyof RvcParameters, value: string | number) => {
 };
 
 // ---- API 动作 ----
-const refreshStatus = async () => {
-  try {
-    status.value = await api<Status>('/api/status');
-    apiOnline.value = true;
-  } catch {
-    apiOnline.value = false;
-  }
-};
+const statusPoll = createPoll(signal => appApi<Status>('/api/status', { signal }), value => {
+  status.value = value; apiOnline.value = true;
+}, () => { apiOnline.value = false; });
+const stackPoll = createPoll(signal => appApi<StackStatus>('/api/stack/status', { signal }), value => {
+  stackStatus.value = value; stackError.value = '';
+}, error => { stackStatus.value = null; stackError.value = error instanceof Error ? error.message : '读取失败'; });
+const refreshStatus = (replace = false) => statusPoll.run(replace);
 
 const isModeOn = (mode: ActiveMode) =>
   !!status.value && (status.value.mode === mode || status.value.pending_target_mode === mode);
@@ -161,12 +171,12 @@ const switchMode = async (mode: Mode): Promise<boolean> => {
       if (!selectedModel.value) throw new Error('请先选择可用模型');
       localStorage.setItem('mozart-enabled-mode', mode);
     }
-    await api('/api/mode/switch', {
+    await appApi('/api/mode/switch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode, model_id: mode === 'idle' ? '' : selectedModel.value }),
     });
-    await refreshStatus();
+    await refreshStatus(true);
     return true;
   } catch (error) { showError(error); return false; }
   finally { switching.value = false; }
@@ -174,7 +184,7 @@ const switchMode = async (mode: Mode): Promise<boolean> => {
 
 const refreshModels = async () => {
   try {
-    const { models: list } = await api<ModelList>('/api/models');
+    const { models: list } = await appApi<ModelList>('/api/models');
     models.value = list.filter((model) => model.exists);
     if (!models.value.length) { selectedModel.value = ''; return; }
     const current = models.value.find((model) => model.current)?.id || selectedModel.value;
@@ -189,7 +199,7 @@ const refreshModels = async () => {
 
 const refreshParameters = async () => {
   try {
-    Object.assign(parameters, await api<RvcParameters>('/api/parameters'));
+    Object.assign(parameters, await appApi<RvcParameters>('/api/parameters'));
   } catch (error) { showError(error); }
 };
 
@@ -203,7 +213,7 @@ const submitParameters = async () => {
     protect: Number(parameters.protect),
   };
   try {
-    await api('/api/parameters', {
+    await appApi('/api/parameters', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
@@ -218,14 +228,14 @@ const onParameterInput = () => {
 };
 
 const refreshPresets = async () => {
-  const response = await api<{ presets: Preset[] }>('/api/presets');
+  const response = await appApi<{ presets: Preset[] }>('/api/presets');
   presets.value = response.presets;
 };
 const applyPreset = async (id: string) => {
   const preset = presets.value.find((item) => item.id === id);
   if (!preset) return;
   try {
-    await api('/api/parameters', {
+    await appApi('/api/parameters', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(preset.parameters),
     });
@@ -239,7 +249,7 @@ const savePreset = async () => {
   const name = window.prompt('预设名称');
   if (!name?.trim()) return;
   try {
-    await api('/api/presets', {
+    await appApi('/api/presets', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim(), parameters }),
     });
@@ -250,23 +260,18 @@ const deletePreset = async () => {
   const id = selectedPresetId.value;
   if (!id || !window.confirm('删除该预设？')) return;
   try {
-    await api(`/api/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await appApi(`/api/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
     selectedPresetId.value = '';
     await refreshPresets();
   } catch (error) { showError(error); }
 };
 
-const refreshLogs = async () => {
-  try {
-    logs.value = (await api<{ entries: BackendLogEntry[] }>('/api/logs?limit=200')).entries;
-  } catch { /* status 轮询负责连通性提示 */ }
-};
-
-const refreshMonitor = async () => {
-  const response = await fetch('/api/monitor');
-  if (!response.ok) throw new Error(`Monitor returned HTTP ${response.status}`);
-  monitor.value = await response.json() as MonitorSnapshot;
-};
+const logsPoll = createPoll(signal => appApi<{ entries: BackendLogEntry[] }>('/api/logs?limit=200', { signal }),
+  value => { logs.value = value.entries; }, () => undefined);
+const monitorPoll = createPoll(signal => appApi<MonitorSnapshot>('/api/monitor', { signal }),
+  value => { monitor.value = value; }, () => { monitor.value = null; });
+const refreshLogs = () => logsPoll.run();
+const refreshMonitor = () => monitorPoll.run();
 
 const submitFile = async () => {
   if (!uploadFile.value) return showError(new Error('请先选择音频文件'));
@@ -277,11 +282,11 @@ const submitFile = async () => {
     data.append('audio_file', uploadFile.value);
     data.append('model_id', selectedModel.value);
     uploading.value = true;
-    await api<{ job_id: string }>('/api/file/convert', { method: 'POST', body: data });
+    await appApi<{ job_id: string }>('/api/file/convert', { method: 'POST', body: data });
     uploadFile.value = null;
     uploadFileName.value = '';
     uploadInputValue.value = '';
-    await refreshStatus();
+    await refreshStatus(true);
   } catch (error) {
     showError(error);
   } finally {
@@ -291,14 +296,14 @@ const submitFile = async () => {
 
 const cancelJob = async (job: Job) => {
   try {
-    await api(`/api/file/cancel?job_id=${encodeURIComponent(job.job_id)}`, { method: 'DELETE' });
-    await refreshStatus();
+    await appApi(`/api/file/cancel?job_id=${encodeURIComponent(job.job_id)}`, { method: 'DELETE' });
+    await refreshStatus(true);
   } catch (error) { showError(error); }
 };
 const removeJob = async (job: Job) => {
   try {
-    await api(`/api/file/job?job_id=${encodeURIComponent(job.job_id)}`, { method: 'DELETE' });
-    await refreshStatus();
+    await appApi(`/api/file/job?job_id=${encodeURIComponent(job.job_id)}`, { method: 'DELETE' });
+    await refreshStatus(true);
   } catch (error) { showError(error); }
 };
 const cancelActive = async () => {
@@ -307,8 +312,8 @@ const cancelActive = async () => {
 const togglePause = async () => {
   const endpoint = queuePaused.value ? '/api/file/resume' : '/api/file/pause';
   try {
-    await api(endpoint, { method: 'POST' });
-    await refreshStatus();
+    await appApi(endpoint, { method: 'POST' });
+    await refreshStatus(true);
   } catch (error) { showError(error); }
 };
 const globalRun = async () => {
@@ -316,7 +321,7 @@ const globalRun = async () => {
 };
 const globalStop = async () => {
   await switchMode('idle');
-  try { await api('/api/speech/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); }
+  try { await appApi('/api/speech/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); }
   catch { /* An absent speech service does not prevent stopping RVC. */ }
 };
 
@@ -343,12 +348,12 @@ const micMuted = computed(() => status.value?.realtime?.mic_muted ?? false);
 const bypassOn = computed(() => status.value?.realtime?.bypass ?? false);
 const setRouting = async (patch: Record<string, boolean>) => {
   try {
-    await api('/api/realtime/routing', {
+    await appApi('/api/realtime/routing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     });
-    await refreshStatus();
+    await refreshStatus(true);
   } catch (error) { showError(error); }
 };
 const toggleMicMute = () => void setRouting({ mic_muted: !micMuted.value });
@@ -382,6 +387,7 @@ onMounted(() => {
   const stored = localStorage.getItem('mozart-enabled-mode') as ActiveMode | null;
   selectedMode.value = stored && MODES.includes(stored) ? stored : 'rt_rvc';
   void refreshStatus();
+  void stackPoll.run();
   void refreshModels();
   void refreshLogs();
   void refreshParameters();
@@ -389,11 +395,16 @@ onMounted(() => {
   void refreshMonitor().catch(() => undefined);
   connectSubtitles();
   timers.push(window.setInterval(() => void refreshStatus(), 1000));
+  timers.push(window.setInterval(() => void stackPoll.run(), 1000));
   timers.push(window.setInterval(() => void refreshLogs(), 1500));
   timers.push(window.setInterval(() => void refreshMonitor().catch(() => undefined), 2000));
 });
 onUnmounted(() => {
   timers.forEach(clearInterval);
+  clearTimeout(toastTimer);
+  clearTimeout(parameterSyncTimer);
+  statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop();
+  lifecycle.abort();
   eventSource?.close();
 });
 </script>
@@ -459,7 +470,7 @@ onUnmounted(() => {
     <!-- 左栏：全局控制、系统运行模式与导航 -->
     <section class="left-sidebar bg-panel border-r border-edge-soft overflow-visible md:overflow-hidden md:h-full" aria-label="System Navigation">
       <div class="sidebar-controls space-y-4 p-4 md:px-5 md:py-3 md:overflow-y-auto">
-        <!-- 全局运行控制 -->
+        <!-- RVC 运行控制 -->
         <div v-if="!speechOnly" class="relative">
           <div class="flex items-center gap-2 min-h-[24px] mb-2" aria-live="polite">
             <div class="relative w-5 h-5 flex items-center justify-center" aria-hidden="true">
@@ -470,14 +481,14 @@ onUnmounted(() => {
               <div :class="['text-sm font-extrabold leading-5 tracking-tight', running ? 'state-ok' : 'state-err']">{{ systemStatusText }}</div>
             </div>
           </div>
-          <div class="transport-control" role="group" aria-label="全局运行控制">
+          <div class="transport-control" role="group" aria-label="RVC 运行控制">
             <button type="button" data-state="paused" class="transport-button" aria-label="暂停文件队列" :title="queuePaused ? '恢复文件队列' : '暂停队列（当前任务会完成）'" :aria-pressed="queuePaused" :class="{ 'is-active': queuePaused }" :disabled="status?.mode !== 'file_rvc'" @click.prevent="togglePause">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h4v14H6V5Zm8 0h4v14h-4V5Z"/></svg>
             </button>
-            <button type="button" data-state="running" class="transport-button" aria-label="启动全局处理" title="启动" :aria-pressed="!!status && status.mode !== 'idle'" :class="{ 'is-active': !!status && status.mode !== 'idle' }" :disabled="switching || status?.capabilities[selectedMode] !== true" @click.prevent="globalRun">
+            <button type="button" data-state="running" class="transport-button" aria-label="启动 RVC 处理" title="启动" :aria-pressed="!!status && status.mode !== 'idle'" :class="{ 'is-active': !!status && status.mode !== 'idle' }" :disabled="switching || status?.capabilities[selectedMode] !== true" @click.prevent="globalRun">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
             </button>
-            <button type="button" data-state="stopped" class="transport-button" aria-label="停止 RVC 和语音播报" title="停止 RVC 和语音播报（当前 RVC 文件任务会完成）" :aria-pressed="status?.mode === 'idle'" :class="{ 'is-active': !status || status.mode === 'idle' }" @click.prevent="globalStop">
+            <button type="button" data-state="stopped" class="transport-button" aria-label="停止 RVC 和语音播报" title="停止 RVC 和播报；识别采集继续（文件任务会完成）" :aria-pressed="status?.mode === 'idle'" :class="{ 'is-active': !status || status.mode === 'idle' }" @click.prevent="globalStop">
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6V6Z"/></svg>
             </button>
           </div>
@@ -514,6 +525,8 @@ onUnmounted(() => {
           <a href="#reference-speech" class="block text-xs font-bold text-ink underline">管理参考音色与翻译播报</a>
         </div>
 
+        <GlossaryPanel />
+
         <!-- 挂起切换状态槽 -->
         <div :class="['banner-warn flex items-start gap-2.5 p-3.5', !status?.pending_target_mode && 'hidden']" aria-live="polite">
           <span class="w-2 h-2 bg-amber-500 rounded-full mt-1.5 animate-pulse motion-reduce:animate-none shrink-0"></span>
@@ -533,7 +546,8 @@ onUnmounted(() => {
 
       <div class="min-h-0 flex flex-col overflow-y-auto no-scrollbar">
 
-      <SpeechPanel id="reference-speech" />
+      <StackPanel :status="stackStatus" :error="stackError" />
+      <SpeechPanel id="reference-speech" :stack-status="stackStatus" />
 
       <!-- FILE 模式：音频文件上传 -->
       <div :class="['mb-6', !isFileMode(selectedMode) && 'hidden']">
@@ -619,7 +633,7 @@ onUnmounted(() => {
               <option value="file_zero_shot" translate="no">FILE_ZERO_SHOT</option>
               -->
             </select>
-            <button type="button" class="console-action text-tiny px-1.5 py-1 rounded-sm shrink-0" @click="void api('/api/logs', { method: 'DELETE' }).then(refreshLogs).catch(showError)">清空日志</button>
+            <button type="button" class="console-action text-tiny px-1.5 py-1 rounded-sm shrink-0" @click="void appApi('/api/logs', { method: 'DELETE' }).then(refreshLogs).catch(showError)">清空日志</button>
           </div>
         </div>
         <div class="flex-1 overflow-y-auto p-3 space-y-2 text-[12px] leading-5 font-mono" role="log" aria-live="polite" aria-label="System logs">
@@ -650,7 +664,7 @@ onUnmounted(() => {
               <option value="">当前参数</option>
               <option v-for="preset in presets" :key="preset.id" :value="preset.id">{{ preset.name }}</option>
             </select>
-            <button type="button" class="btn btn-outline btn-icon" aria-label="恢复后端默认参数" title="恢复默认参数" @click="void api('/api/parameters/reset', { method: 'POST' }).then(refreshParameters).catch(showError)">
+            <button type="button" class="btn btn-outline btn-icon" aria-label="恢复后端默认参数" title="恢复默认参数" @click="void appApi('/api/parameters/reset', { method: 'POST' }).then(refreshParameters).catch(showError)">
               <svg class="w-3.5 h-3.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
             </button>
             <button type="button" class="btn btn-accent btn-sm" @click="savePreset">保存预设</button>
@@ -705,7 +719,7 @@ onUnmounted(() => {
       <section :class="['border-t border-edge pt-4', !isFileMode(selectedMode) && 'hidden']" aria-label="文件处理队列">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase section-title" data-i18n="fileQueueTitle">文件处理队列</h2>
-          <div class="flex items-center gap-2"><span class="text-micro font-mono text-ink-3">{{ status?.queue.length ?? 0 }} 项</span><button type="button" class="link-muted text-micro" @click="void api('/api/file/finished', { method: 'DELETE' }).then(refreshStatus).catch(showError)">清理完成项</button></div>
+          <div class="flex items-center gap-2"><span class="text-micro font-mono text-ink-3">{{ status?.queue.length ?? 0 }} 项</span><button type="button" class="link-muted text-micro" @click="void appApi('/api/file/finished', { method: 'DELETE' }).then(() => refreshStatus(true)).catch(showError)">清理完成项</button></div>
         </div>
         <div class="bg-surface rounded-lg border border-edge card-shadow overflow-hidden">
           <div class="grid grid-cols-12 gap-1 px-3 py-2 bg-subtle text-micro font-extrabold text-ink-3 uppercase tracking-wider border-b border-edge-soft">
@@ -741,7 +755,7 @@ onUnmounted(() => {
           <svg :class="['routing-icon absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', !micMuted && 'routing-icon--ok']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4Zm-6 9H4v1a8 8 0 0 0 7 7.94V22H8v2h8v-2h-3v-2.06A8 8 0 0 0 20 12v-1h-2v1a6 6 0 0 1-12 0v-1Z"/>
           </svg>
-          <span class="w-full pl-8 text-left" data-i18n="btnMute">{{ micMuted ? '取消静音' : '静音麦克风' }}</span>
+          <span class="w-full pl-8 text-left" data-i18n="btnMute">{{ micMuted ? '恢复变声输出' : '静音变声输出' }}</span>
         </button>
         <button type="button" :class="['routing-btn', bypassOn && 'is-on']" :aria-pressed="bypassOn" :disabled="!realtimeAvailable || switching" :title="realtimeAvailable ? '输出原始人声（不推理）' : '仅在 RT_RVC 运行时可用'" @click.prevent="toggleBypass">
           <svg :class="['routing-icon absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', bypassOn && 'routing-icon--ok']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">

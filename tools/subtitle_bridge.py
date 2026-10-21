@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Streaming Chinese ASR → English translation → captions and reference speech.
 
-Captions retain source text, translation candidates, and errors. Speech can use
-a candidate that fails translation checks. The speech service owns its queue
-and playback device.
+Captions retain source text, translation candidates, and errors. Only accepted
+translations enter speech. The speech service owns its queue and playback device.
 """
 import argparse
+import difflib
+import glossary
+import homophones
 import json
 import os
 from pathlib import Path
@@ -19,9 +21,47 @@ import threading
 import queue
 from durable_jobs import DiskFifo
 from collections import OrderedDict
-from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles
+from translation_checks import repeated_source_terms
+from speech_duration import source_duration
+from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles, added_negation
 import re
 from asr_checks import boundary_fragment_audit
+
+# 复核（final model）只在片段足够长、且与流式原文足够接近时替换译文源。
+REFINED_MIN_CHARS = 6
+REFINED_MIN_SIMILARITY = 0.5
+# 复核耗时随片段长度增长：实测 7 s 片段 1.93 s、3 s 片段 0.58 s。
+# 等待窗口按时长缩放，并设上限，避免无限推迟翻译。
+REFINED_WAIT_BASE = 0.4
+REFINED_WAIT_RATIO = 0.3
+REFINED_WAIT_MAX = 2.5
+
+
+def refinement_wait(event):
+    seconds = source_duration(event) or 0
+    return min(REFINED_WAIT_MAX, REFINED_WAIT_BASE + REFINED_WAIT_RATIO*seconds)
+
+
+def normalise_source(text):
+    return ''.join(ch for ch in text if ch.isalnum() or '\u4e00' <= ch <= '\u9fff')
+
+
+BROKEN_NUMERAL = re.compile(r'[零〇一二两三四五六七八九十百千]\d|\d[零〇一二两三四五六七八九十百千]')
+
+
+def translation_source(raw, refined):
+    """复核文本可信时用它做译文源，否则退回流式原文。"""
+    if not refined:
+        return raw
+    raw_n, refined_n = normalise_source(raw), normalise_source(refined)
+    if len(raw_n) < REFINED_MIN_CHARS:
+        return raw
+    if difflib.SequenceMatcher(None, raw_n, refined_n).ratio() < REFINED_MIN_SIMILARITY:
+        return raw
+    # 复核把「一千」写成「一00」时，流式原文仍可用，退回原文。
+    if BROKEN_NUMERAL.search(refined_n) and not BROKEN_NUMERAL.search(raw_n):
+        return raw
+    return refined.strip()
 
 SYSTEM_PROMPT = (
     'Translate the Chinese utterance into English. Return only the translation. '
@@ -40,6 +80,21 @@ def request_json(url, body, timeout=10):
 
 # 通用年龄称谓。这里不修正识别原文，也不推断亲属关系。
 TITLE_GLOSSARY = {'大妈': 'older woman', '大爷': 'older man'}
+# 领域术语：只在源文出现时写入提示词。词表随配置文件变化，改完不必重启。
+GLOSSARY_LIMIT = 64*1024
+
+
+def correction_table():
+    """显式纠错表，路径来自 MOZART_CORRECTIONS。未配置时为空。"""
+    source = os.environ.get('MOZART_CORRECTIONS')
+    return homophones.load_corrections(source) if source else {}
+
+
+def translation_glossary():
+    path = glossary.path()
+    if path and path.exists() and path.stat().st_size <= GLOSSARY_LIMIT:
+        return {**TITLE_GLOSSARY, **glossary.load(path), '麻醉剂': 'anesthetic'}
+    return {**TITLE_GLOSSARY, '麻醉剂': 'anesthetic'}
 
 
 def repair_chinese_terms(source, candidate):
@@ -55,6 +110,7 @@ def repair_chinese_terms(source, candidate):
 
 def translate(url, text, timeout=10, audit=None, context=None, repair_untranslated=True):
     started = time.monotonic()
+    text, fixes = homophones.correct(text, translation_glossary(), corrections=correction_table())
     constraints = required_numbers(text)
     translation_source = normalize_translation_quantities(text)
     if '还贷款' in text:
@@ -76,6 +132,9 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
     role_constraints = source_role_constraints(text)
     if role_constraints:
         messages[0]['content'] += ' ' + ' '.join(role_constraints)
+    terms = {term: meaning for term, meaning in translation_glossary().items() if term in text}
+    if terms:
+        messages[0]['content'] += ' Use these source terms: '+json.dumps(terms, ensure_ascii=False)+'.'
     base_system = messages[0]['content']
     if context:
         messages[0]['content'] += (
@@ -109,6 +168,8 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
         normalized = re.sub(r'\W', '', content).casefold()
         context_repeated = any(text.strip() != item['source'].strip() and normalized and
             normalized == re.sub(r'\W', '', item['translation']).casefold() for item in (context or []))
+        term_loops = repeated_source_terms(text, content)
+        negation = added_negation(translation_source, content)
         if audit is not None:
             audit.append({'attempt':attempt+1,'content':content,'missing_numbers':missing,
                           'repeated_numbers':repeated,'added_large_numbers':added,
@@ -117,19 +178,26 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
                           'untranslated_chinese':untranslated,'finish_reason':choice.get('finish_reason'),
                           'repeated_context_translation':context_repeated,
                           'translation_source':translation_source,
-                          'term_repair':term_repair})
-        if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated and not context_repeated:
+                          'term_repair':term_repair,'added_negation':negation,
+                          'homophone_fixes':fixes})
+            audit[-1]['repeated_source_terms'] = term_loops
+        if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated and not context_repeated and not term_loops and not negation:
             return content, time.monotonic()-started
         # Start a fresh request: including the rejected answer in chat history
         # caused the small model to reproduce its hallucinated quantities.
         messages = [{'role': 'system', 'content': base_system}, dict(messages[1])]
         messages[0]['content'] += (
             ' Translate every source clause once. Do not repeat amounts or add explanations. '
+            'Do not add negation that the source does not contain. '
             'Return a complete translation within the output limit.')
+        if term_loops:
+            messages[0]['content'] += ' Preserve the source occurrence counts: '+', '.join(
+                f"{item['term']}={item['source_count']}" for item in term_loops)+'.'
         # 仅修复原文中存在的残留中文。修复后仍执行全部数字和角色检查。
         repair_candidate = content if (repair_untranslated and untranslated and not missing
             and not repeated and not added and not value_counts and not repayment_changed
-            and not role_issues and not truncated and not context_repeated) else None
+            and not role_issues and not truncated and not context_repeated and not term_loops
+            and not negation) else None
     reasons=[]
     if missing:reasons.append('required numerals missing: '+', '.join(missing))
     if repeated:reasons.append('unsupported repeated quantities: '+', '.join(repeated))
@@ -140,6 +208,8 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
     if untranslated:reasons.append('untranslated Chinese in English output')
     if truncated:reasons.append('output token limit reached before completion')
     if context_repeated:reasons.append('translation repeats a different previous source segment')
+    if term_loops:reasons.append('unsupported repeated source terms: '+', '.join(item['term'] for item in term_loops))
+    if negation:reasons.append('added negation absent from the source: '+', '.join(negation))
     raise ValueError('Translation rejected: '+'; '.join(reasons))
 
 
@@ -156,12 +226,13 @@ def translate_recognized_event(url, event, audit=None):
 
 
 def source_caption(event, seq, session_id):
-    text = event['text'].strip()
+    raw_text = (event.get('text_raw') or event['text']).strip()
+    text, fixes = homophones.correct(raw_text, translation_glossary(), corrections=correction_table())
     final = event.get('type', 'final') == 'final'
     record = {'seq': seq, 'utterance_id': f'{session_id}:{event["seq"]}',
         'zh': text, 'en': '', 'asr_engine': event.get('final_engine', 'zipformer'),
         'received_at': time.time(), 'asr_emitted_at': event.get('emitted_at'),
-        'online_text': event.get('online_text', text),
+        'online_text': event.get('online_text', raw_text),
         'final_decode_ms': event.get('final_decode_ms', 0),
         'ts': time.strftime('%H:%M:%S'), 'final': final,
         'revision': 0, 'translation_status': 'pending' if final else 'recognizing'}
@@ -170,24 +241,32 @@ def source_caption(event, seq, session_id):
                  'refinement_status'):
         if name in event:
             record[name] = event[name]
+    if fixes:
+        record['zh_raw'] = raw_text
+        record['homophone_fixes'] = fixes
     boundary = boundary_fragment_audit(text) if final else None
     if boundary is not None:
         record['asr_boundary_audit'] = boundary
     return record
 
 
-def caption_updates(event, seq, session_id, llama_url, speech_url=None):
-    """Publish source text, then translation, then the speech request result."""
+def caption_updates(event, seq, session_id, llama_url, speech_url=None, translate_text=None):
+    """Publish source text, then translation, then the speech request result.
+
+    translate_text 是实际送去翻译的源文本：复核可信时为复核文本，否则为流式原文。
+    """
     text = event['text'].strip()
+    source_text = (translate_text or text).strip()
     record = source_caption(event, seq, session_id)
     yield dict(record)
 
     translating = time.monotonic()
     try:
         record['translation_audit'] = []
-        record['en'], _ = translate_recognized_event(llama_url, event, audit=record['translation_audit'])
+        source = {**event, 'text': source_text}
+        record['en'], _ = translate_recognized_event(llama_url, source, audit=record['translation_audit'])
         record['translation_status'] = 'completed'
-    except Exception as error:
+    except (OSError, ValueError) as error:
         record.update(translation_error=str(error), translation_status='failed')
         record['en'] = next((item['content'] for item in reversed(record['translation_audit'])
                              if item.get('content')), '')
@@ -197,6 +276,8 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
             record['speech_skipped_reason'] = 'asr_polarity_uncertainty'
         elif record.get('asr_boundary_audit', {}).get('issues'):
             record['speech_skipped_reason'] = 'asr_boundary_uncertainty'
+        else:
+            record['speech_skipped_reason'] = 'translation_failed'
         print(f'[bridge] translate failed: {error}', file=sys.stderr, flush=True)
     if event.get('source_correction') and record['en']:
         record['en'] = 'Correction. '+record['en']
@@ -204,19 +285,15 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None):
                   translated_at=time.time(), revision=1)
     yield dict(record)
 
-    if speech_url and record['en']:
-        if record['translation_status'] == 'failed':
-            record['speech_degraded'] = True
+    if speech_url and record['translation_status'] == 'completed':
         try:
-            from speech_duration import source_duration
             result = request_json(speech_url+'/api/speech/events', {
-                'text': record['en'], 'source_text': text,
+                'text': record['en'], 'source_text': source_text,
                 'source_duration_seconds': source_duration(event),
                 'source_emitted_at': event.get('emitted_at'),
-                'speech_degraded': record.get('speech_degraded', False),
                 'utterance_id': record['utterance_id']}, timeout=3)
             record['speech'] = result.get('id', result.get('skipped', ''))
-        except Exception as error:
+        except (OSError, ValueError) as error:
             record['speech_error'] = str(error)
         record['revision'] = 2
         yield dict(record)
@@ -226,7 +303,7 @@ class CaptionDispatcher:
     """Publish source captions while one worker processes queued translations."""
 
     def __init__(self, publish, session_id, llama_url, speech_url=None, pending_limit=4,
-                 spool_path=None):
+                 spool_path=None, refine=False):
         self.publish, self.session_id = publish, session_id
         self.llama_url, self.speech_url = llama_url, speech_url
         self.durable = spool_path is not None
@@ -235,6 +312,9 @@ class CaptionDispatcher:
         self.lock = threading.RLock()
         self.closing = threading.Event()
         self.aborted = False
+        self.refine = refine
+        self.refined = {}
+        self.refined_ready = threading.Condition(self.lock)
         self.worker = threading.Thread(target=self.run, daemon=True)
         self.worker.start()
 
@@ -256,7 +336,18 @@ class CaptionDispatcher:
         if self.closing.is_set():
             return
         if event.get('type') == 'refined':
+            if self.refine and event.get('refinement_status') == 'completed':
+                with self.refined_ready:
+                    self.refined[event['seq']] = event.get('refined_text') or ''
+                    while len(self.refined) > 64:
+                        self.refined.pop(next(iter(self.refined)))
+                    self.refined_ready.notify_all()
             changes = {'refinement_status': event['refinement_status']}
+            if event.get('refined_text'):
+                corrected, fixes = homophones.correct(event['refined_text'], translation_glossary(), corrections=correction_table())
+                if fixes:
+                    changes['refined_text'] = corrected
+                    changes['refined_homophone_fixes'] = fixes
             for source, target in (('refined_text', 'refined_zh'), ('refinement_error', 'refinement_error'),
                                    ('final_decode_ms', 'refinement_decode_ms'),
                                    ('asr_numeric_audit', 'refinement_numeric_audit'),
@@ -293,6 +384,21 @@ class CaptionDispatcher:
             if self.durable:
                 self.pending.close()
 
+    def await_refinement(self, event):
+        """等待同一 seq 的复核结果，超时或不可信时使用流式原文。"""
+        raw = event['text'].strip()
+        if event.get('refined_text'):
+            return translation_source(raw, event['refined_text'])
+        deadline = time.monotonic() + refinement_wait(event)
+        with self.refined_ready:
+            while event['seq'] not in self.refined and not self.closing.is_set():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                self.refined_ready.wait(remaining)
+            refined = self.refined.pop(event['seq'], '')
+        return translation_source(raw, refined)
+
     def process_pending(self):
         while not self.aborted and (not self.closing.is_set() or not self.pending.empty()):
             try:
@@ -302,9 +408,11 @@ class CaptionDispatcher:
             event = item['event'] if self.durable else item
             session_id = item['session_id'] if self.durable else self.session_id
             key = f'{session_id}:{event["seq"]}'
+            translate_text = self.await_refinement(event) if self.refine else event['text'].strip()
             try:
                 updates = caption_updates(event, event['seq'], session_id,
-                                          self.llama_url, self.speech_url)
+                                          self.llama_url, self.speech_url,
+                                          translate_text=translate_text)
                 next(updates)
                 for record in updates:
                     if self.aborted:
@@ -312,7 +420,7 @@ class CaptionDispatcher:
                     changes = {name: value for name, value in record.items()
                                if name.startswith(('translation_', 'speech')) or name in
                                ('en', 'translate_ms', 'translated_at')}
-                    changes['translation_source_text'] = event['text'].strip()
+                    changes['translation_source_text'] = translate_text
                     self.update(key, changes)
             except Exception as error:
                 self.update(key, {'translation_status': 'failed', 'translation_error': str(error)})
@@ -393,7 +501,9 @@ def main():
             if args.stable_clauses:
                 from stable_clauses import StableClauseDispatcher
                 dispatcher_type = StableClauseDispatcher
-            dispatcher_options = {'boundary_classifier': boundary_classifier} if boundary_classifier else {}
+            dispatcher_options = {'refine': bool(args.final_model)}
+            if boundary_classifier:
+                dispatcher_options['boundary_classifier'] = boundary_classifier
             queue_name = ('translation-boundaries.sqlite3' if boundary_classifier else
                 'translation-clauses.sqlite3' if args.stable_clauses else 'translation-queue.sqlite3')
             dispatcher = dispatcher_type(publish, session_id, args.llama_url,

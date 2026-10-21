@@ -64,6 +64,12 @@ public:
         uint64_t startup_output_underruns = 0;
         uint32_t playout_delay_ms = 0;
         double queued_output_ms = 0.0;
+        uint64_t packets_received = 0;
+        uint64_t packets_sent = 0;
+        uint64_t packets_dropped = 0;
+        uint64_t rejected_clients = 0;
+        std::string peer_host;
+        uint16_t peer_port = 0;
     };
 
     AudioWorker(mozart_stream_handle_t stream,

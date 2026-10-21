@@ -2,6 +2,9 @@
 
 #include <stdexcept>
 #include <utility>
+#ifdef MOZART_IO_ENABLE_UDP
+#include "mozart/udp_stream.hpp"
+#endif
 
 namespace rvc {
 
@@ -71,7 +74,20 @@ AudioWorker::BypassStats RealtimeRvcWorker::bypass_stats() const {
 }
 
 AudioWorker::StreamStats RealtimeRvcWorker::stream_stats() const {
-    return worker_ ? worker_->get_stream_stats() : AudioWorker::StreamStats{};
+    auto stats = worker_ ? worker_->get_stream_stats() : AudioWorker::StreamStats{};
+#ifdef MOZART_IO_ENABLE_UDP
+    if (stream_) {
+        const auto* udp = static_cast<const mozart::UdpStream*>(stream_);
+        stats.packets_received = udp->packets_received();
+        stats.packets_sent = udp->packets_sent();
+        stats.packets_dropped = udp->packets_dropped();
+        stats.rejected_clients = udp->rejected_clients();
+        const auto peer = udp->client_endpoint();
+        stats.peer_host = peer.first;
+        stats.peer_port = peer.second;
+    }
+#endif
+    return stats;
 }
 
 bool RealtimeRvcWorker::is_stream_mode() const noexcept {

@@ -42,11 +42,10 @@ class RunnerDegradedTests(unittest.TestCase):
             return process
         def urlopen(request, **kwargs):
             url = request if isinstance(request, str) else request.full_url
-            if '/api/speech/status' in url and not isinstance(request, str) and threading.current_thread() is not threading.main_thread():
-                self.assertTrue(capture_started.wait(3), 'Capture must start before speech warmup completes')
+            if '/api/speech/status' in url and capture_started.is_set():
                 speech_ready.set()
             response = Mock(status=200)
-            response.read.return_value = json.dumps({'runtime': {'engine': 'fake'}, 'jobs': []}).encode()
+            response.read.return_value = json.dumps({'runtime': {'engine': 'fake'}, 'runtime_ready': True, 'jobs': []}).encode()
             response.__enter__ = Mock(return_value=response)
             response.__exit__ = Mock(return_value=False)
             return response
@@ -65,9 +64,10 @@ class RunnerDegradedTests(unittest.TestCase):
         if boundary:
             options += ['--boundary-model', '/isolated/nnsplit-zh.onnx', '--boundary-threshold', '.4', '--clause-max-chars', '24']
         with tempfile.TemporaryDirectory() as directory, \
-                patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--run-dir', directory]+options), \
+                patch.object(sys, 'argv', ['runner', '--backend-config', 'fake.toml', '--allow-degraded', '--input', '/test/input.wav', '--run-dir', directory]+options), \
                 patch.object(runner, 'assert_ports_available'), \
                 patch.object(runner.subprocess, 'Popen', side_effect=popen), \
+                patch.object(runner.subprocess, 'run'), \
                 patch.object(runner.urllib.request, 'urlopen', side_effect=urlopen), \
                 patch.object(runner.socket, 'socket', return_value=sock), \
                 patch.object(runner.signal, 'signal'), \
@@ -76,6 +76,13 @@ class RunnerDegradedTests(unittest.TestCase):
             try:
                 runner.main()
                 status = json.loads((Path(directory)/'speech-results.json').read_text())
+                stack_status = json.loads((Path(directory)/'stack-status.json').read_text())
+                self.assertTrue(stack_status['allow_degraded'])
+                self.assertEqual(stack_status['state'], 'completed')
+                self.assertIsNotNone(stack_status['capture_started_at'])
+                if missing_optional:
+                    self.assertIn('speech', stack_status['degraded'])
+                    self.assertIn('translation', stack_status['degraded'])
             finally:
                 capture_started.set()
         self.assertIn('captions', launches)

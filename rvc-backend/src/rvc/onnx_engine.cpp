@@ -8,7 +8,7 @@ namespace rvc {
 
 std::unique_ptr<IEngine> make_engine(const std::filesystem::path& model_path) {
     std::string fallback_reason;
-    // 约定：模型 X.onnx 旁存在 X.engine 时优先 TensorRT 直载（GPU）
+    // X.engine 与 X.onnx 同名时先加载 X.engine；加载失败回退 X.onnx。
     if (model_path.extension() == ".onnx") {
         auto engine_path = model_path;
         engine_path.replace_extension(".engine");

@@ -64,19 +64,7 @@
   {
    "path": "README.md",
    "rule": "hedge-in-body",
-   "text": "| 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查不能证明语义或声线正确 |",
-   "count": 1
-  },
-  {
-   "path": "README.md",
-   "rule": "hedge-in-body",
    "text": "| 文件 RVC | 上传、串行队列、取消请求、结果下载 | 输入最长 300 s；FFmpeg 可取消；整段推理仍需等待返回 |",
-   "count": 1
-  },
-  {
-   "path": "README.md",
-   "rule": "hedge-in-body",
-   "text": "不能证明实际使用 GPU。同名  加载成功时优先 TensorRT；",
    "count": 1
   },
   {
@@ -95,12 +83,6 @@
    "path": "README.md",
    "rule": "hedge-in-body",
    "text": "是滚动历史上下文，不是额外等待时间。",
-   "count": 1
-  },
-  {
-   "path": "README.md",
-   "rule": "hedge-in-body",
-   "text": "设置  可记录分段耗时。并行模式下，HuBERT 等待耗时不代表完整 HuBERT 计算时间。",
    "count": 1
   },
   {
@@ -388,31 +370,13 @@
   {
    "path": "frontend/DEPLOYMENT.md",
    "rule": "hedge-in-body",
-   "text": "It does not guarantee a particular initial model.",
-   "count": 1
-  },
-  {
-   "path": "frontend/DEPLOYMENT.md",
-   "rule": "hedge-in-body",
    "text": "Such a build does not prove that real model inference is available.",
-   "count": 1
-  },
-  {
-   "path": "frontend/DEPLOYMENT.md",
-   "rule": "hedge-in-body",
-   "text": "The  setting does not prove GPU execution.",
    "count": 1
   },
   {
    "path": "frontend/DEPLOYMENT.zh-CN.md",
    "rule": "hedge-in-body",
    "text": "取消请求可以终止 FFmpeg。正在执行的整段 RVC 推理仍需等待返回。",
-   "count": 1
-  },
-  {
-   "path": "frontend/DEPLOYMENT.zh-CN.md",
-   "rule": "hedge-in-body",
-   "text": "此类构建不能证明真实模型可用。独立构建  不产生守护进程。",
    "count": 1
   },
   {
@@ -2156,12 +2120,6 @@
    "count": 1
   },
   {
-   "path": "rvc-backend/src/rvc/model_loader.cpp",
-   "rule": "hedge-in-comment",
-   "text": "// NOTE(index): 检索链路尚未验证（TODO.md P3），且所有已验证配置",
-   "count": 1
-  },
-  {
    "path": "rvc-backend/src/rvc/streaming_pipeline.cpp",
    "rule": "hedge-in-comment",
    "text": "// 环已回绕、前缀被丢弃：重新锚定而不是永久失败",
@@ -2398,24 +2356,6 @@
   {
    "path": "state/API.md",
    "rule": "hedge-in-body",
-   "text": "A real pipeline label or a CUDA request does not prove satisfactory GPU execution.",
-   "count": 1
-  },
-  {
-   "path": "state/API.md",
-   "rule": "hedge-in-body",
-   "text": "The  field marks final ASR text. It does not mean translation or speech has finished.",
-   "count": 1
-  },
-  {
-   "path": "state/API.md",
-   "rule": "hedge-in-body",
-   "text": "The API does not yet give full information about the actual runtime and asset selection.",
-   "count": 1
-  },
-  {
-   "path": "state/API.md",
-   "rule": "hedge-in-body",
    "text": "They do not prove neural quality, GPU latency, or physical audio correctness.",
    "count": 1
   },
@@ -2487,12 +2427,6 @@
   },
   {
    "path": "tools/asr_checks.py",
-   "rule": "broad-except",
-   "text": "except Exception as error:",
-   "count": 1
-  },
-  {
-   "path": "tools/asr_checks.py",
    "rule": "hedge-in-comment",
    "text": "Agreement does not establish that either reading matches the speaker.",
    "count": 1
@@ -2522,16 +2456,10 @@
    "count": 2
   },
   {
-   "path": "tools/run_translated_speech.py",
-   "rule": "broad-except",
-   "text": "except Exception as error:",
-   "count": 1
-  },
-  {
    "path": "tools/speech_service.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 5
+   "count": 4
   },
   {
    "path": "tools/stable_clauses.py",
@@ -2549,7 +2477,7 @@
    "path": "tools/subtitle_bridge.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 4
+   "count": 2
   },
   {
    "path": "tools/tempo_player.py",

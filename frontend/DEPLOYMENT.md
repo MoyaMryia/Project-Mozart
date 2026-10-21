@@ -102,7 +102,7 @@ From the repository root, start the daemon:
 
 The initial mode is `IDLE`.
 The factory sorts model IDs and selects the first model that loads.
-It does not guarantee a particular initial model.
+The factory loads the first model, in ID order, that loads successfully.
 
 In a different terminal, read the service state:
 
@@ -114,7 +114,7 @@ curl http://127.0.0.1:18080/api/status
 
 The health response proves only that the HTTP service responds.
 Model readiness checks include the selected model, real assets, and a satisfactory conversion.
-The `device: cuda` setting does not prove GPU execution.
+`device: cuda` is a configuration label. The `/api/status` `model.*_backend` field reports the loaded runtime.
 The engine logs identify the loaded assets and runtime selection.
 
 Select an installed ordinary model explicitly:
