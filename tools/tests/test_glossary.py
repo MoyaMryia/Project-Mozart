@@ -1,8 +1,10 @@
 import json
+import os
 import pathlib
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import glossary
@@ -45,8 +47,9 @@ class GlossaryTests(unittest.TestCase):
             glossary.save({'bad': 'term'}, self.path)
 
     def test_save_requires_a_target(self):
-        with self.assertRaises(ValueError):
-            glossary.save({'网赌': 'online gambling'})
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ValueError):
+                glossary.save({'网赌': 'online gambling'})
 
 
 if __name__ == '__main__':
