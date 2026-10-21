@@ -1,0 +1,14 @@
+[Unit]
+Description=开机后检查 USB 音频桥是否自动重连
+After=mozart-usb-audio.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 20
+ExecStart=/home/moyamryia/Projects/Project-Mozart/usb-audio/verify-reconnect.sh --check-only
+StandardOutput=append:/var/log/mozart-usb-reconnect.log
+StandardError=append:/var/log/mozart-usb-reconnect.log
+
+[Install]
+WantedBy=multi-user.target
