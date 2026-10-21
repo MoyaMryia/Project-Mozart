@@ -52,8 +52,9 @@ def build_recognizer(args):
         feature_dim=80,
         decoding_method="greedy_search",
         enable_endpoint_detection=True,
-        rule1_min_trailing_silence=1.2,
-        rule2_min_trailing_silence=0.6,
+        # 结束判定阈值可用环境变量覆盖，便于按场景调整断句灵敏度。
+        rule1_min_trailing_silence=float(os.environ.get('MOZART_ENDPOINT_SILENCE_LONG', '1.2')),
+        rule2_min_trailing_silence=float(os.environ.get('MOZART_ENDPOINT_SILENCE', '0.6')),
         rule3_min_utterance_length=12.0,
     )
 
