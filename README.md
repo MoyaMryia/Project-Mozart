@@ -1,6 +1,6 @@
-# Project Mozart
+# Mozart
 
-Project Mozart 是面向 NVIDIA Jetson Orin Nano Super 8GB 的语音处理系统。
+Mozart 是面向 NVIDIA Jetson Orin Nano Super 8GB 的语音处理系统。
 系统提供实时 RVC 变声、翻译字幕、文件转换和参考音色播报。
 RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独立 Python 进程。
 所选部署链路无需 PyTorch，模型导出和 Golden 回归使用 PyTorch。
@@ -246,6 +246,7 @@ RVC 回归顺序见 [AGENTS.md](AGENTS.md) 和 [Golden 参考](rvc-golden/README
 
 ## 文档
 
+- [docs/README.md](docs/README.md)：文档导航，从这里进入其余文档。
 - [TARGET.md](TARGET.md)：产品目标与验收范围。
 - [DESIGN.md](DESIGN.md)：当前架构与数据契约。
 - [TODO.md](TODO.md)：剩余问题、优先级和验收条件。
