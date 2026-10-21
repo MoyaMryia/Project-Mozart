@@ -1,6 +1,6 @@
 # 产品目标
 
-Project Mozart 是面向 NVIDIA Jetson Orin Nano Super 8GB 的语音处理系统。
+Mozart 是面向 NVIDIA Jetson Orin Nano Super 8GB 的语音处理系统。
 近期交付为现场演示：麦克风输入中文语音，设备输出变声音频，并显示原文与英文字幕。
 参考音色播报可合成翻译文本。
 
