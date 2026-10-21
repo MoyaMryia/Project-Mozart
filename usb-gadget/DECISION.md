@@ -1,5 +1,7 @@
 # USB 音频输出决策
 
+> 本文是 2026-09 的硬件决策记录。当前音频链路见 [usb-audio/README.md](../usb-audio/README.md)。
+
 决策日期：2026-09-06。本文取代 [STATUS.md](STATUS.md) 中仍开放的 gadget 调查问题。
 项目停止在当前 Tegra234 XUDC 平台上进行 UAC gadget 实验。
 调查包含 panic、ramoops、DMA/completion 修复候选和 ISO 流测试；原始证据保留在本目录。
