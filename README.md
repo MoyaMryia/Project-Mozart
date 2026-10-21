@@ -14,27 +14,25 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 | 翻译字幕 | Zipformer 转写、可选 SenseVoice 校正、Qwen 翻译、SSE 字幕 | 已接通；人称、领域词和跨句语义仍有错误 |
 | 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查覆盖数额，语义与声线由听测确认 |
 | PipeWire 设备接口 | 占位实现 | 当前物理音频使用 `mozart-pre` 的 ALSA 路径 |
-| 零样本语音转换 | 预留模式 | `rt_zero_shot` / `file_zero_shot` 返回 HTTP 501 |
+| 零样本语音转换 | 预留模式，演示不接入 | `rt_zero_shot` / `file_zero_shot` 返回 HTTP 501；MeanVC2 评估后内存不足，见[评估报告](reports/meanvc2-eval-20261021/RESULTS.md) |
+| USB 音频桥 | 两端 `snd-aloop` 加 FunctionFS bulk，全双工 | 30 分钟受压与拔插、重启恢复已验，见[报告](reports/usb-audio-20261020/RESULTS.md) |
+| 术语表与同音纠错 | 可配置词表，拼音匹配与词频判真词 | 字幕与译文同源纠正，见[说明](usb-audio/README.md) |
 
-早期配置的首帧输入至首帧输出约为 `320 ms`。该次稳态推理块耗时中位数为 `88 ms`，p95 为 `93 ms`。
-这些数字不是任意模型、动态 ONNX 或全部并发组件的性能保证。
-详细证据见 [Golden 参考](rvc-golden/README.md) 和 [报告索引](reports/README.md)。
+首帧输入至首帧输出的早期实测为 `320 ms`，稳态推理块中位 `88 ms`、p95 `93 ms`。
+数字对应固定输入与固定模型，其他配置需要重新测量。证据见 [Golden 参考](rvc-golden/README.md)。
 
-2026-10-14 的优化加入 GPU 张量直连、特征并行和 quality 特征按需加载。
-同一固定输入的十二轮短测中，四种配置的 PCM 音频逐样本一致。
-启动、进程内存、推理耗时和组合运行的配置与结果见[效率验证报告](reports/efficiency-20261014/RESULTS.md)。
+近期实测：
 
-变声、识别、翻译、字幕、参考音色播报及控制接口的计时范围与实测结果见[逐功能延迟报告](reports/feature-latency-20261014/RESULTS.md)。
+| 主题 | 结论 | 报告 |
+| --- | --- | --- |
+| 效率优化 | GPU 张量直连、特征并行、按需加载 | [效率验证](reports/efficiency-20261014/RESULTS.md) |
+| 逐功能延迟 | 变声、识别、翻译、字幕、播报的计时 | [逐功能延迟](reports/feature-latency-20261014/RESULTS.md) |
+| 播放积压 | 待播量峰值 47.6 s → 23.2 s | [播放积压](reports/backlog-fix-20261019/RESULTS.md) |
+| 变速上限 | 1.15 → 1.50 倍，按需选择比例 | [变速上限](reports/tempo-cap-20261020/RESULTS.md) |
+| 翻译模型 | 0.8B 与 2B、4B 通过率相同，保留 0.8B | [模型对比](reports/translation-model-20261021/RESULTS.md) |
+| USB 音频桥 | 全双工，30 分钟受压无丢帧 | [USB 报告](reports/usb-audio-20261020/RESULTS.md) |
 
-文件转换、字幕传输、取消及早期播报的后续优化见[延迟优化报告](reports/latency-reduction-20261015/RESULTS.md)。
-
-播放积压的后续优化与称谓漏译修复见[播放延迟报告](reports/playback-latency-20261015/RESULTS.md)。
-
-时长控制的开源方案、语音学论文及中英计时见[译文时长参考](docs/TRANSLATION_DURATION.md)。
-逐段比例控制与四参数时长模型见[灵活变速说明](docs/FLEXIBLE_TEMPO.md)。
-2026-10-20 起，灵活变速默认上限为 1.50 倍，系统仍按需选择比例。
-上限调整的实测依据见 [变速上限报告](reports/tempo-cap-20261020/RESULTS.md)。
-1.15 倍的原始对照保留在 [1.15 倍验证报告](reports/tempo-limit-20261016/RESULTS.md)。
+时长控制见[译文时长参考](docs/TRANSLATION_DURATION.md)与[灵活变速说明](docs/FLEXIBLE_TEMPO.md)。
 
 ## 数据流
 
