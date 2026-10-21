@@ -20,6 +20,7 @@
 import argparse
 import json
 import signal
+import os
 import socket
 import struct
 import sys
@@ -31,6 +32,8 @@ import hashlib
 import threading
 
 import sherpa_onnx
+import glossary
+import homophones
 from asr_refinement import UtteranceRefiner
 
 MZRT_MAGIC = 0x4D5A5254
@@ -153,7 +156,13 @@ def main():
             if transcript_f:
                 transcript_f.write(delta + "\n")
                 transcript_f.flush()
-            event = {'type': 'final', 'seq': finals, 'text': delta, 'online_text': online_text,
+            corrected, fixes = homophones.correct(delta, glossary.load(),
+                                             corrections=homophones.load_corrections(os.environ['MOZART_CORRECTIONS'])
+                                             if os.environ.get('MOZART_CORRECTIONS') else {})
+            if fixes:
+                print(f"[FINAL#{finals}] 同音纠错 {fixes}", flush=True)
+            event = {'type': 'final', 'seq': finals, 'text': corrected, 'text_raw': delta,
+                     'homophone_fixes': fixes, 'online_text': online_text,
                      'final_engine': 'zipformer', **diagnostic, 'final_decode_ms': 0,
                      'refinement_status': 'pending' if refiner else 'disabled'}
             emit(event)

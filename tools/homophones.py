@@ -5,7 +5,9 @@
 
 只处理中文片段，长度 2 到 4 字。术语本身与停顿词表不替换。
 """
+import json
 import re
+from pathlib import Path
 
 MAX_SPAN = 4
 MIN_SPAN = 2
@@ -24,6 +26,37 @@ def _pinyin(chars):
     return lazy_pinyin(chars)
 
 
+def load_corrections(source):
+    """读取显式纠错表，格式 {"姐姐": "戒戒"}。文件不存在时返回空表。"""
+    path = Path(source)
+    if not path.exists():
+        return {}
+    with path.open(encoding='utf-8') as handle:
+        try:
+            data = json.load(handle)
+        except json.JSONDecodeError as error:
+            raise ValueError(f'纠错表不是合法 JSON：{path}: {error}') from error
+    if not isinstance(data, dict):
+        raise ValueError(f'纠错表应为 {{"原文": "改为"}} 对象：{path}')
+    for key, value in data.items():
+        if not CHINESE.match(key or '') or not CHINESE.match(value or ''):
+            raise ValueError(f'纠错条目必须都是中文：{key!r} -> {value!r}')
+    return dict(data)
+
+
+def apply_corrections(text, corrections):
+    """按显式纠错表替换，长词优先。"""
+    if not corrections or not text:
+        return text, []
+    replacements = []
+    for source in sorted(corrections, key=len, reverse=True):
+        if source and source in text:
+            count = text.count(source)
+            text = text.replace(source, corrections[source])
+            replacements.append({'from': source, 'to': corrections[source], 'count': count})
+    return text, replacements
+
+
 def build_index(terms):
     """术语表 -> 拼音键 -> 术语集合。"""
     if not terms:
@@ -36,14 +69,16 @@ def build_index(terms):
     return index
 
 
-def correct(text, terms, stopwords=STOPWORDS):
+def correct(text, terms, stopwords=STOPWORDS, corrections=None):
     """返回 (纠正后的文本, 替换记录)。
 
-    从最长候选开始匹配，命中后跳过该片段，避免重叠替换。
+    先按显式纠错表替换，再用同音索引匹配。同音部分从最长候选开始，
+    命中后跳过该片段，避免重叠替换。
     """
+    text, explicit = apply_corrections(text, corrections or {})
     index = build_index(terms)
     if not index or not text:
-        return text, []
+        return text, explicit
     chars = list(text)
     pinyin = _pinyin(chars)
     if len(pinyin) != len(chars):
@@ -74,4 +109,4 @@ def correct(text, terms, stopwords=STOPWORDS):
         if not matched:
             out.append(chars[position])
             position += 1
-    return ''.join(out), replacements
+    return ''.join(out), explicit + replacements

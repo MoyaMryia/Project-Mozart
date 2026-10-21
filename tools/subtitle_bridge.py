@@ -84,6 +84,12 @@ TITLE_GLOSSARY = {'大妈': 'older woman', '大爷': 'older man'}
 GLOSSARY_LIMIT = 64*1024
 
 
+def correction_table():
+    """显式纠错表，路径来自 MOZART_CORRECTIONS。未配置时为空。"""
+    source = os.environ.get('MOZART_CORRECTIONS')
+    return homophones.load_corrections(source) if source else {}
+
+
 def translation_glossary():
     path = glossary.path()
     if path and path.exists() and path.stat().st_size <= GLOSSARY_LIMIT:
@@ -104,7 +110,7 @@ def repair_chinese_terms(source, candidate):
 
 def translate(url, text, timeout=10, audit=None, context=None, repair_untranslated=True):
     started = time.monotonic()
-    text, fixes = homophones.correct(text, translation_glossary())
+    text, fixes = homophones.correct(text, translation_glossary(), corrections=correction_table())
     constraints = required_numbers(text)
     translation_source = normalize_translation_quantities(text)
     if '还贷款' in text:
@@ -220,8 +226,8 @@ def translate_recognized_event(url, event, audit=None):
 
 
 def source_caption(event, seq, session_id):
-    raw_text = event['text'].strip()
-    text, fixes = homophones.correct(raw_text, translation_glossary())
+    raw_text = (event.get('text_raw') or event['text']).strip()
+    text, fixes = homophones.correct(raw_text, translation_glossary(), corrections=correction_table())
     final = event.get('type', 'final') == 'final'
     record = {'seq': seq, 'utterance_id': f'{session_id}:{event["seq"]}',
         'zh': text, 'en': '', 'asr_engine': event.get('final_engine', 'zipformer'),
@@ -337,6 +343,11 @@ class CaptionDispatcher:
                         self.refined.pop(next(iter(self.refined)))
                     self.refined_ready.notify_all()
             changes = {'refinement_status': event['refinement_status']}
+            if event.get('refined_text'):
+                corrected, fixes = homophones.correct(event['refined_text'], translation_glossary(), corrections=correction_table())
+                if fixes:
+                    changes['refined_text'] = corrected
+                    changes['refined_homophone_fixes'] = fixes
             for source, target in (('refined_text', 'refined_zh'), ('refinement_error', 'refinement_error'),
                                    ('final_decode_ms', 'refinement_decode_ms'),
                                    ('asr_numeric_audit', 'refinement_numeric_audit'),
