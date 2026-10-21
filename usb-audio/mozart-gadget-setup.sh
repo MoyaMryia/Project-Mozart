@@ -33,8 +33,13 @@ if [ ! -e "$G/mozart" ]; then
     ln -s functions/ffs.mozart configs/c.1/
 fi
 
-mkdir -p "$MNT"
-if ! mountpoint -q "$MNT"; then
-    mount -t functionfs mozart "$MNT"
+# 每次启动都解绑并重建 functionfs 挂载：上一进程留下的描述符状态会让新的 write 返回 EINVAL。
+if [ -e "$G/mozart/UDC" ]; then
+    echo "" > "$G/mozart/UDC" 2>/dev/null || true
 fi
+mkdir -p "$MNT"
+if mountpoint -q "$MNT"; then
+    umount "$MNT"
+fi
+mount -t functionfs mozart "$MNT"
 echo "gadget 就绪：$MNT"
