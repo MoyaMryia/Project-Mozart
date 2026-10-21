@@ -21,8 +21,13 @@ class HomophoneTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(homophones.correct(text, TERMS), (text, []))
 
-    def test_stopwords_protect_common_words(self):
-        self.assertEqual(homophones.correct('我和哥哥一起去的', {'格格': 'Gege'})[0], '我和哥哥一起去的')
+    def test_common_words_are_protected_by_frequency(self):
+        for text in ('我和姐姐一起去的', '我和哥哥一起去的', '妈妈说要回家'):
+            with self.subTest(text=text):
+                self.assertEqual(homophones.correct(text, {'格格': 'Gege', '戒戒': 'Jiejie'})[0], text)
+
+    def test_rare_spans_are_still_corrected(self):
+        self.assertEqual(homophones.correct('碰到王独的人', TERMS)[0], '碰到网赌的人')
 
     def test_explicit_corrections_win_over_the_stopword_list(self):
         self.assertEqual(homophones.correct('我和姐姐一起去的', {}, corrections={'姐姐': '戒戒'}),
