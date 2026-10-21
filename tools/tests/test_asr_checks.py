@@ -1,5 +1,6 @@
 import pathlib,sys,unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 from asr_checks import numeric_audit,refine_with_numeric_check,polarity_audit,boundary_fragment_audit
 
@@ -62,8 +63,42 @@ class NumericRecognitionChecks(unittest.TestCase):
         self.assertEqual(refine_with_numeric_check(r,[0]),('大几千元',None))
     def test_numeric_check_failure_is_explicit(self):
         r=Recognizer(['700'])
-        text,audit=refine_with_numeric_check(r,[0])
-        self.assertEqual(text,'700');self.assertEqual(audit['issues'],['numeric_check_failed'])
+        decode = r.decode_stream
+        def fail_literal(stream):
+            if stream.options['use_itn'] == '0':
+                raise RuntimeError('Literal decoder failed')
+            decode(stream)
+        with patch.object(r, 'decode_stream', side_effect=fail_literal):
+            text,audit=refine_with_numeric_check(r,[0])
+        self.assertEqual(text,'700')
+        self.assertEqual(audit['issues'],['numeric_check_failed'])
+        self.assertEqual(audit['error'], 'Literal decoder failed')
+        self.assertEqual(audit['formatted_text'], '700')
+        self.assertEqual(audit['literal_text'], '')
+        self.assertTrue(audit['same_audio'])
+        self.assertFalse(audit['human_source_transcript_verified'])
+    def test_empty_literal_result_keeps_explicit_failure(self):
+        text,audit=refine_with_numeric_check(Recognizer(['700','  ']),[0])
+        self.assertEqual(text, '700')
+        self.assertEqual(audit['issues'], ['numeric_check_failed'])
+        self.assertEqual(audit['error'], 'Literal numeric check returned no text')
+    def test_internal_numeric_audit_errors_propagate(self):
+        for error in (AssertionError('Audit assertion failed'), ValueError('Audit value failed')):
+            with self.subTest(error=type(error).__name__):
+                with patch('asr_checks.numeric_audit', side_effect=error):
+                    with self.assertRaises(type(error)) as raised:
+                        refine_with_numeric_check(Recognizer(['700','七百']), [0])
+                self.assertIs(raised.exception, error)
+    def test_unexpected_recognizer_error_propagates(self):
+        r=Recognizer(['700'])
+        decode = r.decode_stream
+        def fail_literal(stream):
+            if stream.options['use_itn'] == '0':
+                raise ValueError('Unexpected decoder value error')
+            decode(stream)
+        with patch.object(r, 'decode_stream', side_effect=fail_literal):
+            with self.assertRaisesRegex(ValueError, 'Unexpected decoder value error'):
+                refine_with_numeric_check(r,[0])
     def test_online_amount_triggers_check_when_final_drops_it(self):
         r=Recognizer(['拿钱。','拿钱'])
         _,audit=refine_with_numeric_check(r,[0],'拿了一千块')

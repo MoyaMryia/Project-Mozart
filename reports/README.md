@@ -9,7 +9,12 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-20 | [demo-readiness-20261020/RESULTS.md](demo-readiness-20261020/RESULTS.md) | 稳定运行候选；启动、音频故障、配置与客户端归属修复，含板端 1000 帧短测和 USB 检查 |
 | 2026-10-20 | [tempo-cap-20261020/RESULTS.md](tempo-cap-20261020/RESULTS.md) | 变速上限提高至 1.50 倍、积压需求分布及高比例识别对照 |
+| 2026-10-19 | [product-readiness-20261019/RESULTS.md](product-readiness-20261019/RESULTS.md) | 产品交付审核；主链路、故障恢复、部署、资源和验收缺口，含 5 个定向探针 |
+| 2026-10-19 | [backlog-fix-20261019/RESULTS.md](backlog-fix-20261019/RESULTS.md) | 175 分段重放；数字误拒与失败入队修复，峰值 47.55→23.20 s，保留翻译及合成失败 |
+| 2026-10-19 | [diagnostic-20261019/RESULTS.md](diagnostic-20261019/RESULTS.md) | 完整独立变声与静态播报；逐段中英文时长、翻译重复、合成尾段及播放预算 |
+| 2026-10-19 | [soak-20261019/RESULTS.md](soak-20261019/RESULTS.md) | 完整文件组合长测因后端丢帧失败；保留积压、翻译、播报与音频核验记录 |
 | 2026-10-16 | [tempo-limit-20261016/RESULTS.md](tempo-limit-20261016/RESULTS.md) | 1.15 倍上限、同输入播放等待对照及代表比例质量检查 |
 | 2026-10-16 | [delivery-20261016/RESULTS.md](delivery-20261016/RESULTS.md) | 待交付提交、证据清单、CI 覆盖及设备复核限制 |
 | 2026-10-16 | [flexible-tempo-20261015/RESULTS.md](flexible-tempo-20261015/RESULTS.md) | 逐段比例控制、四参数时长模型、独立文本及全部默认比例扫描 |

@@ -25,11 +25,13 @@ struct RvcMockConfig {
 struct RvcParameters {
     std::string f0_method = "rmvpe";
     int pitch_shift = 0;
-    float index_rate = 0.0f;
+    double index_rate = 0.0f;
     int filter_radius = 3;
-    float rms_mix_rate = 1.0f;
-    float protect = 0.33f;
+    double rms_mix_rate = 1.0f;
+    double protect = 0.33f;
 };
+
+const char* invalid_rvc_parameter(const RvcParameters& parameters);
 
 class RVCPipelineBase {
 public:

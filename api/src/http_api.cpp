@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 #include <poll.h>
 #include <cerrno>
+#include <cmath>
+#include <array>
 #include <fcntl.h>
 #include <sys/inotify.h>
 
@@ -227,7 +229,14 @@ HttpApiServer::HttpApiServer(
     : HttpApiServer(host, port, controller, Limits{}) {}
 
 HttpApiServer::HttpApiServer(const std::string& host, uint16_t port, ControlPlane* controller, Limits limits)
-    : host_(host), port_(port), controller_(controller), limits_(limits) {}
+    : host_(host), port_(port), controller_(controller), limits_(limits) {
+    const char* status_path = std::getenv("MOZART_STACK_STATUS_JSON");
+    if (status_path) stack_status_path_ = status_path;
+    const char* glossary_path = std::getenv("MOZART_GLOSSARY");
+    if (glossary_path) glossary_path_ = glossary_path;
+    const char* instance_id = std::getenv("MOZART_STACK_INSTANCE_ID");
+    if (instance_id) stack_instance_id_ = instance_id;
+}
 
 HttpApiServer::~HttpApiServer() {
     stop();
@@ -423,6 +432,9 @@ void HttpApiServer::handle_request(int client_fd) {
     else if ((route == "/health" || route == "/api/health") && method == "GET") {
         response = handle_health();
     }
+    else if (route == "/api/stack/status" && method == "GET") {
+        response = handle_stack_status();
+    }
     else if ((route == "/status" || route == "/api/status") && method == "GET") {
         response = handle_status();
     }
@@ -437,6 +449,12 @@ void HttpApiServer::handle_request(int client_fd) {
     }
     else if (route == "/api/logs" && method == "DELETE") {
         response = handle_logs_clear();
+    }
+    else if (route == "/api/glossary" && method == "GET") {
+        response = handle_glossary_get();
+    }
+    else if (route == "/api/glossary" && method == "PUT") {
+        response = handle_glossary_set(body);
     }
     else if (route == "/api/parameters" && method == "GET") {
         response = handle_parameters_get();
@@ -621,6 +639,84 @@ std::string HttpApiServer::handle_status() {
     return http_response(200, controller_ ? controller_->status().dump(2) : R"({"error":"controller not initialized"})");
 }
 
+// 固定路径只读记录。实例和父子关系用于识别残留记录，不用于控制进程。
+std::string HttpApiServer::handle_stack_status() {
+    using Json = nlohmann::json;
+    const auto unavailable = [](const std::string& error) {
+        return http_response(503, Json{{"managed", true}, {"available", false}, {"error", error}}.dump());
+    };
+    if (stack_status_path_.empty())
+        return http_response(200, Json{{"managed", false}, {"available", false}}.dump());
+    if (stack_instance_id_.empty()) return unavailable("Supervisor instance is not configured");
+    struct RecordFile {
+        int fd;
+        ~RecordFile() { if (fd >= 0) close(fd); }
+    } file{open(stack_status_path_.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC)};
+    if (file.fd < 0) return unavailable(std::string("Supervisor status open failed: ") + std::strerror(errno));
+    struct stat metadata{};
+    if (fstat(file.fd, &metadata) < 0)
+        return unavailable(std::string("Supervisor status metadata failed: ") + std::strerror(errno));
+    if (!S_ISREG(metadata.st_mode)) return unavailable("Supervisor status must be a regular file");
+    constexpr size_t kMaxStackStatusBytes = 64 * 1024;
+    if (metadata.st_size > static_cast<off_t>(kMaxStackStatusBytes))
+        return unavailable("Supervisor status exceeds " + std::to_string(kMaxStackStatusBytes) + " bytes");
+    std::array<char, kMaxStackStatusBytes + 1> buffer{};
+    size_t used = 0;
+    while (used < buffer.size()) {
+        const auto count = read(file.fd, buffer.data() + used, buffer.size() - used);
+        if (count < 0) {
+            if (errno == EINTR) continue;
+            return unavailable(std::string("Supervisor status read failed: ") + std::strerror(errno));
+        }
+        if (count == 0) break;
+        used += static_cast<size_t>(count);
+    }
+    if (used > kMaxStackStatusBytes)
+        return unavailable("Supervisor status exceeds " + std::to_string(kMaxStackStatusBytes) + " bytes");
+    Json record;
+    try {
+        record = Json::parse(buffer.data(), buffer.data() + used);
+    } catch (const Json::parse_error&) {
+        return unavailable("Supervisor status contains invalid JSON");
+    } catch (const Json::out_of_range&) {
+        return unavailable("Supervisor status numeric value is out of range");
+    }
+    const auto text = [](const Json& value, const char* key) {
+        return value.contains(key) && value[key].is_string() && !value[key].get_ref<const std::string&>().empty();
+    };
+    const auto boolean = [](const Json& value, const char* key) {
+        return value.contains(key) && value[key].is_boolean();
+    };
+    if (!record.is_object() || !record.contains("version") || !record["version"].is_number_integer() || record["version"] != 1
+        || !text(record, "state") || !text(record, "phase") || !text(record, "mode")
+        || !record.contains("updated_at") || !record["updated_at"].is_number()
+        || !std::isfinite(record["updated_at"].get<double>()) || record["updated_at"].get<double>() <= 0
+        || !record.contains("readiness") || !record["readiness"].is_object()
+        || !boolean(record["readiness"], "translation") || !boolean(record["readiness"], "speech_runtime")
+        || !boolean(record["readiness"], "voice_session")
+        || !record.contains("requirements") || !record["requirements"].is_object()
+        || !text(record["requirements"], "language") || !boolean(record["requirements"], "playback")
+        || !boolean(record["requirements"], "voice_required")
+        || !record.contains("degraded") || !record["degraded"].is_object())
+        return unavailable("Supervisor status schema is invalid");
+    for (const auto& reason : record["degraded"])
+        if (!reason.is_string()) return unavailable("Supervisor degraded reasons must be strings");
+    if (record.contains("error") && (!record["error"].is_object() || !text(record["error"], "message")))
+        return unavailable("Supervisor error record is invalid");
+    const pid_t parent = getppid();
+    if (parent <= 1 || record.value("instance_id", Json{}) != stack_instance_id_
+        || !record.value("supervisor_pid", Json{}).is_number_integer()
+        || record.value("supervisor_pid", Json{}) != parent
+        || !record.contains("children") || !record["children"].is_object()
+        || !record["children"].contains("backend") || !record["children"]["backend"].is_object()
+        || !record["children"]["backend"].value("pid", Json{}).is_number_integer()
+        || record["children"]["backend"].value("pid", Json{}) != getpid())
+        return unavailable("Supervisor status does not match the active instance");
+    record["managed"] = true;
+    record["available"] = true;
+    return http_response(200, record.dump());
+}
+
 std::string HttpApiServer::handle_monitor() {
     std::lock_guard<std::mutex> lock(monitor_mutex_);
     auto snapshot = monitor_.snapshot();
@@ -640,6 +736,60 @@ std::string HttpApiServer::handle_logs(const std::string& path) {
 std::string HttpApiServer::handle_logs_clear() {
     clear_backend_logs();
     return http_response(200, R"({"status":"cleared"})");
+}
+
+namespace {
+// 词条键为中文，释义为英文。校验放在写入前，加载时的错误不会污染管线。
+bool valid_entry(const std::string& term, const std::string& meaning) {
+    if (term.empty() || meaning.empty()) return false;
+    bool chinese = false;
+    for (unsigned char c : term) {
+        if ((c & 0x80) != 0) chinese = true;
+        else if (!std::isspace(c)) return false;
+    }
+    if (!chinese) return false;
+    for (unsigned char c : meaning) {
+        if (c >= 0x80) return false;
+        if (!std::isalpha(c) && !std::isspace(c) && c != '-' && c != '\'') return false;
+    }
+    return std::isalpha(static_cast<unsigned char>(meaning.front())) != 0;
+}
+}  // namespace
+
+std::string HttpApiServer::handle_glossary_get() {
+    if (glossary_path_.empty())
+        return http_response(409, R"({"error":"未配置 MOZART_GLOSSARY"})");
+    std::ifstream file(glossary_path_);
+    if (!file) return http_response(200, R"({"terms":{}})");
+    nlohmann::json terms = nlohmann::json::parse(file, nullptr, false);
+    if (terms.is_discarded() || !terms.is_object())
+        return http_response(500, R"({"error":"术语表文件内容不是对象"})");
+    return http_response(200, nlohmann::json{{"terms", terms}, {"path", glossary_path_}}.dump());
+}
+
+std::string HttpApiServer::handle_glossary_set(const std::string& body) {
+    if (glossary_path_.empty())
+        return http_response(409, R"({"error":"未配置 MOZART_GLOSSARY"})");
+    nlohmann::json request = nlohmann::json::parse(body, nullptr, false);
+    if (request.is_discarded() || !request.is_object())
+        return http_response(400, R"({"error":"请求体必须是对象"})");
+    const nlohmann::json terms = request.contains("terms") ? request["terms"] : request;
+    if (!terms.is_object())
+        return http_response(400, R"({"error":"terms 必须是对象"})");
+    for (const auto& item : terms.items()) {
+        if (!item.value().is_string() || !valid_entry(item.key(), item.value().get<std::string>()))
+            return http_response(400, R"({"error":"词条键必须是中文，释义必须是英文"})");
+    }
+    const std::string temporary = glossary_path_ + ".tmp";
+    {
+        std::ofstream out(temporary, std::ios::trunc);
+        if (!out) return http_response(500, R"({"error":"无法写入术语表"})");
+        out << terms.dump(2) << '\n';
+        if (!out.good()) return http_response(500, R"({"error":"写入术语表失败"})");
+    }
+    if (std::rename(temporary.c_str(), glossary_path_.c_str()) != 0)
+        return http_response(500, R"({"error":"替换术语表失败"})");
+    return http_response(200, nlohmann::json{{"terms", terms}, {"path", glossary_path_}}.dump());
 }
 
 std::string HttpApiServer::handle_parameters_get() {

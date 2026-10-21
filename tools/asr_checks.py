@@ -90,12 +90,13 @@ def refine_with_numeric_check(recognizer, pcm, online_text=''):
         literal_stream.set_option('use_itn', '0')
         literal_stream.accept_waveform(16000, pcm)
         recognizer.decode_stream(literal_stream)
+    except RuntimeError as error:
+        check_error = str(error)
+    else:
         literal = literal_stream.result.text.strip()
-        if not literal:
-            raise RuntimeError('Literal numeric check returned no text')
-        audit = numeric_audit(text, literal)
-    except Exception as error:
-        audit = {'formatted_text': text, 'literal_text': '',
-                 'issues': ['numeric_check_failed'], 'error': str(error),
-                 'same_audio': True, 'human_source_transcript_verified': False}
-    return text, audit
+        check_error = 'Literal numeric check returned no text' if not literal else None
+    if check_error is not None:
+        return text, {'formatted_text': text, 'literal_text': '',
+                      'issues': ['numeric_check_failed'], 'error': check_error,
+                      'same_audio': True, 'human_source_transcript_verified': False}
+    return text, numeric_audit(text, literal)

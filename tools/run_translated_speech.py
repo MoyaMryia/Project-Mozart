@@ -16,10 +16,21 @@ import sys
 import tempfile
 import time
 import urllib.request
-import threading
+import uuid
+import math
 from tempo_control import DEFAULT_TEMPO_MAX, validate_tempo_limits
 
 ROOT = Path(__file__).resolve().parents[1]
+STARTUP_TIMEOUT_SECONDS = 90
+POLL_SECONDS = .2
+
+
+class ServiceUnavailable(RuntimeError):
+    """外部服务未就绪或返回无效响应。"""
+
+
+class StopRequested(Exception):
+    """停止等待并回收当前启动器拥有的服务。"""
 
 
 def assert_ports_available(ports):
@@ -34,7 +45,7 @@ def assert_ports_available(ports):
                 check.listen(1)
 
 
-def check_services(processes, available_kib=None, optional_names=(), degraded=None):
+def check_services(processes, available_kib=None, optional_names=(), degraded=None, on_degraded=None):
     if degraded is None:
         degraded = set()
     for name, process, _ in processes:
@@ -44,6 +55,8 @@ def check_services(processes, available_kib=None, optional_names=(), degraded=No
                 raise RuntimeError(f'{name} exited ({code})')
             if name not in degraded:
                 degraded.add(name)
+                if on_degraded:
+                    on_degraded(name, f'exited ({code})')
                 print(f'[stack] {name} unavailable ({code}); source captions continue', file=sys.stderr, flush=True)
     if available_kib is None:
         available_kib = next(int(line.split()[1]) for line in Path('/proc/meminfo').read_text().splitlines()
@@ -63,6 +76,9 @@ def main():
     assets = home/'models/sherpa-onnx'
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--backend-config', type=Path, required=True)
+    parser.add_argument('--mode', choices=['full', 'captions'], default='full')
+    parser.add_argument('--allow-degraded', action='store_true',
+                        help='Allow source captions before optional translation and speech become ready')
     parser.add_argument('--model', type=Path, default=assets/'clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26')
     parser.add_argument('--tts-provider', choices=['cpu', 'cuda'], default='cpu')
     parser.add_argument('--tts-precision', choices=['int8', 'float32'], default='int8')
@@ -119,97 +135,268 @@ def main():
         parser.error('boundary-threshold must be between 0 and 1; clause-max-chars must be from 12 to 64')
     if args.keep_open and not args.input:
         parser.error('--keep-open requires file input; microphone capture already runs until stopped')
-    if args.seconds <= 0 or args.start < 0:
+    if not math.isfinite(args.seconds) or not math.isfinite(args.start) or args.seconds <= 0 or args.start < 0:
         parser.error('seconds must be positive and start nonnegative')
+    if args.input and args.seconds < .02:
+        parser.error('File replay must contain at least one 20 ms frame')
     if not (0 < args.translation_ubatch_size <= args.translation_batch_size <= 2048) or args.translation_cache_mib < 0:
         parser.error('translation batch sizes must satisfy 0 < ubatch <= batch <= 2048; cache must be nonnegative')
+    reference_audio = None
+    if args.reference:
+        try:
+            reference_audio = base64.b64encode(args.reference.read_bytes()).decode()
+        except OSError as error:
+            parser.error(f'Reference audio: {error}')
+    if args.mode == 'captions' and args.reference:
+        parser.error('--reference requires full mode')
     args.run_dir.mkdir(parents=True, exist_ok=True)
     owned = []
+    finished = set()
     stopped = False
-    speech_startup = None
     degraded = set()
-    optional_names = {'speech', 'translation'}
+    optional_names = {'speech', 'translation'} if args.allow_degraded else set()
+    state = {'version': 1, 'instance_id': uuid.uuid4().hex, 'supervisor_pid': os.getpid(),
+             'requirements': {'language': 'en', 'playback': not args.no_playback,
+                              'voice_required': args.mode == 'full'},
+             'mode': args.mode, 'allow_degraded': args.allow_degraded,
+             'state': 'starting', 'phase': 'initializing', 'started_at': time.time(),
+             'readiness': {'translation': False, 'speech_runtime': False, 'voice_session': False},
+             'degraded': {}, 'children': {}, 'capture_started_at': None}
+    status_path = args.run_dir/'stack-status.json'
+
+    def save(**changes):
+        state.update(changes)
+        state['updated_at'] = time.time()
+        temporary = status_path.with_suffix('.json.tmp')
+        temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2))
+        temporary.replace(status_path)
+
     def stop(*_):
         nonlocal stopped
         stopped = True
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
+
+    def record_degraded(name, error):
+        reason = str(error)
+        if state['degraded'].get(name) != reason:
+            save(degraded={**state['degraded'], name: reason})
+            print(f'[stack] {name} unavailable: {reason}; source captions continue', file=sys.stderr, flush=True)
+
     def launch(name, command, env=None):
-        log = (args.run_dir/f'{name}.log').open('w')
-        try:
-            process = subprocess.Popen([str(x) for x in command], cwd=ROOT, env=env,
-                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-        except Exception:
-            log.close()
-            raise
+        with (args.run_dir/f'{name}.log').open('w') as log:
+            try:
+                process = subprocess.Popen([str(x) for x in command], cwd=ROOT, env=env,
+                    stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            except OSError as error:
+                raise ServiceUnavailable(f'{name} launch failed: {error}') from error
         owned.append((name, process, log))
+        save(children={**state['children'], name: {'pid': process.pid, 'exit_code': None,
+                                                 'termination_requested': False, 'forced': False}})
         return process
-    def optional_failure(name, error):
-        degraded.add(name)
-        print(f'[stack] {name} unavailable: {error}; source captions continue', file=sys.stderr, flush=True)
+
     def launch_optional(name, command, env=None):
         try:
             return launch(name, command, env)
-        except OSError as error:
-            optional_failure(name, error)
+        except ServiceUnavailable as error:
+            if not args.allow_degraded:
+                raise
+            record_degraded(name, error)
             return None
-    def finish(process):
+
+    def finish(name, process):
+        if name in finished:
+            return
+        child = state['children'][name]
         if process.poll() is None:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait(timeout=5)
-    def request(path, body=None):
-        req = urllib.request.Request('http://127.0.0.1:18080'+path,
-            data=json.dumps(body).encode() if body is not None else None,
-            headers={'Content-Type':'application/json'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            return json.load(response)
-    def ready(url, process):
-        end = time.monotonic()+90
-        while time.monotonic() < end and not stopped:
-            if process.poll() is not None:
-                raise RuntimeError(f'Service exited; see {args.run_dir}')
-            try:
-                with urllib.request.urlopen(url, timeout=1) as response:
-                    if response.status == 200: return
-            except OSError:
-                pass
-            time.sleep(.2)
-        raise RuntimeError(f'Readiness timeout: {url}')
-    def prepare_speech(process):
+            child['termination_requested'] = True
         try:
-            ready('http://127.0.0.1:18080/api/speech/status', process)
-            deadline = time.monotonic()+90
-            while time.monotonic() < deadline and not stopped:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+                child['forced'] = True
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
+        # 主进程退出后，回收同一进程组内未响应 SIGTERM 的后代。
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+            child['forced'] = True
+        except ProcessLookupError:
+            pass
+        child['exit_code'] = process.poll()
+        finished.add(name)
+
+    def service_request(url, body=None, timeout=1):
+        request = urllib.request.Request(url,
+            data=json.dumps(body).encode() if body is not None else None,
+            headers={'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                result = json.load(response)
+        except (OSError, json.JSONDecodeError) as error:
+            raise ServiceUnavailable(f'{url}: {error}') from error
+        if not isinstance(result, dict):
+            raise ServiceUnavailable(f'{url}: expected a JSON object')
+        return result
+
+    def request(path, body=None):
+        return service_request('http://127.0.0.1:18080'+path, body, timeout=5)
+
+    def monitor(entries):
+        children = {name: {**state['children'][name], 'exit_code': process.poll()}
+                    for name, process, _ in owned}
+        readiness = dict(state['readiness'])
+        if children.get('translation', {}).get('exit_code') is not None:
+            readiness['translation'] = False
+        if children.get('speech', {}).get('exit_code') is not None:
+            readiness.update(speech_runtime=False, voice_session=False)
+        if children != state['children'] or readiness != state['readiness']:
+            save(children=children, readiness=readiness)
+        check_services(entries, optional_names=optional_names, degraded=degraded,
+                       on_degraded=record_degraded)
+
+    def ready(url, process):
+        deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
+        while not stopped:
+            if process.poll() is not None:
+                raise ServiceUnavailable(f'Service exited; see {args.run_dir}')
+            try:
+                service_request(url)
+                return
+            except ServiceUnavailable:
+                if time.monotonic() >= deadline:
+                    raise ServiceUnavailable(f'Readiness timeout: {url}')
+            time.sleep(POLL_SECONDS)
+        raise StopRequested()
+
+    startup_deadline = None
+    reference_voice = None
+    reference_session_started = False
+    speech = translation = None
+
+    def mark_ready(name, value):
+        if state['readiness'][name] != value:
+            save(readiness={**state['readiness'], name: value})
+
+    def startup_failure(name, error):
+        if not args.allow_degraded:
+            raise error
+        record_degraded(name, error)
+
+    def poll_startup():
+        nonlocal reference_voice, reference_session_started
+        if stopped:
+            raise StopRequested()
+        if translation is not None and translation.poll() is None:
+            had_translation = state['readiness']['translation']
+            try:
+                health = service_request('http://127.0.0.1:18200/health')
+                if health.get('status') != 'ok':
+                    raise ServiceUnavailable('Translation model is not ready')
+                mark_ready('translation', True)
+                if 'translation' in state['degraded']:
+                    save(degraded={key: value for key, value in state['degraded'].items() if key != 'translation'})
+            except ServiceUnavailable as error:
+                mark_ready('translation', False)
+                if had_translation or time.monotonic() >= startup_deadline:
+                    startup_failure('translation', error)
+        if speech is not None and speech.poll() is None:
+            had_runtime = state['readiness']['speech_runtime']
+            try:
                 status = request('/api/speech/status')
-                if status.get('warmup_error'):
-                    raise RuntimeError(status['warmup_error'])
-                if status.get('runtime'):
-                    break
-                if process.poll() is not None:
-                    raise RuntimeError('Speech service exited during warmup')
-                time.sleep(.2)
-            else:
-                if stopped:
+            except ServiceUnavailable as error:
+                mark_ready('speech_runtime', False)
+                mark_ready('voice_session', False)
+                if had_runtime or time.monotonic() >= startup_deadline:
+                    startup_failure('speech', error)
+                return
+            failure = status.get('worker_error') or status.get('warmup_error')
+            if failure:
+                mark_ready('speech_runtime', False)
+                mark_ready('voice_session', False)
+                startup_failure('speech', ServiceUnavailable(str(failure)))
+                return
+            if status.get('runtime_ready') is not True:
+                mark_ready('speech_runtime', False)
+                mark_ready('voice_session', False)
+                if had_runtime or status.get('runtime_error') or time.monotonic() >= startup_deadline:
+                    reason = status.get('runtime_error') or ('Speech runtime became unavailable'
+                        if had_runtime else 'Speech warmup readiness timeout')
+                    startup_failure('speech', ServiceUnavailable(reason))
+                return
+            runtime = status.get('runtime')
+            if not isinstance(runtime, dict) or not runtime:
+                mark_ready('speech_runtime', False)
+                mark_ready('voice_session', False)
+                startup_failure('speech', ServiceUnavailable('Ready speech runtime must be a nonempty JSON object'))
+                return
+            mark_ready('speech_runtime', True)
+            activating_reference = False
+            try:
+                if reference_audio is not None and reference_voice is None:
+                    voice = request('/api/voices', {'name': args.reference_name, 'audio_base64': reference_audio})
+                    if not isinstance(voice.get('id'), str) or not voice['id']:
+                        raise ServiceUnavailable('Reference registration did not return a voice ID')
+                    reference_voice = voice['id']
+                    save(reference_voice_id=reference_voice)
+                if reference_voice is not None and not reference_session_started:
+                    activating_reference = True
+                    request('/api/speech/session', {'enabled': True, 'voice_id': reference_voice,
+                            'language': 'en', 'playback': not args.no_playback})
+                    reference_session_started = True
+                    activating_reference = False
+                    if 'startup_wait' in state:
+                        save(startup_wait=None)
+                session = request('/api/speech/session')
+            except ServiceUnavailable as error:
+                mark_ready('voice_session', False)
+                if activating_reference and time.monotonic() < startup_deadline:
+                    save(startup_wait={'service': 'speech', 'reason': str(error)})
                     return
-                raise RuntimeError('Speech warmup readiness timeout')
-            if args.reference and not stopped:
-                voice = request('/api/voices', {'name': args.reference_name,
-                    'audio_base64': base64.b64encode(args.reference.read_bytes()).decode()})
-                request('/api/speech/session', {'enabled': True, 'voice_id': voice['id'],
-                    'language': 'en', 'playback': not args.no_playback})
-        except Exception as error:
-            if not stopped:
-                optional_failure('speech', error)
-    # Refuse to share unrelated service ports; this invocation owns cleanup.
-    assert_ports_available([(18080,socket.SOCK_STREAM),(18081,socket.SOCK_STREAM),
-                            (18200,socket.SOCK_STREAM),(18100,socket.SOCK_DGRAM)])
+                startup_failure('speech', error)
+                return
+            selected = (session.get('enabled') is True and isinstance(session.get('voice_id'), str)
+                        and bool(session['voice_id']) and session.get('language') == 'en'
+                        and session.get('playback') is (not args.no_playback)
+                        and (reference_voice is None or session['voice_id'] == reference_voice))
+            mark_ready('voice_session', selected)
+            if not selected and state['capture_started_at'] is not None:
+                startup_failure('speech', ServiceUnavailable('Speech session became unavailable or playback configuration changed'))
+            if selected and 'speech' in state['degraded']:
+                save(degraded={key: value for key, value in state['degraded'].items() if key != 'speech'})
+        if (state['readiness']['translation'] and (args.mode == 'captions' or
+                (state['readiness']['speech_runtime'] and state['readiness']['voice_session']))
+                and 'startup' in state['degraded']):
+            save(degraded={key: value for key, value in state['degraded'].items() if key != 'startup'})
+
+    def wait_startup():
+        while True:
+            monitor(owned)
+            poll_startup()
+            readiness = state['readiness']
+            if readiness['translation'] and (args.mode == 'captions' or
+                    (readiness['speech_runtime'] and readiness['voice_session'])):
+                return
+            phase = ('waiting_for_voice' if readiness['translation'] and readiness['speech_runtime']
+                     else 'preparing_services')
+            if state['phase'] != phase:
+                save(phase=phase)
+            time.sleep(POLL_SECONDS)
+
     try:
+        save()
+        assert_ports_available([(18080, socket.SOCK_STREAM), (18081, socket.SOCK_STREAM),
+                                (18200, socket.SOCK_STREAM), (18100, socket.SOCK_DGRAM)])
         env = os.environ.copy()
         env['MOZART_SUBTITLES_JSONL'] = str(args.run_dir/'subtitles.jsonl')
+        env['MOZART_STACK_STATUS_JSON'] = str(status_path.resolve())
+        env['MOZART_STACK_INSTANCE_ID'] = state['instance_id']
         backend = launch('backend', [ROOT/'build-gpu/state/mozart_stated', args.backend_config.resolve()], env)
         ready('http://127.0.0.1:18080/api/status', backend)
         speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
@@ -231,17 +418,20 @@ def main():
         speech_environment = os.environ.copy()
         if args.tts_pythonpath:
             speech_environment['PYTHONPATH'] = str(args.tts_pythonpath)+os.pathsep+speech_environment.get('PYTHONPATH', '')
-        speech = launch_optional('speech', speech_command, speech_environment)
-        if speech is not None:
-            speech_startup = threading.Thread(target=prepare_speech, args=(speech,), daemon=True)
-            speech_startup.start()
+        if args.mode == 'full':
+            speech = launch_optional('speech', speech_command, speech_environment)
         env = os.environ.copy()
         env['LD_LIBRARY_PATH'] = str(args.llama_server.parent)+':'+env.get('LD_LIBRARY_PATH','')
-        launch_optional('translation', [args.llama_server, '-m', args.llama_model, '-c', '2048',
+        translation = launch_optional('translation', [args.llama_server, '-m', args.llama_model, '-c', '2048',
             '-b',args.translation_batch_size,'-ub',args.translation_ubatch_size,'--cache-ram',args.translation_cache_mib,
             '-ngl','99','-np','1','-t','2','-tb','2','--host','127.0.0.1','--port','18200','--jinja'], env)
+        startup_deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
+        if args.allow_degraded:
+            record_degraded('startup', 'Source captions may begin before required services are ready')
+        else:
+            wait_startup()
         bridge_command = [sys.executable, ROOT/'tools/subtitle_bridge.py',
-            '--stt-model', args.stt_model, '--jsonl', args.run_dir/'subtitles.jsonl', '--speak',
+            '--stt-model', args.stt_model, '--jsonl', args.run_dir/'subtitles.jsonl',
             '--delivery-policy', args.delivery_policy, '--queue-dir', args.data_dir/'captions']
         if args.final_model:
             bridge_command += ['--final-model', args.final_model]
@@ -252,16 +442,23 @@ def main():
                 '--boundary-threshold', str(args.boundary_threshold), '--clause-max-chars', str(args.clause_max_chars)]
         if args.archive_utterances:
             bridge_command += ['--utterance-dir',args.run_dir/'utterances']
+        if args.mode == 'full':
+            bridge_command += ['--speak']
         bridge = launch('captions', bridge_command)
-        for _ in range(300):
-            if stopped or bridge.poll() is not None:
-                raise RuntimeError('ASR startup interrupted')
+        save(phase='preparing_captions')
+        deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            if stopped:
+                raise StopRequested()
+            monitor(owned)
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as check:
-                try: check.bind(('127.0.0.1',18100))
-                except OSError: break
-            time.sleep(.1)
+                try:
+                    check.bind(('127.0.0.1', 18100))
+                except OSError:
+                    break
+            time.sleep(POLL_SECONDS)
         else:
-            raise RuntimeError('ASR readiness timeout')
+            raise ServiceUnavailable('ASR readiness timeout')
         with tempfile.TemporaryDirectory(prefix='mozart-replay-') as temporary:
             pre_args = [ROOT/'build-gpu/preprocessor/mozart-pre','-a','127.0.0.1','-p','18100']
             if args.input:
@@ -272,51 +469,86 @@ def main():
             else:
                 pre_args += ['-d',args.mic_device]
             if args.no_rnnoise: pre_args += ['--no-rnnoise']
+            if stopped:
+                raise StopRequested()
+            monitor(owned)
             pre = launch('microphone', pre_args)
+            if pre.poll() not in (None, 0):
+                raise RuntimeError(f'Preprocessor exited ({pre.returncode})')
+            if pre.poll() is not None and not args.input and not stopped:
+                raise RuntimeError('Microphone exited before a stop request')
+            save(state='running', phase='capturing', capture_started_at=time.time())
             print(f'[stack] running; API port 18080, logs {args.run_dir}', flush=True)
             while not stopped and pre.poll() is None:
-                check_services([entry for entry in owned if entry[1] is not pre],
-                               optional_names=optional_names, degraded=degraded)
-                time.sleep(.2)
-            if pre.poll() not in [None, 0]:
+                monitor([entry for entry in owned if entry[1] is not pre])
+                poll_startup()
+                time.sleep(POLL_SECONDS)
+            if pre.poll() not in (None, 0):
                 raise RuntimeError(f'Preprocessor exited ({pre.returncode})')
-            finish(pre)
-            # Terminate only the bridge first. It drains its STT child's final output.
+            if pre.poll() is not None and not args.input and not stopped:
+                raise RuntimeError('Microphone exited before a stop request')
+            finish('microphone', pre)
+            if stopped:
+                raise StopRequested()
+            save(state='draining', phase='captions')
             bridge.terminate()
             if args.delivery_policy == 'coverage':
                 while bridge.poll() is None and not stopped:
-                    check_services([entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')],
-                                   optional_names=optional_names, degraded=degraded)
-                    time.sleep(.2)
+                    monitor([entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')])
+                    poll_startup()
+                    time.sleep(POLL_SECONDS)
             else:
                 bridge.wait(timeout=30)
-            if not stopped:
+            if stopped:
+                raise StopRequested()
+            if bridge.poll() not in (None, 0):
+                raise RuntimeError(f'Caption drain failed ({bridge.returncode})')
+            if args.mode == 'full':
+                save(phase='speech')
                 end = None if args.delivery_policy == 'coverage' else time.monotonic()+120
+                speech_status = {'available': False, 'jobs': []}
                 while not stopped and (end is None or time.monotonic() < end):
-                    remaining = [entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')]
-                    check_services(remaining, optional_names=optional_names, degraded=degraded)
+                    monitor([entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')])
+                    poll_startup()
                     try:
-                        status = request('/api/speech/status') if speech is not None else {'available': False, 'jobs': []}
-                    except (OSError, ValueError) as error:
-                        optional_failure('speech', error)
-                        status = {'available': False, 'error': str(error), 'jobs': []}
+                        speech_status = request('/api/speech/status') if speech is not None else speech_status
+                    except ServiceUnavailable as error:
+                        startup_failure('speech', error)
+                        speech_status = {'available': False, 'error': str(error), 'jobs': []}
                         break
-                    if not unfinished_speech(status): break
-                    time.sleep(.2)
-                (args.run_dir/'speech-results.json').write_text(json.dumps(status, ensure_ascii=False, indent=2))
+                    if not unfinished_speech(speech_status):
+                        break
+                    time.sleep(POLL_SECONDS)
+                if not stopped and unfinished_speech(speech_status):
+                    raise RuntimeError('Speech drain deadline expired')
+                (args.run_dir/'speech-results.json').write_text(json.dumps(speech_status, ensure_ascii=False, indent=2))
             if args.keep_open and not stopped:
-                print('[stack] mock input finished; API and voice previews remain available until stopped', flush=True)
-                remaining = [entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')]
+                save(state='running', phase='preview')
                 while not stopped:
-                    check_services(remaining, optional_names=optional_names, degraded=degraded)
-                    time.sleep(.2)
-    finally:
+                    monitor([entry for entry in owned if entry[0] in ('backend', 'speech', 'translation')])
+                    poll_startup()
+                    time.sleep(POLL_SECONDS)
+    except StopRequested:
         stopped = True
-        for _, process, log in reversed(owned):
-            finish(process)
-            log.close()
-        if speech_startup:
-            speech_startup.join(timeout=6)
+    finally:
+        error = sys.exc_info()[1]
+        final_state = 'failed' if error else 'stopped' if stopped else 'completed'
+        if error:
+            state['error'] = {'type': type(error).__name__, 'message': str(error)}
+        stopped = True
+        cleanup_errors = []
+        for name, process, _ in reversed(owned):
+            try:
+                finish(name, process)
+            except (OSError, subprocess.TimeoutExpired) as cleanup_error:
+                cleanup_errors.append({'service': name, 'error': str(cleanup_error)})
+        if cleanup_errors:
+            final_state = 'failed'
+            if error is None:
+                state['error'] = {'type': 'RuntimeError', 'message': f'Service cleanup failed: {cleanup_errors}'}
+        save(state=final_state, phase=final_state, finished_at=time.time(), cleanup_errors=cleanup_errors)
+        if cleanup_errors and error is None:
+            raise RuntimeError(f'Service cleanup failed: {cleanup_errors}')
 
 
 if __name__ == '__main__':

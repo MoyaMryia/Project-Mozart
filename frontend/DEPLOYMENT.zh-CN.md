@@ -37,7 +37,7 @@ cmake --build build-gpu -j4
 ```
 
 当 `USE_ONNX=ON` 时，缺少 ONNX Runtime 头文件或库会使 CMake 配置失败。
-此类构建不能证明真实模型可用。独立构建 `rvc-backend/` 不产生守护进程。
+`USE_ONNX=ON` 构建通过只表示头文件与库可链接。模型可用性需加载模型确认。独立构建 `rvc-backend/` 不产生守护进程。
 
 构建前端：
 
@@ -60,7 +60,7 @@ rvc-backend/models/<model_id>/
 ```
 
 `.engine` 可选。同名引擎加载成功时，后端优先使用 TensorRT。
-生产当前不加载检索索引。
+生产不加载检索索引；`model.has_index` 为 `false`。
 
 在 `rvc-backend/config.yaml` 设置资产路径：
 

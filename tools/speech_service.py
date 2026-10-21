@@ -21,6 +21,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from urllib.parse import urlsplit
 import uuid
 import wave
@@ -31,6 +32,10 @@ from speech_duration import DurationEstimator, DEFAULT_PROFILE
 from tempo_control import DEFAULT_TEMPO_MAX, TempoController
 
 TERMINAL = {'completed', 'failed', 'cancelled', 'expired'}
+
+
+class WorkerError(RuntimeError):
+    pass
 
 
 class ApiError(Exception):
@@ -100,7 +105,15 @@ class SpeechService:
         self.player_job_id = None
         self.output_buffer = b''
         self.closed = False
-        self.runtime = None
+        self.runtime = self.last_runtime = None
+        self.runtime_state = 'unprepared'
+        self.runtime_error = self.worker_error = self.last_runtime_error = None
+        self.last_preparation = None
+        self.runtime_epoch = 0
+        self.prepare_requested = preload
+        self.preparation = self.new_preparation() if preload else None
+        if preload:
+            self.runtime_state = 'queued'
         self.preload = preload
         self.warmup_error = None
         self.worker = threading.Thread(target=self.run, daemon=True)
@@ -112,15 +125,15 @@ class SpeechService:
         with self.lock:
             coverage = self.delivery_policy == 'coverage'
             jobs = self.jobs.recent(self.history_limit) if coverage else [dict(j) for j in reversed(self.jobs.values())]
-            return {'available': True, 'engine': self.engine, 'runtime': self.runtime,
+            runtime = self.runtime_status()
+            return {'available': True, 'engine': self.engine, **runtime,
                 'delivery_policy': self.delivery_policy,
                 'storage_warning': self.storage_warning,
                 'unfinished_jobs': self.jobs.unfinished() if coverage else sum(j['status'] not in TERMINAL for j in self.jobs.values()),
                 'pending_jobs': len(self.pending),
                 'resident_jobs': len(self.jobs.cache) if coverage else len(self.jobs),
-                'warmup_error':self.warmup_error,
                 'languages': ['en'] if self.engine == 'pocket' else ['en', 'zh'],
-                'reference_tts': True, 'streaming_playback': bool(self.runtime and self.runtime.get('audio_stream_protocol') == 1),
+                'reference_tts': True, 'streaming_playback': bool(runtime['runtime_ready'] and self.runtime.get('audio_stream_protocol') == 1),
                 'chunked_playback': True, 'chunk_target_words': 12,
                 'live_audio_budget_seconds': self.live_audio_budget_seconds,
                 'audio_backlog_seconds': self.audio_backlog_seconds(),
@@ -134,6 +147,70 @@ class SpeechService:
                 'duration_profile_warning': self.duration_estimator.warning,
                 'voices': list(self.voices.values()),
                 'jobs': jobs}
+
+    def new_preparation(self):
+        previous = getattr(self, 'preparation', None)
+        if previous:
+            self.last_preparation = dict(previous)
+        self.runtime_error = self.warmup_error = None
+        now = time.time()
+        self.prepare_deadline = time.monotonic()+self.timeout
+        return {'id': uuid.uuid4().hex, 'status': 'queued',
+                'requested_at': now, 'deadline_at': now+self.timeout}
+
+    def invalidate_runtime(self, reason, state):
+        self.runtime = None
+        self.runtime_state, self.runtime_error = state, reason
+        if state == 'failed':
+            self.last_runtime_error = {'message': reason, 'at': time.time(),
+                                       'pid': self.child.pid if self.child else None,
+                                       'exit_code': self.child.poll() if self.child else None}
+        self.runtime_epoch += 1
+        self.prepare_requested = False
+        if self.preparation and self.preparation['status'] in ('queued', 'preparing'):
+            self.preparation.update(status='cancelled' if state in ('stopped', 'closed') else 'failed',
+                                    error=reason, finished_at=time.time())
+
+    def refresh_runtime(self):
+        if (self.preparation and self.preparation['status'] == 'queued'
+                and time.monotonic() >= self.prepare_deadline):
+            self.invalidate_runtime('Speech preparation timed out before startup', 'failed')
+            self.warmup_error = self.runtime_error
+        if self.child and self.child.poll() is not None and self.runtime_state in ('ready', 'preparing'):
+            preparing = self.runtime_state == 'preparing'
+            self.invalidate_runtime(f'Speech worker exited with code {self.child.returncode}', 'failed')
+            if preparing:
+                self.warmup_error = self.runtime_error
+
+    def runtime_status(self):
+        self.refresh_runtime()
+        ready = bool(self.runtime is not None and self.child and self.child.poll() is None
+                     and self.worker.is_alive() and not self.closed and self.worker_error is None)
+        return {'runtime_ready': ready, 'runtime': dict(self.runtime) if ready else None,
+                'last_runtime': dict(self.last_runtime) if self.last_runtime else None,
+                'runtime_state': self.runtime_state, 'runtime_error': self.runtime_error,
+                'warmup_error': self.warmup_error,
+                'last_runtime_error': dict(self.last_runtime_error) if self.last_runtime_error else None,
+                'last_prepare': dict(self.last_preparation) if self.last_preparation else None,
+                'worker_error': dict(self.worker_error) if self.worker_error else None,
+                'worker_alive': self.worker.is_alive(),
+                'runtime_pid': self.child.pid if self.child else None,
+                'runtime_exit_code': self.child.poll() if self.child else None,
+                'prepare': dict(self.preparation) if self.preparation else None}
+
+    def prepare(self):
+        with self.lock:
+            current = self.runtime_status()
+            if self.closed or self.worker_error or not self.worker.is_alive():
+                raise ApiError(503, 'Speech worker is unavailable; restart the service')
+            if current['runtime_ready'] or (self.preparation and
+                    self.preparation['status'] in ('queued', 'preparing')):
+                return current
+            self.preparation = self.new_preparation()
+            self.prepare_requested = True
+            self.runtime_state = 'queued'
+            self.lock.notify_all()
+            return self.runtime_status()
 
     def sync_playback_start(self, job):
         if (getattr(self, 'active_play', None) == job['id'] and
@@ -235,13 +312,17 @@ class SpeechService:
                 timing[name] = value
         if not isinstance(degraded, bool):
             raise ApiError(400, 'speech_degraded must be a boolean')
+        if degraded:
+            raise ApiError(422, 'Rejected translations cannot enter speech; inspect the caption error')
         if language not in (['en'] if self.engine == 'pocket' else ['en', 'zh']):
             raise ApiError(422, 'Selected engine does not support this output language')
         if not text or len(text) > 500:
             raise ApiError(400, 'Speech text must contain 1–500 characters')
-        if language == 'en' and not degraded and any('\u3400' <= c <= '\u9fff' for c in text):
+        if language == 'en' and any('\u3400' <= c <= '\u9fff' for c in text):
             raise ApiError(422, 'English output contains Chinese text; translation is required')
         with self.lock:
+            if self.closed or self.worker_error:
+                raise ApiError(503, 'Speech worker is unavailable; restart the service')
             key = str(body.get('utterance_id', ''))
             if len(key) > 128:
                 raise ApiError(400, 'Utterance ID exceeds 128 characters')
@@ -369,6 +450,8 @@ class SpeechService:
                     self.pending = deque(i for i in self.pending if i != job_id)
                 self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job_id)
                 if getattr(self, 'active', None) == job_id:
+                    if not self.closed:
+                        self.invalidate_runtime('Active speech task cancelled', 'stopped')
                     self.kill(self.child)
                 if getattr(self, 'active_play', None) == job_id:
                     self.kill(self.player)
@@ -404,43 +487,139 @@ class SpeechService:
                 except (ValueError, UnicodeDecodeError):
                     continue
             if self.child.poll() is not None:
-                raise RuntimeError('Speech worker exited; inspect speech-worker.log')
+                raise WorkerError(f'Speech worker exited with code {self.child.returncode}; inspect speech-worker.log')
             if select.select([self.child.stdout], [], [], .1)[0]:
                 chunk = os.read(self.child.stdout.fileno(), 65536)
                 if not chunk:
-                    raise RuntimeError('Speech worker closed its output')
+                    raise WorkerError('Speech worker closed its output')
                 self.output_buffer += chunk
                 if len(self.output_buffer) > 1024**2:
-                    raise RuntimeError('Speech worker response exceeds 1 MiB')
-        raise RuntimeError('Speech worker timed out')
+                    raise WorkerError('Speech worker response exceeds 1 MiB')
+        raise WorkerError('Speech worker timed out')
 
-    def ensure_child(self):
-        if self.child is None or self.child.poll() is not None:
-            if self.child:
-                self.child.stdin.close()
-                self.child.stdout.close()
-            self.child = subprocess.Popen(self.command, stdin=subprocess.PIPE,
+    def ensure_child(self, expected_preparation=None):
+        with self.lock:
+            if expected_preparation is not None and (expected_preparation is not self.preparation
+                    or expected_preparation['status'] != 'queued'):
+                return
+            active = getattr(self, 'active', None)
+            if self.closed or (active is not None and self.jobs[active]['status'] in TERMINAL):
+                raise WorkerError('Speech preparation cancelled')
+            self.refresh_runtime()
+            if self.runtime is not None and self.child and self.child.poll() is None:
+                return self.runtime
+            if not self.preparation or self.preparation['status'] != 'queued':
+                self.preparation = self.new_preparation()
+            self.prepare_requested = False
+            operation = self.preparation
+            operation.update(status='preparing', started_at=time.time())
+            self.runtime_epoch += 1
+            epoch = self.runtime_epoch
+            self.runtime_state, self.runtime_error = 'preparing', None
+            previous = self.child
+            self.child = None
+        try:
+            if previous:
+                previous.stdin.close()
+                previous.stdout.close()
+            remaining = self.prepare_deadline-time.monotonic()
+            if remaining <= 0:
+                raise WorkerError('Speech preparation timed out before startup')
+            child = subprocess.Popen(self.command, stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE, stderr=self.worker_log, bufsize=0)
-            self.output_buffer = b''
-            ready = self.read_child()
-            if not ready.get('ready'):
-                raise RuntimeError('Speech worker did not become ready')
-            self.runtime = ready
-            self.warmup_error = None
+            with self.lock:
+                if self.closed or epoch != self.runtime_epoch:
+                    self.kill(child)
+                    child.stdout.close()
+                    raise WorkerError('Speech preparation cancelled')
+                self.child = child
+                os.set_blocking(child.stdin.fileno(), False)
+                self.output_buffer = b''
+            ready = self.read_child(timeout=self.prepare_deadline-time.monotonic())
+            if ready.get('ready') is not True:
+                raise WorkerError(str(ready.get('error') or 'Speech worker did not become ready'))
+            with self.lock:
+                if self.closed or epoch != self.runtime_epoch:
+                    raise WorkerError('Speech preparation cancelled')
+                self.runtime = ready
+                self.last_runtime = dict(ready)
+                self.runtime_state, self.runtime_error = 'ready', None
+                self.warmup_error = None
+                operation.update(status='ready', finished_at=time.time())
+                return ready
+        except (OSError, WorkerError) as error:
+            with self.lock:
+                if epoch == self.runtime_epoch:
+                    self.invalidate_runtime(str(error), 'failed')
+                    self.warmup_error = str(error)
+                self.kill(self.child)
+                self.lock.notify_all()
+            raise
+
+    def write_child(self, job, request, deadline):
+        pending = memoryview(json.dumps(request).encode()+b'\n')
+        with self.lock:
+            child, epoch = self.child, self.runtime_epoch
+        while pending:
+            with self.lock:
+                if self.closed or job['status'] in TERMINAL:
+                    return False
+                if child is not self.child or epoch != self.runtime_epoch:
+                    raise WorkerError('Speech runtime changed before the request completed')
+                if time.monotonic() >= deadline:
+                    raise WorkerError('Speech worker request pipe timed out')
+                descriptor = child.stdin.fileno()
+                try:
+                    count = os.write(descriptor, pending)
+                    pending = pending[count:]
+                except BlockingIOError:
+                    pass
+            if pending:
+                select.select([], [descriptor], [], min(.1, max(0, deadline-time.monotonic())))
+        return True
 
     def run(self):
+        try:
+            self.run_worker()
+        except Exception as error:
+            with self.lock:
+                self.worker_error = {'type': type(error).__name__, 'message': str(error), 'at': time.time()}
+                self.invalidate_runtime(f'Internal speech worker error: {error}', 'failed')
+                self.session['enabled'] = False
+                self.kill(self.child)
+                active = getattr(self, 'active', None)
+                if active is not None and self.jobs[active]['status'] not in TERMINAL:
+                    job = self.jobs[active]
+                    job.update(status='failed', error=self.runtime_error, finished_at=time.time())
+                    self.play_pending = deque(p for p in self.play_pending if p['job_id'] != active)
+                    if getattr(self, 'active_play', None) == active:
+                        self.kill(self.player)
+                    self.save_job(job)
+                self.lock.notify_all()
+            traceback.print_exc()
+
+    def run_worker(self):
         with (self.root/'speech-worker.log').open('a') as self.worker_log:
-            if self.preload and not self.closed:
-                try:
-                    self.ensure_child()
-                except Exception as error:
-                    self.kill(self.child)
-                    self.warmup_error = str(error)
             while True:
                 with self.lock:
-                    self.lock.wait_for(lambda: self.pending or self.closed)
+                    self.refresh_runtime()
+                    self.lock.wait_for(lambda: self.pending or self.prepare_requested or self.closed, timeout=.1)
                     if self.closed:
                         return
+                    if not self.pending and not self.prepare_requested:
+                        continue
+                    preparation = self.preparation if self.prepare_requested else None
+                if preparation is not None:
+                    try:
+                        self.ensure_child(expected_preparation=preparation)
+                    except (OSError, WorkerError):
+                        pass
+                    continue
+                with self.lock:
+                    if self.closed:
+                        return
+                    if not self.pending:
+                        continue
                     job = self.jobs[self.pending.popleft()]
                     if job['status'] in TERMINAL:
                         continue
@@ -469,8 +648,11 @@ class SpeechService:
                 output = self.root/'results'/f"{job['id']}.wav"
                 temporary = output.with_suffix('.tmp')
                 try:
-                    self.ensure_child()
-                    job['early_audio'] = self.runtime.get('audio_stream_protocol') == 1 and job['playback']
+                    runtime = self.ensure_child()
+                    with self.lock:
+                        if self.closed or job['status'] in TERMINAL:
+                            continue
+                        job['early_audio'] = runtime.get('audio_stream_protocol') == 1 and job['playback']
                     job['continuous_playback'] = job['early_audio'] or (
                         self.playback_tempo == 'flexible' and job['live'] and job['playback'])
                     job['text_part_results'] = []
@@ -498,26 +680,26 @@ class SpeechService:
                             'reference': str(self.root/'voices'/f"{job['voice_id']}.wav"),
                             'output': str(partial)}
                         try:
-                            self.child.stdin.write(json.dumps(request).encode()+b'\n')
-                            self.child.stdin.flush()
                             timeout = min(self.timeout, 20) if job['live'] and self.delivery_policy != 'coverage' else self.timeout
                             deadline = time.monotonic()+timeout
+                            if not self.write_child(job, request, deadline):
+                                break
                             blocks = 0
                             result = self.read_child(timeout=deadline-time.monotonic())
                             while result.get('type') == 'audio':
                                 filename = f"{job['id']}-part-{index:03d}-block-{blocks:05d}.wav"
                                 if not job['early_audio'] or result.get('block_index') != blocks or result.get('filename') != filename:
-                                    raise RuntimeError('Early audio block order or filename is invalid')
+                                    raise WorkerError('Early audio block order or filename is invalid')
                                 block_path = self.root/'results'/filename
                                 with wave.open(str(block_path), 'rb') as source:
                                     rate = source.getframerate()
                                     duration = source.getnframes()/rate
                                     if (source.getnchannels(), source.getsampwidth(), rate) != (1, 2, result['sample_rate']):
-                                        raise RuntimeError('Early audio WAV format is invalid')
+                                        raise WorkerError('Early audio WAV format is invalid')
                                 if abs(duration-result['duration_seconds']) > 1/rate:
-                                    raise RuntimeError('Early audio WAV duration is invalid')
+                                    raise WorkerError('Early audio WAV duration is invalid')
                                 if duration <= 0 or duration > limit:
-                                    raise RuntimeError('Early audio block duration exceeds its limit')
+                                    raise WorkerError('Early audio block duration exceeds its limit')
                                 chunk = {**result, 'job_id': job['id'], 'index': len(job['chunks']),
                                     'text_chunk_index': index, 'text': text, 'streamed': True,
                                     'filename': filename, 'status': 'ready', 'audio_ready_at': time.time()}
@@ -526,13 +708,13 @@ class SpeechService:
                                 blocks += 1
                                 result = self.read_child(timeout=deadline-time.monotonic())
                             if 'error' in result:
-                                raise RuntimeError(result['error'])
+                                raise WorkerError(result['error'])
                             if job['early_audio']:
                                 with self.lock:
                                     if job['status'] in TERMINAL or self.closed:
                                         break
                                     if result.get('type') != 'complete' or result.get('stream_blocks') != blocks or not blocks:
-                                        raise RuntimeError('Early audio completion does not match the received blocks')
+                                        raise WorkerError('Early audio completion does not match the received blocks')
                                     partial.replace(path)
                                     job['text_part_results'].append({**result, 'text_chunk_index': index})
                                     job['synthesis_seconds'] = sum(p['synthesis_seconds'] for p in job['text_part_results'])
@@ -569,7 +751,7 @@ class SpeechService:
                                     combined.setsampwidth(current[1])
                                     combined.setframerate(current[2])
                                 if current != settings:
-                                    raise RuntimeError('Speech chunk WAV formats differ')
+                                    raise WorkerError('Speech chunk WAV formats differ')
                                 combined.writeframes(source.readframes(source.getnframes()))
                     with self.lock:
                         if job['status'] in TERMINAL or self.closed:
@@ -579,9 +761,11 @@ class SpeechService:
                         job['generation_finished_at'] = time.time()
                         if not job['playback'] or (not job['continuous_playback'] and job['played_chunks'] == job['chunk_count']):
                             self.complete(job)
-                except Exception as error:
-                    self.kill(self.child)
+                except (OSError, WorkerError, wave.Error, EOFError, subprocess.TimeoutExpired) as error:
                     with self.lock:
+                        if job['status'] not in TERMINAL:
+                            self.invalidate_runtime(str(error), 'failed')
+                        self.kill(self.child)
                         if job['status'] not in TERMINAL:
                             job.update(status='failed', error=str(error))
                             if getattr(self, 'active_play', None) == job['id']:
@@ -593,7 +777,8 @@ class SpeechService:
                         if job['status'] in TERMINAL:
                             job['finished_at'] = time.time()
                         self.save_job(job)
-                        self.active = None
+                        if sys.exc_info()[0] is None:
+                            self.active = None
                         self.prune()
                         self.lock.notify_all()
 
@@ -855,6 +1040,7 @@ class SpeechService:
             if self.closed:
                 return
             self.closed = True
+            self.invalidate_runtime('Speech service closed', 'closed')
             if self.delivery_policy == 'coverage':
                 keys = self.jobs.ids("pending=0 AND status NOT IN ('completed','failed','cancelled','expired')")
                 jobs = [self.jobs[key] for key in keys]
@@ -885,6 +1071,8 @@ class SpeechService:
         with self.lock:
             if parts == ['api', 'speech', 'status'] and method == 'GET':
                 return self.status()
+            if parts == ['api', 'speech', 'prepare'] and method == 'POST':
+                return self.prepare()
             if parts == ['api', 'voices']:
                 if method == 'GET':
                     return {'voices': list(self.voices.values())}
@@ -915,7 +1103,10 @@ class SpeechService:
                 keys = self.jobs.ids("status NOT IN ('completed','failed','cancelled','expired')") if self.delivery_policy == 'coverage' else list(self.jobs)
                 for job_id in keys:
                     self.cancel(job_id)
+                self.invalidate_runtime('Speech stopped', 'stopped')
+                self.kill(self.child)
                 self.prune()
+                self.lock.notify_all()
                 return {'stopped': True}
             if parts == ['api', 'speech', 'jobs']:
                 if method == 'GET':

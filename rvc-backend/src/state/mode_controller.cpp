@@ -352,7 +352,10 @@ nlohmann::json ModeController::status() const {
                     {"inference_errors", stream.inference_errors}, {"history_resets", stream.history_resets},
                   {"output_underruns", stream.output_underruns},
                     {"startup_output_underruns", stream.startup_output_underruns},
-                    {"playout_delay_ms", stream.playout_delay_ms}, {"queued_output_ms", stream.queued_output_ms}}},
+                    {"playout_delay_ms", stream.playout_delay_ms}, {"queued_output_ms", stream.queued_output_ms},
+                    {"packets_received", stream.packets_received}, {"packets_sent", stream.packets_sent},
+                    {"packets_dropped", stream.packets_dropped}, {"rejected_clients", stream.rejected_clients},
+                    {"peer_host", stream.peer_host}, {"peer_port", stream.peer_port}}},
         {"queue", queue}, {"file_queue_paused", file_queue_paused_}, {"last_error", last_error_},
         {"capabilities", { {"rt_rvc", config_.rvc_enabled}, {"file_rvc", config_.rvc_enabled}, {"rt_zero_shot", false}, {"file_zero_shot", false} }}
     };
@@ -402,7 +405,7 @@ nlohmann::json ModeController::set_parameters(const nlohmann::json& input) {
     parameters.filter_radius = input.value("filter_radius", parameters.filter_radius);
     parameters.rms_mix_rate = input.value("rms_mix_rate", parameters.rms_mix_rate);
     parameters.protect = input.value("protect", parameters.protect);
-    if (!pipeline_.set_parameters(parameters)) {
+    if (invalid_rvc_parameter(parameters) || !pipeline_.set_parameters(parameters)) {
         return {{"status", "invalid"}, {"error", "parameters are outside the supported RVC range"}};
     }
     spdlog::info("[rvc] parameters updated: f0={}, pitch={}, index_rate={}, filter_radius={}, rms_mix_rate={}, protect={}",
@@ -459,14 +462,7 @@ nlohmann::json ModeController::save_preset(const nlohmann::json& preset) {
     validated.filter_radius = parameters.value("filter_radius", validated.filter_radius);
     validated.rms_mix_rate = parameters.value("rms_mix_rate", validated.rms_mix_rate);
     validated.protect = parameters.value("protect", validated.protect);
-    // harvest/pm F0 从未实现（曾静默返回全零 F0），只接受 rmvpe。
-    const bool valid = (validated.f0_method == "rmvpe")
-        && validated.pitch_shift >= -12 && validated.pitch_shift <= 12
-        && validated.index_rate >= 0.0f && validated.index_rate <= 1.0f
-        && validated.filter_radius >= 0 && validated.filter_radius <= 7
-        && validated.rms_mix_rate >= 0.0f && validated.rms_mix_rate <= 1.0f
-        && validated.protect >= 0.0f && validated.protect <= 0.5f;
-    if (!valid) return {{"status", "invalid"}, {"error", "preset parameters are invalid"}};
+    if (invalid_rvc_parameter(validated)) return {{"status", "invalid"}, {"error", "preset parameters are invalid"}};
     auto presets = read_presets_locked();
     const std::string id = "preset_" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     presets.push_back({{"id", id}, {"name", name}, {"parameters", parameters_json(validated)}});
