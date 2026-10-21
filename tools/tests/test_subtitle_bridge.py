@@ -8,6 +8,11 @@ def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
 
 class RefinementSourceTests(unittest.TestCase):
+    def test_broken_numeral_in_refined_text_keeps_streaming_text(self):
+        raw = '充值了五百输光一千输光'
+        self.assertEqual(translation_source(raw, '充值了500输光，一00输光'), raw)
+        self.assertEqual(translation_source('他是二零二二年来的', '他是2022年来的'), '他是2022年来的')
+
     def test_short_fragment_keeps_streaming_text(self):
         self.assertEqual(translation_source('一起学习', '学习大。'), '一起学习')
 

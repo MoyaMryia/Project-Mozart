@@ -45,6 +45,9 @@ def normalise_source(text):
     return ''.join(ch for ch in text if ch.isalnum() or '\u4e00' <= ch <= '\u9fff')
 
 
+BROKEN_NUMERAL = re.compile(r'[零〇一二两三四五六七八九十百千]\d|\d[零〇一二两三四五六七八九十百千]')
+
+
 def translation_source(raw, refined):
     """复核文本可信时用它做译文源，否则退回流式原文。"""
     if not refined:
@@ -53,6 +56,9 @@ def translation_source(raw, refined):
     if len(raw_n) < REFINED_MIN_CHARS:
         return raw
     if difflib.SequenceMatcher(None, raw_n, refined_n).ratio() < REFINED_MIN_SIMILARITY:
+        return raw
+    # 复核把「一千」写成「一00」时，流式原文仍可用，退回原文。
+    if BROKEN_NUMERAL.search(refined_n) and not BROKEN_NUMERAL.search(raw_n):
         return raw
     return refined.strip()
 
