@@ -7,6 +7,7 @@ translations enter speech. The speech service owns its queue and playback device
 import argparse
 import difflib
 import glossary
+import homophones
 import json
 import os
 from pathlib import Path
@@ -103,6 +104,7 @@ def repair_chinese_terms(source, candidate):
 
 def translate(url, text, timeout=10, audit=None, context=None, repair_untranslated=True):
     started = time.monotonic()
+    text, fixes = homophones.correct(text, translation_glossary())
     constraints = required_numbers(text)
     translation_source = normalize_translation_quantities(text)
     if '还贷款' in text:
@@ -170,7 +172,8 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
                           'untranslated_chinese':untranslated,'finish_reason':choice.get('finish_reason'),
                           'repeated_context_translation':context_repeated,
                           'translation_source':translation_source,
-                          'term_repair':term_repair,'added_negation':negation})
+                          'term_repair':term_repair,'added_negation':negation,
+                          'homophone_fixes':fixes})
             audit[-1]['repeated_source_terms'] = term_loops
         if not missing and not repeated and not added and not value_counts and not repayment_changed and not role_issues and not untranslated and not truncated and not context_repeated and not term_loops and not negation:
             return content, time.monotonic()-started
@@ -217,12 +220,13 @@ def translate_recognized_event(url, event, audit=None):
 
 
 def source_caption(event, seq, session_id):
-    text = event['text'].strip()
+    raw_text = event['text'].strip()
+    text, fixes = homophones.correct(raw_text, translation_glossary())
     final = event.get('type', 'final') == 'final'
     record = {'seq': seq, 'utterance_id': f'{session_id}:{event["seq"]}',
         'zh': text, 'en': '', 'asr_engine': event.get('final_engine', 'zipformer'),
         'received_at': time.time(), 'asr_emitted_at': event.get('emitted_at'),
-        'online_text': event.get('online_text', text),
+        'online_text': event.get('online_text', raw_text),
         'final_decode_ms': event.get('final_decode_ms', 0),
         'ts': time.strftime('%H:%M:%S'), 'final': final,
         'revision': 0, 'translation_status': 'pending' if final else 'recognizing'}
@@ -231,6 +235,9 @@ def source_caption(event, seq, session_id):
                  'refinement_status'):
         if name in event:
             record[name] = event[name]
+    if fixes:
+        record['zh_raw'] = raw_text
+        record['homophone_fixes'] = fixes
     boundary = boundary_fragment_audit(text) if final else None
     if boundary is not None:
         record['asr_boundary_audit'] = boundary
