@@ -184,3 +184,6 @@ reports/**/__pycache__/
 !reports/tempo-limit-20261016/pcm-difference.json
 !reports/tempo-limit-20261016/metrics.json
 !rvc-golden/tempo-frame-boundary-pocket.wav
+
+# 演示机运行配置
+state/glossary.json
