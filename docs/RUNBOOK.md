@@ -66,6 +66,33 @@ python3 tools/serve-console.py --host 0.0.0.0 --port 8080 --api 127.0.0.1:18080
 浏览器访问 `http://<演示机>:8080/`。静态文件与 `/api`、`/health`、`/status`、`/models`
 同源，前端不需要再配置代理。服务单元见 `systemd/mozart-console.service`。
 
+演示机没有 Node.js 时，在开发机构建后只拷贝产物：
+
+```bash
+tar -czf dist.tgz -C frontend dist
+scp dist.tgz <演示机>:<仓库>/frontend/
+ssh <演示机> 'tar -xzf <仓库>/frontend/dist.tgz -C <仓库>/frontend/'
+```
+
+`serve-console.py` 只依赖标准库，有 `frontend/dist` 就能运行。
+
+## 早播音频
+
+`--early-audio` 需要一份打过补丁的 sherpa-onnx 运行时，构建一次即可：
+
+```bash
+python3 tools/build_pocket_early_audio.py ~/mozart-early --jobs 4
+```
+
+构建输出 `~/mozart-early/python`，启动管线时传入：
+
+```bash
+--early-audio --tts-pythonpath ~/mozart-early/python
+```
+
+构建脚本校验 sherpa 源码与补丁哈希，不一致会直接失败。不传 `--tts-pythonpath`
+时管线使用系统已装的 sherpa-onnx，行为与之前一致。
+
 ## 健康检查
 
 ```bash
