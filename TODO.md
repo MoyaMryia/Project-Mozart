@@ -1,15 +1,14 @@
 # 剩余工作
 
-更新日期：2026-10-21。当前实现见 [DESIGN.md](DESIGN.md)，部署与运维见 [docs/RUNBOOK.md](docs/RUNBOOK.md)。
+更新日期：2026-10-24。当前实现见 [DESIGN.md](DESIGN.md)，部署与运维见 [docs/RUNBOOK.md](docs/RUNBOOK.md)。
 
 ## 交付前必须
 
 | 项 | 状态 | 说明 |
 | --- | --- | --- |
 | 译文质量盲听 | 待做 | 现有数据只有检查通过率与延迟，判断质量要人听 |
-| Windows 真机验证 | 待做 | `usb-audio/windows-bridge.py` 在 Linux 验证过，Windows 需装 WinUSB 驱动 |
+| Windows 真机验证 | 待做 | `usb-audio/windows-bridge.py` 在 Linux 验证过，Windows 需装 WinUSB 驱动，步骤见 [USB 音频桥](usb-audio/README.md#windows-主机) |
 | 现场声卡适配 | 待做 | 设备名按现场修改，USB 音频桥可免去这一步 |
-| 控制台静态部署 | 待做 | `frontend/dist` 只在开发模式跑过，演示需静态服务与 `/api` 代理 |
 
 ## 可以继续打磨
 
@@ -21,6 +20,7 @@
 ## 本轮已完成
 
 - USB 全双工音频桥，取代模拟回路，见[报告](reports/usb-audio-20261020/RESULTS.md)。
+- 控制台静态服务与 `/api` 代理，部署步骤见[运行手册](docs/RUNBOOK.md#控制台)。
 - 术语表可配置，含配置页与同音纠错，见[说明](usb-audio/README.md)。
 - 口语年代、凭空否定、断裂数字三处文本修复。
 - 变速上限 1.50 倍，并修掉演示机上过期的变速库。
