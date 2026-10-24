@@ -38,7 +38,7 @@ public:
     // 消费者线程调用：队空返回 false
     bool pop(void* out_data) noexcept;
 
-    // 消费者侧观察的未读帧数（用于丢帧追赶判定，参见 README §6.4）
+    // 消费者侧观察的未读帧数（接收侧条件等待的谓词使用）
     uint32_t readable_count() const noexcept;
 
     uint32_t capacity()  const noexcept { return mask_ + 1; }
