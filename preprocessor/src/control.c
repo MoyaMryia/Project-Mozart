@@ -17,7 +17,7 @@ struct mozart_control {
     int fd;
     pthread_t thread;
     bool started;
-    const mozart_control_vt *vt;
+    mozart_control_vt vt;   // 按值保存：调用方的栈上临时表在块结束后失效
     void *ctx;
 };
 
@@ -89,7 +89,7 @@ static void *control_thread(void *arg)
             break;  // close() 触发 EBADF/EINVAL，线程退出
         }
         buf[n] = '\0';
-        size_t len = handle_line(buf, reply, sizeof(reply), c->vt, c->ctx);
+        size_t len = handle_line(buf, reply, sizeof(reply), &c->vt, c->ctx);
         if (len > sizeof(reply)) len = sizeof(reply);  // snprintf 截断保护
         sendto(c->fd, reply, len, 0,
                (struct sockaddr *)&peer, peer_len);
@@ -120,7 +120,7 @@ mozart_control_t *mozart_control_open(uint16_t port,
         return NULL;
     }
 
-    c->vt = vt;
+    c->vt = *vt;
     c->ctx = ctx;
     const int error = pthread_create(&c->thread, NULL, control_thread, c);
     if (error) {
