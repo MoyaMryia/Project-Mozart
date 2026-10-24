@@ -67,6 +67,14 @@ underruns 原子化、fast-math 对 WOLA 文件豁免、`_Static_assert` 钉 bin
 - `stage denoise` 运行时切换重建 WOLA 状态（约 0.5 s 收敛期）。
 - 流起始单 hop 边缘放大（见验收第 3 条）在直出 S16 转换时限幅为一次可闻点击级瞬态。
 
+## 板端冒烟（提交 ba72b6f 后实测）
+
+Jetson Orin、aloop 直连、10 秒 direct 模式：MZRT 499 帧、直出 2861 周期、
+overrun 0；`direct_us` avg 5 µs / max 13 µs；mode 切换生效；SIGTERM 退出码 0。
+软件路径合计 ≈ 2.67 ms（period 128）+ 4.0 ms（WOLA）+ 5 µs ≈ **6.7 ms**。
+开发期另修复两处：控制表悬空指针（`vt` 按值保存）、后端缺席时回包
+ECONNREFUSED 容忍（采纳存档分支 fix/udp-restart-recovery 的洞察）。
+
 ## 适用范围
 
 - 配置：本机 x86_64 构建；48 kHz；period 默认 128。aarch64 构建含 fast-math，
@@ -74,7 +82,7 @@ underruns 原子化、fast-math 对 WOLA 文件豁免、`_Static_assert` 钉 bin
 - 样本：对拍夹具 1 份（3 s，144000 样本）；生产路径探针 1 次（100 块白噪）；
   VAD 对比 3 段 TTS 语音各 900 帧；TTS 电池 3 语音 × 5 噪声 × 5 SNR；
   回归见对应章节分母。
-- 板端直出延迟实测未做。阻塞：演示机未部署本提交。解除条件：部署后用控制通道 `status` 的 `direct_us` 实测。
+- 板端直出的声学回环实测未做（现有 direct_us 为软件段）。阻塞：缺少回录接线。解除条件：连接回录后量全程。
 - 运行时 stage 切换的听感连续性未验证。阻塞：缺少人工试听。解除条件：板端切换并试听记录。
 - 长时运行（>30 分钟）稳定性未测。解除条件：随 soak 复测一并执行。
 - rvc-golden 历史工件中的 `file_rnnoise` 字样按历史证据保留，未随改名。
