@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 
 #include "mozart/http_api.hpp"
+#include "mozart/control_api.hpp"
 #include "rvc/pipeline.hpp"
 #include "state/mode_controller.hpp"
 #include "utils/config.hpp"
@@ -121,6 +122,13 @@ bool StateManagerDaemon::start() {
         pipeline_.reset();
         return false;
     }
+    // M4 并存期：同一表面的二进制协议服务（迁移第一步，HTTP 保留）。
+    const std::string control_socket = config_.get_string("network.control.socket", "");
+    if (!control_socket.empty()) {
+        control_api_ = std::make_unique<rvc::ControlApiServer>(control_socket,
+                                                               controller_.get());
+        if (!control_api_->start()) control_api_.reset();
+    }
     started_ = true;
     spdlog::info("state daemon started; initial mode is IDLE");
     return true;
@@ -128,6 +136,10 @@ bool StateManagerDaemon::start() {
 
 void StateManagerDaemon::stop() {
     if (!started_) return;
+    if (control_api_) {
+        control_api_->stop();
+        control_api_.reset();
+    }
     api_->stop();
     api_.reset();
     controller_.reset();

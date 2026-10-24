@@ -6,6 +6,7 @@
 
 namespace rvc {
 class HttpApiServer;
+class ControlApiServer;
 class ModeController;
 class RVCPipelineBase;
 }
@@ -30,6 +31,7 @@ private:
     std::unique_ptr<rvc::RVCPipelineBase> pipeline_;
     std::unique_ptr<rvc::ModeController> controller_;
     std::unique_ptr<rvc::HttpApiServer> api_;
+    std::unique_ptr<rvc::ControlApiServer> control_api_;
     bool started_ = false;
 };
 
