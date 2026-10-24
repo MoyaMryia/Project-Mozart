@@ -37,6 +37,7 @@ class Bridge:
         self.stopping = threading.Event()
         self.device = None
         self.ep_out = self.ep_in = None
+        self.fast_ep_out = self.fast_ep_in = None
         self.speaker = None
         self.speaker_fd = -1
         self.capture = None
@@ -167,9 +168,28 @@ class Bridge:
                 self.fail('设备缺少 bulk 端点')
                 return False
             self.device = device
+            # M3：描述符含接口 1（快流专用端点）。直连模式下声明并优先使用；
+            # 声明失败或接口不存在时回退接口 0 复用（兼容 M2 形态）。
+            self.fast_ep_out = self.fast_ep_in = None
+            try:
+                fast_interface = configuration[(1, 0)]
+                if device.is_kernel_driver_active(1):
+                    device.detach_kernel_driver(1)
+                usb.util.claim_interface(device, 1)
+                self.fast_ep_out = usb.util.find_descriptor(
+                    fast_interface, custom_match=lambda e:
+                        usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
+                self.fast_ep_in = usb.util.find_descriptor(
+                    fast_interface, custom_match=lambda e:
+                        usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_IN)
+            except (KeyError, IndexError, usb.core.USBError, NotImplementedError):
+                self.fast_ep_out = self.fast_ep_in = None
             self.link_generation += 1
+            fast_note = (f' fast=0x{self.fast_ep_out.bEndpointAddress:02x}'
+                         f'/0x{self.fast_ep_in.bEndpointAddress:02x}'
+                         if self.fast_ep_out is not None else ' fast=回退接口0')
             print(f'USB 就绪 out=0x{self.ep_out.bEndpointAddress:02x} '
-                  f'in=0x{self.ep_in.bEndpointAddress:02x}', flush=True)
+                  f'in=0x{self.ep_in.bEndpointAddress:02x}{fast_note}', flush=True)
             return True
 
     def drop_usb(self, reason):
@@ -183,6 +203,7 @@ class Bridge:
                 self.fail(f'释放设备失败: {error}')
             self.device = None
             self.ep_out = self.ep_in = None
+            self.fast_ep_out = self.fast_ep_in = None
             self.link_generation += 1
 
     def supervisor(self):
@@ -264,10 +285,14 @@ class Bridge:
                 silent = 0
             with self.link_lock:
                 endpoint = self.ep_out
+                fast_endpoint = self.fast_ep_out
             if endpoint is None:
                 self.dropped += 1
                 continue
             stream_id = proto.STREAM_FAST if DIRECT else proto.STREAM_AUDIO
+            # 快流且有专用端点时走接口 1；否则与主流量复用接口 0。
+            if DIRECT and fast_endpoint is not None:
+                endpoint = fast_endpoint
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
                                  payload, stream=stream_id)
             try:
@@ -280,6 +305,44 @@ class Bridge:
                 continue
             sequence += 1
             self.sent += 1
+
+    def fast_usb_to_alsa(self):
+        """接口 1 专用 IN 端点的接收泵（直连模式且端点存在时）。"""
+        buffer = b''
+        generation = -1
+        while not self.stopping.is_set():
+            with self.link_lock:
+                endpoint = self.fast_ep_in
+                current = self.link_generation
+            if endpoint is None:
+                time.sleep(0.2)
+                continue
+            if current != generation:
+                generation, buffer = current, b''
+            try:
+                buffer += bytes(endpoint.read(65536, timeout=300))
+            except usb.core.USBTimeoutError:
+                continue
+            except (usb.core.USBError, OSError) as error:
+                self.drop_usb(error)
+                continue
+            while True:
+                try:
+                    frame = proto.decode(buffer)
+                except proto.FrameError as error:
+                    self.fail(f'帧格式错误，丢弃缓冲: {error}')
+                    buffer = b''
+                    break
+                if frame is None:
+                    break
+                version, kind, stream, _flags, seq, _ts, payload = frame
+                buffer = buffer[proto.HEADER_BYTES + len(payload):]
+                if kind != proto.TYPE_PCM or stream != proto.STREAM_FAST:
+                    continue
+                if version != proto.VERSION:
+                    continue
+                self.received += 1
+                self.write_speaker(payload)
 
     def silencer(self):
         chunk = b'\x00' * proto.FRAME_BYTES
@@ -312,7 +375,10 @@ class Bridge:
         signal.signal(signal.SIGINT, self.stop)
         self.start_audio()
         self.open_usb()
-        for target in (self.supervisor, self.usb_to_alsa, self.alsa_to_usb, self.silencer, self.watchdog):
+        targets = [self.supervisor, self.usb_to_alsa, self.alsa_to_usb, self.silencer, self.watchdog]
+        if DIRECT:
+            targets.append(self.fast_usb_to_alsa)
+        for target in targets:
             threading.Thread(target=target, daemon=True).start()
         last_report = time.monotonic()
         while not self.stopping.is_set():

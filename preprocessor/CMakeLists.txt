@@ -94,6 +94,7 @@ add_library(mozart_pre_core STATIC
     src/noise_suppressor.c
     src/stages.c
     src/control.c
+    src/usb_link.c
     src/capture.c
     src/playback.c
     src/wav.c
@@ -152,4 +153,9 @@ if(MOZART_BUILD_TESTS)
     add_executable(test_stages tests/test_stages.c)
     target_link_libraries(test_stages PRIVATE mozart_pre_core m)
     add_test(NAME test_stages COMMAND test_stages)
+
+    add_executable(test_usb_link tests/test_usb_link.c)
+    target_include_directories(test_usb_link PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(test_usb_link PRIVATE m)
+    add_test(NAME test_usb_link COMMAND test_usb_link)
 endif()

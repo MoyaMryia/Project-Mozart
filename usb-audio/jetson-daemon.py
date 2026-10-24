@@ -37,14 +37,24 @@ REPORT_SECONDS = 5.0
 
 
 def descriptors():
+    """接口 0：20 ms 兼容流 + 控制（守护进程自有 ep1/ep2）。
+    接口 1：128 样本快流专用端点（ep3/ep4，由 mozart-pre 直接持有，
+    见 --usb-endpoint）。端点地址按声明顺序分配：0x03 OUT / 0x84 IN。"""
     head = struct.pack('<III', DESCS_MAGIC_V2, 0, HAS_FS | HAS_HS)
-    counts = struct.pack('<II', 3, 3)
-    iface = struct.pack('<BBBBBBBBB', 9, 4, 0, 0, 2, 0xff, 0, 0, 1)
+    counts = struct.pack('<II', 6, 6)
+    iface0 = struct.pack('<BBBBBBBBB', 9, 4, 0, 0, 2, 0xff, 0, 0, 1)
     out_fs = struct.pack('<BBBBHB', 7, 5, 0x01, 2, 64, 0)
     in_fs = struct.pack('<BBBBHB', 7, 5, 0x82, 2, 64, 0)
+    iface1 = struct.pack('<BBBBBBBBB', 9, 4, 1, 0, 2, 0xff, 0, 0, 2)
+    fast_out_fs = struct.pack('<BBBBHB', 7, 5, 0x03, 2, 64, 0)
+    fast_in_fs = struct.pack('<BBBBHB', 7, 5, 0x84, 2, 64, 0)
     out_hs = struct.pack('<BBBBHB', 7, 5, 0x01, 2, 512, 0)
     in_hs = struct.pack('<BBBBHB', 7, 5, 0x82, 2, 512, 0)
-    body = counts + iface + out_fs + in_fs + iface + out_hs + in_hs
+    fast_out_hs = struct.pack('<BBBBHB', 7, 5, 0x03, 2, 512, 0)
+    fast_in_hs = struct.pack('<BBBBHB', 7, 5, 0x84, 2, 512, 0)
+    fs_block = iface0 + out_fs + in_fs + iface1 + fast_out_fs + fast_in_fs
+    hs_block = iface0 + out_hs + in_hs + iface1 + fast_out_hs + fast_in_hs
+    body = counts + fs_block + hs_block
     blob = head + body
     return blob[:4] + struct.pack('<I', len(blob)) + blob[8:]
 
