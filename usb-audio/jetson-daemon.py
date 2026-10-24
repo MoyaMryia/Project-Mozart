@@ -45,7 +45,7 @@ def descriptors():
     iface0 = struct.pack('<BBBBBBBBB', 9, 4, 0, 0, 2, 0xff, 0, 0, 1)
     out_fs = struct.pack('<BBBBHB', 7, 5, 0x01, 2, 64, 0)
     in_fs = struct.pack('<BBBBHB', 7, 5, 0x82, 2, 64, 0)
-    iface1 = struct.pack('<BBBBBBBBB', 9, 4, 1, 0, 2, 0xff, 0, 0, 2)
+    iface1 = struct.pack('<BBBBBBBBB', 9, 4, 1, 0, 2, 0xff, 0, 0, 1)  # 与接口 0 共用字符串索引 1
     fast_out_fs = struct.pack('<BBBBHB', 7, 5, 0x03, 2, 64, 0)
     fast_in_fs = struct.pack('<BBBBHB', 7, 5, 0x84, 2, 64, 0)
     out_hs = struct.pack('<BBBBHB', 7, 5, 0x01, 2, 512, 0)
