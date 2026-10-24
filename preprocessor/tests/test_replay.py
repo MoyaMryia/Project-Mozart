@@ -37,7 +37,7 @@ class ReplayTest(unittest.TestCase):
         return listener
 
     def command(self, listener, *extra):
-        return [BINARY, '-i', str(self.wav), '--no-rnnoise', '-a', '127.0.0.1',
+        return [BINARY, '-i', str(self.wav), '--no-denoise', '-a', '127.0.0.1',
                 '-p', str(listener.getsockname()[1]), *extra]
 
     def start(self, command, env=None):
@@ -92,7 +92,7 @@ class ReplayTest(unittest.TestCase):
         self.assertEqual(process.returncode, 0, error.decode())
 
     def test_pace_requires_file(self):
-        result = subprocess.run([BINARY, '--pace', '--no-rnnoise'], capture_output=True, timeout=3)
+        result = subprocess.run([BINARY, '--pace', '--no-denoise'], capture_output=True, timeout=3)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(b'--pace requires -i', result.stderr)
 
@@ -144,7 +144,7 @@ class AlsaFailureTest(unittest.TestCase):
         if direction == 'write':
             command = self.command(listener, '--pace', '-o', 'null')
         else:
-            command = [BINARY, '-d', 'null', '--no-rnnoise',
+            command = [BINARY, '-d', 'null', '--no-denoise',
                        '-p', str(listener.getsockname()[1])]
         if finite:
             command += ['-n', '1']
@@ -186,8 +186,9 @@ class AlsaFailureTest(unittest.TestCase):
     def test_playback_failure_interrupts_capture_wait(self):
         listener = self.echo_server()
         env = dict(os.environ, LD_PRELOAD=str(self.shim),
-                   MOZART_FAULT_READ='after_first_again', MOZART_FAULT_WRITE='device_gone')
-        process = self.start([BINARY, '-d', 'null', '-o', 'null', '--no-rnnoise',
+                   MOZART_FAULT_READ='after_second_again', MOZART_FAULT_WRITE='device_gone')
+        process = self.start([BINARY, '-d', 'null', '-o', 'null', '--no-denoise',
+                              '--period-frames', '960',
                               '-p', str(listener.getsockname()[1])], env)
         _, error = process.communicate(timeout=2)
         self.assertNotEqual(process.returncode, 0)

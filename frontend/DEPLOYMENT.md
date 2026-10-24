@@ -84,13 +84,13 @@ rvc:
     hubert: false
     rmvpe: false
 storage:
-  file_rnnoise: false
+  file_denoise: false
 ```
 
 Relative file paths use the directory of the configuration file.
 They do not use the shell working directory.
 The three mock settings must be false for real inference.
-Clean file comparisons use `file_rnnoise: false` unless preprocessing is the subject of the test.
+Clean file comparisons use `file_denoise: false` unless preprocessing is the subject of the test.
 
 ## Start the backend
 

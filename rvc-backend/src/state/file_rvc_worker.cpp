@@ -125,13 +125,13 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
         }
         return true;
     };
-    if (config_.rnnoise) {
+    if (config_.denoise) {
         if (!decode(raw_48k, 48000)) return false;
         const uintmax_t input_bytes = std::filesystem::file_size(raw_48k, filesystem_error);
         std::ifstream input(raw_48k, std::ios::binary);
         std::ofstream output(raw_output, std::ios::binary | std::ios::trunc);
         mozart_dsp_config_t dsp_config{};
-        dsp_config.rnnoise = true;
+        dsp_config.denoise = true;
         mozart_dsp_t* preprocessor = mozart_dsp_new(&dsp_config);
         if (!input || !output || !preprocessor) {
             error = "failed to initialize offline preprocessing";

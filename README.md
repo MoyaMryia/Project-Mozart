@@ -131,7 +131,7 @@ rvc:
     hubert: false
     rmvpe: false
 storage:
-  file_rnnoise: false
+  file_denoise: false
 ```
 
 `device` 只写入模型加载日志。运行后端由同名 `.engine` 资产与编译选项决定。

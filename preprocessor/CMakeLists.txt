@@ -88,9 +88,12 @@ if(MOZART_USE_RNNOISE)
 endif()
 
 # ---- Core library ------------------------------------------------------------
+find_package(Threads REQUIRED)
 add_library(mozart_pre_core STATIC
-    src/rnnoise.c
     src/dsp.c
+    src/noise_suppressor.c
+    src/stages.c
+    src/control.c
     src/capture.c
     src/playback.c
     src/wav.c
@@ -100,25 +103,15 @@ target_include_directories(mozart_pre_core PUBLIC
     .
     ${CMAKE_CURRENT_SOURCE_DIR}/../IO/include
 )
-target_link_libraries(mozart_pre_core PUBLIC m asound)
+# WOLA 数值路径不参与 fast-math：对拍门限 1e-6 依赖确定浮点行为。
+set_source_files_properties(src/noise_suppressor.c PROPERTIES
+    COMPILE_OPTIONS "-fno-fast-math")
+target_link_libraries(mozart_pre_core PUBLIC m asound Threads::Threads)
 
 if(MOZART_USE_RNNOISE)
+    # RNNoise 已退出处理链（M1 单干重构）；保留静态库与导出工具供回退参考。
     set(MOZART_RNNOISE_DEFAULT_MODEL "${CMAKE_CURRENT_SOURCE_DIR}/assets/rnnoise_default.rnnb"
         CACHE PATH "RNNoise 权重 blob 默认路径")
-    if(NOT EXISTS "${MOZART_RNNOISE_DEFAULT_MODEL}")
-        message(WARNING "RNNoise blob 不存在: ${MOZART_RNNOISE_DEFAULT_MODEL}\n"
-                        "先生成: cmake --build build --target export_rnnoise_blob")
-    endif()
-    target_compile_definitions(mozart_pre_core PUBLIC
-        MOZART_RNNOISE_DEFAULT_MODEL="${MOZART_RNNOISE_DEFAULT_MODEL}")
-endif()
-
-if(MOZART_USE_RNNOISE)
-    target_link_libraries(mozart_pre_core PUBLIC rnnoise)
-    target_include_directories(mozart_pre_core PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/native/rnnoise/include
-    )
-    target_compile_definitions(mozart_pre_core PUBLIC MOZART_USE_RNNOISE=1)
 endif()
 
 # ---- Daemon ------------------------------------------------------------------
@@ -136,4 +129,27 @@ if(MOZART_BUILD_TESTS)
     add_test(NAME test_replay COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_replay.py $<TARGET_FILE:mozart-pre>)
     set_tests_properties(test_replay PROPERTIES TIMEOUT 20)
+
+    # 噪声抑制器对拍夹具：构建期由 Python 参考实现生成
+    set(NS_FIXTURE_DIR ${CMAKE_CURRENT_BINARY_DIR}/ns-fixture)
+    add_custom_command(
+        OUTPUT ${NS_FIXTURE_DIR}/expected.f32
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_ns_fixture.py
+                ${NS_FIXTURE_DIR}
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_ns_fixture.py
+                ${CMAKE_CURRENT_SOURCE_DIR}/../tools/wola_reference.py
+        COMMENT "生成噪声抑制器对拍夹具"
+    )
+    add_custom_target(ns-fixture DEPENDS ${NS_FIXTURE_DIR}/expected.f32)
+
+    add_executable(test_noise_suppressor tests/test_noise_suppressor.c)
+    target_link_libraries(test_noise_suppressor PRIVATE mozart_pre_core m)
+    add_test(NAME test_noise_suppressor
+             COMMAND test_noise_suppressor ${NS_FIXTURE_DIR})
+    add_dependencies(test_noise_suppressor ns-fixture)
+
+    add_executable(test_stages tests/test_stages.c)
+    target_link_libraries(test_stages PRIVATE mozart_pre_core m)
+    add_test(NAME test_stages COMMAND test_stages)
 endif()

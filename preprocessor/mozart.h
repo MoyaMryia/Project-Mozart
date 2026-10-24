@@ -6,7 +6,6 @@
 #define MOZART_H
 
 #include "mozart/frame_meta.h"
-#include "mozart/rnnoise.h"
 #include "mozart/dsp.h"
 #include "mozart/capture.h"
 #include "mozart/playback.h"

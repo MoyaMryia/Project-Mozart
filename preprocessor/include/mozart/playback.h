@@ -29,11 +29,23 @@ typedef struct {
 mozart_playback_t *mozart_playback_open(const mozart_playback_config_t *cfg);
 
 /**
- * 阻塞写一 period 的浮点单声道 PCM（nframes 应等于 period_frames）。
+ * 阻塞写一块浮点单声道 PCM（1..MOZART_OUTPUT_SAMPLES 帧）。
  * 内部转换为 S16_LE 立体声（L=R=mono），使用可取消的非阻塞 I/O 与有期限恢复。
+ * 与 write_s16_direct 共享一把写锁，两个调用方可运行在不同线程。
  * @return 0 成功，-ECANCELED 表示停止请求，其他负数为 ALSA 或超时错误。
  */
 int mozart_playback_write(mozart_playback_t *p, const float *pcm, size_t nframes);
+
+/**
+ * 直出路径：把交错 S16 立体声原样写入设备（不做任何转换）。
+ * nframes 为每通道帧数，1..MOZART_OUTPUT_SAMPLES。
+ * 返回值语义与 mozart_playback_write 相同。
+ */
+int mozart_playback_write_s16_direct(mozart_playback_t *p,
+                                     const int16_t *stereo_s16, size_t nframes);
+
+/** 实际生效的 period 帧数（open 后查询）。 */
+unsigned mozart_playback_period_frames(const mozart_playback_t *p);
 
 /** 累计 underrun（-EPIPE 恢复）次数。 */
 long mozart_playback_underruns(const mozart_playback_t *p);

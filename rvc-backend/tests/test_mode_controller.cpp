@@ -282,11 +282,11 @@ void test_file_paths() {
 
 void test_file_duration() {
     Fixture f;
-    for (const bool rnnoise : {false, true}) {
+    for (const bool denoise : {false, true}) {
         rvc::FileRvcWorker::Config config;
         config.storage_dir = f.temporary.path / "audio";
         config.max_duration_seconds = 1;
-        config.rnnoise = rnnoise;
+        config.denoise = denoise;
         rvc::FileRvcWorker worker(f.pipeline, config);
         rvc::FileRvcWorker::Request request{"job_limit", "", f.source("long.wav", 16001),
                                             config.storage_dir / "result.wav"};

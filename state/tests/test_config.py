@@ -98,7 +98,7 @@ class DaemonConfigurationTests(unittest.TestCase):
             ('storage.presets_path', []), ('storage.ffmpeg_path', ''),
             ('network.audio.host', '999.0.0.1'), ('network.control.host', ''),
             ('rvc.enabled', 'false'), ('rvc.half', 'no'), ('rvc.mock.generator', []),
-            ('input.meta.vad_enabled', 'yes'), ('storage.file_rnnoise', None),
+            ('input.meta.vad_enabled', 'yes'), ('storage.file_denoise', None),
             ('rvc.hubert_path', None), ('rvc.rmvpe_path', []),
             ('rvc.realtime_hubert_path', False), ('rvc.realtime_rmvpe_path', {}),
         ]
