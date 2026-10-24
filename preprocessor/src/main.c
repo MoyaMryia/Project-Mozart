@@ -16,6 +16,7 @@
 #include "mozart/playback.h"
 #include "mozart/control.h"
 #include "mozart/dsp.h"
+#include "mozart/usb_link.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -272,6 +273,7 @@ int main(int argc, char **argv)
     const char *host = "127.0.0.1";
     const char *second_target = NULL;
     const char *wav_path = NULL;
+    const char *usb_ffs = NULL;
     bool denoise = true, gate_on = false, agc_on = false, limiter_on = false;
     bool pace = false;
     uint16_t port = 18000;
@@ -302,6 +304,7 @@ int main(int argc, char **argv)
             else { usage(argv[0]); return 1; }
         }
         else if (!strcmp(argv[i], "--fade-ms") && i + 1 < argc) fade_ms = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--usb-endpoint") && i + 1 < argc) usb_ffs = argv[++i];
         else { usage(argv[0]); return 1; }
     }
     const bool offline = wav_path != NULL;
@@ -311,6 +314,14 @@ int main(int argc, char **argv)
         return 1;
     }
     if (max_frames < 0) max_frames = 0;
+    if (usb_ffs && period_frames != 128) {
+        fprintf(stderr, "[pre] --usb-endpoint 要求 --period-frames 128（快流帧长）\n");
+        return 1;
+    }
+    if (usb_ffs && wav_path) {
+        fprintf(stderr, "[pre] --usb-endpoint 与 -i 互斥\n");
+        return 1;
+    }
 
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);
@@ -337,6 +348,7 @@ int main(int argc, char **argv)
         .monotonic_pts = !offline || pace };
     // cleanup 可达的全部堆资源：在首个 goto 之前声明并置空。
     mozart_control_t *control = NULL;
+    mozart_usblink_t *usblink = NULL;
     int16_t *period_stereo = NULL, *wav_block = NULL;
     float *period_mono = NULL, *trunk = NULL, *staging = NULL;
 
@@ -384,6 +396,13 @@ int main(int argc, char **argv)
     dsp = mozart_dsp_new(&dcfg);
     if (!dsp) { fprintf(stderr, "[pre] dsp 初始化失败\n"); goto cleanup; }
 
+    // ---- 快流专用端点（M3：绕过守护进程与 aloop）----
+    if (usb_ffs) {
+        usblink = mozart_usblink_open(usb_ffs);
+        if (!usblink) goto cleanup;
+        fprintf(stderr, "[usb] 快流端点 %s（ep3/ep4）已打开\n", usb_ffs);
+    }
+
     // ---- 控制通道 ----
     if (ctl_port) {
         const mozart_control_vt vt = {
@@ -400,7 +419,9 @@ int main(int argc, char **argv)
         if (!wav) goto cleanup;
         fprintf(stderr, "[pre] 离线模式: %s → %s:%u%s\n", wav_path, host, port,
                 play_device ? " + 播放" : "");
-    } else {
+    } else if (usb_ffs) {
+        fprintf(stderr, "[pre] USB 端点模式: %s → %s:%u\n", usb_ffs, host, port);
+    } else if (!usb_ffs) {
         const mozart_capture_config_t ccfg = {
             .device = device, .rate = MOZART_RAW_SAMPLE_RATE,
             .channels = 2, .period_frames = period_frames, .n_periods = 4,
@@ -467,6 +488,15 @@ int main(int argc, char **argv)
             memcpy(period_stereo, wav_block + wav_pos * 2, sizeof(int16_t) * got * 2);
             wav_pos += got;
             if (wav_pos >= wav_pending_len) wav_pending = false;
+        } else if (usblink) {
+            const int error = mozart_usblink_read_audio(usblink, period_stereo,
+                                                        (int)period_frames);
+            if (error < 0) {
+                fprintf(stderr, "[pre] status=failed stage=usb_read\n");
+                exit_code = 1;
+                break;
+            }
+            got = (size_t)error;
         } else {
             const int error = mozart_capture_read(cap, period_stereo);
             if (error < 0) {
@@ -496,8 +526,41 @@ int main(int argc, char **argv)
         const size_t produced = mozart_dsp_enhance(dsp, period_mono, got,
                                                    trunk, trunk_cap);
 
-        // 直出：主干 → S16 立体声 → 淡变 → 写设备（带延迟探针，按 ≤960 分块）
-        if (play_device && cur == ROUTE_DIRECT && produced > 0) {
+        // 直出（usb 模式）：主干 → S16 立体声 → 淡变 → 快流端点（128 样本帧）
+        if (usblink && cur == ROUTE_DIRECT && produced > 0) {
+            int16_t direct[MOZART_OUTPUT_SAMPLES * 2];
+            size_t done = 0;
+            while (done + 128 <= produced) {
+                for (int i = 0; i < 128; i++) {
+                    float v = trunk[done + i];
+                    if (v > 1.0f) v = 1.0f;
+                    else if (v < -1.0f) v = -1.0f;
+                    direct[2 * i] = direct[2 * i + 1] = (int16_t)(v * 32767.0f);
+                }
+                fade_apply(&fade, direct, 128);
+                if (req == ROUTE_AI && fade.direction == 0)
+                    atomic_store(&shared.route_cur, ROUTE_AI);
+                const uint64_t probe0 = mozart_now_ns();
+                const int werror = mozart_usblink_write_audio(usblink, direct, 128);
+                const uint64_t probe1 = mozart_now_ns();
+                if (werror < 0) {
+                    fprintf(stderr, "[play] status=failed stage=usb_direct\n");
+                    exit_code = 1;
+                    break;
+                }
+                atomic_fetch_add(&shared.direct_periods, 1);
+                const long long us = (long long)((probe1 - probe0) / 1000);
+                atomic_store(&shared.direct_us_last, us);
+                if (us > atomic_load(&shared.direct_us_max))
+                    atomic_store(&shared.direct_us_max, us);
+                atomic_store(&shared.direct_us_avg,
+                             atomic_load(&shared.direct_us_avg) * 0.9 + (double)us * 0.1);
+                done += 128;
+            }
+            if (exit_code) break;
+        }
+        // 直出（ALSA 模式）：主干 → S16 立体声 → 淡变 → 写设备（≤960 分块）
+        else if (play_device && cur == ROUTE_DIRECT && produced > 0) {
             int16_t direct[MOZART_OUTPUT_SAMPLES * 2];
             size_t done = 0;
             while (done < produced) {
@@ -649,6 +712,7 @@ int main(int argc, char **argv)
 cleanup:
     atomic_store(&play_args.stop, true);
     mozart_control_close(control);
+    mozart_usblink_close(usblink);
     if (play_started) {
         shutdown(fd, SHUT_RDWR);
         pthread_join(play_tid, NULL);
