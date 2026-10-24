@@ -13,6 +13,10 @@
 ## 可以继续打磨
 
 - 直出路径板端实测：单干重构已合入，用控制通道 `status` 的 `direct_us` 实测延迟并试听切换，见[报告](reports/m1-single-trunk-20261025/RESULTS.md)。
+- M2/M3 部署重启与联调：代码已合入，两端服务以 root 运行需 sudo 重启后实测，见[报告](reports/m2-dual-stream-20261025/RESULTS.md)。
+- M4 第 2-3 步：控制台 WS 化、FILE 子协议、内部服务 Unix 化，见[报告](reports/m4-control-plane-20261025/RESULTS.md)。
+- M5 dtln 集成：AI 分支 16 kHz 神经级，待模型资产下载与 Jetson RTF 实测。
+- M6 彩排：按[应急手册](docs/REHEARSAL.md)跑三轮。
 
 - 长测丢帧修复待板端复测：已删除积压突发丢弃并将实时环容量加至 32 帧，需重跑完整文件长测确认零丢帧，见[失败记录](reports/soak-20261019/RESULTS.md)。
 
