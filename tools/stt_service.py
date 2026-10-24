@@ -62,7 +62,7 @@ def build_recognizer(args):
 def main():
     ap = argparse.ArgumentParser(description="Mozart streaming STT service")
     ap.add_argument("--model", required=True, help="sherpa-onnx 模型目录")
-    ap.add_argument("--host", default="0.0.0.0")
+    ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=18100)
     ap.add_argument("--threads", type=int, default=2)
     ap.add_argument("--final-model", default=None, help="Optional SenseVoice int8 directory to refine final utterances")
