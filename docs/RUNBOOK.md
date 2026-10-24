@@ -44,12 +44,15 @@ tools/run_translated_speech.py \
   --playback-device plughw:CARD=Device,DEV=0
 ```
 
-设备名按现场声卡调整。使用 USB 音频桥时，设备从 `MOSART_*` 环境变量读取：
+设备名按现场声卡调整。使用 USB 音频桥时，设备从 `MOZART_*` 环境变量读取：
 
 ```bash
 export MOZART_MIC_DEVICE=plughw:CARD=Loopback,DEV=1,SUBDEV=0
 export MOZART_PLAYBACK_DEVICE=plughw:CARD=Loopback,DEV=0,SUBDEV=1
 ```
+
+演示主机为 Windows 时，按 [USB 音频桥的 Windows 主机步骤](../usb-audio/README.md#windows-主机)
+安装 WinUSB 驱动，并运行 `usb-audio/windows-bridge.py`。
 
 停止用 `Ctrl+C`，或在另一个终端 `pkill -f run_translated_speech`。
 
@@ -136,6 +139,7 @@ tools/deploy.sh --target ~/mozart-demo --rebuild
 | 端口被占用 | 上一次管线未退出 | `pkill -f run_translated_speech` |
 | 帧计数冻结 | 主机重启后端点失效 | 看门狗 3 秒内自动重开；仍不动则 `systemctl restart mozart-usb-audio` |
 | 主机名解析失败 | 开机 DNS 未就绪 | 脚本改用局域网地址；网络恢复后手动重试 |
+| Windows 主机报未找到 USB 设备 | `1d6b:0105` 未绑定 WinUSB | 用 Zadig 给接口 0 安装 WinUSB，见 [USB 音频桥](../usb-audio/README.md#windows-主机) |
 
 ## 版本与检查
 

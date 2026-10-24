@@ -37,7 +37,9 @@ VID, PID = 0x1d6b, 0x0105
 def open_device():
     device = usb.core.find(idVendor=VID, idProduct=PID)
     if device is None:
-        raise SystemExit('未找到 USB 设备 1d6b:0105；检查线缆与 WinUSB 驱动')
+        raise SystemExit('未找到 USB 设备 1d6b:0105；检查线缆。'
+                         'Windows 主机先用 Zadig 给接口 0 安装 WinUSB 驱动，'
+                         '步骤见 usb-audio/README.md')
     try:
         configuration = device.get_active_configuration()
     except usb.core.USBError:

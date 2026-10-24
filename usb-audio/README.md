@@ -119,6 +119,27 @@ Jetson 单元会自动停用 `nv-l4t-usb-device-mode.service`。
 守护进程写完 FunctionFS 描述符后绑定 UDC，退出时解绑。
 `MOZART_UDC` 留空则跳过绑定，用于只做本地声卡调试。
 
+## Windows 主机
+
+Windows 主机不使用 `snd-aloop` 与主机守护进程，改用 [windows-bridge.py](windows-bridge.py)。
+该程序直接读写 USB 端点，用系统声卡播放与采集。
+
+准备步骤：
+
+1. 安装依赖：`pip install pyusb sounddevice numpy`。
+2. 用 Zadig 安装 WinUSB 驱动：Options → List All Devices，
+   选择 `USB Device`（`1d6b:0105`）的接口 0，替换驱动为 WinUSB。
+   每台主机执行一次。
+3. 启动 Jetson 侧 `mozart-usb-audio` 服务并连接 USB-C 线。
+
+```bash
+python windows-bridge.py --play              # 扬声器播放回传音频
+python windows-bridge.py --capture           # 本机麦克风送入 Jetson
+python windows-bridge.py --play --capture    # 全双工
+```
+
+该程序在 Linux 主机验证过录放与采集。Windows 真机验收状态见 [TODO.md](../TODO.md)。
+
 ## 离线模式
 
 两个守护进程在 USB 未连接时保持虚拟声卡可用。
