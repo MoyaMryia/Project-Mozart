@@ -16,7 +16,7 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 | PipeWire 设备接口 | 占位实现 | 当前物理音频使用 `mozart-pre` 的 ALSA 路径 |
 | 零样本语音转换 | 预留模式，演示不接入 | `rt_zero_shot` / `file_zero_shot` 返回 HTTP 501；MeanVC2 评估后内存不足，见[评估报告](reports/meanvc2-eval-20261021/RESULTS.md) |
 | USB 音频桥 | 两端 `snd-aloop` 加 FunctionFS bulk，全双工 | 30 分钟受压与拔插、重启恢复已验，见[报告](reports/usb-audio-20261020/RESULTS.md) |
-| 术语表与同音纠错 | 可配置词表，拼音匹配与词频判真词 | 字幕与译文同源纠正，见[说明](usb-audio/README.md) |
+| 术语表与同音纠错 | 可配置词表，拼音匹配与词频判真词 | 字幕与译文同源纠正，见[设计](DESIGN.md#6-字幕与参考音色播报) |
 
 首帧输入至首帧输出的早期实测为 `320 ms`，稳态推理块中位 `88 ms`、p95 `93 ms`。
 数字对应固定输入与固定模型，其他配置需要重新测量。证据见 [Golden 参考](rvc-golden/README.md)。

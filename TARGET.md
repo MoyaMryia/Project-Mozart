@@ -19,7 +19,7 @@ Mozart 是面向 NVIDIA Jetson Orin Nano Super 8GB 的语音处理系统。
 
 ## 音频输出与验收
 
-当前电脑连接方案为 Jetson USB-A 外接 USB 声卡，再通过模拟音频线连接电脑输入。
+当前电脑连接方案为 USB 全双工音频桥，取代模拟音频回路，见 [USB 音频桥](usb-audio/README.md)。
 本项目已关闭 Tegra234 XUDC UAC gadget 路线，原因与证据见 [USB 决策](usb-gadget/DECISION.md)。
 
 演示验收同时检查音质、语义、延迟、连续性和内存。
