@@ -19,7 +19,8 @@ void RealtimeRvcWorker::start() {
     if (running()) return;
     stream_ = mozart_io_create_udp_stream(config_.host.c_str(), config_.port, MOZART_IO_DIR_CAPTURE);
     if (!stream_) throw std::runtime_error("failed to create UDP audio stream");
-    if (!mozart_io_open_stream(stream_, config_.input_sample_rate, config_.frame_duration_ms, 16)) {
+    // 环容量 32 帧（20 ms 帧长下约 640 ms）：为组合负载下的调度抖动留缓冲。
+    if (!mozart_io_open_stream(stream_, config_.input_sample_rate, config_.frame_duration_ms, 32)) {
         mozart_io_destroy_stream(stream_);
         stream_ = nullptr;
         throw std::runtime_error("failed to open UDP audio stream");

@@ -194,18 +194,36 @@ static void test_udp_backlog_recovery() {
     dst.sin_family = AF_INET;
     dst.sin_port = htons(port);
     ::inet_pton(AF_INET, "127.0.0.1", &dst.sin_addr);
-    for (uint32_t i = 0; i < 12; ++i) {
-        const auto packet = make_input_packet(i);
-        ::sendto(sender, reinterpret_cast<const char*>(packet.data()),
-                 static_cast<int>(packet.size()), 0,
-                 reinterpret_cast<sockaddr*>(&dst), sizeof(dst));
-    }
-    CHECK(wait_for_count([&cap] { return cap.packets_received(); }, 12));
+    const auto send_frames = [&](uint32_t begin, uint32_t end) {
+        for (uint32_t i = begin; i < end; ++i) {
+            const auto packet = make_input_packet(i);
+            ::sendto(sender, reinterpret_cast<const char*>(packet.data()),
+                     static_cast<int>(packet.size()), 0,
+                     reinterpret_cast<const sockaddr*>(&dst), sizeof(dst));
+        }
+    };
 
-    mozart_input_frame_t latest{};
-    CHECK(cap.ReadFrame(&latest, sizeof(latest)));
-    CHECK(latest.meta.frame_idx == 11);
-    CHECK(cap.packets_dropped() >= 11);
+    // 积压低于环容量：消费方按序排空全部帧，不触发丢弃。
+    send_frames(0, 5);
+    CHECK(wait_for_count([&cap] { return cap.packets_received(); }, 5));
+    for (uint32_t expected = 0; expected < 5; ++expected) {
+        mozart_input_frame_t frame{};
+        CHECK(cap.ReadFrame(&frame, sizeof(frame)));
+        CHECK(frame.meta.frame_idx == expected);
+    }
+    CHECK(cap.packets_dropped() == 0);
+
+    // 积压超过环容量：只丢最旧帧，保留的帧仍按序连续。
+    send_frames(5, 17);
+    CHECK(wait_for_count([&cap] { return cap.packets_received(); }, 17));
+    // 无消费时 12 帧进 8 容量环必然丢弃 4 帧；等计数定格后再读，消除入环时序竞态。
+    CHECK(wait_for_count([&cap] { return cap.packets_dropped(); }, 4));
+    for (uint32_t expected = 9; expected < 17; ++expected) {
+        mozart_input_frame_t frame{};
+        CHECK(cap.ReadFrame(&frame, sizeof(frame)));
+        CHECK(frame.meta.frame_idx == expected);
+    }
+    CHECK(cap.packets_dropped() == 4);
 
     close_socket(sender);
     cap.Close();

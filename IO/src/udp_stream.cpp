@@ -12,6 +12,7 @@
 
 #include <spdlog/spdlog.h>
 #include <array>
+#include <chrono>
 #include <cstring>
 #include <exception>
 #include <utility>
@@ -321,6 +322,7 @@ std::pair<std::string, uint16_t> UdpStream::client_endpoint() const {
 
 void UdpStream::receive_loop() {
     std::array<unsigned char, 8192> buf{};
+    auto last_drop_log = std::chrono::steady_clock::time_point::min();
     while (open_.load()) {
         sockaddr_storage src{};
         socket_len_t src_len = sizeof(src);
@@ -382,6 +384,12 @@ void UdpStream::receive_loop() {
                     continue;
                 }
                 packets_dropped_.fetch_add(1, std::memory_order_relaxed);
+                const auto now = std::chrono::steady_clock::now();
+                if (now > last_drop_log + std::chrono::seconds(1)) {
+                    last_drop_log = now;
+                    spdlog::warn("UdpStream input ring full: dropped oldest frame_idx={}",
+                                 discarded.meta.frame_idx);
+                }
             }
         }
         input_cv_.notify_one();
@@ -400,16 +408,9 @@ bool UdpStream::ReadFrame(void* out_frame_buf, uint32_t buf_size) {
         return (input_ring_ && input_ring_->readable_count() > 0)
             || !open_.load();
     });
-    if (!open_.load() || !input_ring_) return false;
+    if (!open_.load()) return false;
 
-    const uint32_t pending = input_ring_->readable_count();
-    if (pending > 4) {
-        mozart_input_frame_t discarded{};
-        for (uint32_t i = 1; i < pending; ++i) {
-            if (!input_ring_->pop(&discarded)) break;
-            packets_dropped_.fetch_add(1, std::memory_order_relaxed);
-        }
-    }
+    // 积压由消费方按序排空；溢出只在接收环满处丢最旧帧（见 receive_loop）。
     return input_ring_->pop(out_frame_buf);
 }
 
