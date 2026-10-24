@@ -83,6 +83,9 @@ static void *playback_thread(void *arg)
         ssize_t n = recv(pa->fd, pkt, sizeof(pkt), 0);
         if (n < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) continue;
+            // 后端重启窗口内，已连接 UDP 套接字会收到 ICMP 拒绝；可恢复，保持监听。
+            if (errno == ECONNREFUSED || errno == EHOSTUNREACH
+                || errno == ENETUNREACH) continue;
             if (!io_should_stop(pa)) {
                 atomic_store(&pa->error, -errno);
                 perror("[play] status=failed stage=recv");
