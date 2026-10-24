@@ -25,7 +25,7 @@ RVC 后端入口为 `state/src/main.cpp`。`StateManagerDaemon` 读取配置并�
 | 组件 | 当前职责与限制 |
 | --- | --- |
 | `IO/` | UDP、Mock、SPSC 环；PipeWire 捕获填静音、播放丢弃样本 |
-| `preprocessor/` | ALSA 采集播放、WAV 定速回放、HPF、RNNoise、降采样、VAD |
+| `preprocessor/` | ALSA 采集播放、WAV 定速回放、单干增强（高通+WOLA 谱降噪+整形级）、降采样、混合 VAD、直出路由 |
 | `rvc-backend/` | 特征提取、合成、分块、模型与文件队列 |
 | `state/` | 后端组合入口与退出顺序 |
 | `api/` | 原生 socket HTTP、字幕 SSE、播报服务代理 |
@@ -200,7 +200,7 @@ SSE 每秒发送心跳；停止服务时中断活动连接。详见 [本轮修�
 | `rvc.mock.*` | 组件诊断开关 |
 | `rvc.f0_method`、`pitch_shift`、`index_rate`、`filter_radius`、`rms_mix_rate`、`protect` | 推理参数 |
 | `network.audio.*`、`network.control.*` | 监听地址、端口与帧设置 |
-| `storage.*` | FFmpeg、RNNoise、队列容量、缓存和预设文件 |
+| `storage.*` | FFmpeg、文件路径降噪、队列容量、缓存和预设文件 |
 
 帧的固定格式由编译期契约决定。运行时配置不能任意改变帧结构。
 完整默认值见 [`rvc-backend/config.yaml`](rvc-backend/config.yaml)。

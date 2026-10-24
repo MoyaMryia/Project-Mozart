@@ -34,7 +34,7 @@ public:
         bool rvc_enabled = true;
         bool skip_silence = true;
         uint32_t realtime_playout_delay_ms = 400;
-        bool file_rnnoise = false;
+        bool file_denoise = false;
         std::filesystem::path storage_dir = "./storage/temp";
         std::string ffmpeg_path = "ffmpeg";
         size_t max_queue_depth = 50;

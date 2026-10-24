@@ -18,7 +18,7 @@ public:
         std::filesystem::path storage_dir;
         std::string ffmpeg_path = "ffmpeg";
         uint32_t output_sample_rate = MOZART_OUTPUT_SAMPLE_RATE;
-        bool rnnoise = false;
+        bool denoise = false;
         uint32_t max_duration_seconds = 300;
         uint32_t ffmpeg_timeout_ms = 120000;
     };

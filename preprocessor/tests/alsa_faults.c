@@ -22,6 +22,7 @@ static snd_pcm_sframes_t transfer(snd_pcm_t *pcm, void *buffer,
         if (!strcmp(mode, "cancelled")) return -ECANCELED;
         if (!strcmp(mode, "again")) return -EAGAIN;
         if (!strcmp(mode, "after_first_again") && *calls > 1) return -EAGAIN;
+        if (!strcmp(mode, "after_second_again") && *calls > 2) return -EAGAIN;
         if (!strcmp(mode, "suspend")) return -ESTRPIPE;
         if (!strcmp(mode, "xrun")) return -EPIPE;
         if (!strcmp(mode, "recover_suspend") && *calls == 1) return -ESTRPIPE;

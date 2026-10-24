@@ -28,7 +28,7 @@ HTTP API -> StateManagerDaemon -> ModeController
 - `StateManagerDaemon` 读取配置，创建组件，并管理退出顺序。
 - `ModeController` 管理模式、模型选择、文件队列和待切换请求，不处理 PCM 样本。
 - `RealtimeRvcWorker` 管理 UDP 流和 `AudioWorker` 的启停。
-- `FileRvcWorker` 管理解码、可选 RNNoise、推理、输出文件和取消检查。
+- `FileRvcWorker` 管理解码、可选 WOLA 谱降噪、推理、输出文件和取消检查。
 
 [architecture.html](architecture.html) 保留早期架构示意。当前实现和接口以本文及 API 文档为准。
 

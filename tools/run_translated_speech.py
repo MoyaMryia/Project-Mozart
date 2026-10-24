@@ -120,7 +120,7 @@ def main():
     parser.add_argument('--data-dir', type=Path, default=home/'.local/share/mozart/speech')
     parser.add_argument('--run-dir', type=Path, default=Path('/tmp/mozart-translated-speech'))
     parser.add_argument('--no-playback', action='store_true', help='Generate downloadable speech without ALSA playback')
-    parser.add_argument('--no-rnnoise', action='store_true')
+    parser.add_argument('--no-denoise', dest='no_denoise', action='store_true')
     parser.add_argument('--archive-utterances',action='store_true',help='Save processed source utterances for diagnosis')
     args = parser.parse_args()
     try:
@@ -470,7 +470,7 @@ def main():
                 pre_args += ['-i',wav,'--pace','-n',str(round(args.seconds/.02))]
             else:
                 pre_args += ['-d',args.mic_device]
-            if args.no_rnnoise: pre_args += ['--no-rnnoise']
+            if args.no_denoise: pre_args += ['--no-denoise']
             if stopped:
                 raise StopRequested()
             monitor(owned)

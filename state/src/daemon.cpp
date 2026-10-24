@@ -87,7 +87,7 @@ bool StateManagerDaemon::start() {
         config_.reject_value("rvc.realtime_playout_delay_ms", "a multiple of " + std::to_string(MOZART_INPUT_FRAME_MS) + " ms");
     }
     controller_config.realtime_playout_delay_ms = static_cast<uint32_t>(playout_delay);
-    controller_config.file_rnnoise = config_.get_bool("storage.file_rnnoise", false);
+    controller_config.file_denoise = config_.get_bool("storage.file_denoise", false);
     controller_config.storage_dir = config_.resolve_file_path("storage.temp_dir", "./storage/temp");
     controller_config.ffmpeg_path = nonempty("storage.ffmpeg_path", "ffmpeg");
     controller_config.max_queue_depth = static_cast<size_t>(config_.get_int("storage.max_queue_depth", 50, 1, std::numeric_limits<int>::max()));

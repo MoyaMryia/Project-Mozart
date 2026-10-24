@@ -1,7 +1,7 @@
 // test_dsp.c — DSP 链无框架单测（手写断言）
 // ============================================================================
 // 覆盖：立体声取 FL、高通对直流的衰减、降采样增益、契约帧元数据、
-//       分段滞回基本行为。编译需开启 RNNoise（默认开）。
+//       分段滞回基本行为。VAD 来源 = WOLA 后验 SNR 置信度（单干 M1）。
 #include "mozart/dsp.h"
 
 #include <math.h>
@@ -63,11 +63,11 @@ static void test_right_channel_ignored(void)
 }
 
 // 1 kHz 正弦（-6 dBFS）过高通+降采样链后幅度应保留在合理范围。
-// 注意：绕过 RNNoise——纯稳态正弦无语音特征，会被全湿降噪正常压制。
+// 注意：关闭 WOLA——纯稳态正弦与哼声同类，会被谱降噪正常压制。
 static void test_passband_gain(void)
 {
     printf("test_passband_gain\n");
-    mozart_dsp_config_t cfg = { .rnnoise = false, .rnnoise_model = NULL };
+    mozart_dsp_config_t cfg = { .denoise = false };
     mozart_dsp_t *d = mozart_dsp_new(&cfg);
     mozart_input_frame_t out;
     int16_t in[MOZART_RAW_SAMPLES * 2];
@@ -131,27 +131,62 @@ static void test_reset(void)
     mozart_dsp_free(d);
 }
 
-static void test_energy_vad_hangover(void)
+static void test_snr_vad_hangover(void)
 {
     printf("test_energy_vad_hangover\n");
-    mozart_dsp_config_t cfg = { .rnnoise = false, .rnnoise_model = NULL };
-    mozart_dsp_t *d = mozart_dsp_new(&cfg);
+    // SNR-VAD：稳态噪声与语音同类；静音后接宽带爆发才能形成高后验 SNR。
+    mozart_dsp_t *d = mozart_dsp_new(NULL);
     mozart_input_frame_t out;
     int16_t in[MOZART_RAW_SAMPLES * 2];
+    unsigned lcg = 12345;
+    memset(in, 0, sizeof(in));
+    for (int k = 0; k < 25; ++k) mozart_dsp_process(d, in, &out);  // 0.5 s 静音打底
     for (int k = 0; k < 6; ++k) {
         for (int i = 0; i < MOZART_RAW_SAMPLES; ++i) {
-            int16_t sample = (int16_t)(16000 * sinf(2 * MOZART_PI * 1000 * i / 48000));
+            lcg = lcg * 1103515245u + 12345u;
+            const int16_t sample = (int16_t)((int)(lcg >> 16 & 0xffff) - 32768) / 3;
             in[2*i] = in[2*i+1] = sample;
         }
         mozart_dsp_process(d, in, &out);
     }
     uint8_t segment = out.meta.segment_id;
-    CHECK(segment != 0, "energy VAD enters speech after sustained input");
+    CHECK(segment != 0, "SNR VAD enters speech after broadband bursts");
     memset(in, 0, sizeof(in));
     for (int k = 0; k < 10; ++k) mozart_dsp_process(d, in, &out);
     CHECK(out.meta.segment_id == segment, "200ms pause preserves utterance");
     for (int k = 0; k < 50; ++k) mozart_dsp_process(d, in, &out);
     CHECK(out.meta.segment_id == 0, "sustained silence ends utterance");
+    mozart_dsp_free(d);
+}
+
+// P0 回归：生产路径（dsp 层）对稳态白噪必须实际降噪——曾因初始化缺陷增益恒 1。
+static void test_production_path_suppresses_noise(void)
+{
+    printf("test_production_path_suppresses_noise\n");
+    mozart_dsp_t *d = mozart_dsp_new(&(mozart_dsp_config_t){ .denoise = true });
+    CHECK(d != NULL, "dsp_new denoise");
+    unsigned lcg = 42;
+    float in[MOZART_RAW_SAMPLES];
+    float out[MOZART_RAW_SAMPLES * 3];
+    double in_sq = 0, out_sq = 0;
+    long counted = 0;
+    for (int block = 0; block < 100; block++) {
+        for (int i = 0; i < MOZART_RAW_SAMPLES; i++) {
+            lcg = lcg * 1103515245u + 12345u;
+            in[i] = (float)((int)(lcg >> 16 & 0xffffu) - 32768) / 32768.0f * 0.3f;
+        }
+        const size_t n = mozart_dsp_enhance(d, in, MOZART_RAW_SAMPLES, out,
+                                            sizeof(out) / sizeof(out[0]));
+        CHECK(n != (size_t)-1, "enhance");
+        if (block < 20) continue;   // 跳过收敛期
+        for (int i = 0; i < MOZART_RAW_SAMPLES; i++) in_sq += (double)in[i] * in[i];
+        const size_t use = n < MOZART_RAW_SAMPLES ? n : MOZART_RAW_SAMPLES;
+        for (size_t i = 0; i < use; i++) out_sq += (double)out[i] * out[i];
+        counted += (long)use;
+    }
+    const double suppression = 10.0 * log10((in_sq / 76800.0) / (out_sq / (double)counted + 1e-20));
+    printf("  suppression=%.1f dB\n", suppression);
+    CHECK(suppression > 10.0, "production path suppresses white noise > 10 dB");
     mozart_dsp_free(d);
 }
 
@@ -162,7 +197,8 @@ int main(void)
     test_passband_gain();
     test_meta_and_vad();
     test_reset();
-    test_energy_vad_hangover();
+    test_snr_vad_hangover();
+    test_production_path_suppresses_noise();
     if (g_fail) {
         printf("\n%d test(s) FAILED\n", g_fail);
         return 1;

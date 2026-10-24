@@ -76,12 +76,12 @@ rvc:
     hubert: false
     rmvpe: false
 storage:
-  file_rnnoise: false
+  file_denoise: false
 ```
 
 相对文件路径以配置文件所在目录为基准，不依赖 shell 工作目录。
 真实推理必须关闭三个 mock 开关。
-干净文件对比使用 `file_rnnoise: false`；仅在专门测试预处理时开启。
+干净文件对比使用 `file_denoise: false`；仅在专门测试预处理时开启。
 
 ## 启动后端
 
