@@ -31,8 +31,9 @@ TYPE_PCM = 0
 TYPE_CONTROL = 1
 TYPE_TELEMETRY = 2
 
-STREAM_AUDIO = 0
+STREAM_AUDIO = 0     # 20 ms 帧（3840 B，M2 起仅兼容保留）
 STREAM_CONTROL = 1
+STREAM_FAST = 2      # 128 样本帧（512 B，2.67 ms，M2 低延迟路径）
 
 FLAG_START = 0x01
 FLAG_END = 0x02
@@ -43,6 +44,10 @@ CHANNELS = 2
 SAMPLE_BYTES = 2
 FRAME_MS = 20
 FRAME_BYTES = RATE * FRAME_MS // 1000 * CHANNELS * SAMPLE_BYTES   # 3840
+FAST_SAMPLES = 128
+FAST_BYTES = FAST_SAMPLES * CHANNELS * SAMPLE_BYTES               # 512
+# 快流静音判定的帧数（同 3 秒口径）
+FAST_SILENCE_FRAMES = int(3000 * RATE // 1000 / FAST_SAMPLES)
 MAX_PAYLOAD = 1 << 20          # 单帧负载上限，发送与接收共用
 # snd-aloop 的采集流在播放开始前会永久输出静音，超过该时长就重开采集。
 SILENCE_RMS = 1e-6

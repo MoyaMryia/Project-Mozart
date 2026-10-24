@@ -24,6 +24,11 @@ import proto
 VID, PID = 0x1d6b, 0x0105
 MIC_SINK = os.environ.get('MOZART_MIC_SINK', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
 APP_SOURCE = os.environ.get('MOZART_APP_SOURCE', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
+# M2 直连模式：MOZART_DIRECT=1 时直接使用物理设备并走 128 样本快流。
+DIRECT = os.environ.get('MOZART_DIRECT', '0') == '1'
+DIRECT_MIC = os.environ.get('MOZART_DIRECT_MIC', 'default')
+DIRECT_SPEAKER = os.environ.get('MOZART_DIRECT_SPEAKER', 'default')
+FAST_PERIOD_US = int(1e6 * 128 / 48000)   # 2667 µs
 REPORT_SECONDS = 2.0
 
 
@@ -43,7 +48,7 @@ class Bridge:
         self.dropped = 0
         self.errors = 0
         self.gaps = 0
-        self.expected_seq = None
+        self.expected_seq = {}
         self.last_error = ''
 
     # --- 记录 ---
@@ -75,9 +80,13 @@ class Bridge:
     def start_speaker(self):
         with self.audio_lock:
             self.stop_process(self.speaker)
-            self.speaker = self.spawn(
-                ['aplay', '-D', MIC_SINK, '-f', 'S16_LE', '-r', str(proto.RATE),
-                 '-c', str(proto.CHANNELS), '-t', 'raw', '-q'],
+            device = DIRECT_SPEAKER if DIRECT else MIC_SINK
+            aplay = ['aplay', '-D', device, '-f', 'S16_LE', '-r', str(proto.RATE),
+                     '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
+            if DIRECT:
+                aplay += ['--period-time', str(FAST_PERIOD_US),
+                          '--buffer-time', str(FAST_PERIOD_US * 6)]
+            self.speaker = self.spawn(aplay,
                 stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
             self.speaker_fd = self.speaker.stdin.fileno()
             os.set_blocking(self.speaker_fd, False)
@@ -85,10 +94,14 @@ class Bridge:
     def restart_capture(self):
         with self.audio_lock:
             self.stop_process(self.capture)
+            device = DIRECT_MIC if DIRECT else APP_SOURCE
             for attempt in range(10):
-                self.capture = self.spawn(
-                    ['arecord', '-D', APP_SOURCE, '-f', 'S16_LE', '-r', str(proto.RATE),
-                     '-c', str(proto.CHANNELS), '-t', 'raw', '-q'],
+                arecord = ['arecord', '-D', device, '-f', 'S16_LE', '-r', str(proto.RATE),
+                           '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
+                if DIRECT:
+                    arecord += ['--period-time', str(FAST_PERIOD_US),
+                                '--buffer-time', str(FAST_PERIOD_US * 6)]
+                self.capture = self.spawn(arecord,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 time.sleep(0.4)
                 if self.capture.poll() is None:
@@ -208,14 +221,17 @@ class Bridge:
                     break
                 version, kind, stream, _flags, seq, _ts, payload = frame
                 buffer = buffer[proto.HEADER_BYTES + len(payload):]
-                if kind != proto.TYPE_PCM or stream != proto.STREAM_AUDIO:
+                if kind != proto.TYPE_PCM:
+                    continue
+                if stream not in (proto.STREAM_AUDIO, proto.STREAM_FAST):
                     continue
                 if version != proto.VERSION:
                     self.fail(f'未知协议版本 {version}')
                     continue
-                if self.expected_seq is not None and seq != self.expected_seq:
+                expected = self.expected_seq.get(stream)
+                if expected is not None and seq != expected:
                     self.gaps += 1
-                self.expected_seq = seq + 1
+                self.expected_seq[stream] = seq + 1
                 self.received += 1
                 self.write_speaker(payload)
 
@@ -226,8 +242,9 @@ class Bridge:
             if self.capture is None or self.capture.stdout is None:
                 time.sleep(0.2)
                 continue
-            payload = self.capture.stdout.read(proto.FRAME_BYTES)
-            if len(payload) < proto.FRAME_BYTES:
+            chunk_size = proto.FAST_BYTES if DIRECT else proto.FRAME_BYTES
+            payload = self.capture.stdout.read(chunk_size)
+            if len(payload) < chunk_size:
                 if self.stopping.is_set():
                     return
                 self.fail('采集流结束')
@@ -236,9 +253,10 @@ class Bridge:
             samples = memoryview(payload).cast('h')
             picked = samples[::16]
             rms = (sum(int(s) * int(s) for s in picked) / len(picked)) ** 0.5 / 32768
+            silence_limit = proto.FAST_SILENCE_FRAMES if DIRECT else proto.SILENCE_FRAMES
             if rms < proto.SILENCE_RMS:
                 silent += 1
-                if silent > proto.SILENCE_FRAMES:
+                if silent > silence_limit:
                     silent = 0
                     self.restart_capture()
                     continue
@@ -249,7 +267,9 @@ class Bridge:
             if endpoint is None:
                 self.dropped += 1
                 continue
-            frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6), payload)
+            stream_id = proto.STREAM_FAST if DIRECT else proto.STREAM_AUDIO
+            frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
+                                 payload, stream=stream_id)
             try:
                 endpoint.write(frame, timeout=2000)
             except usb.core.USBTimeoutError:

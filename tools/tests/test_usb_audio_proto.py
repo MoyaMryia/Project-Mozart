@@ -53,3 +53,46 @@ class ProtocolTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class FastStreamTests(unittest.TestCase):
+    """M2 快流：帧长、双流独立序号、老对端忽略语义。"""
+
+    def test_fast_constants(self):
+        import proto
+        self.assertEqual(proto.FAST_SAMPLES, 128)
+        self.assertEqual(proto.FAST_BYTES, 512)
+        self.assertEqual(proto.STREAM_FAST, 2)
+        self.assertEqual(proto.FAST_SILENCE_FRAMES * 1000 * 128 // 48000, 3000)
+
+    def test_fast_roundtrip(self):
+        import proto
+        payload = bytes(index % 256 for index in range(512))
+        frame = proto.encode(proto.TYPE_PCM, 7, 12345, payload, stream=proto.STREAM_FAST)
+        version, kind, stream, flags, seq, ts, out = proto.decode(frame)
+        self.assertEqual((version, kind, stream, seq, ts), (1, 0, 2, 7, 12345))
+        self.assertEqual(out, payload)
+
+    def test_streams_interleave_independently(self):
+        import proto
+        buffer = proto.encode(0, 1, 1, b'a' * 512, stream=proto.STREAM_FAST)
+        buffer += proto.encode(0, 2, 2, b'b' * 3840, stream=proto.STREAM_AUDIO)
+        buffer += proto.encode(0, 2, 3, b'c' * 512, stream=proto.STREAM_FAST)
+        streams = []
+        while buffer:
+            version, kind, stream, flags, seq, ts, payload = proto.decode(buffer)
+            streams.append((stream, seq, len(payload)))
+            buffer = buffer[proto.HEADER_BYTES + len(payload):]
+        self.assertEqual(streams, [(2, 1, 512), (0, 2, 3840), (2, 2, 512)])
+
+    def test_unknown_stream_ignored_semantics(self):
+        """老接收端按 (type,stream) 白名单跳过未知流，帧边界仍可解析。"""
+        import proto
+        buffer = proto.encode(0, 1, 1, b'x' * 512, stream=9)
+        buffer += proto.encode(0, 1, 1, b'y' * 512, stream=proto.STREAM_FAST)
+        parsed = []
+        while buffer:
+            version, kind, stream, flags, seq, ts, payload = proto.decode(buffer)
+            parsed.append(stream)
+            buffer = buffer[proto.HEADER_BYTES + len(payload):]
+        self.assertEqual(parsed, [9, proto.STREAM_FAST])

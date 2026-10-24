@@ -22,6 +22,9 @@ import proto
 
 MIC = os.environ.get('MOZART_MIC', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
 SPEAKER = os.environ.get('MOZART_SPEAKER', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
+# M2 低延迟：默认启用快流（128 样本周期）；置 0 回到 20 ms 兼容模式。
+FAST = os.environ.get('MOZART_FAST', '1') != '0'
+FAST_PERIOD_US = int(1e6 * proto.FAST_SAMPLES / proto.RATE)   # 2667 µs
 MNT = os.environ.get('MOZART_FFS', '/dev/ffs-mozart')
 UDC_FILE = '/sys/kernel/config/usb_gadget/mozart/UDC'
 
@@ -68,7 +71,7 @@ class Daemon:
         self.errors = 0
         self.last_frame_at = 0.0
         self.gaps = 0
-        self.expected_seq = None
+        self.expected_seq = {}
         self.last_rms = 0.0
         self.last_error = ''
         self.started = 0.0
@@ -98,9 +101,12 @@ class Daemon:
         with self.audio_lock:
             self.stop_process(self.mic)
             for attempt in range(10):
-                self.mic = self.spawn(
-                    ['arecord', '-D', MIC, '-f', 'S16_LE', '-r', str(proto.RATE),
-                     '-c', str(proto.CHANNELS), '-t', 'raw', '-q'],
+                arecord = ['arecord', '-D', MIC, '-f', 'S16_LE', '-r', str(proto.RATE),
+                           '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
+                if FAST:
+                    arecord += ['--period-time', str(FAST_PERIOD_US),
+                                '--buffer-time', str(FAST_PERIOD_US * 6)]
+                self.mic = self.spawn(arecord,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 time.sleep(0.4)
                 if self.mic.poll() is None:
@@ -113,9 +119,12 @@ class Daemon:
     def start_speaker(self):
         with self.audio_lock:
             self.stop_process(self.speaker)
-            self.speaker = self.spawn(
-                ['aplay', '-D', SPEAKER, '-f', 'S16_LE', '-r', str(proto.RATE),
-                 '-c', str(proto.CHANNELS), '-t', 'raw', '-q'],
+            aplay = ['aplay', '-D', SPEAKER, '-f', 'S16_LE', '-r', str(proto.RATE),
+                     '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
+            if FAST:
+                aplay += ['--period-time', str(FAST_PERIOD_US),
+                          '--buffer-time', str(FAST_PERIOD_US * 6)]
+            self.speaker = self.spawn(aplay,
                 stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
             self.speaker_fd = self.speaker.stdin.fileno()
             os.set_blocking(self.speaker_fd, False)
@@ -168,8 +177,9 @@ class Daemon:
             if self.mic is None or self.mic.stdout is None:
                 time.sleep(0.2)
                 continue
-            payload = self.mic.stdout.read(proto.FRAME_BYTES)
-            if len(payload) < proto.FRAME_BYTES:
+            chunk_size = proto.FAST_BYTES if FAST else proto.FRAME_BYTES
+            payload = self.mic.stdout.read(chunk_size)
+            if len(payload) < chunk_size:
                 if self.stopping.is_set():
                     return
                 self.fail('采集流结束')
@@ -178,9 +188,10 @@ class Daemon:
             samples = memoryview(payload).cast('h')
             picked = samples[::16]
             rms = (sum(int(s) * int(s) for s in picked) / len(picked)) ** 0.5 / 32768
+            silence_limit = proto.FAST_SILENCE_FRAMES if FAST else proto.SILENCE_FRAMES
             if rms < proto.SILENCE_RMS:
                 silent += 1
-                if silent > proto.SILENCE_FRAMES:
+                if silent > silence_limit:
                     silent = 0
                     self.restart_capture()
                     continue
@@ -189,7 +200,9 @@ class Daemon:
             self.last_rms = rms
             if not self.active.is_set() or generation != self.generation:
                 return
-            frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6), payload)
+            stream_id = proto.STREAM_FAST if FAST else proto.STREAM_AUDIO
+            frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
+                                 payload, stream=stream_id)
             try:
                 os.write(self.ep_in, frame)
             except OSError as error:
@@ -227,14 +240,17 @@ class Daemon:
                     break
                 version, kind, stream, _flags, seq, _ts, payload = frame
                 self.pending = self.pending[proto.HEADER_BYTES + len(payload):]
-                if kind != proto.TYPE_PCM or stream != proto.STREAM_AUDIO:
+                if kind != proto.TYPE_PCM:
+                    continue
+                if stream not in (proto.STREAM_AUDIO, proto.STREAM_FAST):
                     continue
                 if version != proto.VERSION:
                     self.fail(f'未知协议版本 {version}')
                     continue
-                if self.expected_seq is not None and seq != self.expected_seq:
+                expected = self.expected_seq.get(stream)
+                if expected is not None and seq != expected:
                     self.gaps += 1
-                self.expected_seq = seq + 1
+                self.expected_seq[stream] = seq + 1
                 self.frames_out += 1
                 self.write_speaker(payload)
 
