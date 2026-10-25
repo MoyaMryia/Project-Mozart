@@ -167,7 +167,7 @@ class Daemon:
                 setattr(self, name, -1)
 
     def write_speaker(self, payload):
-        self.drain_speaker_backlog(proto.FRAME_BYTES * 2)
+        self.drain_speaker_backlog(proto.FRAME_BYTES)
         try:
             written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
@@ -237,7 +237,7 @@ class Daemon:
     def mic_pump(self, generation):
         sequence = 0
         silent = 0
-        keep = 4
+        keep = 1
         while self.active.is_set() and not self.stopping.is_set() and generation == self.generation:
             if self.mic is None or self.mic.stdout is None:
                 time.sleep(0.2)
@@ -313,6 +313,11 @@ class Daemon:
                 if version != proto.VERSION:
                     self.fail(f'未知协议版本 {version}')
                     continue
+                # 延迟打点：帧 ts_us（pre 打包时刻，jetson 时钟）→ USB 到达
+                if os.environ.get('MOZART_TRACE') and stream == proto.STREAM_AUDIO:
+                    now_us = time.monotonic() * 1e6
+                    print(f'[trace-j] seq={seq} age={(now_us - _ts)/1000:.1f}ms',
+                          flush=True)
                 expected = self.expected_seq.get(stream)
                 if expected is not None and seq != expected:
                     self.gaps += 1
