@@ -9,6 +9,15 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-25 | [loop-latency-20261025/RESULTS.md](loop-latency-20261025/RESULTS.md) | 主机回路延迟排查；管道积压根因坐实与有界排空修复，SRC 落地后稳态不漂移 |
+| 2026-10-25 | [e2e-latency-20261025/RESULTS.md](e2e-latency-20261025/RESULTS.md) | 端到端延迟达标：Jetson 实机双电缆脉冲实测，period 64 产品口径 8.2 ms 零抖动 |
+| 2026-10-25 | [m5-dtln-20261025/RESULTS.md](m5-dtln-20261025/RESULTS.md) | dtln AI 分支：ONNX 链验证门限全过、C 集成双端对拍 1e-8 级 |
+| 2026-10-25 | [m4-control-plane-20261025/RESULTS.md](m4-control-plane-20261025/RESULTS.md) | 控制面迁移第一步：二进制消息契约与 Unix 数据报服务并存 |
+| 2026-10-25 | [m3-endpoints-20261025/RESULTS.md](m3-endpoints-20261025/RESULTS.md) | 快流专用端点：描述符双接口、预处理器直占 ep3/ep4，内核验证 |
+| 2026-10-25 | [m2-dual-stream-20261025/RESULTS.md](m2-dual-stream-20261025/RESULTS.md) | USB 桥协议双流：STREAM_FAST 128 样本快流与主机直连模式，双端联调 |
+| 2026-10-25 | [m1-single-trunk-20261025/RESULTS.md](m1-single-trunk-20261025/RESULTS.md) | 预处理器单干重构：WOLA 替换 RNNoise、直出路由、控制通道，含板端冒烟 |
+| 2026-10-25 | [wola-m0-20261025/RESULTS.md](wola-m0-20261025/RESULTS.md) | WOLA 谱降噪参考实现与验证电池：全门限通过，真实 TTS 复验 |
+| 2026-10-25 | [rehearsal-20261025/RESULTS.md](rehearsal-20261025/RESULTS.md) | M6 彩排自动化子集：冷重启自愈、切换压力、断链存活、60 s 稳态 |
 | 2026-10-20 | [demo-readiness-20261020/RESULTS.md](demo-readiness-20261020/RESULTS.md) | 稳定运行候选；启动、音频故障、配置与客户端归属修复，含板端 1000 帧短测和 USB 检查 |
 | 2026-10-20 | [tempo-cap-20261020/RESULTS.md](tempo-cap-20261020/RESULTS.md) | 变速上限提高至 1.50 倍、积压需求分布及高比例识别对照 |
 | 2026-10-19 | [product-readiness-20261019/RESULTS.md](product-readiness-20261019/RESULTS.md) | 产品交付审核；主链路、故障恢复、部署、资源和验收缺口，含 5 个定向探针 |

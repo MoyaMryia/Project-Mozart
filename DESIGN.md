@@ -25,7 +25,7 @@ RVC 后端入口为 `state/src/main.cpp`。`StateManagerDaemon` 读取配置并�
 | 组件 | 当前职责与限制 |
 | --- | --- |
 | `IO/` | UDP、Mock、SPSC 环；PipeWire 捕获填静音、播放丢弃样本 |
-| `preprocessor/` | ALSA 采集播放、WAV 定速回放、单干增强（高通+WOLA 谱降噪+整形级）、降采样、混合 VAD、直出路由 |
+| `preprocessor/` | ALSA 采集播放、WAV 定速回放、单干增强（高通+WOLA 谱降噪+整形级）、降采样、混合 VAD、直出路由。架构与延迟账见[备忘](DESIGN_PREPROCESSOR.md) |
 | `rvc-backend/` | 特征提取、合成、分块、模型与文件队列 |
 | `state/` | 后端组合入口与退出顺序 |
 | `api/` | 原生 socket HTTP、字幕 SSE、播报服务代理 |
