@@ -158,4 +158,25 @@ if(MOZART_BUILD_TESTS)
     target_include_directories(test_usb_link PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(test_usb_link PRIVATE m)
     add_test(NAME test_usb_link COMMAND test_usb_link)
+
+    # DTLN 对拍：需要 onnxruntime 运行库与模型资产；按选项启用
+    option(MOZART_BUILD_DTLN_TESTS "Build DTLN golden comparison test" OFF)
+    if(MOZART_BUILD_DTLN_TESTS)
+        add_executable(test_dtln tests/test_dtln.c)
+        target_sources(test_dtln PRIVATE src/dtln.c)
+        target_include_directories(test_dtln PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ort-headers)
+        find_library(ONNXRT_LIB onnxruntime
+            PATHS /home/moyamryia/.local/lib/python3.10/site-packages/onnxruntime/capi
+                  /usr/local/lib
+            NO_DEFAULT_PATH)
+        target_link_libraries(test_dtln PRIVATE m ${ONNXRT_LIB})
+        set(DTLN_MODELS ${CMAKE_CURRENT_SOURCE_DIR}/../rvc-golden/dtln)
+        add_test(NAME test_dtln COMMAND test_dtln
+            ${DTLN_MODELS}/model_1.onnx ${DTLN_MODELS}/model_2.onnx
+            ${DTLN_MODELS}/fixture/dtln-input.bin
+            ${DTLN_MODELS}/fixture/dtln-golden.bin)
+        set_tests_properties(test_dtln PROPERTIES TIMEOUT 60)
+    endif()
 endif()
