@@ -326,7 +326,7 @@ class Bridge:
     def alsa_to_usb(self):
         sequence = 0
         silent = 0
-        keep = 1
+        keep = 8
         while not self.stopping.is_set():
             if self.capture is None or self.capture.stdout is None:
                 time.sleep(0.2)
