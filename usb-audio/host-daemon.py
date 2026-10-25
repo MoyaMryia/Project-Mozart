@@ -55,6 +55,8 @@ class Bridge:
         # 回程跨时钟域适配（jetson→host）：虚拟水位 = 收到帧 - 已写帧
         self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
         self.return_level = 0
+        self.capture_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
+        self.capture_level = 0
         self.last_error = ''
 
     # --- 记录 ---
@@ -356,12 +358,16 @@ class Bridge:
             if endpoint is None:
                 self.dropped += 1
                 continue
+            self.capture_level += chunk_size // (proto.CHANNELS * proto.SAMPLE_BYTES)
+            ratio = self.capture_src.ratio(max(self.capture_level, 1))
+            adapted = self.capture_src.process(payload, ratio)
+            self.capture_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
             stream_id = proto.STREAM_FAST if DIRECT else proto.STREAM_AUDIO
             # 快流且有专用端点时走接口 1；否则与主流量复用接口 0。
             if DIRECT and fast_endpoint is not None:
                 endpoint = fast_endpoint
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
-                                 payload, stream=stream_id)
+                                 adapted, stream=stream_id)
             if os.environ.get('MOZART_TRACE'):
                 samples = memoryview(payload).cast('h')
                 energy = max(abs(int(s)) for s in samples[:32])
