@@ -19,6 +19,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import proto
+from src import AsyncSrc
 
 MIC = os.environ.get('MOZART_MIC', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
 SPEAKER = os.environ.get('MOZART_SPEAKER', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
@@ -82,6 +83,9 @@ class Daemon:
         self.last_frame_at = 0.0
         self.gaps = 0
         self.expected_seq = {}
+        # 跨时钟域适配（host→jetson）：虚拟水位 = 收到帧 - 已写帧
+        self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
+        self.return_level = 0
         self.last_rms = 0.0
         self.last_error = ''
         self.started = 0.0
@@ -323,7 +327,11 @@ class Daemon:
                     self.gaps += 1
                 self.expected_seq[stream] = seq + 1
                 self.frames_out += 1
-                self.write_speaker(payload)
+                self.return_level += 1
+                ratio = self.return_src.ratio(max(self.return_level, 1))
+                adapted = self.return_src.process(payload, ratio)
+                self.write_speaker(adapted)
+                self.return_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
 
     def silencer(self):
         chunk = b'\x00' * proto.FRAME_BYTES

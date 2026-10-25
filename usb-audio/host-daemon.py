@@ -21,6 +21,7 @@ import usb.util
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import proto
+from src import AsyncSrc
 
 VID, PID = 0x1d6b, 0x0105
 MIC_SINK = os.environ.get('MOZART_MIC_SINK', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
@@ -51,6 +52,9 @@ class Bridge:
         self.errors = 0
         self.gaps = 0
         self.expected_seq = {}
+        # 回程跨时钟域适配（jetson→host）：虚拟水位 = 收到帧 - 已写帧
+        self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
+        self.return_level = 0
         self.last_error = ''
 
     # --- 记录 ---
@@ -311,7 +315,11 @@ class Bridge:
                     self.gaps += 1
                 self.expected_seq[stream] = seq + 1
                 self.received += 1
-                self.write_speaker(payload)
+                self.return_level += 1
+                ratio = self.return_src.ratio(max(self.return_level, 1))
+                adapted = self.return_src.process(payload, ratio)
+                if self.write_speaker(adapted):
+                    self.return_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
 
     def alsa_to_usb(self):
         sequence = 0

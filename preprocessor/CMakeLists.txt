@@ -95,6 +95,7 @@ add_library(mozart_pre_core STATIC
     src/stages.c
     src/control.c
     src/usb_link.c
+    src/async_src.c
     src/capture.c
     src/playback.c
     src/wav.c
@@ -149,6 +150,12 @@ if(MOZART_BUILD_TESTS)
     add_test(NAME test_noise_suppressor
              COMMAND test_noise_suppressor ${NS_FIXTURE_DIR})
     add_dependencies(test_noise_suppressor ns-fixture)
+
+    add_executable(test_async_src tests/test_async_src.c)
+    target_sources(test_async_src PRIVATE src/async_src.c)
+    target_include_directories(test_async_src PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(test_async_src PRIVATE m)
+    add_test(NAME test_async_src COMMAND test_async_src)
 
     add_executable(test_stages tests/test_stages.c)
     target_link_libraries(test_stages PRIVATE mozart_pre_core m)
