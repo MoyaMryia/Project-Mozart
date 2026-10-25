@@ -29,6 +29,21 @@
 （上游循环假设块序正确，移植时索引错位）；(2) 指标未补偿流式延迟
 （block_len−block_shift=384 样本）。两者均已修正并留在脚本注释中。
 
+## C 集成与对拍（提交 3a23341）
+
+`preprocessor/src/dtln.c`（+头）：ORT C API（API 23，兼容本机 1.23 / 板端 1.29）
+单核链，DFT/IDFT 直接实现。同张量对拍 Python 参考：
+
+| 环境 | max_diff | us/block |
+| --- | --- | --- |
+| 本机 x86_64（ORT 1.23.2） | **7.8e-8** | 2466 |
+| Jetson aarch64（ORT 1.29.0） | **6.0e-8** | 4197 |
+
+开发期修复三处：states 张量尺寸（4→512）、厄米 IDFT 重建、输出名表。
+`test_dtln` 已入 CMake（`MOZART_BUILD_DTLN_TESTS=ON`），双端 6/6 全绿。
+性能：当前 C 版 us/block 2.5 ms（本机）贴 2.67 ms 块周期线，系标量 DFT；
+接线前需换 FFT 实现（目标 <1 ms），已在集成排期中。
+
 ## 板端 RTF（Jetson Orin，repo venv onnxruntime 1.27）
 
 单核 RTF **0.124**，同指标数值与本机一致。门限全过，进入接线实现。
