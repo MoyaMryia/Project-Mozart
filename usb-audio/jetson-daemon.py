@@ -244,7 +244,7 @@ class Daemon:
     def mic_pump(self, generation):
         sequence = 0
         silent = 0
-        keep = 1
+        keep = 8
         while self.active.is_set() and not self.stopping.is_set() and generation == self.generation:
             if self.mic is None or self.mic.stdout is None:
                 time.sleep(0.2)
