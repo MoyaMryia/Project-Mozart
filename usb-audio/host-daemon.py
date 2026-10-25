@@ -84,10 +84,8 @@ class Bridge:
             self.stop_process(self.speaker)
             device = DIRECT_SPEAKER if DIRECT else MIC_SINK
             aplay = ['aplay', '-D', device, '-f', 'S16_LE', '-r', str(proto.RATE),
-                     '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
-            if DIRECT:
-                aplay += ['--period-time', str(FAST_PERIOD_US),
-                          '--buffer-time', str(FAST_PERIOD_US * 6)]
+                     '-c', str(proto.CHANNELS), '-t', 'raw', '-q',
+                     '--period-time', '2667', '--buffer-time', '16000']
             self.speaker = self.spawn(aplay,
                 stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
             self.speaker_fd = self.speaker.stdin.fileno()
@@ -99,10 +97,8 @@ class Bridge:
             device = DIRECT_MIC if DIRECT else APP_SOURCE
             for attempt in range(10):
                 arecord = ['arecord', '-D', device, '-f', 'S16_LE', '-r', str(proto.RATE),
-                           '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
-                if DIRECT:
-                    arecord += ['--period-time', str(FAST_PERIOD_US),
-                                '--buffer-time', str(FAST_PERIOD_US * 6)]
+                           '-c', str(proto.CHANNELS), '-t', 'raw', '-q',
+                           '--period-time', '2667', '--buffer-time', '16000']
                 self.capture = self.spawn(arecord,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 time.sleep(0.4)
@@ -127,7 +123,7 @@ class Bridge:
     def write_speaker(self, payload):
         if self.speaker_fd < 0:
             return False
-        self.drain_speaker_backlog(proto.FRAME_BYTES * 2)
+        self.drain_speaker_backlog(proto.FRAME_BYTES)
         try:
             written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
@@ -301,6 +297,12 @@ class Bridge:
                     continue
                 if stream not in (proto.STREAM_AUDIO, proto.STREAM_FAST):
                     continue
+                # 延迟打点：帧 ts_us（Jetson 打包时刻）→ 本机收到时刻
+                if os.environ.get('MOZART_TRACE'):
+                    now_us = int(time.monotonic() * 1e6)
+                    print(f'[trace] seq={seq} host-now={now_us} '
+                          f'frame_energy={abs(int.from_bytes(payload[:2], "little", signed=True))}',
+                          flush=True)
                 if version != proto.VERSION:
                     self.fail(f'未知协议版本 {version}')
                     continue
@@ -314,12 +316,12 @@ class Bridge:
     def alsa_to_usb(self):
         sequence = 0
         silent = 0
-        keep = 4
+        keep = 1
         while not self.stopping.is_set():
             if self.capture is None or self.capture.stdout is None:
                 time.sleep(0.2)
                 continue
-            chunk_size = proto.FAST_BYTES if DIRECT else proto.FRAME_BYTES
+            chunk_size = proto.FAST_BYTES
             self.drain_capture_backlog(self.capture.stdout, chunk_size, keep)
             payload = self.capture.stdout.read(chunk_size)
             if len(payload) < chunk_size:
@@ -352,6 +354,12 @@ class Bridge:
                 endpoint = fast_endpoint
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
                                  payload, stream=stream_id)
+            if os.environ.get('MOZART_TRACE'):
+                samples = memoryview(payload).cast('h')
+                energy = max(abs(int(s)) for s in samples[:32])
+                if energy > 8000:
+                    print(f'[trace-capture] seq={sequence} '
+                          f'ts={int(time.monotonic() * 1e6)} energy={energy}', flush=True)
             try:
                 endpoint.write(frame, timeout=2000)
             except usb.core.USBTimeoutError:
