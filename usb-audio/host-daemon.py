@@ -10,6 +10,7 @@ USB 未连接时进入离线模式：虚拟声卡照常工作（麦克风喂静�
 """
 import os
 import signal
+import struct
 import subprocess
 import sys
 import threading
@@ -126,6 +127,7 @@ class Bridge:
     def write_speaker(self, payload):
         if self.speaker_fd < 0:
             return False
+        self.drain_speaker_backlog(proto.FRAME_BYTES * 2)
         try:
             written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
@@ -137,6 +139,59 @@ class Bridge:
             self.fail(f'写虚拟麦克风短写: {written}/{len(payload)}')
             return False
         return True
+
+
+    # --- 过期帧排空（M2 延迟修复）---
+    def pipe_backlog(self, fd):
+        """FIONREAD 查询管道积压字节数；失败返回 0。"""
+        try:
+            import fcntl
+            return struct.unpack('i', fcntl.ioctl(fd, 0x541B, b'\x00' * 4))[0]
+        except (OSError, ImportError):
+            return 0
+
+    def drain_capture_backlog(self, stream, chunk_bytes, keep_frames):
+        """积压超过 keep_frames 时丢最旧帧，计数到 dropped。"""
+        backlog = self.pipe_backlog(stream.fileno())
+        limit = chunk_bytes * keep_frames
+        if backlog <= limit:
+            return
+        stale = backlog - limit
+        while stale > 0:
+            try:
+                got = os.read(stream.fileno(), min(stale, 65536))
+            except (OSError, ValueError):
+                break
+            if not got:
+                break
+            stale -= len(got)
+        self.dropped += 1
+        self.last_error = f'采集积压排空 {stale + (backlog - limit) if False else ""}'
+        self.last_error = '采集积压排空（丢弃最旧帧）'
+
+    def drain_speaker_backlog(self, keep_bytes):
+        """aplay stdin 积压超限时从读端排空旧数据（写端无读权限，借 /proc/self/fd）。"""
+        fd = self.speaker_fd
+        if fd < 0:
+            return
+        backlog = self.pipe_backlog(fd)
+        if backlog <= keep_bytes:
+            return
+        try:
+            read_handle = os.open(f'/proc/self/fd/{fd}', os.O_RDONLY | os.O_NONBLOCK)
+        except OSError:
+            return
+        try:
+            stale = backlog - keep_bytes
+            while stale > 0:
+                got = os.read(read_handle, min(stale, 65536))
+                if not got:
+                    break
+                stale -= len(got)
+            self.dropped += 1
+            self.last_error = '播放积压排空（丢弃最旧帧）'
+        finally:
+            os.close(read_handle)
 
     # --- USB ---
     def open_usb(self):
@@ -259,11 +314,13 @@ class Bridge:
     def alsa_to_usb(self):
         sequence = 0
         silent = 0
+        keep = 4
         while not self.stopping.is_set():
             if self.capture is None or self.capture.stdout is None:
                 time.sleep(0.2)
                 continue
             chunk_size = proto.FAST_BYTES if DIRECT else proto.FRAME_BYTES
+            self.drain_capture_backlog(self.capture.stdout, chunk_size, keep)
             payload = self.capture.stdout.read(chunk_size)
             if len(payload) < chunk_size:
                 if self.stopping.is_set():
