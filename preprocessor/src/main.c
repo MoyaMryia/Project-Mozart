@@ -211,7 +211,7 @@ static void usage(const char *prog)
         "[--no-denoise] [--gate] [--agc] [--limiter]\n"
         "  -d   ALSA 采集设备（默认 default）\n"
         "  -o   ALSA 播放设备；缺省只发送不播放\n"
-        "  --period-frames  采集/直出周期（默认 128，≤960；AI 路径仍按 960 攒帧）\n"
+        "  --period-frames  采集/直出周期（默认 64，≤960；AI 路径仍按 960 攒帧）\n"
         "  --mode           初始播放路由（默认 ai；direct = 主干直出播放）\n"
         "  --ctl-port       本地控制通道 UDP 端口（默认 19040；0 关闭）\n"
         "  --no-denoise     关闭 WOLA 谱降噪（旁路）\n",
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
     bool pace = false;
     uint16_t port = 18000;
     uint16_t ctl_port = 19040;
-    unsigned period_frames = 128;
+    unsigned period_frames = 64;   // 2.67ms→1.33ms：≤10ms 端到端口径的余量（见 e2e 报告）
     int initial_route = ROUTE_AI;
     int fade_ms = 10;
     long max_frames = -1;
