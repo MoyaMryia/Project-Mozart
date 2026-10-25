@@ -1,0 +1,14 @@
+{
+ "bingtang-female": {
+  "si_sdr_in": 235.0,
+  "si_sdr_out": 50.8
+ },
+ "suda-male": {
+  "si_sdr_in": 228.8,
+  "si_sdr_out": 47.0
+ },
+ "moli-female": {
+  "si_sdr_in": 230.1,
+  "si_sdr_out": 42.2
+ }
+}
