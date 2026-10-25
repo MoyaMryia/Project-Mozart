@@ -86,6 +86,9 @@ class Daemon:
         # 跨时钟域适配（host→jetson）：虚拟水位 = 收到帧 - 已写帧
         self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
         self.return_level = 0
+        # 采集出口适配（jetson→host 方向的时钟漂移）
+        self.capture_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
+        self.capture_level = 0
         self.last_rms = 0.0
         self.last_error = ''
         self.started = 0.0
@@ -270,9 +273,13 @@ class Daemon:
             self.last_rms = rms
             if not self.active.is_set() or generation != self.generation:
                 return
+            self.capture_level += chunk_size // (proto.CHANNELS * proto.SAMPLE_BYTES)
+            ratio = self.capture_src.ratio(max(self.capture_level, 1))
+            adapted = self.capture_src.process(payload, ratio)
+            self.capture_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
             stream_id = proto.STREAM_FAST if FAST else proto.STREAM_AUDIO
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
-                                 payload, stream=stream_id)
+                                 adapted, stream=stream_id)
             try:
                 os.write(self.ep_in, frame)
             except OSError as error:
