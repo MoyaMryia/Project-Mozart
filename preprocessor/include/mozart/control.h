@@ -20,7 +20,8 @@ typedef struct mozart_control mozart_control_t;
 
 typedef struct {
     // route：0 = AI 回包播放，1 = 采集直出（由实现方定义枚举值）
-    void (*set_route)(void *ctx, int route);
+    // 返回 false 表示当前输入源不支持该路由。
+    bool (*set_route)(void *ctx, int route);
     // 返回 false 表示名字未知，控制层回错误应答。
     bool (*set_stage)(void *ctx, const char *name, bool on);
     // 把当前状态快照写入 buf（含结尾 0）；由实现方保证线程安全。

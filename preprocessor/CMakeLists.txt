@@ -105,10 +105,10 @@ target_include_directories(mozart_pre_core PUBLIC
     .
     ${CMAKE_CURRENT_SOURCE_DIR}/../IO/include
 )
-# WOLA 数值路径不参与 fast-math：对拍门限 1e-6 依赖确定浮点行为。
-set_source_files_properties(src/noise_suppressor.c PROPERTIES
-    COMPILE_OPTIONS "-fno-fast-math")
-target_link_libraries(mozart_pre_core PUBLIC m asound Threads::Threads)
+# 高通与 WOLA 保持跨平台浮点顺序，首窗边缘会放大高通的舍入差异。
+set_source_files_properties(src/dsp.c src/noise_suppressor.c PROPERTIES
+    COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+target_link_libraries(mozart_pre_core PUBLIC m asound Threads::Threads rt)
 
 if(MOZART_USE_RNNOISE)
     # RNNoise 已退出处理链（M1 单干重构）；保留静态库与导出工具供回退参考。
@@ -123,14 +123,26 @@ target_link_libraries(mozart-pre PRIVATE mozart_pre_core Threads::Threads)
 
 # ---- Tests -------------------------------------------------------------------
 if(MOZART_BUILD_TESTS)
+    # USB 离线验收通过 ctypes 调用当前 DSP 真值。
+    add_library(mozart_pre_reference SHARED
+        src/dsp.c src/noise_suppressor.c src/stages.c)
+    target_include_directories(mozart_pre_reference PRIVATE
+        include ${CMAKE_CURRENT_SOURCE_DIR}/../IO/include)
+    target_link_libraries(mozart_pre_reference PRIVATE m)
+
     enable_testing()
     add_executable(test_dsp tests/test_dsp.c)
     target_link_libraries(test_dsp PRIVATE mozart_pre_core)
     add_test(NAME test_dsp COMMAND test_dsp)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    # 分组保留原有超时；新增 USB 状态故障用例独立执行。
     add_test(NAME test_replay COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_replay.py $<TARGET_FILE:mozart-pre>)
-    set_tests_properties(test_replay PROPERTIES TIMEOUT 20)
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_replay.py $<TARGET_FILE:mozart-pre>
+        ReplayTest AlsaFailureTest)
+    add_test(NAME test_replay_usb COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_replay.py $<TARGET_FILE:mozart-pre>
+        UsbLoopTest)
+    set_tests_properties(test_replay test_replay_usb PROPERTIES TIMEOUT 20)
 
     # 噪声抑制器对拍夹具：构建期由 Python 参考实现生成
     set(NS_FIXTURE_DIR ${CMAKE_CURRENT_BINARY_DIR}/ns-fixture)
@@ -162,8 +174,10 @@ if(MOZART_BUILD_TESTS)
     add_test(NAME test_stages COMMAND test_stages)
 
     add_executable(test_usb_link tests/test_usb_link.c)
-    target_include_directories(test_usb_link PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(test_usb_link PRIVATE m)
+    target_include_directories(test_usb_link PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../IO/include)
+    target_link_libraries(test_usb_link PRIVATE m rt)
     add_test(NAME test_usb_link COMMAND test_usb_link)
 
     # DTLN 对拍：需要 onnxruntime 运行库与模型资产；按选项启用

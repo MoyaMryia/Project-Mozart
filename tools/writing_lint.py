@@ -19,9 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT/'tools/writing_lint_baseline.json'
 # 这些文件定义或测试规则，必须引用被禁止的写法。
 # requirements.md 逐字引用赛题评价标准，等级描述含限制词，属于历史证据原文。
+# libusb.h 保留第三方原始接口注释；许可证随头文件交付。
 EXEMPT = {'AGENTS.md', 'docs/WRITING.md', 'tools/writing_lint.py',
           'tools/writing_lint_baseline.json', 'tools/tests/test_writing_lint.py',
-          'requirements.md'}
+          'requirements.md', 'usb-audio/native-host/third_party/libusb.h'}
 CODE_SUFFIXES = {'.py', '.c', '.cc', '.cpp', '.h', '.hpp', '.js', '.mjs', '.ts', '.tsx', '.vue', '.sh'}
 HEDGES_ZH = (
     '不代表', '不意味着', '不等于', '不能说明', '不说明', '并非', '不是',

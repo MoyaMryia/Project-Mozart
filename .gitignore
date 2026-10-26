@@ -190,3 +190,9 @@ state/glossary.json
 
 # 赛题评价标准原始表格（内容已转换为 requirements.md）
 /*.xlsx
+
+# 原生 USB 客户端自带开发头文件与许可证。
+!usb-audio/native-host/third_party/
+usb-audio/native-host/third_party/*
+!usb-audio/native-host/third_party/libusb.h
+!usb-audio/native-host/third_party/LICENSE.libusb

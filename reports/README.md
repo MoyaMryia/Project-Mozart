@@ -9,8 +9,13 @@
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-26 | [usb-native-20261026/RESULTS.md](usb-native-20261026/RESULTS.md) | 正式原生链路与四模型并发；两轮各 45000 包完整返回，ALSA 整链路队列估算最大 8.230 ms |
+| 2026-10-26 | [usb-connected-20261026/RESULTS.md](usb-connected-20261026/RESULTS.md) | 已连接 USB 的实际音频回路复测；60 s、45116 包完整回传，稳态最大 1.937 ms |
+| 2026-10-25 | [native-wola-20261025/RESULTS.md](native-wola-20261025/RESULTS.md) | 原生 WOLA 数字段与硬件 PCM 各运行 60 s；分离声卡启动和 USB 接收，保留低水位失败记录 |
+| 2026-10-25 | [usb-full-duplex-20261025/RESULTS.md](usb-full-duplex-20261025/RESULTS.md) | 原生 USB 双向独立对传；正式测试 135000 包全部匹配，保留 ALSA 欠载与收尾修复记录 |
+| 2026-10-25 | [usb-latency-baseline-20261025/RESULTS.md](usb-latency-baseline-20261025/RESULTS.md) | 专用端点与现有 DSP 基线；数字往返、计算耗时和启动记录 |
 | 2026-10-25 | [loop-latency-20261025/RESULTS.md](loop-latency-20261025/RESULTS.md) | 主机回路延迟排查；管道积压根因坐实与有界排空修复，SRC 落地后稳态不漂移 |
-| 2026-10-25 | [e2e-latency-20261025/RESULTS.md](e2e-latency-20261025/RESULTS.md) | 端到端延迟达标：Jetson 实机双电缆脉冲实测，period 64 产品口径 8.2 ms 零抖动 |
+| 2026-10-25 | [e2e-latency-20261025/RESULTS.md](e2e-latency-20261025/RESULTS.md) | Jetson 双电缆脉冲测量；period 64 产品路径 8.2 ms 为估算，配置与验收范围见报告 |
 | 2026-10-25 | [m5-dtln-20261025/RESULTS.md](m5-dtln-20261025/RESULTS.md) | dtln AI 分支：ONNX 链验证门限全过、C 集成双端对拍 1e-8 级 |
 | 2026-10-25 | [m4-control-plane-20261025/RESULTS.md](m4-control-plane-20261025/RESULTS.md) | 控制面迁移第一步：二进制消息契约与 Unix 数据报服务并存 |
 | 2026-10-25 | [m3-endpoints-20261025/RESULTS.md](m3-endpoints-20261025/RESULTS.md) | 快流专用端点：描述符双接口、预处理器直占 ep3/ep4，内核验证 |
