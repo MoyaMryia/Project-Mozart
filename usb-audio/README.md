@@ -3,6 +3,112 @@
 用 Jetson 的 USB-C 口传输全双工音频，取代 3.5 mm 模拟回路。
 两端各有一张 `snd-aloop` 虚拟声卡，音频经 FunctionFS bulk 端点传输。
 
+## 正式 native 路径
+
+Linux 默认使用原生 host 与 Jetson `mozart-pre` 的 USB direct 路径。
+旧 Python 服务保留作回退。下文的虚拟声卡架构与全局安装步骤属于旧路径。
+原生启动器只使用本仓库 `build/` 和 `build/run/`，不改主机 `/etc`，也不执行全局安装。
+
+```text
+主机 ALSA 采集 → native host → interface 1 → Jetson 高通＋WOLA
+主机 ALSA 播放 ← native host ← interface 1 ← USB direct
+                                              └→ 20 ms UDP AI 支路
+```
+
+Jetson 原有 `mozart-usb-audio.service` 继续负责 gadget、FunctionFS 描述符、UDC 和 interface 0。
+启动原生预处理时，保留该服务运行。
+主机启动器暂时停止原有 host 服务，并记录恢复状态。
+实时模式还会暂时挂起所选 PulseAudio sink；停止后恢复原有状态。
+
+Jetson 的 root FunctionFS 文件 `/dev/ffs-mozart/ep3`、`ep4` 分别用于快流接收和发送。
+文件编号与 USB 总线端点地址不同。
+当前实机 interface 1 枚举为 OUT `0x02`、IN `0x82`；host 从描述符发现实际地址。
+
+### 构建与启动
+
+在主机仓库根目录执行：
+
+```bash
+usb-audio/run-native-host.sh build
+ctest --test-dir build/native-host --output-on-failure
+sudo -v
+```
+
+在 Jetson 的 `~/Mozart` 执行：
+
+```bash
+cd ~/Mozart
+usb-audio/run-native-pre.sh build
+sudo -v
+systemctl is-active mozart-usb-audio.service
+usb-audio/run-native-pre.sh start
+usb-audio/run-native-pre.sh status
+```
+
+确认 Jetson 旧服务为 `active` 后启动原生预处理。
+两端启动器显式执行 `sudo -n` 和 `chrt --fifo 40`。
+权限不足或 FIFO 设置失败时，启动立即停止；程序不降级为普通调度。
+不要在普通用户的启动器外层加 `sudo`，以便主机启动器访问用户的 PulseAudio 会话。
+
+在主机仓库根目录启动实时录放：
+
+```bash
+MOZART_CAPTURE=hw:CARD=sofhdadsp,DEV=0 \
+MOZART_PLAYBACK=hw:CARD=sofhdadsp,DEV=0 \
+usb-audio/run-native-host.sh start --periods 6 --prefill 4 --target 3
+usb-audio/run-native-host.sh status
+```
+
+按实际声卡修改设备环境变量。启动脚本拒绝 `--capture` 和 `--playback`；这两个参数仅供二进制直接调用。
+`run` 在前台运行，`start` 在后台运行。
+日志与状态分别位于 `build/run/usb-native-{host,pre}/native.log` 和 `status.json`。
+`status` 同时显示进程、原生状态及待恢复标记。
+
+默认握手协商 64 采样帧；HELLO_ACK 选择 64 后，START_ACK 提交 stream 3。
+停止时，host 等待完整回复与 STOP_ACK，再清空播放队列并完成 ALSA drain。
+握手回退条件与校验规则见[原生 host 说明](native-host/README.md)。
+
+USB 模式默认 `direct`，启动参数和控制接口均拒绝 `ai` 路由。
+预处理仍向 AI 支路发送 20 ms UDP 帧。
+USB I/O timer 独占 Jetson 进程的 `SIGUSR1`，并定向投递给创建链路的主线程。
+在同一主线程执行 USB open、read、write 和 close；保持 `SIGUSR1` 可投递。
+
+### 停止与回退
+
+先在主机执行正常停止：
+
+```bash
+usb-audio/run-native-host.sh stop
+usb-audio/run-native-host.sh status
+```
+
+再在 Jetson 执行：
+
+```bash
+cd ~/Mozart
+usb-audio/run-native-pre.sh stop
+usb-audio/run-native-pre.sh status
+```
+
+`stop` 与 `rollback` 使用同一恢复流程。
+主机恢复此前处于运行状态的旧 host 服务和此前挂起的 sink。
+Jetson 仅停止本仓库原生进程，保留 gadget 服务。
+如清理失败，先查看状态中的原因，再在对应仓库执行：
+
+```bash
+# 主机
+usb-audio/run-native-host.sh rollback
+systemctl is-active mozart-usb-audio.service
+
+# Jetson
+cd ~/Mozart
+usb-audio/run-native-pre.sh rollback
+systemctl is-active mozart-usb-audio.service
+```
+
+完整记录和离线验收命令见[原生 host 验收](native-host/README.md#记录与验收)。
+实测配置、样本数与指标范围统一见[已连接 USB 报告](../reports/usb-connected-20261026/RESULTS.md#适用范围)。
+
 ## 背景
 
 模拟回路把播报直接送回同一个 TRRS 插头的麦克风输入，形成 TTS → ASR 自环。
@@ -15,7 +121,7 @@
 Tegra234 的 USB 控制器不支持 UAC2 等时端点，见 [usb-gadget/DECISION.md](../usb-gadget/DECISION.md)。
 因此使用 bulk 端点加自定义帧协议，并在同一链路上预留控制通道。
 
-## 架构
+## 旧服务架构
 
 ```
 应用 ──▶ plughw:CARD=Loopback,DEV=0,SUBDEV=1 ──▶ 主机守护进程
@@ -45,7 +151,10 @@ Tegra234 的 USB 控制器不支持 UAC2 等时端点，见 [usb-gadget/DECISION
 `snd-aloop` 按 substream 配对：播放 `dev 0 sub N` 对应采集 `dev 1 sub N`。
 一张卡的两个 substream 提供两个独立方向。
 
-## 协议
+## 旧服务协议
+
+原生快流与控制消息的单一协议源是 [protocol.json](protocol.json)。
+以下为旧服务的 20 ms 音频流。
 
 固定 24 字节帧头，小端序。
 
@@ -69,7 +178,7 @@ Tegra234 的 USB 控制器不支持 UAC2 等时端点，见 [usb-gadget/DECISION
 负载为 20 ms 的 48 kHz 立体声 16 位 PCM，3840 字节。
 控制、字幕、WebUI 复用同一对端点，新增流只增加流 ID。
 
-## 安装
+## 旧服务安装
 
 两台机器都先加载 `snd-aloop`：
 

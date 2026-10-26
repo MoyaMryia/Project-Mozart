@@ -6,16 +6,20 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 # 阶段名、触发路径（扩展正则，匹配暂存文件路径）。
-NATIVE_PATHS='^(rvc-backend|IO|preprocessor|api|state|rvc-golden)/|^CMakeLists\.txt$'
+NATIVE_PATHS='^(rvc-backend|IO|preprocessor|api|state|rvc-golden)/|^usb-audio/native-host/|^usb-audio/protocol\.json$|^tools/gen_usb_protocol\.py$|^CMakeLists\.txt$'
 PYTHON_PATHS='^tools/|^usb-audio/|^rvc-golden/.*\.py$|^rvc-golden/tempo-frame-boundary-pocket\.wav$|^preprocessor/src/tempo_filter\.c$'
 TEMPO_PATHS='^preprocessor/|^tools/|^rvc-golden/tempo-frame-boundary-pocket\.wav$'
 FRONTEND_PATHS='^frontend/'
 
-stage_lint() { python3 tools/writing_lint.py "$@"; }
+stage_lint() {
+    python3 tools/writing_lint.py "$@"
+    python3 tools/gen_usb_protocol.py --check
+}
 stage_python() { python3 -m unittest discover -s tools/tests -v; }
 stage_native() {
     cmake -S rvc-backend -B build/host -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-        -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON -DMOZART_BUILD_TESTS=ON
+        -DUSE_ONNX=OFF -DUSE_TENSORRT=OFF -DBUILD_TESTS=ON -DBUILD_TESTING=ON \
+        -DMOZART_BUILD_TESTS=ON -DMOZART_USE_RNNOISE=OFF
     cmake --build build/host -j2
     ctest --test-dir build/host --output-on-failure
     ctest --test-dir build/host -R '^state_' --repeat until-fail:10 --output-on-failure

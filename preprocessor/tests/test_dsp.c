@@ -10,6 +10,7 @@
 #include <string.h>
 
 #define MOZART_PI 3.14159265358979323846f
+#define MIN_NOISE_SUPPRESSION_DB 10.0
 
 static int g_fail = 0;
 #define CHECK(cond, msg) do { \
@@ -186,7 +187,80 @@ static void test_production_path_suppresses_noise(void)
     }
     const double suppression = 10.0 * log10((in_sq / 76800.0) / (out_sq / (double)counted + 1e-20));
     printf("  suppression=%.1f dB\n", suppression);
-    CHECK(suppression > 10.0, "production path suppresses white noise > 10 dB");
+    CHECK(suppression > MIN_NOISE_SUPPRESSION_DB, "production path suppresses white noise > 10 dB");
+
+    // 同一流先切旁路，再恢复降噪；分别对输入功率验收，排除仅改遥测的实现。
+    for (int phase = 0; phase < 2; phase++) {
+        mozart_dsp_set_stages(d, phase != 0, false, false, false);
+        double input_power = 0.0, output_power = 0.0;
+        for (int block = 0; block < 100; block++) {
+            for (int i = 0; i < MOZART_RAW_SAMPLES; i++) {
+                lcg = lcg * 1103515245u + 12345u;
+                in[i] = (float)((int)(lcg >> 16 & 0xffffu) - 32768) / 32768.0f * 0.3f;
+            }
+            const size_t n = mozart_dsp_enhance(d, in, MOZART_RAW_SAMPLES, out,
+                                                sizeof(out) / sizeof(out[0]));
+            CHECK(n == MOZART_RAW_SAMPLES, "runtime switch keeps output count");
+            if (block < 20) continue;
+            for (int i = 0; i < MOZART_RAW_SAMPLES; i++) {
+                input_power += (double)in[i] * in[i];
+                output_power += (double)out[i] * out[i];
+            }
+        }
+        if (phase == 0) {
+            // 白噪旁路只经过高通；功率容差覆盖滤波衰减及统计波动。
+            const double ratio = output_power / input_power;
+            CHECK(ratio > 0.8 && ratio < 1.2, "runtime bypass preserves input noise power");
+        } else {
+            CHECK(10.0 * log10(input_power / (output_power + 1e-20)) > MIN_NOISE_SUPPRESSION_DB,
+                  "runtime denoise restores suppression > 10 dB");
+        }
+    }
+
+    // 旧会话有噪声估计。重置后用静音预热，再用低电平噪声检查估计器已清空。
+    mozart_dsp_reset(d);
+    memset(in, 0, sizeof(in));
+    size_t n = mozart_dsp_enhance(d, in, MOZART_RAW_SAMPLES, out,
+                                  sizeof(out) / sizeof(out[0]));
+    CHECK(n == MOZART_RAW_SAMPLES - 64, "reset restores WOLA startup emission count");
+    float silence_peak = 0.0f;
+    for (int i = 0; i < MOZART_RAW_SAMPLES - 64; i++)
+        silence_peak = fmaxf(silence_peak, fabsf(out[i]));
+    CHECK(silence_peak == 0.0f, "reset clears old waveform history");
+    double burst_input = 0.0, burst_output = 0.0;
+    for (int i = 0; i < MOZART_RAW_SAMPLES; i++) {
+        lcg = lcg * 1103515245u + 12345u;
+        in[i] = (float)((int)(lcg >> 16 & 0xffffu) - 32768) / 32768.0f * 0.1f;
+        burst_input += (double)in[i] * in[i];
+    }
+    n = mozart_dsp_enhance(d, in, MOZART_RAW_SAMPLES, out,
+                           sizeof(out) / sizeof(out[0]));
+    CHECK(n == MOZART_RAW_SAMPLES, "reset stream reaches steady emission count");
+    for (int i = 0; i < MOZART_RAW_SAMPLES; i++)
+        burst_output += (double)out[i] * out[i];
+    // 静音基线后的突发应通过；0.5 功率比覆盖末窗延迟和高通衰减。
+    CHECK(burst_output / burst_input > 0.5, "reset discards previous noise estimate");
+    mozart_dsp_free(d);
+}
+
+// 每个 64 样本块都切换降噪；启动后每块必须连续产出 64 样本。
+static void test_stage_toggle_preserves_output_count(void)
+{
+    printf("test_stage_toggle_preserves_output_count\n");
+    mozart_dsp_t *d = mozart_dsp_new(NULL);
+    float in[64] = {0}, out[1024];
+    size_t total = 0;
+    for (int k = 1; k <= 80; k++) {
+        mozart_dsp_set_stages(d, (k % 2) != 0, false, false, false);
+        const size_t n = mozart_dsp_enhance(d, in, 64, out, 1024);
+        const size_t expected = k < 9 ? 0 : (k == 9 ? 512 : 64);
+        CHECK(n == expected, "stage toggle preserves WOLA emission count");
+        total += n;
+    }
+    CHECK(total == 80 * 64 - 64, "only the final overlap remains pending");
+    mozart_dsp_telemetry_t tm;
+    mozart_dsp_telemetry(d, &tm);
+    CHECK(tm.denoise == 0, "denoise switch is applied");
     mozart_dsp_free(d);
 }
 
@@ -199,6 +273,7 @@ int main(void)
     test_reset();
     test_snr_vad_hangover();
     test_production_path_suppresses_noise();
+    test_stage_toggle_preserves_output_count();
     if (g_fail) {
         printf("\n%d test(s) FAILED\n", g_fail);
         return 1;

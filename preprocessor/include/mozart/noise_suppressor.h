@@ -43,6 +43,12 @@ mozart_ns_t *mozart_ns_new(const mozart_ns_config_t *cfg);
 size_t mozart_ns_push(mozart_ns_t *ns, const float *in, size_t n,
                       float *out, size_t out_cap);
 
+/** 清空流式状态，保留配置和窗；不分配内存。 */
+void mozart_ns_reset(mozart_ns_t *ns);
+
+/** 切换增益旁路，保留滑窗、队列及噪声估计状态。 */
+void mozart_ns_set_bypass(mozart_ns_t *ns, bool bypass);
+
 /** 尾部补零排空。语义同 push。 */
 size_t mozart_ns_flush(mozart_ns_t *ns, float *out, size_t out_cap);
 

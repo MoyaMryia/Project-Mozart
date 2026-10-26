@@ -1,6 +1,7 @@
 """USB bulk 协议的自测：往返、边界与错误分支。"""
 import pathlib
 import struct
+import subprocess
 import sys
 import unittest
 
@@ -49,6 +50,55 @@ class ProtocolTests(unittest.TestCase):
     def test_short_control_payload_is_rejected(self):
         with self.assertRaises(proto.FrameError):
             proto.parse_control(b'\x01')
+
+
+class GeneratedProtocolTests(unittest.TestCase):
+    def test_generated_files_match_schema(self):
+        root = pathlib.Path(__file__).resolve().parents[2]
+        result = subprocess.run([sys.executable, str(root / 'tools/gen_usb_protocol.py'), '--check'],
+                                cwd=root, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_legacy_header_and_constants_are_unchanged(self):
+        self.assertEqual(proto.HEADER_BYTES, 24)
+        self.assertEqual(proto.HEADER_FORMAT, '<HBBBBHIQI')
+        self.assertEqual((proto.FAST_SAMPLES, proto.FAST_BYTES, proto.STREAM_FAST), (128, 512, 2))
+        self.assertEqual((proto.VERSION, proto.MAGIC, proto.RATE, proto.CHANNELS,
+                          proto.SAMPLE_BYTES), (1, 0x4D5A, 48000, 2, 2))
+        self.assertEqual(proto.encode(0, 1, 2, b'x'),
+                         bytes.fromhex('5a4d0100000000000100000002000000000000000100000078'))
+
+    def test_fast64_stream_frame(self):
+        payload = bytes(range(256))
+        frame = proto.encode(proto.TYPE_PCM, 9, 10, payload, stream=proto.STREAM_FAST64)
+        decoded = proto.decode(frame)
+        self.assertEqual((decoded[2], len(decoded[-1])), (3, proto.FAST64_BYTES))
+        self.assertEqual(proto.FAST64_SAMPLES, 64)
+
+    def test_hello_and_start_golden_payloads(self):
+        hello = proto.encode_hello(caps=proto.CAP_FAST64, preferred_block=64)
+        self.assertEqual(hello, bytes.fromhex('010001080000004000'))
+        self.assertEqual(proto.parse_hello(hello), (1, proto.CAP_FAST64, 64))
+        start = proto.START.pack(proto.CONTROL_START, proto.FAST64_SAMPLES)
+        start_ack = proto.START.pack(proto.CONTROL_START_ACK, proto.FAST64_SAMPLES)
+        self.assertEqual(start, bytes.fromhex('03004000'))
+        self.assertEqual(start_ack, bytes.fromhex('05004000'))
+        stop_ack = proto.STOP_ACK.pack(proto.CONTROL_STOP_ACK, 0x11223344, 0x55667788)
+        self.assertEqual(stop_ack, bytes.fromhex('06004433221188776655'))
+
+    def test_hello_rejects_bad_size_opcode_version_and_fields(self):
+        with self.assertRaises(proto.FrameError):
+            proto.parse_hello(b'')
+        malformed = bytearray(proto.encode_hello())
+        malformed[0] = 9
+        with self.assertRaises(proto.FrameError):
+            proto.parse_hello(malformed)
+        malformed = bytearray(proto.encode_hello())
+        malformed[2] = 9
+        with self.assertRaises(proto.FrameError):
+            proto.parse_hello(malformed)
+        with self.assertRaises(proto.FrameError):
+            proto.encode_hello(caps=1 << 40)
 
 
 if __name__ == '__main__':
