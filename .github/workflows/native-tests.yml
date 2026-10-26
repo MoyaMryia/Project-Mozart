@@ -17,6 +17,8 @@ jobs:
   cpu-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      PIP_CONSTRAINT: ${{ github.workspace }}/tools/requirements-test.txt
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -35,7 +37,7 @@ jobs:
             bash tools/ci-local.sh lint
           fi
       - name: Install Python test dependencies
-        run: python3 -m pip install numpy==2.1.3
+        run: python3 -m pip install numpy==2.1.3 scipy pyusb pypinyin jieba
       - name: Install native test dependencies
         run: |
           sudo apt-get update

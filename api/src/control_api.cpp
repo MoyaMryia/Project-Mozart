@@ -21,7 +21,6 @@ constexpr size_t kMaxDatagram = 4096;
 
 void put_u16(unsigned char* p, uint16_t v) { std::memcpy(p, &v, 2); }
 void put_u32(unsigned char* p, uint32_t v) { std::memcpy(p, &v, 4); }
-uint16_t get_u16(const unsigned char* p) { uint16_t v; std::memcpy(&v, p, 2); return v; }
 uint32_t get_u32(const unsigned char* p) { uint32_t v; std::memcpy(&v, p, 4); return v; }
 
 std::vector<unsigned char> make_error(uint32_t req_id, uint32_t code, const char* text)
@@ -41,21 +40,98 @@ std::vector<unsigned char> make_error(uint32_t req_id, uint32_t code, const char
 uint8_t mode_from_status(const nlohmann::json& status)
 {
     const std::string mode = status.value("mode", "idle");
-    if (mode == "realtime") return MOZART_CTL_MODE_REALTIME;
-    if (mode == "file") return MOZART_CTL_MODE_FILE;
+    if (mode == "rt_rvc") return MOZART_CTL_MODE_REALTIME;
+    if (mode == "file_rvc") return MOZART_CTL_MODE_FILE;
     return MOZART_CTL_MODE_IDLE;
 }
 
 uint8_t state_from_status(const nlohmann::json& status)
 {
-    // 状态语义与 /api/status 相同来源：ready 字段族。
-    if (status.value("ready", false)) return MOZART_CTL_STATE_READY;
-    if (status.value("failed", false)) return MOZART_CTL_STATE_FAILED;
-    if (status.value("starting", false)) return MOZART_CTL_STATE_STARTING;
+    if (!status.value("last_error", "").empty()) return MOZART_CTL_STATE_FAILED;
+    if (!status.value("pending_target_mode", nlohmann::json{}).is_null()) return MOZART_CTL_STATE_STARTING;
+    const auto mode = status.value("mode", "idle");
+    if (mode == "file_rvc" || (mode == "rt_rvc" && status.value("worker_running", false))) {
+        return MOZART_CTL_STATE_READY;
+    }
     return MOZART_CTL_STATE_DOWN;
 }
 
 } // namespace
+
+std::vector<unsigned char> control_reply(ControlPlane& controller, const unsigned char* data, size_t size)
+{
+    if (size < MOZART_CTL_HEADER_BYTES) return {};
+    const uint32_t req_id = get_u32(data + 4);
+    if (data[0] != MOZART_CTL_VERSION) {
+        return make_error(req_id, MOZART_CTL_ERR_UNKNOWN_MSG, "unsupported version");
+    }
+    const uint8_t msg_type = data[1];
+    std::vector<unsigned char> reply;
+    switch (msg_type) {
+    case MOZART_CTL_PING: {
+        reply.resize(8);
+        reply[0] = MOZART_CTL_VERSION;
+        reply[1] = MOZART_CTL_PONG;
+        put_u16(reply.data() + 2, 0x0002);
+        put_u32(reply.data() + 4, req_id);
+        break;
+    }
+    case MOZART_CTL_STATUS: {
+        const auto status = controller.status();
+        reply.resize(8 + 2 + 4 + 4);
+        reply[0] = MOZART_CTL_VERSION;
+        reply[1] = MOZART_CTL_STATUS_DATA;
+        put_u16(reply.data() + 2, 0x0002);
+        put_u32(reply.data() + 4, req_id);
+        reply[8] = mode_from_status(status);
+        reply[9] = state_from_status(status);
+        uint32_t finished = 0, failed = 0;
+        for (const auto& job : status.at("queue")) {
+            const auto state = job.value("status", "");
+            finished += state == "completed";
+            failed += state == "failed";
+        }
+        put_u32(reply.data() + 10, finished);
+        put_u32(reply.data() + 14, failed);
+        break;
+    }
+    case MOZART_CTL_MODE_SET: {
+        if (size != 9) {
+            reply = make_error(req_id, MOZART_CTL_ERR_BAD_BODY, "mode_set needs exactly 1 byte");
+            break;
+        }
+        const uint8_t mode = data[8];
+        if (mode > MOZART_CTL_MODE_FILE) {
+            reply = make_error(req_id, MOZART_CTL_ERR_BAD_BODY, "unknown mode");
+            break;
+        }
+        const char* name = mode == MOZART_CTL_MODE_REALTIME ? "rt_rvc"
+                           : mode == MOZART_CTL_MODE_FILE ? "file_rvc"
+                                                           : "idle";
+        const auto result = controller.request_mode(name, "");
+        const auto result_status = result.value("status", "");
+        const bool accepted = result_status == "active" || result_status == "switching_deferred";
+        if (!accepted) {
+            reply = make_error(req_id, MOZART_CTL_ERR_UNSUPPORTED,
+                               result.dump().substr(0, 200).c_str());
+            break;
+        }
+        reply.resize(8 + 2);
+        reply[0] = MOZART_CTL_VERSION;
+        reply[1] = MOZART_CTL_MODE_EVT;
+        put_u16(reply.data() + 2, 0x0002);
+        put_u32(reply.data() + 4, req_id);
+        reply[8] = mode;
+        reply[9] = result_status == "switching_deferred"
+            ? static_cast<uint8_t>(MOZART_CTL_STATE_STARTING) : state_from_status(controller.status());
+        break;
+    }
+    default:
+        reply = make_error(req_id, MOZART_CTL_ERR_UNKNOWN_MSG, "unknown msg_type");
+        break;
+    }
+    return reply;
+}
 
 ControlApiServer::ControlApiServer(const std::string& socket_path, ControlPlane* controller)
     : socket_path_(socket_path), controller_(controller) {}
@@ -119,72 +195,9 @@ void ControlApiServer::serve()
             spdlog::warn("control_api recvfrom: {}", std::strerror(errno));
             continue;
         }
-        if (n < MOZART_CTL_HEADER_BYTES) continue;
         requests_.fetch_add(1);
-        const uint8_t version = buffer[0];
-        const uint8_t msg_type = buffer[1];
-        const uint32_t req_id = get_u32(buffer.data() + 4);
-        if (version != MOZART_CTL_VERSION) {
-            auto reply = make_error(req_id, MOZART_CTL_ERR_UNKNOWN_MSG, "unsupported version");
-            ::sendto(server_fd_, reply.data(), reply.size(), 0,
-                     reinterpret_cast<sockaddr*>(&peer), peer_len);
-            continue;
-        }
-        std::vector<unsigned char> reply;
-        switch (msg_type) {
-        case MOZART_CTL_PING: {
-            reply.resize(8);
-            reply[0] = MOZART_CTL_VERSION;
-            reply[1] = MOZART_CTL_PONG;
-            put_u16(reply.data() + 2, 0x0002);
-            put_u32(reply.data() + 4, req_id);
-            break;
-        }
-        case MOZART_CTL_STATUS: {
-            const auto status = controller_ ? controller_->status() : nlohmann::json{};
-            reply.resize(8 + 2 + 4 + 4);
-            reply[0] = MOZART_CTL_VERSION;
-            reply[1] = MOZART_CTL_STATUS_DATA;
-            put_u16(reply.data() + 2, 0x0002);
-            put_u32(reply.data() + 4, req_id);
-            reply[8] = mode_from_status(status);
-            reply[9] = state_from_status(status);
-            put_u32(reply.data() + 10,
-                    static_cast<uint32_t>(status.value("jobs_finished", 0u)));
-            put_u32(reply.data() + 14,
-                    static_cast<uint32_t>(status.value("jobs_failed", 0u)));
-            break;
-        }
-        case MOZART_CTL_MODE_SET: {
-            if (n < 9) {
-                reply = make_error(req_id, MOZART_CTL_ERR_BAD_BODY, "mode_set needs 1 byte");
-                break;
-            }
-            const uint8_t mode = buffer[8];
-            const char* name = mode == MOZART_CTL_MODE_REALTIME ? "realtime"
-                               : mode == MOZART_CTL_MODE_FILE ? "file"
-                                                               : "idle";
-            const auto result = controller_->request_mode(name, "");
-            const bool accepted = result.value("ok", false) || result.value("accepted", false)
-                                  || result.value("mode", "") == name;
-            if (!accepted) {
-                reply = make_error(req_id, MOZART_CTL_ERR_UNSUPPORTED,
-                                   result.dump().substr(0, 200).c_str());
-                break;
-            }
-            reply.resize(8 + 2);
-            reply[0] = MOZART_CTL_VERSION;
-            reply[1] = MOZART_CTL_MODE_EVT;
-            put_u16(reply.data() + 2, 0x0002);
-            put_u32(reply.data() + 4, req_id);
-            reply[8] = mode;
-            reply[9] = MOZART_CTL_STATE_STARTING;
-            break;
-        }
-        default:
-            reply = make_error(req_id, MOZART_CTL_ERR_UNKNOWN_MSG, "unknown msg_type");
-            break;
-        }
+        const auto reply = control_reply(*controller_, buffer.data(), static_cast<size_t>(n));
+        if (reply.empty()) continue;
         ::sendto(server_fd_, reply.data(), reply.size(), 0,
                  reinterpret_cast<sockaddr*>(&peer), peer_len);
     }

@@ -340,7 +340,7 @@ nlohmann::json ModeController::status() const {
         {"vad", {{"available", realtime_worker_ && realtime_worker_->running()}, {"frame_count", vad.frame_count},
                  {"voiced_percent", vad.frame_count == 0 ? 0.0 : 100.0 * vad.voiced_frame_count / vad.frame_count},
                  {"confidence_percent", vad.confidence_percent}}},
-        {"latency", {{"available", realtime_worker_ && realtime_worker_->running()}, {"count", latency.count},
+        {"latency", {{"available", latency.count > 0}, {"count", latency.count},
                      {"avg_ms", latency.avg_ms}, {"max_ms", latency.max_ms}}},
         {"bypass", {{"inference_count", bypass.inference_count}, {"bypass_count", bypass.bypass_count}}},
         {"realtime", {{"available", realtime_worker_ && realtime_worker_->running()},

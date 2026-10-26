@@ -124,20 +124,23 @@ void AudioWorker::process_loop() {
         }
         record_input_meta(input);
 
-        const auto started = std::chrono::steady_clock::now();
         mozart_output_frame_t output{};
         if (stream_mode_) {
             output.meta = input.meta;
             if (mic_muted_.load(std::memory_order_relaxed)) {
                 // 静音：不推理，直接输出全零帧（HDMI 立即安静）
                 std::fill(output.pcm, output.pcm + MOZART_OUTPUT_SAMPLES, 0.0f);
+                output.meta.pts_ns = 0;
             } else if (bypass_.load(std::memory_order_relaxed)) {
                 // 干声直通：原始 16k 输入升采样后直接播出，不推理
                 upsample_16k_to_48k(input.pcm, output.pcm);
             } else {
                 streaming_->push(input);
+                mozart_frame_meta_t source_meta{};
                 const size_t got = streaming_->pop_output(
-                    output.pcm, MOZART_OUTPUT_SAMPLES);
+                    output.pcm, MOZART_OUTPUT_SAMPLES, &source_meta);
+                // frame_idx 确认本次收包；PTS 标记缓冲后音频的源样本。
+                output.meta.pts_ns = source_meta.pts_ns;
                 if (got < MOZART_OUTPUT_SAMPLES) {
                     std::fill(output.pcm + got, output.pcm + MOZART_OUTPUT_SAMPLES, 0.0f);
                 }
@@ -151,26 +154,25 @@ void AudioWorker::process_loop() {
         } else {
             process_frame(input, output);
         }
-        if (!mozart_io_write_frame(stream_, &output, sizeof(output)) && running_.load()) {
+        const bool written = mozart_io_write_frame(stream_, &output, sizeof(output));
+        if (!written && running_.load()) {
             spdlog::warn("AudioWorker failed to write output frame {}",
                          output.meta.frame_idx);
         }
 
-        // 流式模式优先用 pts 算真实端到端延迟；否则退化为泵耗时
-        double measured_ms;
-        if (stream_mode_ && input.meta.pts_ns > kMinPlausiblePtsNs) {
+        // 使用已输出音频的源 PTS；输入须使用同一单调时钟域。
+        if (written && output.meta.pts_ns > kMinPlausiblePtsNs) {
             const auto now_ns = static_cast<uint64_t>(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::steady_clock::now().time_since_epoch()).count());
-            measured_ms = static_cast<double>(now_ns - input.meta.pts_ns) / 1e6;
-        } else {
-            measured_ms = std::chrono::duration<double, std::milli>(
-                std::chrono::steady_clock::now() - started).count();
+            if (now_ns >= output.meta.pts_ns) {
+                const double measured_ms = static_cast<double>(now_ns - output.meta.pts_ns) / 1e6;
+                std::lock_guard<std::mutex> lock(stats_mutex_);
+                ++latency_count_;
+                latency_total_ms_ += measured_ms;
+                latency_max_ms_ = std::max(latency_max_ms_, measured_ms);
+            }
         }
-        std::lock_guard<std::mutex> lock(stats_mutex_);
-        ++latency_count_;
-        latency_total_ms_ += measured_ms;
-        latency_max_ms_ = std::max(latency_max_ms_, measured_ms);
     }
 
     running_ = false;
