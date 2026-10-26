@@ -3,9 +3,9 @@
 
 设计要点：
 - ALSA 一直打开。USB 未连接时进入离线模式：继续消费管线播放、给管线采集喂静音。
-- 主机重新配置（DISABLE 后 ENABLE）时重开端点，只有 UNBIND/SIGTERM 退出进程。
+- 主机重新配置（DISABLE 后 ENABLE）时重开端点。
 - MOZART_UDC 非空时，写完描述符后绑定 UDC，退出时解绑。
-- 端点读写失败时记录原因并结束当前搬运线程；下一次 ENABLE 会重新拉起。
+- 端点读写失败时记录原因并退出，由 systemd 重新启动。
 """
 import math
 import os
@@ -19,7 +19,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import proto
-from src import AsyncSrc
+from pcm import read_block
+from src import AsyncSrc, TARGET_BLOCKS
 
 MIC = os.environ.get('MOZART_MIC', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
 SPEAKER = os.environ.get('MOZART_SPEAKER', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
@@ -34,6 +35,7 @@ STRINGS_MAGIC = 2
 HAS_FS = 1
 HAS_HS = 2
 EVENT_BIND, EVENT_UNBIND, EVENT_ENABLE, EVENT_DISABLE = 0, 1, 2, 3
+FFS_EVENT = struct.Struct('<8sB3x')
 REPORT_SECONDS = 5.0
 
 
@@ -70,6 +72,7 @@ def strings():
 class Daemon:
     def __init__(self):
         self.stopping = threading.Event()
+        self.exit_code = 0
         self.active = threading.Event()
         self.audio_lock = threading.Lock()
         self.generation = 0
@@ -83,12 +86,9 @@ class Daemon:
         self.last_frame_at = 0.0
         self.gaps = 0
         self.expected_seq = {}
-        # 跨时钟域适配（host→jetson）：虚拟水位 = 收到帧 - 已写帧
-        self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
-        self.return_level = 0
-        # 采集出口适配（jetson→host 方向的时钟漂移）
-        self.capture_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
-        self.capture_level = 0
+        # 水位与目标均使用音频采样帧，每帧包含 CHANNELS 个样本。
+        target_frames = proto.FAST_SAMPLES * TARGET_BLOCKS
+        self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=target_frames)
         self.last_rms = 0.0
         self.last_error = ''
         self.started = 0.0
@@ -124,7 +124,7 @@ class Daemon:
                     arecord += ['--period-time', str(FAST_PERIOD_US),
                                 '--buffer-time', str(FAST_PERIOD_US * 6)]
                 self.mic = self.spawn(arecord,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
                 time.sleep(0.4)
                 if self.mic.poll() is None:
                     return True
@@ -162,6 +162,12 @@ class Daemon:
         self.errors += 1
         self.last_error = reason
         print(f'错误: {reason}', flush=True)
+
+    def request_restart(self, reason):
+        self.fail(reason)
+        self.exit_code = 1
+        self.active.clear()
+        self.stopping.set()
 
     def close_endpoints(self):
         for name in ('ep_out', 'ep_in'):
@@ -251,7 +257,7 @@ class Daemon:
                 continue
             chunk_size = proto.FAST_BYTES if FAST else proto.FRAME_BYTES
             self.drain_capture_backlog(self.mic.stdout, chunk_size, keep)
-            payload = self.mic.stdout.read(chunk_size)
+            payload = read_block(self.mic.stdout, chunk_size)
             if len(payload) < chunk_size:
                 if self.stopping.is_set():
                     return
@@ -273,18 +279,13 @@ class Daemon:
             self.last_rms = rms
             if not self.active.is_set() or generation != self.generation:
                 return
-            self.capture_level += chunk_size // (proto.CHANNELS * proto.SAMPLE_BYTES)
-            ratio = self.capture_src.ratio(max(self.capture_level, 1))
-            adapted = self.capture_src.process(payload, ratio)
-            self.capture_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
             stream_id = proto.STREAM_FAST if FAST else proto.STREAM_AUDIO
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
-                                 adapted, stream=stream_id)
+                                 payload, stream=stream_id)
             try:
                 os.write(self.ep_in, frame)
             except OSError as error:
-                self.fail(f'写 IN 端点失败: {error}')
-                self.active.clear()
+                self.request_restart(f'写 IN 端点失败，重启服务: {error}')
                 return
             sequence += 1
             self.frames_in += 1
@@ -294,14 +295,13 @@ class Daemon:
         while self.active.is_set() and not self.stopping.is_set() and generation == self.generation:
             if self.ep_out < 0:
                 return
-            ready, _, _ = select.select([self.ep_out], [], [], 0.3)
-            if not ready:
-                continue
             try:
+                ready, _, _ = select.select([self.ep_out], [], [], 0.3)
+                if not ready:
+                    continue
                 chunk = os.read(self.ep_out, 65536)
             except OSError as error:
-                self.fail(f'读 OUT 端点失败: {error}')
-                self.active.clear()
+                self.request_restart(f'读 OUT 端点失败，重启服务: {error}')
                 return
             if not chunk:
                 continue
@@ -334,11 +334,10 @@ class Daemon:
                     self.gaps += 1
                 self.expected_seq[stream] = seq + 1
                 self.frames_out += 1
-                self.return_level += 1
-                ratio = self.return_src.ratio(max(self.return_level, 1))
+                fill = self.pipe_backlog(self.speaker_fd) / (proto.CHANNELS * proto.SAMPLE_BYTES)
+                ratio = self.return_src.ratio(fill)
                 adapted = self.return_src.process(payload, ratio)
                 self.write_speaker(adapted)
-                self.return_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
 
     def silencer(self):
         chunk = b'\x00' * proto.FRAME_BYTES
@@ -348,17 +347,13 @@ class Daemon:
             time.sleep(0.02)
 
     def watchdog(self):
-        """主机重启后端点可能失效：链路在用但不再出帧时重新打开。"""
+        """链路在用但停止出帧时，交由 systemd 重启服务。"""
         while not self.stopping.is_set():
             time.sleep(2.0)
             if not self.active.is_set() or self.last_frame_at == 0:
                 continue
             if time.monotonic() - self.last_frame_at > 3.0:
-                self.fail('发送停止，重新打开端点')
-                self.disable()
-                time.sleep(0.5)
-                if not self.stopping.is_set():
-                    self.enable()
+                self.request_restart('发送停止，重启服务')
 
     def report(self):
         level = 20 * math.log10(max(self.last_rms, 1e-9))
@@ -380,6 +375,7 @@ class Daemon:
             return
         self.ep_out, self.ep_in = ep_out, ep_in
         self.pending = b''
+        self.last_frame_at = time.monotonic()
         self.active.set()
         threading.Thread(target=self.usb_pump, args=(generation,), daemon=True).start()
         threading.Thread(target=self.mic_pump, args=(generation,), daemon=True).start()
@@ -391,6 +387,17 @@ class Daemon:
         time.sleep(0.2)
         self.close_endpoints()
         print('disabled；等待重新启用', flush=True)
+
+    def handle_events(self, events):
+        for _setup, kind in FFS_EVENT.iter_unpack(events):
+            if kind == EVENT_ENABLE and not self.active.is_set():
+                self.enable()
+            elif kind == EVENT_DISABLE and self.active.is_set():
+                self.disable()
+            elif kind == EVENT_UNBIND:
+                print('unbind', flush=True)
+                self.stopping.set()
+                break
 
     def run(self):
         signal.signal(signal.SIGTERM, lambda *_: self.stopping.set())
@@ -415,14 +422,7 @@ class Daemon:
         while not self.stopping.is_set():
             ready, _, _ = select.select([self.ep0], [], [], 0.5)
             if ready:
-                kind = os.read(self.ep0, 64)[8]
-                if kind == EVENT_ENABLE and not self.active.is_set():
-                    self.enable()
-                elif kind == EVENT_DISABLE and self.active.is_set():
-                    self.disable()
-                elif kind == EVENT_UNBIND:
-                    print('unbind', flush=True)
-                    self.stopping.set()
+                self.handle_events(os.read(self.ep0, FFS_EVENT.size * 5))
             if time.monotonic() - last_report >= REPORT_SECONDS:
                 self.report()
                 last_report = time.monotonic()
@@ -441,7 +441,7 @@ class Daemon:
             except OSError:
                 pass
         self.report()
-        return 0
+        return self.exit_code
 
 
 if __name__ == '__main__':

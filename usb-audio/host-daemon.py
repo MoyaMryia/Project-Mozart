@@ -21,7 +21,8 @@ import usb.util
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import proto
-from src import AsyncSrc
+from pcm import read_block
+from src import AsyncSrc, TARGET_BLOCKS
 
 VID, PID = 0x1d6b, 0x0105
 MIC_SINK = os.environ.get('MOZART_MIC_SINK', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
@@ -45,6 +46,7 @@ class Bridge:
         self.capture = None
         self.audio_lock = threading.Lock()
         self.link_lock = threading.Lock()
+        self.return_lock = threading.Lock()
         self.link_generation = 0
         self.sent = 0
         self.received = 0
@@ -52,11 +54,9 @@ class Bridge:
         self.errors = 0
         self.gaps = 0
         self.expected_seq = {}
-        # 回程跨时钟域适配（jetson→host）：虚拟水位 = 收到帧 - 已写帧
-        self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
-        self.return_level = 0
-        self.capture_src = AsyncSrc(channels=proto.CHANNELS, target_frames=4.0)
-        self.capture_level = 0
+        # 水位与目标均使用音频采样帧，每帧包含 CHANNELS 个样本。
+        target_frames = proto.FAST_SAMPLES * TARGET_BLOCKS
+        self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=target_frames)
         self.last_error = ''
 
     # --- 记录 ---
@@ -106,7 +106,7 @@ class Bridge:
                            '-c', str(proto.CHANNELS), '-t', 'raw', '-q',
                            '--period-time', '2667', '--buffer-time', '16000']
                 self.capture = self.spawn(arecord,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
                 time.sleep(0.4)
                 if self.capture.poll() is None:
                     return True
@@ -141,6 +141,12 @@ class Bridge:
             self.fail(f'写虚拟麦克风短写: {written}/{len(payload)}')
             return False
         return True
+
+    def play_pcm(self, payload):
+        with self.return_lock:
+            fill = self.pipe_backlog(self.speaker_fd) / (proto.CHANNELS * proto.SAMPLE_BYTES)
+            ratio = self.return_src.ratio(fill)
+            self.write_speaker(self.return_src.process(payload, ratio))
 
 
     # --- 过期帧排空（M2 延迟修复）---
@@ -317,11 +323,7 @@ class Bridge:
                     self.gaps += 1
                 self.expected_seq[stream] = seq + 1
                 self.received += 1
-                self.return_level += 1
-                ratio = self.return_src.ratio(max(self.return_level, 1))
-                adapted = self.return_src.process(payload, ratio)
-                if self.write_speaker(adapted):
-                    self.return_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
+                self.play_pcm(payload)
 
     def alsa_to_usb(self):
         sequence = 0
@@ -333,7 +335,7 @@ class Bridge:
                 continue
             chunk_size = proto.FAST_BYTES
             self.drain_capture_backlog(self.capture.stdout, chunk_size, keep)
-            payload = self.capture.stdout.read(chunk_size)
+            payload = read_block(self.capture.stdout, chunk_size)
             if len(payload) < chunk_size:
                 if self.stopping.is_set():
                     return
@@ -358,16 +360,12 @@ class Bridge:
             if endpoint is None:
                 self.dropped += 1
                 continue
-            self.capture_level += chunk_size // (proto.CHANNELS * proto.SAMPLE_BYTES)
-            ratio = self.capture_src.ratio(max(self.capture_level, 1))
-            adapted = self.capture_src.process(payload, ratio)
-            self.capture_level -= len(adapted) // (proto.CHANNELS * proto.SAMPLE_BYTES)
             stream_id = proto.STREAM_FAST if DIRECT else proto.STREAM_AUDIO
             # 快流且有专用端点时走接口 1；否则与主流量复用接口 0。
             if DIRECT and fast_endpoint is not None:
                 endpoint = fast_endpoint
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
-                                 adapted, stream=stream_id)
+                                 payload, stream=stream_id)
             if os.environ.get('MOZART_TRACE'):
                 samples = memoryview(payload).cast('h')
                 energy = max(abs(int(s)) for s in samples[:32])
@@ -421,7 +419,7 @@ class Bridge:
                 if version != proto.VERSION:
                     continue
                 self.received += 1
-                self.write_speaker(payload)
+                self.play_pcm(payload)
 
     def silencer(self):
         chunk = b'\x00' * proto.FRAME_BYTES
