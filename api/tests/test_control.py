@@ -1,6 +1,6 @@
 """M4 二进制控制协议对拍：Unix 数据报 + ctlmsg 契约。
 
-夹具为 api/tests/control_fixture.cpp（桩 ControlPlane）。
+夹具为 api/tests/control_fixture.cpp（真实 ModeController）。
 验证：编解码往返、PING/STATUS/MODE_SET、未知消息错误应答、版本拒绝。
 """
 import atexit
@@ -78,7 +78,7 @@ class ControlProtocolTests(unittest.TestCase):
         finished, failed = struct.unpack_from('<II', body, 2)
         self.assertEqual(mode, ctl.MOZART_CTL_MODE_REALTIME)
         self.assertEqual(state, ctl.MOZART_CTL_STATE_READY)
-        self.assertEqual((finished, failed), (7, 2))
+        self.assertEqual((finished, failed), (0, 0))
 
     def test_mode_set_accepted(self):
         sock = self.client()

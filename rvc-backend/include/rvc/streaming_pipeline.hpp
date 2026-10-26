@@ -24,6 +24,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <deque>
 #include <mutex>
 #include <vector>
 
@@ -75,7 +76,7 @@ public:
     void push(const mozart_input_frame_t& frame);
 
     // 取最多 n 个输出样本，返回实际取到的数量（不足由调用方补零=欠载）。
-    size_t pop_output(float* dst, size_t n);
+    size_t pop_output(float* dst, size_t n, mozart_frame_meta_t* source_meta = nullptr);
 
     // ---- 推理线程 ----
     // 阻塞循环：攒窗 → process → 交叉淡化 → 输出环。
@@ -110,8 +111,13 @@ private:
     uint64_t owned_ = 0;         // 上次取窗时已见到的 pushed_total_
     uint64_t next_window_start_ = 0;
     bool have_window_base_ = false;
-    bool window_voiced_ = false; // 自上次取窗以来出现过 VAD
     std::atomic<uint64_t> reset_gen_{0};     // 重置代数（push 侧递增，推理侧对齐）
+
+    struct SourceFrame {
+        uint64_t sample_start;
+        mozart_frame_meta_t meta;
+    };
+    std::deque<SourceFrame> source_frames_; // 由 cv_mutex_ 保护，与输入样本位置对齐
 
     // 不连续检测基准（push 侧独占）
     bool have_last_meta_ = false;
@@ -123,20 +129,33 @@ private:
     std::vector<float> out_ring_;
     size_t out_head_ = 0;
     size_t out_size_ = 0;
-    uint64_t out_total_ = 0;
+    struct OutputSpan {
+        size_t samples;
+        size_t consumed = 0;
+        mozart_frame_meta_t meta;
+    };
+    std::deque<OutputSpan> output_spans_;
     bool output_started_ = false;
     size_t startup_delay_remaining_ = 0;
 
     // 块间淡化尾（crossfade_out 样本），cv_mutex_ 保护（仅推理线程读写）
     std::vector<float> tail_;
+    std::vector<SourceFrame> tail_sources_;
+    int64_t tail_output_start_ = 0;
+    uint64_t tail_gen_ = 0;
     bool tail_valid_ = false;    // false = 下一块直接输出不混合
 
     void handle_discontinuity();
     void reset_full_history_locked();   // 需持 cv_mutex_
     void read_last_window(size_t count, std::vector<float>& dst);
     bool read_prefix(size_t count, std::vector<float>& dst);
-    void push_output(const float* data, size_t n);
-    void push_output_zeros(size_t n);
+    static std::vector<OutputSpan> output_metadata(const std::vector<SourceFrame>& sources,
+                                                   int64_t output_start, size_t n);
+    bool push_output(const float* data, size_t n, uint64_t generation,
+                     const std::vector<OutputSpan>& metadata);
+    void push_output_zeros(uint64_t generation, const std::vector<SourceFrame>& sources,
+                           int64_t output_start);
+    void consume_output_meta(size_t n); // 需持 out_mutex_
 };
 
 } // namespace rvc

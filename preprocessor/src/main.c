@@ -123,7 +123,7 @@ static void *playback_thread(void *arg)
         played++;
         atomic_store(&pa->last_played_frame, frame.meta.frame_idx);
 
-        // 回包携带当前输入帧的元数据，不能代表缓冲后音频的端到端延迟。
+        // 回包 PTS 标记输出音频的源样本；同钟域下计入后端缓冲等待。
         if (pa->monotonic_pts && frame.meta.pts_ns > 1000000000ull) {
             const uint64_t now = mozart_now_ns();
             const double lat_ms = (double)(now - frame.meta.pts_ns) / 1e6;

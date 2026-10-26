@@ -75,10 +75,18 @@ Bypass resamples the input from 16 kHz to 48 kHz without inference.
 These controls do not close the physical microphone.
 
 The status statistics include `latency`, `stream`, `bypass`, and `vad`.
+`latency` measures source PTS to backend output write using the same monotonic clock domain.
+Startup padding, failed writes, missing PTS, and future PTS are excluded.
+`available` becomes true after a valid measurement.
+Output PTS identifies the first source sample, including streaming and output-queue waits.
+Output `frame_idx` acknowledges the current input packet for playback drain tracking.
 The `realtime` object gives the routing settings.
 The `*_backend` field reports the loaded engine: `tensorrt`, `onnx_cuda_ep`, or `onnx_cpu`.
 The `*_asset` field reports the loaded file.
 The `model` object reports the runtime and asset selection for each engine role.
+
+The binary control protocol maps the same RVC modes and pending transitions.
+Its completion counters count retained `completed` and `failed` queue records.
 
 ## File routes
 
