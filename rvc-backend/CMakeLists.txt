@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(USE_ONNX "Enable ONNX Runtime for real RVC inference" ON)
 option(USE_CUDA_EP "Enable ONNX Runtime CUDA execution provider (requires CUDA-enabled ORT)" OFF)
 option(BUILD_TESTS "Build unit tests" ON)
+include(CTest)
 
 # ══════════════════════════════════════════════════════════
 # Dependencies
@@ -61,6 +62,8 @@ if(NOT TARGET mozart_io)
         ${CMAKE_CURRENT_BINARY_DIR}/mozart_io
     )
 endif()
+
+add_subdirectory(../usb-audio/native-host usb_native)
 
 # FILE_RVC is a data-plane worker and owns the preprocessing lifecycle.
 if(NOT TARGET mozart_pre_core)

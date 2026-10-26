@@ -235,12 +235,9 @@ void mozart_dsp_set_stages(mozart_dsp_t *d,
                            bool denoise, bool gate, bool agc, bool limiter)
 {
     if (!d) return;
-    if (d->denoise_on != denoise || !d->ns) {
-        // ns 无内部开关：重建以切换旁路（状态清空，切换后有约 0.5 s 收敛期）
-        d->denoise_on = denoise;
-        mozart_ns_free(d->ns);
-        d->ns = mozart_ns_new(&(mozart_ns_config_t){ .bypass = !denoise });
-    }
+    // 运行时仅切增益旁路，保留滑窗和估计器，避免重新预热。
+    d->denoise_on = denoise;
+    mozart_ns_set_bypass(d->ns, !denoise);
     d->gate.enabled = gate;
     d->agc.enabled = agc;
     d->limiter.enabled = limiter;
@@ -274,8 +271,7 @@ void mozart_dsp_reset(mozart_dsp_t *d)
     d->hp_x1 = d->hp_x2 = d->hp_y1 = d->hp_y2 = 0.0f;
     memset(d->fir_history, 0, sizeof(d->fir_history));
     d->fir_pos = 0;
-    mozart_ns_free(d->ns);
-    d->ns = mozart_ns_new(&(mozart_ns_config_t){ .bypass = !d->denoise_on });
+    mozart_ns_reset(d->ns);
     d->wrapper_len = 0;
     d->frame_idx = 0;
     d->in_speech = d->enter_count = d->exit_count = 0;
