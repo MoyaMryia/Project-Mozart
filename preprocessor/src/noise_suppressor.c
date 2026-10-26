@@ -259,7 +259,7 @@ mozart_ns_t *mozart_ns_new(const mozart_ns_config_t *cfg)
     ns->bypass = cfg ? cfg->bypass : false;
     ns->lookahead = lookahead;
 
-    for (int b = 0; b < NS_BINS; b++) ns->gain_prev[b] = 1.0;
+    mozart_ns_reset(ns);
 
     // 周期 sqrt-Hann：hann(i) = 0.5 - 0.5*cos(2πi/N)，i = 0..N-1
     // 与 numpy hanning(N+1)[:N] 一致。
@@ -291,6 +291,19 @@ size_t mozart_ns_push(mozart_ns_t *ns, const float *in, size_t n,
         }
     }
     return written;
+}
+
+void mozart_ns_reset(mozart_ns_t *ns)
+{
+    // 配置和窗位于工作区之前；清空其后的全部流式状态。
+    const size_t offset = offsetof(struct mozart_ns, re);
+    memset((unsigned char *)ns + offset, 0, sizeof(*ns) - offset);
+    for (int b = 0; b < NS_BINS; b++) ns->gain_prev[b] = 1.0;
+}
+
+void mozart_ns_set_bypass(mozart_ns_t *ns, bool bypass)
+{
+    ns->bypass = bypass;
 }
 
 size_t mozart_ns_flush(mozart_ns_t *ns, float *out, size_t out_cap)
