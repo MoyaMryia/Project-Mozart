@@ -3,6 +3,7 @@
 // 视觉体系：语义化设计令牌（styles.css），亮/暗双主题；圆角两档（卡片 lg、控件 md）。
 // 逻辑：组合式状态 + SSE 字幕订阅。新增：主题切换（localStorage: mozart-theme）。
 import GlossaryPanel from './GlossaryPanel.vue';
+import PrePanel from './PrePanel.vue';
 import SpeechPanel from './SpeechPanel.vue';
 import StackPanel from './StackPanel.vue';
 import { createPoll } from './poll';
@@ -11,7 +12,7 @@ import { latestTranslation, upsertSubtitle } from './subtitles';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
-  type Mode, type MonitorSnapshot, type Preset, type RvcParameters, type Status,
+  type Mode, type MonitorSnapshot, type PreProcessorStatus, type Preset, type RvcParameters, type Status,
   type SubtitleEvent, type StackStatus,
 } from './api';
 
@@ -158,6 +159,31 @@ const stackPoll = createPoll(signal => appApi<StackStatus>('/api/stack/status', 
   stackStatus.value = value; stackError.value = '';
 }, error => { stackStatus.value = null; stackError.value = error instanceof Error ? error.message : '读取失败'; });
 const refreshStatus = (replace = false) => statusPoll.run(replace);
+
+const preStatus = ref<PreProcessorStatus | null>(null);
+const preBusy = ref(false);
+const preError = ref('');
+const prePoll = createPoll(signal => appApi<PreProcessorStatus>('/api/preprocessor', { signal }), value => {
+  preStatus.value = value; preError.value = value.error ?? '';
+}, error => { preStatus.value = null; preError.value = error instanceof Error ? error.message : '读取失败'; });
+const refreshPre = () => prePoll.run();
+const applyPreDevices = async (payload: { capture: string; playback: string }) => {
+  if (preBusy.value) return;
+  preBusy.value = true;
+  preError.value = '';
+  try {
+    await appApi('/api/preprocessor', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    await refreshPre();
+  } catch (error) {
+    preError.value = error instanceof Error ? error.message : '切换失败';
+  } finally {
+    preBusy.value = false;
+  }
+};
 
 const isModeOn = (mode: ActiveMode) =>
   !!status.value && (status.value.mode === mode || status.value.pending_target_mode === mode);
@@ -388,6 +414,7 @@ onMounted(() => {
   selectedMode.value = stored && MODES.includes(stored) ? stored : 'rt_rvc';
   void refreshStatus();
   void stackPoll.run();
+  void refreshPre();
   void refreshModels();
   void refreshLogs();
   void refreshParameters();
@@ -396,6 +423,7 @@ onMounted(() => {
   connectSubtitles();
   timers.push(window.setInterval(() => void refreshStatus(), 1000));
   timers.push(window.setInterval(() => void stackPoll.run(), 1000));
+  timers.push(window.setInterval(() => void refreshPre(), 5000));
   timers.push(window.setInterval(() => void refreshLogs(), 1500));
   timers.push(window.setInterval(() => void refreshMonitor().catch(() => undefined), 2000));
 });
@@ -403,7 +431,7 @@ onUnmounted(() => {
   timers.forEach(clearInterval);
   clearTimeout(toastTimer);
   clearTimeout(parameterSyncTimer);
-  statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop();
+  statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop(); prePoll.stop();
   lifecycle.abort();
   eventSource?.close();
 });
@@ -650,6 +678,8 @@ onUnmounted(() => {
 
     <!-- 右栏：参数设置与硬件状态 -->
     <section v-if="!speechOnly" class="p-3 md:p-4 border-l border-edge-soft bg-surface flex flex-col gap-5 overflow-y-auto md:h-full" aria-label="Mode parameters and speaker selection">
+
+      <PrePanel :status="preStatus" :busy="preBusy" :error="preError" @apply="applyPreDevices" />
 
       <!-- 参数设置（按模式切换） -->
       <div class="card p-3">

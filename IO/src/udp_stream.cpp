@@ -154,7 +154,13 @@ bool UdpStream::Open(const StreamConfig& config) {
         return false;
     }
 
+    // SOCK_CLOEXEC：控制面会 fork 出子进程（预处理脚本）。没有这个标记时，
+    // 音频端口会被子进程继承，后端重建会话时就会 bind 失败。
+#ifdef _WIN32
     socket_t new_fd = ::socket(AF_INET, SOCK_DGRAM, 0);
+#else
+    socket_t new_fd = ::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+#endif
     if (!socket_valid(new_fd)) {
         spdlog::error("UDP socket creation failed");
 #ifdef _WIN32

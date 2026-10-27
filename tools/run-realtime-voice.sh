@@ -5,6 +5,9 @@
 #   tools/run-realtime-voice.sh start     # 启动后端与预处理
 #   tools/run-realtime-voice.sh status    # 查看状态
 #   tools/run-realtime-voice.sh stop      # 停止
+#   tools/run-realtime-voice.sh devices   # 列出采集与播放设备（JSON）
+#   tools/run-realtime-voice.sh pre-restart [--capture 设备] [--playback 设备]
+#                                         # 只重启预处理，切换输入输出设备
 #
 # 环境变量覆盖：CONFIG CAPTURE PLAYBACK MODEL PITCH INDEX_RATE INDEX_NPROBE
 #               API AUDIO_PORT RUN_DIR
@@ -30,6 +33,7 @@ PRE_PID_FILE="$RUN_DIR/pre.pid"
 BACKEND_LOG="$RUN_DIR/backend.log"
 PRE_LOG="$RUN_DIR/pre.log"
 PRE_STATUS="$RUN_DIR/pre-status.json"
+PRE_DEVICES="$RUN_DIR/pre-devices.json"
 READY_TIMEOUT=${READY_TIMEOUT:-90}
 
 fail() { echo "错误: $*" >&2; exit 1; }
@@ -111,20 +115,76 @@ command_start() {
     has_index=$(curl -sf "$API/api/status" | python3 -c "import json,sys;print(json.load(sys.stdin)['model'].get('has_index','false'))")
     [ "$has_index" = "true" ] || fail "模型 $MODEL 未加载索引，检查 $CONFIG 与模型目录"
 
+    start_pre
+
+    command_status
+    echo
+    echo "链路已启动。说话试听；停止用 tools/run-realtime-voice.sh stop"
+}
+
+# 用当前 CAPTURE/PLAYBACK 起预处理，并把设备写进 pre-devices.json 供控制面读取。
+start_pre() {
     echo "启动预处理 $CAPTURE -> $AUDIO_PORT -> $PLAYBACK"
     "$PRE_BIN" -d "$CAPTURE" -o "$PLAYBACK" -a 127.0.0.1 -p "$AUDIO_PORT" \
         --mode ai --period-frames 64 --no-denoise \
         --ctl-port 19040 --status-file "$PRE_STATUS" >"$PRE_LOG" 2>&1 &
     echo $! >"$PRE_PID_FILE"
+    write_pre_devices
     wait_field "$PRE_STATUS" state ready || {
         tail -20 "$PRE_LOG" >&2
-        command_stop >/dev/null 2>&1 || true
         fail "预处理在 ${READY_TIMEOUT}s 内未就绪"
     }
+}
 
-    command_status
-    echo
-    echo "链路已启动。说话试听；停止用 tools/run-realtime-voice.sh stop"
+write_pre_devices() {
+    printf '{"capture":"%s","playback":"%s"}\n' "$CAPTURE" "$PLAYBACK" >"$PRE_DEVICES"
+}
+
+# 列出 ALSA 采集与播放设备。输出一行 JSON，供控制面渲染下拉框。
+command_devices() {
+    python3 - <<'PY'
+import json, re, subprocess
+
+LINE = re.compile(r'^card (\d+): (\S+) \[(.*?)\], device (\d+): (.*?) \[(.*?)\]')
+
+def collect(command):
+    output = subprocess.run(command, capture_output=True, text=True).stdout
+    items = []
+    for line in output.splitlines():
+        match = LINE.match(line)
+        if not match:
+            continue
+        card, short, long_name, device, _, pcm = match.groups()
+        items.append({
+            'id': f'plughw:CARD={short},DEV={device}',
+            'card': int(card),
+            'label': f'{long_name} / {pcm}' if pcm else long_name,
+        })
+    return items
+
+print(json.dumps({'capture': collect(['arecord', '-l']),
+                  'playback': collect(['aplay', '-l'])}))
+PY
+}
+
+# 只重启预处理。后端与 stated 保持运行，设备切换不需要重建推理会话。
+command_pre_restart() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --capture) [ $# -ge 2 ] || fail "--capture 缺少设备"; CAPTURE=$2; shift 2 ;;
+            --playback) [ $# -ge 2 ] || fail "--playback 缺少设备"; PLAYBACK=$2; shift 2 ;;
+            *) fail "未知参数 $1" ;;
+        esac
+    done
+    [ -x "$PRE_BIN" ] || fail "缺少预处理二进制 $PRE_BIN（先构建 build/usb-pre）"
+    arecord -L 2>/dev/null | grep -qx "$CAPTURE" \
+        || fail "采集设备不存在: $CAPTURE"
+    aplay -L 2>/dev/null | grep -qx "$PLAYBACK" \
+        || fail "播放设备不存在: $PLAYBACK"
+    mkdir -p "$RUN_DIR"
+    stop_pidfile "$PRE_PID_FILE" "预处理"
+    start_pre
+    printf '{"status":"active","capture":"%s","playback":"%s"}\n' "$CAPTURE" "$PLAYBACK"
 }
 
 command_status() {
@@ -165,5 +225,7 @@ case "${1:-}" in
     stop) command_stop ;;
     status) command_status ;;
     restart) command_stop; command_start ;;
-    *) echo "用法: $0 {start|stop|status|restart}" >&2; exit 2 ;;
+    devices) command_devices ;;
+    pre-restart) shift; command_pre_restart "$@" ;;
+    *) echo "用法: $0 {start|stop|status|restart|devices|pre-restart [--capture 设备] [--playback 设备]}" >&2; exit 2 ;;
 esac

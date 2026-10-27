@@ -12,7 +12,7 @@
 
 namespace rvc {
 ModeController::ModeController(RVCPipelineBase& pipeline, Config config)
-    : pipeline_(pipeline), config_(std::move(config)) {
+    : pipeline_(pipeline), config_(std::move(config)), pre_control_(config_.pre) {
     std::filesystem::create_directories(config_.storage_dir);
     if (!std::filesystem::exists(config_.presets_path)) save_presets_locked(nlohmann::json::array());
     FileRvcWorker::Config file_config;
@@ -526,6 +526,37 @@ std::filesystem::path ModeController::upload_path(const std::string& original_na
         std::chrono::system_clock::now()).time_since_epoch().count();
     return config_.storage_dir / (std::to_string(now) + "_" + std::to_string(sequence.fetch_add(1))
                                  + "_input" + sanitize_extension(original_name) + ".upload");
+}
+
+nlohmann::json ModeController::preprocessor_status() const {
+    return pre_control_.status();
+}
+
+nlohmann::json ModeController::set_preprocessor(const nlohmann::json& request) {
+    const std::string capture = request.value("capture", std::string());
+    const std::string playback = request.value("playback", std::string());
+    if (capture.empty() || playback.empty()) {
+        return {{"status", "invalid"}, {"error", "capture 与 playback 都是必填项"}};
+    }
+    auto result = pre_control_.set_devices(capture, playback);
+    if (result.value("status", "") != "active") return result;
+
+    // 新的预处理进程用新的 UDP 客户端端口。UdpStream 只接受当前会话的客户端，
+    // 所以切换设备后必须重建实时会话，否则音频包会被丢弃。
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mode_ == "rt_rvc") {
+        const std::string model = pipeline_.current_model_id();
+        transition_locked("idle", "");
+        const auto restarted = transition_locked("rt_rvc", model);
+        if (restarted.value("status", "") != "active") {
+            return {{"status", "failed"},
+                    {"error", "预处理已切换，但实时会话重建失败: " + restarted.value("error", std::string())}};
+        }
+        result["session"] = "restarted";
+    } else {
+        result["session"] = "unchanged";
+    }
+    return result;
 }
 
 void ModeController::file_loop() {
