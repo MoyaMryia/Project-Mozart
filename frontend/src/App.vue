@@ -108,6 +108,14 @@ const filteredLogs = computed(() => {
 });
 const latestSubtitle = computed<SubtitleEvent | null>(
   () => subtitleEvents.value[subtitleEvents.value.length - 1] ?? null);
+// 译文源优先使用复核文本（见 tools/subtitle_bridge.py 的 translation_source）。
+// 主字幕必须显示同一个源，否则中英文对不上。
+const captionText = (caption: SubtitleEvent | null): string => {
+  if (!caption) return '';
+  return caption.refinement_status === 'completed' && caption.refined_zh
+    ? caption.refined_zh : caption.zh;
+};
+const latestCaptionText = computed(() => captionText(latestSubtitle.value));
 const latestTranslatedSubtitle = computed(() => latestTranslation(subtitleEvents.value));
 
 const statUnit = (text: string) => `<span class="stat-unit">${text}</span>`;
@@ -634,10 +642,10 @@ onUnmounted(() => {
           <span :class="['text-micro font-mono font-bold', subtitleState === 'online' ? 'state-ok' : subtitleState === 'offline' ? 'state-err' : 'text-ink-4']">{{ subtitleState.toUpperCase() }}</span>
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <div class="text-xs font-bold text-ink leading-5 truncate">{{ latestSubtitle?.zh || '等待语音输入…' }}</div>
-          <div class="text-tiny text-ink-3 leading-4">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
+          <div class="text-xs font-bold text-ink leading-5 truncate">{{ latestCaptionText || '等待语音输入…' }}</div>
+          <div class="text-tiny text-ink-3 leading-4">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'failed' ? '译文未通过校验' : latestSubtitle?.translation_status === 'skipped' ? '未送出翻译' : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
           <div v-if="latestTranslatedSubtitle && latestTranslatedSubtitle.utterance_id !== latestSubtitle?.utterance_id" class="text-tiny text-ink-3 leading-4" :title="latestTranslatedSubtitle.translation_error || latestTranslatedSubtitle.zh">{{ latestTranslatedSubtitle.translation_status === 'failed' ? '前文待核对译文：' : '前文译文：' }}{{ latestTranslatedSubtitle.en }}</div>
-          <div v-if="latestSubtitle?.refined_zh && latestSubtitle.refined_zh !== latestSubtitle.zh" class="text-tiny text-ink-3 leading-4">复核：{{ latestSubtitle.refined_zh }}</div>
+          <div v-if="latestSubtitle?.refinement_status === 'completed' && latestSubtitle.refined_zh && latestSubtitle.refined_zh !== latestSubtitle.zh" class="text-tiny text-ink-3 leading-4">原始识别：{{ latestSubtitle.zh }}</div>
           <p v-if="latestSubtitle?.speech_degraded" class="text-tiny state-warn leading-4" role="status">译文检查未通过，已尝试播报。</p>
           <p v-if="latestSubtitle?.translation_error" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.translation_error }}</p>
           <p v-if="latestSubtitle?.speech_error" class="text-tiny state-warn leading-4" role="status">播报失败：{{ latestSubtitle.speech_error }}</p>
