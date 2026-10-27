@@ -26,6 +26,7 @@ struct RvcParameters {
     std::string f0_method = "rmvpe";
     int pitch_shift = 0;
     double index_rate = 0.0f;
+    int index_nprobe = 1;
     int filter_radius = 3;
     double rms_mix_rate = 1.0f;
     double protect = 0.33f;

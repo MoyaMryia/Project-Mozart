@@ -1,0 +1,151 @@
+{
+  "configuration": {
+    "platform": "Jetson Orin Nano Super 8GB",
+    "frame": 128,
+    "hop": 64,
+    "lookahead": 0,
+    "noise_init_frames": 8,
+    "power_floor": 1e-20,
+    "stages": {
+      "denoise": 1,
+      "gate": 0,
+      "agc": 0,
+      "limiter": 0
+    },
+    "gain_normalization": false
+  },
+  "source_sha256": "d7dafb12f8d444b2270f2d06158f47c235ca7892aaca1513561dc9971f2a8654",
+  "silent_start_noise_control": {
+    "noise_seed": 20261026,
+    "noise_seconds": 6,
+    "zero_prefix_seconds": 0.1,
+    "settle_after_noise_start_seconds": 1,
+    "before_attenuation_db": 0,
+    "after_attenuation_db": 16.833218393377038,
+    "old_library_sha256": "8b0d93b39f4ec2fe32355482ebb3cc7a0510add4b7fe71434e0a7ff0dfa3d433",
+    "new_library_sha256": "3c1f22b54b96f501c259cb799d84772a31adc24107d2dfa1951bb0144f4160f6"
+  },
+  "voice_rms_change_db": -0.0011612536651577025,
+  "voice_max_abs_change": 0.0008741651836317033,
+  "output_frames": 1501,
+  "output_samples": 480007,
+  "latency": {
+    "max_samples": 192,
+    "mean_samples": 192,
+    "max_ms": 4,
+    "align_offset_samples": 0
+  },
+  "default_noise_only": [
+    {
+      "noise": "white",
+      "speech": "(noise-only)",
+      "snr_db": null,
+      "nr_db": 17.481100309470655
+    },
+    {
+      "noise": "pink",
+      "speech": "(noise-only)",
+      "snr_db": null,
+      "nr_db": 13.529399412223594
+    },
+    {
+      "noise": "hum50",
+      "speech": "(noise-only)",
+      "snr_db": null,
+      "nr_db": 18.002480352159147
+    },
+    {
+      "noise": "fan",
+      "speech": "(noise-only)",
+      "snr_db": null,
+      "nr_db": 16.89479598734288
+    },
+    {
+      "noise": "keyboard",
+      "speech": "(noise-only)",
+      "snr_db": null,
+      "nr_db": 0.020734355566578294
+    }
+  ],
+  "default_gates": [],
+  "confirmed_input_sources": {
+    "rvc-golden/input/preprocessor-sample-mp4-first-30s.wav": "d7dafb12f8d444b2270f2d06158f47c235ca7892aaca1513561dc9971f2a8654",
+    "rvc-golden/de-narrator-run/de-narrator-espeak-input.wav": "aa7c77b75a335fccbedcef12af5990571be4e4dc900aa31c95c0e6568b9dd39d"
+  },
+  "confirmed_input_gates": [],
+  "confirmed_clean_speech": [
+    {
+      "speech": "preprocessor-sample-mp4-first-30s",
+      "si_sdr_clean": 38.51886787545335
+    },
+    {
+      "speech": "de-narrator-espeak-input",
+      "si_sdr_clean": 19.00349638617732
+    }
+  ],
+  "artifacts": {
+    "00-comparison.wav": {
+      "sha256": "a7714399fc44fb842933bd686c41e3dfbf2d6e4e18c88f6f3268a507bf80ebbb",
+      "rate": 48000,
+      "samples": 4956386,
+      "seconds": 103.25804166666667,
+      "rms": 0.01937029698676416
+    },
+    "01-original.wav": {
+      "sha256": "d7dafb12f8d444b2270f2d06158f47c235ca7892aaca1513561dc9971f2a8654",
+      "rate": 16000,
+      "samples": 480007,
+      "seconds": 30.0004375,
+      "rms": 0.020786791610036152
+    },
+    "02-before-fix.wav": {
+      "sha256": "7afe5aa84cb4fa87ceeea5858782d8e2fb3cd539b29ed2b89b842e2abb95e62e",
+      "rate": 16000,
+      "samples": 480007,
+      "seconds": 30.0004375,
+      "rms": 0.020285068283943213
+    },
+    "03-after-fix.wav": {
+      "sha256": "adf2b22406a6b763695fd21215a6d9da836e58d07e05d447f76d085ff521748d",
+      "rate": 16000,
+      "samples": 480007,
+      "seconds": 30.0004375,
+      "rms": 0.02028235646785017
+    },
+    "20-noise-comparison.wav": {
+      "sha256": "6a6b6bd4e54a794195a0bc7b4617105c70b6199278a81e0bb5f16b3d2578898f",
+      "rate": 48000,
+      "samples": 1565721,
+      "seconds": 32.6191875,
+      "rms": 0.013886503072856654
+    },
+    "21-noise-input.wav": {
+      "sha256": "48159c72eca835e0361db37311cebe37bf6ee25fde196d88ffc1f2809536506a",
+      "rate": 48000,
+      "samples": 292800,
+      "seconds": 6.1,
+      "rms": 0.01985597875538317
+    },
+    "22-noise-before-fix.wav": {
+      "sha256": "940157e45530e31298d3381595d3df4cb4130f7b34886eb1e33abf2e62f5b0e0",
+      "rate": 48000,
+      "samples": 292800,
+      "seconds": 6.1,
+      "rms": 0.01985597875538317
+    },
+    "23-noise-after-fix.wav": {
+      "sha256": "94296299d39e189298d92542c5a939629dd82a48b71142a1650fd67823b04210",
+      "rate": 48000,
+      "samples": 292800,
+      "seconds": 6.1,
+      "rms": 0.002990639914931082
+    }
+  },
+  "tests": {
+    "host_native": 34,
+    "host_state_repeat_cases": 14,
+    "host_python_total": 424,
+    "host_python_skipped_missing_torch": 5,
+    "jetson_native": 7
+  }
+}
