@@ -15,6 +15,7 @@ import run_translated_speech as runner
 class RunnerReadinessTests(unittest.TestCase):
     def run_scenario(self, *, options=(), scenario='', expected_error=None, microphone=False):
         self.launches, self.snapshots, self.processes = [], [], {}
+        self.request_urls = []
         health_calls = speech_calls = session_calls = 0
         self.voice_registrations = self.session_posts = 0
         self.translation_regressed = False
@@ -90,6 +91,7 @@ class RunnerReadinessTests(unittest.TestCase):
             def urlopen(request, **kwargs):
                 nonlocal health_calls, speech_calls, session_calls, auto_voice
                 url = request if isinstance(request, str) else request.full_url
+                self.request_urls.append(url)
                 if '/health' in url:
                     health_calls += 1
                     if health_calls == 1 or scenario == 'translation_timeout' or (scenario == 'health_regression' and regression_active):
@@ -175,7 +177,7 @@ class RunnerReadinessTests(unittest.TestCase):
             sock.__exit__ = Mock(return_value=False)
             sock.bind.side_effect = OSError('ASR has bound its socket')
             with patch.object(sys, 'argv', argv), \
-                    patch.object(runner, 'assert_ports_available'), \
+                    patch.object(runner, 'assert_ports_available') as ports, \
                     patch.object(runner.subprocess, 'Popen', side_effect=popen), \
                     patch.object(runner.subprocess, 'run', side_effect=decode), \
                     patch.object(runner.urllib.request, 'urlopen', side_effect=urlopen), \
@@ -190,6 +192,7 @@ class RunnerReadinessTests(unittest.TestCase):
                         runner.main()
                 else:
                     runner.main()
+            self.checked_ports = ports.call_args.args[0]
             self.status = json.loads((run_dir/'stack-status.json').read_text())
             self.speech_calls = speech_calls
             self.snapshots.append(self.status)
@@ -242,6 +245,24 @@ class RunnerReadinessTests(unittest.TestCase):
             found = [environment for command, environment in self.launch_environments
                      if any('subtitle_bridge.py' in str(word) for word in command)]
             self.assertEqual(found[0]['MOZART_CORRECTIONS'], str(corrections.resolve()))
+
+    def test_custom_api_port_reaches_probes_and_requests(self):
+        self.run_scenario(options=['--api-port', '18181', '--mode', 'captions'])
+        api_requests = [url for url in self.request_urls if '/api/' in url]
+        self.assertTrue(api_requests)
+        self.assertTrue(all(url.startswith('http://127.0.0.1:18181/') for url in api_requests))
+        self.assertEqual(self.checked_ports[0], (18181, runner.socket.SOCK_STREAM))
+        self.assertEqual(self.launches.count('backend'), 1)
+
+    def test_api_port_rejects_invalid_values_before_launch(self):
+        for port in ('0', '65536'):
+            with self.subTest(port=port), \
+                    patch.object(sys, 'argv', ['runner', '--backend-config', 'fake', '--api-port', port]), \
+                    patch.object(runner.subprocess, 'Popen') as launch, patch.object(sys, 'stderr'):
+                with self.assertRaises(SystemExit) as error:
+                    runner.main()
+                self.assertEqual(error.exception.code, 2)
+                launch.assert_not_called()
 
     def test_external_capture_stops_without_launching_another_microphone(self):
         status = self.run_scenario(microphone=True, options=['--external-capture', '--mode', 'captions'],

@@ -249,5 +249,6 @@ RVC 回归顺序见 [AGENTS.md](AGENTS.md) 和 [Golden 参考](rvc-golden/README
 - [DESIGN.md](DESIGN.md)：当前架构与数据契约。
 - [TODO.md](TODO.md)：剩余问题、优先级和验收条件。
 - [state/API.md](state/API.md)：当前 HTTP 接口。
+- [实时变声、字幕与翻译](tools/REALTIME_VOICE.md)：单命令启动和停止整条链路。
 - [docs/WRITING.md](docs/WRITING.md)：英文 STE 与中文编写约定。
 - [reports/README.md](reports/README.md)：历史报告和最新审计。
