@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from wola_reference import (WolaConfig, WolaSuppressor, measured_latency,
-                            process_array, rms, synth_music)
+from wola_reference import (GATE_NR_DB, NS_INIT_FRAMES, WolaConfig, WolaSuppressor,
+                            measured_latency, process_array, rms, synth_music)
 
 
 class WolaReferenceTests(unittest.TestCase):
@@ -80,6 +80,57 @@ class WolaReferenceTests(unittest.TestCase):
         src = x[settle:settle + len(deep)]
         depth = 10 * np.log10(np.mean(src ** 2) / np.mean(deep ** 2))
         self.assertGreater(depth, 10.0)
+
+    def test_silence_prefix_then_white_noise_suppressed(self):
+        rng = np.random.default_rng(131)
+        noise = 0.05 * rng.standard_normal(3 * 48000)
+        prefix = np.zeros(48000)
+        x = np.concatenate([prefix, noise])
+        out = process_array(x, self.config())
+        start = len(prefix) + 48000
+        end = min(len(out), len(x))
+        source = x[start:end]
+        result = out[start:end]
+        nr_db = 10 * np.log10(np.mean(source ** 2) / (np.mean(result ** 2) + 1e-30))
+        self.assertGreaterEqual(nr_db, GATE_NR_DB)
+
+    def test_noise_returns_after_silence(self):
+        rng = np.random.default_rng(133)
+        initial = 0.05 * rng.standard_normal(48000)
+        noise = 0.05 * rng.standard_normal(3 * 48000)
+        x = np.concatenate([initial, np.zeros(8 * 48000), noise])
+        out = process_array(x, self.config())
+        start = 10 * 48000
+        end = min(len(out), len(x))
+        source, result = x[start:end], out[start:end]
+        nr_db = 10 * np.log10(np.mean(source ** 2) / np.mean(result ** 2))
+        self.assertGreaterEqual(nr_db, GATE_NR_DB)
+
+    def test_long_silence_is_finite_zero_and_aligned(self):
+        silence_samples = NS_INIT_FRAMES * self.config().frame * 64
+        x = np.zeros(silence_samples)
+        out = process_array(x, self.config())
+        self.assertGreaterEqual(len(out), len(x))
+        self.assertLessEqual(len(out), len(x) + 256)
+        self.assertTrue(np.isfinite(out).all())
+        self.assertTrue(np.all(out == 0.0))
+
+    def test_silence_prefix_variable_chunks_match_whole(self):
+        rng = np.random.default_rng(132)
+        x = np.concatenate([np.zeros(48000), 0.05 * rng.standard_normal(48000)])
+        whole = process_array(x, self.config())
+        sup = WolaSuppressor(self.config())
+        parts = []
+        position = 0
+        sizes = [1, 63, 128, 701, 17, 2048]
+        while position < len(x):
+            take = min(sizes[position % len(sizes)], len(x) - position)
+            parts.append(sup.push(x[position:position + take]))
+            position += take
+        parts.append(sup.flush())
+        chunked = np.concatenate(parts)
+        self.assertEqual(len(chunked), len(whole))
+        self.assertLess(float(np.max(np.abs(chunked - whole))), 1e-9)
 
     def test_latency_bound(self):
         """稳态发射延迟不超过 frame + lookahead*hop + 一个喂入周期。"""
