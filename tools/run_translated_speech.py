@@ -94,6 +94,8 @@ def main():
     parser.add_argument('--tts-provider-config', type=Path)
     parser.add_argument('--stt-model', type=Path, default=assets/'zipformer-zh-14M')
     parser.add_argument('--final-model', type=Path, default=None, help='Optional SenseVoice final-utterance model')
+    parser.add_argument('--glossary', type=Path, help='JSON 术语表；同时供控制台编辑')
+    parser.add_argument('--corrections', type=Path, help='JSON 同音纠错表')
     parser.add_argument('--llama-server', type=Path, default=home/'mozart-archive/qwen35/llama.cpp/build-cuda-bin/llama-server')
     parser.add_argument('--llama-model', type=Path, default=home/'mozart-archive/qwen35/gguf/qwen35-0.8b-text-Q4_K_M.gguf')
     parser.add_argument('--translation-batch-size', type=int, default=256)
@@ -399,6 +401,11 @@ def main():
         env['MOZART_SUBTITLES_JSONL'] = str(args.run_dir/'subtitles.jsonl')
         env['MOZART_STACK_STATUS_JSON'] = str(status_path.resolve())
         env['MOZART_STACK_INSTANCE_ID'] = state['instance_id']
+        # 术语表与纠错表是外部输入，子进程各自读取同一份文件。
+        if args.glossary:
+            env['MOZART_GLOSSARY'] = str(args.glossary.resolve())
+        if args.corrections:
+            env['MOZART_CORRECTIONS'] = str(args.corrections.resolve())
         backend = launch('backend', [ROOT/'build-gpu/state/mozart_stated', args.backend_config.resolve()], env)
         ready('http://127.0.0.1:18080/api/status', backend)
         speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
@@ -422,11 +429,12 @@ def main():
             speech_environment['PYTHONPATH'] = str(args.tts_pythonpath)+os.pathsep+speech_environment.get('PYTHONPATH', '')
         if args.mode == 'full':
             speech = launch_optional('speech', speech_command, speech_environment)
-        env = os.environ.copy()
-        env['LD_LIBRARY_PATH'] = str(args.llama_server.parent)+':'+env.get('LD_LIBRARY_PATH','')
+        # 不要覆盖 env：后面的字幕桥要复用同一份术语表与纠错表路径。
+        translation_env = dict(env)
+        translation_env['LD_LIBRARY_PATH'] = str(args.llama_server.parent)+':'+translation_env.get('LD_LIBRARY_PATH','')
         translation = launch_optional('translation', [args.llama_server, '-m', args.llama_model, '-c', '2048',
             '-b',args.translation_batch_size,'-ub',args.translation_ubatch_size,'--cache-ram',args.translation_cache_mib,
-            '-ngl','99','-np','1','-t','2','-tb','2','--host','127.0.0.1','--port','18200','--jinja'], env)
+            '-ngl','99','-np','1','-t','2','-tb','2','--host','127.0.0.1','--port','18200','--jinja'], translation_env)
         startup_deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
         if args.allow_degraded:
             record_degraded('startup', 'Source captions may begin before required services are ready')
@@ -446,7 +454,7 @@ def main():
             bridge_command += ['--utterance-dir',args.run_dir/'utterances']
         if args.mode == 'full':
             bridge_command += ['--speak']
-        bridge = launch('captions', bridge_command)
+        bridge = launch('captions', bridge_command, env)
         save(phase='preparing_captions')
         deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
         while time.monotonic() < deadline:

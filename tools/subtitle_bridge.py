@@ -65,6 +65,42 @@ def translation_source(raw, refined):
         return raw
     return refined.strip()
 
+# 复核模型常把下一句的开头带进本句末尾。片段长度上限与正常词语长度一致。
+BOUNDARY_ECHO_MAX_CHARS = 2
+SENTENCE_END = re.compile(r'[。！？!?；;]')
+
+
+# 复核偶尔在句末给出两个终结标点，例如「懂吗？。」。
+TERMINAL_RUN = re.compile(r'[。！？!?]{2,}$')
+
+
+def collapse_terminal_run(text):
+    """连续终结标点只保留第一个，问号与感叹号优先于句号。"""
+    if not text:
+        return text
+    return TERMINAL_RUN.sub(lambda match: match.group()[0], text)
+
+
+def trim_boundary_echo(raw, refined):
+    """删除复核文本末尾的边界回声。
+
+    本句已用标点收住，后面再跟不超过两个字的片段，且流式原文没有这个片段时，
+    按回声删除。流式原文含该片段时保持原样，因为它可能是真实内容。
+    """
+    if not refined:
+        return refined
+    body = refined.rstrip().rstrip('。！？!?；;.')
+    ends = list(SENTENCE_END.finditer(body))
+    if not ends:
+        return refined
+    tail = normalise_source(body[ends[-1].end():])
+    if not tail or len(tail) > BOUNDARY_ECHO_MAX_CHARS:
+        return refined
+    if tail in normalise_source(raw or ''):
+        return refined
+    return body[:ends[-1].end()].strip()
+
+
 SYSTEM_PROMPT = (
     'Translate the Chinese utterance into English. Return only the translation. '
     'Preserve names, years, numbers, negation and uncertainty exactly. '
@@ -338,23 +374,30 @@ class CaptionDispatcher:
         if self.closing.is_set():
             return
         if event.get('type') == 'refined':
+            refined_text = collapse_terminal_run(
+                trim_boundary_echo(event.get('text', ''), event.get('refined_text') or ''))
+            changes = {'refinement_status': event['refinement_status']}
+            if refined_text:
+                # 纠错后的文本同时供显示与翻译，两者必须一致。
+                corrected, fixes = homophones.correct(refined_text, translation_glossary(),
+                                                      corrections=correction_table())
+                refined_text = corrected
+                changes['refined_text'] = corrected
+                if fixes:
+                    changes['refined_homophone_fixes'] = fixes
             if self.refine and event.get('refinement_status') == 'completed':
                 with self.refined_ready:
-                    self.refined[event['seq']] = event.get('refined_text') or ''
+                    self.refined[event['seq']] = refined_text
                     while len(self.refined) > 64:
                         self.refined.pop(next(iter(self.refined)))
                     self.refined_ready.notify_all()
-            changes = {'refinement_status': event['refinement_status']}
-            if event.get('refined_text'):
-                corrected, fixes = homophones.correct(event['refined_text'], translation_glossary(), corrections=correction_table())
-                if fixes:
-                    changes['refined_text'] = corrected
-                    changes['refined_homophone_fixes'] = fixes
             for source, target in (('refined_text', 'refined_zh'), ('refinement_error', 'refinement_error'),
                                    ('final_decode_ms', 'refinement_decode_ms'),
                                    ('asr_numeric_audit', 'refinement_numeric_audit'),
                                    ('asr_polarity_audit', 'refinement_polarity_audit')):
-                if source in event:
+                if source in changes:
+                    changes[target] = changes[source]
+                elif source in event:
                     changes[target] = event[source]
             self.update(f'{self.session_id}:{event["seq"]}', changes)
             return

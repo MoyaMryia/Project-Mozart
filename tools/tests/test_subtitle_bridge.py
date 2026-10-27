@@ -2,7 +2,7 @@ import json,os,pathlib,sys,tempfile,time,unittest
 from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 from subtitle_bridge import (CaptionDispatcher, caption_updates, source_caption, translate,
-    translate_recognized_event, translation_source)
+    translate_recognized_event, translation_source, trim_boundary_echo, collapse_terminal_run)
 
 def answer(text,finish='stop'):
     return {'choices':[{'message':{'content':text},'finish_reason':finish}]}
@@ -33,6 +33,31 @@ class RefinementSourceTests(unittest.TestCase):
         self.assertEqual(refinement_wait(long), REFINED_WAIT_MAX)
         self.assertAlmostEqual(refinement_wait(short), 0.7, places=6)
 
+    def test_repeated_terminal_marks_collapse_to_one(self):
+        self.assertEqual(collapse_terminal_run('一种错误的观念，懂吗？。'), '一种错误的观念，懂吗？')
+        self.assertEqual(collapse_terminal_run('好的。。'), '好的。')
+        self.assertEqual(collapse_terminal_run('真的吗？！'), '真的吗？')
+        self.assertEqual(collapse_terminal_run('好的。'), '好的。')
+        self.assertEqual(collapse_terminal_run(''), '')
+
+    def test_boundary_echo_after_sentence_end_is_removed(self):
+        # 复核把下一句的「你」带进本句末尾，流式原文没有这个字。
+        self.assertEqual(trim_boundary_echo('他觉得他妈是事业单位懂吗',
+            '他觉得他妈是事业单位，懂吗？你。'), '他觉得他妈是事业单位，懂吗？')
+        self.assertEqual(trim_boundary_echo('说说好听一点就是怎么剪丢了西瓜',
+            '说说好听一点，就是捡捡了芝麻丢了西瓜。你。'), '说说好听一点，就是捡捡了芝麻丢了西瓜。')
+
+    def test_boundary_echo_kept_when_streaming_text_contains_it(self):
+        self.assertEqual(trim_boundary_echo('你以为你有工作你就不会',
+            '你以为你有工作，你就不会。你'), '你以为你有工作，你就不会。你')
+
+    def test_boundary_echo_ignores_longer_tails_and_missing_punctuation(self):
+        self.assertEqual(trim_boundary_echo('今天天气不错', '今天天气不错，我们出去走走吧'),
+            '今天天气不错，我们出去走走吧')
+        self.assertEqual(trim_boundary_echo('借走绵远比工作重要', '借走远远比工作重要100倍、1000倍、1万倍。'),
+            '借走远远比工作重要100倍、1000倍、1万倍。')
+        self.assertEqual(trim_boundary_echo('你现在他觉得', '你现他觉得他。'), '你现他觉得他。')
+
     def test_missing_refinement_keeps_streaming_text(self):
         self.assertEqual(translation_source('这句话没有问题', None), '这句话没有问题')
 
@@ -42,6 +67,33 @@ class RefinementSourceTests(unittest.TestCase):
                    return_value=('A test.', .1)) as translate_call:
             list(caption_updates(event, 1, 'session', 'translator', translate_text='复核后的文本'))
         self.assertEqual(translate_call.call_args.args[1]['text'], '复核后的文本')
+
+
+class RefinedCorrectionTests(unittest.TestCase):
+    def test_corrected_refinement_is_displayed_and_translated(self):
+        # 纠正后的文本必须同时用于显示与译文源；两者不一致会让中英文对不上。
+        published, translated = [], []
+        with tempfile.TemporaryDirectory() as labels:
+            corrections = pathlib.Path(labels)/'corrections.json'
+            corrections.write_text(json.dumps({'痛赌': '赌博'}, ensure_ascii=False))
+            dispatcher = CaptionDispatcher(published.append, 'session', 'http://translator',
+                                           refine=True, pending_limit=1)
+            with patch.dict(os.environ, {'MOZART_CORRECTIONS': str(corrections)}), \
+                    patch('subtitle_bridge.translate_recognized_event',
+                          side_effect=lambda *a, **k: (translated.append(k.get('text_raw') or a[1]['text']), ('Gambling.', .1))[1]):
+                dispatcher.accept(dict(type='final', seq=1, text='他就不会痛赌不的',
+                                       audio_start_pts_ns=0, audio_end_pts_ns=1_000_000_000))
+                dispatcher.accept(dict(type='refined', seq=1, text='他就不会痛赌不的',
+                                       refinement_status='completed', refined_text='他就不会痛赌不的吗？'))
+                for _ in range(200):
+                    if any(item.get('en') for item in published):
+                        break
+                    time.sleep(.01)
+            dispatcher.closing.set()
+        refined = [item for item in published if item.get('refined_zh')]
+        self.assertTrue(refined, published)
+        self.assertEqual(refined[-1]['refined_zh'], '他就不会赌博不的吗？')
+        self.assertEqual(translated[-1], '他就不会赌博不的吗？')
 
 
 class RefinementOrderingTests(unittest.TestCase):

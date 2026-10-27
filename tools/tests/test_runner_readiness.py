@@ -30,6 +30,8 @@ class RunnerReadinessTests(unittest.TestCase):
                 argv += ['--input', '/fixture/input.mp4']
             argv += [str(reference) if value == 'REFERENCE' else value for value in options]
 
+            self.launch_environments = []
+
             def snapshot():
                 path = run_dir/'stack-status.json'
                 if path.exists():
@@ -38,6 +40,7 @@ class RunnerReadinessTests(unittest.TestCase):
             def popen(command, **kwargs):
                 nonlocal health_calls, speech_calls, session_calls
                 snapshot()
+                self.launch_environments.append((list(command), kwargs.get('env')))
                 if any('mozart_stated' in word for word in command):
                     name = 'backend'
                 elif any('speech_service.py' in word for word in command):
@@ -211,6 +214,22 @@ class RunnerReadinessTests(unittest.TestCase):
         self.assertEqual(status['state'], 'failed')
         self.assertEqual(status['error']['type'], 'CalledProcessError')
         self.assertNotIn('microphone', self.launches)
+
+    def test_glossary_and_corrections_reach_every_child(self):
+        with tempfile.TemporaryDirectory() as labels:
+            glossary = Path(labels)/'glossary.json'
+            corrections = Path(labels)/'corrections.json'
+            glossary.write_text('{"赌博": "gambling"}')
+            corrections.write_text('{"痛赌": "赌博"}')
+            self.run_scenario(options=['--glossary', str(glossary), '--corrections', str(corrections)])
+            for name in ('mozart_stated', 'subtitle_bridge.py', 'llama-server'):
+                found = [environment for command, environment in self.launch_environments
+                         if any(name in str(word) for word in command)]
+                self.assertEqual(len(found), 1, name)
+                self.assertEqual(found[0]['MOZART_GLOSSARY'], str(glossary.resolve()), name)
+            found = [environment for command, environment in self.launch_environments
+                     if any('subtitle_bridge.py' in str(word) for word in command)]
+            self.assertEqual(found[0]['MOZART_CORRECTIONS'], str(corrections.resolve()))
 
     def test_captions_mode_has_no_speech_process(self):
         status = self.run_scenario(options=['--mode', 'captions'])

@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cstring>
 #include <fstream>
+#include <deque>
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -591,6 +592,24 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
     opened_once = true;
     // 在响应头发出前确定起点，避免客户端随后追加的首条字幕被跳过。
     if (!send_all(client_fd, kHead, std::strlen(kHead), Clock::now() + limits_.write_timeout)) return;
+    // 刷新页面会建立新的连接。先补发最近 200 行，控制台才有上下文。
+    {
+        std::ifstream recent_file(file_path);
+        if (recent_file) {
+            std::deque<std::string> recent;
+            std::string line;
+            while (std::getline(recent_file, line)) {
+                if (line.empty()) continue;
+                recent.push_back(line);
+                if (recent.size() > 200) recent.pop_front();
+            }
+            for (const auto& item : recent) {
+                const std::string payload = "data: " + item + "\n\n";
+                if (!send_all(client_fd, payload.data(), payload.size(), Clock::now() + limits_.write_timeout))
+                    return;
+            }
+        }
+    }
     auto last_heartbeat = Clock::now();
 
     while (running_) {
