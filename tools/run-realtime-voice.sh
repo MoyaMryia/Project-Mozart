@@ -10,7 +10,8 @@
 #                                         # 只重启预处理，切换输入输出设备
 #
 # 环境变量覆盖：CONFIG CAPTURE PLAYBACK MODEL PITCH INDEX_RATE INDEX_NPROBE
-#               API AUDIO_PORT RUN_DIR
+#               API AUDIO_PORT RUN_DIR SUBTITLE_TARGET
+# SUBTITLE_TARGET=127.0.0.1:18100 将同一采集帧同时送给字幕识别。
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -54,15 +55,24 @@ wait_http() {
 }
 
 wait_field() {
-    local path=$1 key=$2 want=$3 deadline=$((SECONDS + READY_TIMEOUT))
+    local path=$1 key=$2 want=$3 pid=$4 deadline=$((SECONDS + READY_TIMEOUT))
     while (( SECONDS < deadline )); do
-        if python3 -c "
-import json,sys
-try: d=json.load(open('$path'))
-except Exception: sys.exit(1)
-sys.exit(0 if str(d.get('$key'))=='$want' else 1)
-" 2>/dev/null; then
+        if python3 - "$path" "$key" "$want" "$pid" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except (FileNotFoundError, json.JSONDecodeError):
+    sys.exit(1)
+if d.get('pid') == int(sys.argv[4]) and d.get('state') == 'failed':
+    print('预处理启动失败: ' + d.get('reason', ''), file=sys.stderr)
+    sys.exit(2)
+sys.exit(0 if str(d.get(sys.argv[2])) == sys.argv[3] and d.get('pid') == int(sys.argv[4]) else 1)
+PY
+        then
             return 0
+        else
+            local result=$?
+            [ "$result" -eq 2 ] && return 1
         fi
         sleep 1
     done
@@ -125,19 +135,34 @@ command_start() {
 # 用当前 CAPTURE/PLAYBACK 起预处理，并把设备写进 pre-devices.json 供控制面读取。
 start_pre() {
     echo "启动预处理 $CAPTURE -> $AUDIO_PORT -> $PLAYBACK"
-    "$PRE_BIN" -d "$CAPTURE" -o "$PLAYBACK" -a 127.0.0.1 -p "$AUDIO_PORT" \
+    if [ -f "$PRE_STATUS" ]; then
+        mv "$PRE_STATUS" "$PRE_STATUS.previous"
+    fi
+    local extra=()
+    if [ -n "${SUBTITLE_TARGET:-}" ]; then
+        extra=(-b "$SUBTITLE_TARGET")
+    fi
+    setsid "$PRE_BIN" -d "$CAPTURE" -o "$PLAYBACK" -a 127.0.0.1 -p "$AUDIO_PORT" "${extra[@]}" \
         --mode ai --period-frames 64 --no-denoise \
         --ctl-port 19040 --status-file "$PRE_STATUS" >"$PRE_LOG" 2>&1 &
-    echo $! >"$PRE_PID_FILE"
-    write_pre_devices
-    wait_field "$PRE_STATUS" state ready || {
+    local pre_pid=$!
+    echo "$pre_pid" >"$PRE_PID_FILE"
+    wait_field "$PRE_STATUS" state ready "$pre_pid" || {
         tail -20 "$PRE_LOG" >&2
         fail "预处理在 ${READY_TIMEOUT}s 内未就绪"
     }
+    write_pre_devices
 }
 
 write_pre_devices() {
-    printf '{"capture":"%s","playback":"%s"}\n' "$CAPTURE" "$PLAYBACK" >"$PRE_DEVICES"
+    python3 - "$CAPTURE" "$PLAYBACK" "${SUBTITLE_TARGET:-}" "$PRE_DEVICES" <<'PY'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[4])
+temporary = path.with_suffix('.json.tmp')
+temporary.write_text(json.dumps(dict(zip(('capture', 'playback', 'subtitle_target'), sys.argv[1:4]))))
+temporary.replace(path)
+PY
 }
 
 # 列出 ALSA 采集与播放设备。输出一行 JSON，供控制面渲染下拉框。
@@ -169,6 +194,14 @@ PY
 
 # 只重启预处理。后端与 stated 保持运行，设备切换不需要重建推理会话。
 command_pre_restart() {
+    # 控制面只传设备参数。重启时保留原有字幕目标，显式环境变量可覆盖或清空。
+    if [ "${SUBTITLE_TARGET+x}" != x ] && [ -f "$PRE_DEVICES" ]; then
+        SUBTITLE_TARGET=$(python3 - "$PRE_DEVICES" <<'PY'
+import json, sys
+print(json.load(open(sys.argv[1])).get('subtitle_target', ''))
+PY
+)
+    fi
     while [ $# -gt 0 ]; do
         case "$1" in
             --capture) [ $# -ge 2 ] || fail "--capture 缺少设备"; CAPTURE=$2; shift 2 ;;
