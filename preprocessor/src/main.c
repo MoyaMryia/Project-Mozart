@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
@@ -49,7 +50,9 @@ typedef struct {
     atomic_llong direct_us_last, direct_us_max;
     _Atomic double direct_us_avg;
     pthread_mutex_t status_mutex;
-    char status[1024];
+    char status[2048];
+    atomic_int status_error;
+    char status_error_reason[256];   // 写线程先填原因，再发布 status_error。
 } shared_t;
 
 typedef struct {
@@ -65,7 +68,8 @@ typedef struct {
 static bool io_should_stop(void *context)
 {
     playback_args_t *pa = context;
-    return g_stop || atomic_load(&pa->stop) || atomic_load(&pa->error) != 0;
+    return g_stop || atomic_load(&pa->stop) || atomic_load(&pa->error) != 0
+           || atomic_load(&pa->shared->status_error) != 0;
 }
 
 // ---- 播放线程：收 MZRT 输出包 → ALSA（direct 模式丢弃计数） -----------------
@@ -179,6 +183,134 @@ static void ctl_snapshot(void *ctx, char *buf, size_t size)
     pthread_mutex_unlock(&shared->status_mutex);
 }
 
+static void json_escape(const char *src, char *dst, size_t size)
+{
+    size_t n = 0;
+    for (const unsigned char *p = (const unsigned char *)src; *p; p++) {
+        const size_t need = *p < 32 ? 6 : (*p == '"' || *p == '\\' ? 2 : 1);
+        if (n + need >= size) break;
+        if (*p < 32) {
+            snprintf(dst + n, size - n, "\\u%04x", *p);
+            n += need;
+        } else {
+            if (need == 2) dst[n++] = '\\';
+            dst[n++] = (char)*p;
+        }
+    }
+    dst[n] = '\0';
+}
+
+// 快照同时供控制口和状态文件使用，避免两套字段生成器漂移。
+static void update_status(shared_t *shared, mozart_dsp_t *dsp, const char *state,
+                          const char *reason, long sent, long send_errors, unsigned conf)
+{
+    mozart_dsp_telemetry_t tm = {0};
+    if (dsp) mozart_dsp_telemetry(dsp, &tm);
+    char escaped[768];
+    json_escape(reason ? reason : "", escaped, sizeof(escaped));
+    char snapshot[sizeof(shared->status)];
+    snprintf(snapshot, sizeof(snapshot),
+        "{\"pid\":%ld,\"state\":\"%s\",\"reason\":\"%s\","
+        "\"mode\":\"%s\",\"stages\":{\"denoise\":%d,\"gate\":%d,\"agc\":%d,"
+        "\"limiter\":%d},\"frames\":%ld,\"direct_periods\":%lu,"
+        "\"skipped_replies\":%lu,\"send_errors\":%ld,"
+        "\"direct_us\":{\"last\":%lld,\"max\":%lld,\"avg\":%.0f},"
+        "\"ns_gain\":%.3f,\"gate_open\":%ld,\"vad_conf\":%.3f}",
+        (long)getpid(), state, escaped,
+        atomic_load(&shared->route_cur) == ROUTE_DIRECT ? "direct" : "ai",
+        tm.denoise, tm.gate, tm.agc, tm.limiter, sent,
+        (unsigned long)atomic_load(&shared->direct_periods),
+        (unsigned long)atomic_load(&shared->skipped_replies), send_errors,
+        (long long)atomic_load(&shared->direct_us_last),
+        (long long)atomic_load(&shared->direct_us_max),
+        (double)atomic_load(&shared->direct_us_avg),
+        (double)tm.ns_last_gain, (long)tm.gate_open, conf / 255.0);
+    pthread_mutex_lock(&shared->status_mutex);
+    snprintf(shared->status, sizeof(shared->status), "%s", snapshot);
+    pthread_mutex_unlock(&shared->status_mutex);
+}
+
+// 临时文件与目标同目录，rename 原子替换最终快照。
+static int persist_status(const char *path, const char *snapshot)
+{
+    char *temp = malloc(strlen(path) + sizeof(".XXXXXX"));
+    if (!temp) return ENOMEM;
+    sprintf(temp, "%s.XXXXXX", path);
+    int fd = mkstemp(temp);
+    int error = fd < 0 ? errno : 0;
+    if (fd >= 0) {
+        if (fchmod(fd, 0644) < 0) error = errno;
+        const char *p = snapshot;
+        size_t left = strlen(p);
+        while (!error && left) {
+            const ssize_t n = write(fd, p, left);
+            if (n < 0 && errno == EINTR) continue;
+            if (n <= 0) { error = n < 0 ? errno : EIO; break; }
+            p += n;
+            left -= (size_t)n;
+        }
+        if (close(fd) < 0) {
+            const int close_error = errno;
+            fprintf(stderr, "[pre] status=failed stage=status_close errno=%d reason=%s\n",
+                    close_error, strerror(close_error));
+            if (!error) error = close_error;
+        }
+        if (!error && rename(temp, path) < 0) error = errno;
+        if (error && unlink(temp) < 0)
+            fprintf(stderr, "[pre] status cleanup unlink: %s\n", strerror(errno));
+    }
+    free(temp);
+    return error;
+}
+
+enum { STATUS_WRITE_INTERVAL_NS = 200000000 };
+
+typedef struct {
+    shared_t *shared;
+    const char *path;
+    atomic_bool stop;
+} status_writer_t;
+
+static void status_writer_fail(shared_t *shared, const char *stage, int error)
+{
+    snprintf(shared->status_error_reason, sizeof(shared->status_error_reason),
+             "%s: %s", stage, strerror(error));
+    atomic_store(&shared->status_error, error);
+    fprintf(stderr, "[pre] status=failed stage=%s errno=%d reason=%s\n",
+            stage, error, shared->status_error_reason);
+}
+
+static void *status_writer_thread(void *context)
+{
+    status_writer_t *writer = context;
+    uint64_t next = mozart_now_ns();
+    while (!atomic_load(&writer->stop)) {
+        char snapshot[sizeof(writer->shared->status)];
+        ctl_snapshot(writer->shared, snapshot, sizeof(snapshot));
+        const int error = persist_status(writer->path, snapshot);
+        if (error) {
+            status_writer_fail(writer->shared, "status_file", error);
+            break;
+        }
+        // 跳过慢写占用的周期，避免补写已过期的快照。
+        const uint64_t now = mozart_now_ns();
+        next += ((now - next) / STATUS_WRITE_INTERVAL_NS + 1) * STATUS_WRITE_INTERVAL_NS;
+        const struct timespec wake = {
+            .tv_sec = (time_t)(next / 1000000000ull),
+            .tv_nsec = (long)(next % 1000000000ull),
+        };
+        int wait_error;
+        do {
+            wait_error = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &wake, NULL);
+        } while (wait_error == EINTR && !atomic_load(&writer->stop));
+        if (wait_error && wait_error != EINTR) {
+            status_writer_fail(writer->shared, "status_clock", wait_error);
+            break;
+        }
+    }
+    return NULL;
+}
+
 static int udp_open(const char *host, uint16_t port)
 {
     struct addrinfo hints = {0}, *res = NULL;
@@ -208,12 +340,13 @@ static void usage(const char *prog)
     fprintf(stderr,
         "用法: %s [-d alsa采集设备] [-o alsa播放设备] [-a 目标IP] [-p 端口] [-n 帧数] "
         "[-i 输入.wav] [--pace] [--period-frames N] [--mode ai|direct] [--ctl-port N] "
-        "[--no-denoise] [--gate] [--agc] [--limiter]\n"
+        "[--status-file 路径] [--no-denoise] [--gate] [--agc] [--limiter]\n"
         "  -d   ALSA 采集设备（默认 default）\n"
         "  -o   ALSA 播放设备；缺省只发送不播放\n"
         "  --period-frames  采集/直出周期（默认 64，≤960；AI 路径仍按 960 攒帧）\n"
         "  --mode           初始播放路由（默认 ai；direct = 主干直出播放）\n"
         "  --ctl-port       本地控制通道 UDP 端口（默认 19040；0 关闭）\n"
+        "  --status-file    原子写入 JSON 状态快照（约 200ms 一次）\n"
         "  --no-denoise     关闭 WOLA 谱降噪（旁路）\n",
         prog);
 }
@@ -274,6 +407,7 @@ int main(int argc, char **argv)
     const char *second_target = NULL;
     const char *wav_path = NULL;
     const char *usb_ffs = NULL;
+    const char *status_file = NULL;
     bool denoise = true, gate_on = false, agc_on = false, limiter_on = false;
     bool pace = false;
     uint16_t port = 18000;
@@ -305,7 +439,12 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[i], "--fade-ms") && i + 1 < argc) fade_ms = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--usb-endpoint") && i + 1 < argc) usb_ffs = argv[++i];
+        else if (!strcmp(argv[i], "--status-file") && i + 1 < argc) status_file = argv[++i];
         else { usage(argv[0]); return 1; }
+    }
+    if (status_file && !status_file[0]) {
+        fprintf(stderr, "[pre] --status-file requires a nonempty path\n");
+        return 1;
     }
     const bool offline = wav_path != NULL;
     if (pace && !offline) { fprintf(stderr, "[pre] --pace requires -i\n"); return 1; }
@@ -323,6 +462,17 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // 状态文件不能用输入 WAV 的同一 inode；写线程启动前先拒绝该配置。
+    if (status_file && wav_path) {
+        struct stat input_stat, status_stat;
+        if (stat(wav_path, &input_stat) == 0 && stat(status_file, &status_stat) == 0
+            && input_stat.st_dev == status_stat.st_dev
+            && input_stat.st_ino == status_stat.st_ino) {
+            fprintf(stderr, "[pre] status=failed stage=config reason=status_file aliases input\n");
+            return 1;
+        }
+    }
+
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);
 
@@ -333,6 +483,11 @@ int main(int argc, char **argv)
     mozart_wav_reader_t *wav = NULL;
     pthread_t play_tid;
     bool play_started = false;
+    pthread_t status_tid;
+    bool status_started = false;
+    const char *reason = "";
+    long sent = 0, overruns = 0, send_errors = 0;
+    unsigned vad_conf = 0;
     shared_t shared;
     memset(&shared, 0, sizeof(shared));
     pthread_mutex_init(&shared.status_mutex, NULL);
@@ -346,6 +501,8 @@ int main(int argc, char **argv)
 
     playback_args_t play_args = { .fd = -1, .shared = &shared,
         .monotonic_pts = !offline || pace };
+    status_writer_t writer = { .shared = &shared, .path = status_file };
+    update_status(&shared, NULL, "starting", "", 0, 0, 0);
     // cleanup 可达的全部堆资源：在首个 goto 之前声明并置空。
     mozart_control_t *control = NULL;
     mozart_usblink_t *usblink = NULL;
@@ -354,17 +511,18 @@ int main(int argc, char **argv)
 
     // ---- UDP 发送端 ----
     fd = udp_open(host, port);
-    if (fd < 0) goto cleanup;
+    if (fd < 0) { reason = "udp_open"; goto cleanup; }
     play_args.fd = fd;
     if (second_target) {
         char ip[64] = {0};
         unsigned p = 0;
         if (sscanf(second_target, "%63[^:]:%u", ip, &p) != 2) {
             fprintf(stderr, "[pre] -b 需要格式 IP:端口，得到: %s\n", second_target);
+            reason = "second_target";
             goto cleanup;
         }
         fd2 = udp_open(ip, (uint16_t)p);
-        if (fd2 < 0) goto cleanup;
+        if (fd2 < 0) { reason = "second_target"; goto cleanup; }
         fprintf(stderr, "[pre] 双发第二目标: %s:%u\n", ip, p);
     }
 
@@ -378,11 +536,13 @@ int main(int argc, char **argv)
         play_args.playback = mozart_playback_open(&pcfg);
         if (!play_args.playback) {
             fprintf(stderr, "[play] status=failed stage=open device=%s\n", play_device);
+            reason = "playback_open";
             goto cleanup;
         }
         struct timeval tv = { .tv_sec = 0, .tv_usec = 100000 };
         if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
             perror("[play] status=failed stage=receive_timeout");
+            reason = "receive_timeout";
             goto cleanup;
         }
         fprintf(stderr, "[play] 播放设备 %s 已打开（period=%u），等待后端输出包...\n",
@@ -394,12 +554,16 @@ int main(int argc, char **argv)
         .denoise = denoise, .gate = gate_on, .agc = agc_on, .limiter = limiter_on,
     };
     dsp = mozart_dsp_new(&dcfg);
-    if (!dsp) { fprintf(stderr, "[pre] dsp 初始化失败\n"); goto cleanup; }
+    if (!dsp) {
+        fprintf(stderr, "[pre] dsp 初始化失败\n");
+        reason = "dsp_init";
+        goto cleanup;
+    }
 
     // ---- 快流专用端点（M3：绕过守护进程与 aloop）----
     if (usb_ffs) {
         usblink = mozart_usblink_open(usb_ffs);
-        if (!usblink) goto cleanup;
+        if (!usblink) { reason = "usb_open"; goto cleanup; }
         fprintf(stderr, "[usb] 快流端点 %s（ep3/ep4）已打开\n", usb_ffs);
     }
 
@@ -410,13 +574,21 @@ int main(int argc, char **argv)
             .snapshot = ctl_snapshot,
         };
         control = mozart_control_open(ctl_port, &vt, &shared);
-        // 绑定失败不致命：降级为无控制通道，原因已由 control 模块打印。
+        if (!control) {
+            fprintf(stderr, "[pre] status=failed stage=control_open port=%u\n", ctl_port);
+            reason = "control_open";
+            goto cleanup;
+        }
     }
 
     // ---- 输入源 ----
     if (offline) {
         wav = mozart_wav_open(wav_path);
-        if (!wav) goto cleanup;
+        if (!wav) {
+            fprintf(stderr, "[pre] status=failed stage=wav_open path=%s\n", wav_path);
+            reason = "wav_open";
+            goto cleanup;
+        }
         fprintf(stderr, "[pre] 离线模式: %s → %s:%u%s\n", wav_path, host, port,
                 play_device ? " + 播放" : "");
     } else if (usb_ffs) {
@@ -428,7 +600,11 @@ int main(int argc, char **argv)
             .should_stop = io_should_stop, .stop_context = &play_args,
         };
         cap = mozart_capture_open(&ccfg);
-        if (!cap) goto cleanup;
+        if (!cap) {
+            fprintf(stderr, "[pre] status=failed stage=capture_open device=%s\n", device);
+            reason = "capture_open";
+            goto cleanup;
+        }
         fprintf(stderr, "[pre] 实时模式: %s（period=%u）→ %s:%u%s\n", device, period_frames,
                 host, port, play_device ? " + 播放" : "");
     }
@@ -437,6 +613,7 @@ int main(int argc, char **argv)
         const int error = pthread_create(&play_tid, NULL, playback_thread, &play_args);
         if (error) {
             fprintf(stderr, "[play] status=failed stage=thread reason=%s\n", strerror(error));
+            reason = "playback_thread";
             goto cleanup;
         }
         play_started = true;
@@ -452,19 +629,32 @@ int main(int argc, char **argv)
     trunk = malloc(sizeof(float) * trunk_cap);
     staging = malloc(sizeof(float) * MOZART_RAW_SAMPLES * 2);
     size_t staging_len = 0;
-    if (!period_stereo || !wav_block || !period_mono || !trunk || !staging) goto cleanup;
+    if (!period_stereo || !wav_block || !period_mono || !trunk || !staging) {
+        reason = "allocate_buffers";
+        goto cleanup;
+    }
 
     mozart_input_frame_t frame;
     unsigned char pkt[4 + sizeof(frame)];
     pkt[0] = 0x54; pkt[1] = 0x52; pkt[2] = 0x5A; pkt[3] = 0x4D; // 'MZRT' LE
 
-    long sent = 0, overruns = 0, send_errors = 0;
     uint64_t t0 = mozart_now_ns();
     fade_t fade;
     fade_init(&fade, fade_ms * 48, initial_route == ROUTE_DIRECT);
     bool wav_pending = false;
     size_t wav_pending_len = 0, wav_pos = 0;
     exit_code = 0;
+    const char *state = "starting";
+
+    if (status_file) {
+        const int error = pthread_create(&status_tid, NULL, status_writer_thread, &writer);
+        if (error) {
+            status_writer_fail(&shared, "status_thread", error);
+            reason = shared.status_error_reason;
+            goto cleanup;
+        }
+        status_started = true;
+    }
 
     while (!io_should_stop(&play_args) && (max_frames == 0 || sent < max_frames)) {
         size_t got = 0;                       // 本轮取得的立体声帧数
@@ -493,6 +683,7 @@ int main(int argc, char **argv)
                                                         (int)period_frames);
             if (error < 0) {
                 fprintf(stderr, "[pre] status=failed stage=usb_read\n");
+                reason = "usb_read";
                 exit_code = 1;
                 break;
             }
@@ -502,6 +693,7 @@ int main(int argc, char **argv)
             if (error < 0) {
                 if (error != -ECANCELED || !io_should_stop(&play_args)) {
                     fprintf(stderr, "[pre] status=failed stage=capture code=%d\n", error);
+                    reason = "capture_read";
                     exit_code = 1;
                 }
                 break;
@@ -545,6 +737,7 @@ int main(int argc, char **argv)
                 const uint64_t probe1 = mozart_now_ns();
                 if (werror < 0) {
                     fprintf(stderr, "[play] status=failed stage=usb_direct\n");
+                    reason = "usb_direct";
                     exit_code = 1;
                     break;
                 }
@@ -582,6 +775,7 @@ int main(int argc, char **argv)
                 if (werror < 0 && werror != -ECANCELED) {
                     fprintf(stderr, "[play] status=failed stage=direct code=%d\n", werror);
                     atomic_store(&play_args.error, werror);
+                    reason = "playback_direct";
                     exit_code = 1;
                     break;
                 }
@@ -623,6 +817,7 @@ int main(int argc, char **argv)
                         if (io_should_stop(&play_args)) break;
                         if (error) {
                             fprintf(stderr, "[pre] replay clock: %s\n", strerror(error));
+                            reason = "replay_clock";
                             exit_code = 1;
                             break;
                         }
@@ -633,9 +828,11 @@ int main(int argc, char **argv)
                 if (cap) overruns = mozart_capture_overruns(cap);
                 if (mozart_dsp_pack_frame(dsp, staging, &frame) < 0) {
                     fprintf(stderr, "[pre] 打包失败\n");
+                    reason = "pack_frame";
                     exit_code = 1;
                     break;
                 }
+                vad_conf = frame.meta.conf;
                 memcpy(pkt + 4, &frame, sizeof(frame));
                 bool sent_ok = send(fd, pkt, sizeof(pkt), 0) == (ssize_t)sizeof(pkt);
                 if (fd2 >= 0 && send(fd2, pkt, sizeof(pkt), 0) != (ssize_t)sizeof(pkt))
@@ -655,28 +852,9 @@ int main(int argc, char **argv)
                               atomic_load(&shared.want_gate),
                               atomic_load(&shared.want_agc),
                               atomic_load(&shared.want_limiter));
-        if (sent % 20 == 1) {
-            mozart_dsp_telemetry_t tm;
-            mozart_dsp_telemetry(dsp, &tm);
-            pthread_mutex_lock(&shared.status_mutex);
-            snprintf(shared.status, sizeof(shared.status),
-                "{\"mode\":\"%s\",\"stages\":{\"denoise\":%d,\"gate\":%d,\"agc\":%d,"
-                "\"limiter\":%d},\"frames\":%ld,\"direct_periods\":%lu,"
-                "\"skipped_replies\":%lu,\"send_errors\":%ld,"
-                "\"direct_us\":{\"last\":%lld,\"max\":%lld,\"avg\":%.0f},"
-                "\"ns_gain\":%.3f,\"gate_open\":%ld,\"vad_conf\":%.3f}",
-                atomic_load(&shared.route_cur) == ROUTE_DIRECT ? "direct" : "ai",
-                tm.denoise, tm.gate, tm.agc, tm.limiter, (long)sent,
-                (unsigned long)atomic_load(&shared.direct_periods),
-                (unsigned long)atomic_load(&shared.skipped_replies),
-                send_errors,
-                (long long)atomic_load(&shared.direct_us_last),
-                (long long)atomic_load(&shared.direct_us_max),
-                (double)atomic_load(&shared.direct_us_avg),
-                (double)tm.ns_last_gain, (long)tm.gate_open,
-                frame.meta.conf / 255.0);
-            pthread_mutex_unlock(&shared.status_mutex);
-        }
+        if (produced > 0) state = "ready";
+        if (sent % 20 == 1)
+            update_status(&shared, dsp, state, reason, sent, send_errors, vad_conf);
 
         if (sent % 250 == 0 && sent > 0) {
             fprintf(stderr, "[pre] frames=%ld vad=%u seg=%u energy=%u dB overruns=%ld "
@@ -704,6 +882,7 @@ int main(int argc, char **argv)
             && atomic_load(&shared.route_cur) == ROUTE_AI) {
             fprintf(stderr, "[play] status=failed stage=drain last=%u expected=%ld\n",
                     atomic_load(&play_args.last_played_frame), sent);
+            reason = "drain";
             exit_code = 1;
         }
         const struct timespec tail = { .tv_sec = 0, .tv_nsec = 100000000 };
@@ -711,6 +890,15 @@ int main(int argc, char **argv)
     }
 cleanup:
     atomic_store(&play_args.stop, true);
+    if (status_started) {
+        atomic_store(&writer.stop, true);
+        const int error = pthread_join(status_tid, NULL);
+        if (error) {
+            fprintf(stderr, "[pre] status=failed stage=status_join reason=%s\n",
+                    strerror(error));
+            exit_code = 1;
+        }
+    }
     mozart_control_close(control);
     mozart_usblink_close(usblink);
     if (play_started) {
@@ -719,6 +907,23 @@ cleanup:
     }
 
     if (atomic_load(&play_args.error) != 0) exit_code = 1;
+    if (atomic_load(&shared.status_error)) {
+        exit_code = 1;
+        reason = shared.status_error_reason;
+    }
+    update_status(&shared, dsp, exit_code ? "failed" : "stopped", reason,
+                  sent, send_errors, vad_conf);
+    if (status_file) {
+        char snapshot[sizeof(shared.status)];
+        ctl_snapshot(&shared, snapshot, sizeof(snapshot));
+        const int error = persist_status(status_file, snapshot);
+        if (error) {
+            if (!atomic_load(&shared.status_error)) status_writer_fail(&shared, "status_file", error);
+            else fprintf(stderr, "[pre] final status=failed stage=status_file errno=%d reason=%s\n",
+                         error, strerror(error));
+            exit_code = 1;
+        }
+    }
     mozart_playback_close(play_args.playback);
     mozart_capture_close(cap);
     mozart_wav_close(wav);
