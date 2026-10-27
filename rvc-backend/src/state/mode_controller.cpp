@@ -385,7 +385,8 @@ nlohmann::json ModeController::parameters() const {
 nlohmann::json ModeController::parameters_json(const RvcParameters& parameters) {
     return {
         {"f0_method", parameters.f0_method}, {"pitch_shift", parameters.pitch_shift},
-        {"index_rate", parameters.index_rate}, {"filter_radius", parameters.filter_radius},
+        {"index_rate", parameters.index_rate}, {"index_nprobe", parameters.index_nprobe},
+        {"filter_radius", parameters.filter_radius},
         {"rms_mix_rate", parameters.rms_mix_rate}, {"protect", parameters.protect}
     };
 }
@@ -402,14 +403,16 @@ nlohmann::json ModeController::set_parameters(const nlohmann::json& input) {
     parameters.f0_method = input.value("f0_method", parameters.f0_method);
     parameters.pitch_shift = input.value("pitch_shift", parameters.pitch_shift);
     parameters.index_rate = input.value("index_rate", parameters.index_rate);
+    parameters.index_nprobe = input.value("index_nprobe", parameters.index_nprobe);
     parameters.filter_radius = input.value("filter_radius", parameters.filter_radius);
     parameters.rms_mix_rate = input.value("rms_mix_rate", parameters.rms_mix_rate);
     parameters.protect = input.value("protect", parameters.protect);
     if (invalid_rvc_parameter(parameters) || !pipeline_.set_parameters(parameters)) {
         return {{"status", "invalid"}, {"error", "parameters are outside the supported RVC range"}};
     }
-    spdlog::info("[rvc] parameters updated: f0={}, pitch={}, index_rate={}, filter_radius={}, rms_mix_rate={}, protect={}",
+    spdlog::info("[rvc] parameters updated: f0={}, pitch={}, index_rate={}, index_nprobe={}, filter_radius={}, rms_mix_rate={}, protect={}",
                  parameters.f0_method, parameters.pitch_shift, parameters.index_rate,
+                 parameters.index_nprobe,
                  parameters.filter_radius, parameters.rms_mix_rate, parameters.protect);
     return {{"status", "active"}, {"parameters", parameters_json(parameters)}};
 }
@@ -459,6 +462,7 @@ nlohmann::json ModeController::save_preset(const nlohmann::json& preset) {
     validated.f0_method = parameters.value("f0_method", validated.f0_method);
     validated.pitch_shift = parameters.value("pitch_shift", validated.pitch_shift);
     validated.index_rate = parameters.value("index_rate", validated.index_rate);
+    validated.index_nprobe = parameters.value("index_nprobe", validated.index_nprobe);
     validated.filter_radius = parameters.value("filter_radius", validated.filter_radius);
     validated.rms_mix_rate = parameters.value("rms_mix_rate", validated.rms_mix_rate);
     validated.protect = parameters.value("protect", validated.protect);

@@ -75,6 +75,21 @@ rvc-golden/qiqi-zh-run/**
 !rvc-golden/qiqi-zh-run/backend-ui.yaml
 !rvc-golden/qiqi-zh-run/config.json
 !rvc-golden/qiqi-zh-run/presets.json
+!rvc-golden/qiqi-zh-run/backend-index.yaml
+!rvc-golden/qiqi-zh-run/README-index.md
+
+# liuying runtime working dir: downloaded pth/index, exported ONNX/engines and temp
+# files stay out of git, only the run configs track
+rvc-golden/liuying-run/**
+!rvc-golden/liuying-run/backend.yaml
+!rvc-golden/liuying-run/backend-ui.yaml
+
+# de_narrator runtime assets and captured tensors stay local.
+rvc-golden/de-narrator-run/**
+!rvc-golden/de-narrator-run/backend.yaml
+!rvc-golden/de-narrator-run/backend-ui.yaml
+!rvc-golden/de-narrator-run/README.md
+!rvc-golden/de-narrator-run/verification.json
 
 # CMake
 CMakeCache.txt
@@ -185,8 +200,18 @@ reports/**/__pycache__/
 !reports/tempo-limit-20261016/metrics.json
 !rvc-golden/tempo-frame-boundary-pocket.wav
 
+# WOLA 静音启动回归摘要。
+!reports/wola-silent-start-20261027/metrics.json
+!reports/voice-cleanup-20261027/metrics.json
+
 # 演示机运行配置
 state/glossary.json
 
 # 赛题评价标准原始表格（内容已转换为 requirements.md）
 /*.xlsx
+
+# 原生 USB 客户端自带开发头文件与许可证。
+!usb-audio/native-host/third_party/
+usb-audio/native-host/third_party/*
+!usb-audio/native-host/third_party/libusb.h
+!usb-audio/native-host/third_party/LICENSE.libusb

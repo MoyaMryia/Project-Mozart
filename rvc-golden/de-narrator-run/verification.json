@@ -1,0 +1,618 @@
+{
+  "input_provenance_correction": {
+    "eight_second_input": "/tmp/rvc-say.wav; RVC-official/test-input/input.wav",
+    "actual_source": "rvc-golden/full-run-20261005/natural-qiqi-realtime-trimmed.wav",
+    "source_kind": "Qiqi-converted output, first 8 seconds, reused for a second RVC pass",
+    "source_segment_correlation": 0.9999999907022995,
+    "source_segment_gain": 0.7071065258208562,
+    "original_recording": "rvc-golden/input/preprocessor-sample-mp4-first-30s.wav",
+    "original_recording_sha256": "d7dafb12f8d444b2270f2d06158f47c235ca7892aaca1513561dc9971f2a8654"
+  },
+  "checkpoint_metadata": {
+    "version": "v2",
+    "f0": true,
+    "sample_rate": 48000,
+    "speakers": 109,
+    "feature_dimension": 768,
+    "speaker_id": 0
+  },
+  "base_revision": "a793e30c46d008135dc7efdc080a5986ba04ae71",
+  "configuration": {
+    "platform": "Jetson Orin Nano Super 8GB",
+    "input_rate": 16000,
+    "output_rate": 48000,
+    "block_samples": 3840,
+    "past_samples": 40000,
+    "analysis_samples": 44800,
+    "crossfade_samples": 2400,
+    "sola_search_samples": 480,
+    "pitch_shift": 0,
+    "index_rate": 0,
+    "rms_mix_rate": 1,
+    "protect": 0.33,
+    "denoise": false,
+    "seed": 114514
+  },
+  "legacy_weights": {
+    "legacy_onnx_sha256": "eb19e2044ee3fb1d8b4a580ff1d30e3fa895530c20adb6defecd8766bd8a5203",
+    "same_count": 247,
+    "different_count": 104,
+    "all_differences_in_weight_norm_modules": true
+  },
+  "full_captured_generator": {
+    "shape": [
+      1,
+      1,
+      549120
+    ],
+    "dtype": "float32",
+    "relative_rmse": 0.00011242068975896334,
+    "cosine": 0.9999999936807212,
+    "max_abs": 0.0006118714809417725,
+    "rms": 0.09818744081186313,
+    "frames": 1144,
+    "input_origin": "Entire captured Golden Generator call, including all three synthesis noise tensors"
+  },
+  "models": {
+    "de_narrator": {
+      "onnx": {
+        "front": {
+          "shape": [
+            1,
+            192,
+            30
+          ],
+          "dtype": "float32",
+          "relative_rmse": 6.554827254778128e-07,
+          "cosine": 0.9999999999997868,
+          "max_abs": 3.546476364135742e-06,
+          "rms": 0.55261691896017
+        },
+        "decoder": {
+          "shape": [
+            1,
+            1,
+            14400
+          ],
+          "dtype": "float32",
+          "relative_rmse": 6.917234601646081e-06,
+          "cosine": 0.9999999999760834,
+          "max_abs": 1.004338264465332e-05,
+          "rms": 0.1296663214023533
+        },
+        "pipeline": {
+          "shape": [
+            1,
+            1,
+            14400
+          ],
+          "dtype": "float32",
+          "relative_rmse": 7.425565997232579e-06,
+          "cosine": 0.999999999972476,
+          "max_abs": 9.000301361083984e-06,
+          "rms": 0.12966634216258313
+        },
+        "sample_rate": 48000,
+        "output_seconds": 0.3,
+        "input_origin": "Captured offline Golden tail; fixed realtime crop",
+        "hubert": {
+          "shape": [
+            1,
+            139,
+            768
+          ],
+          "dtype": "float32",
+          "relative_rmse": 1.5877171950323548e-06,
+          "cosine": 0.9999999999987079,
+          "max_abs": 5.245208740234375e-06,
+          "rms": 0.32418066353393105
+        },
+        "rmvpe": {
+          "shape": [
+            1,
+            32,
+            360
+          ],
+          "dtype": "float32",
+          "relative_rmse": 6.748411440573273e-07,
+          "cosine": 0.9999999999998173,
+          "max_abs": 5.960464477539062e-07,
+          "rms": 0.05823801714665211
+        },
+        "assets": {
+          "/home/moyamryia/models/de_narrator_clean.pth": "3a04531dd1dd30a87be75cf4fc5fb739a8570fe46100546b287d7e1a3965b04d",
+          "rvc-golden/de-narrator-run/de_narrator-front.onnx": "2f2d96eb29cf87d53afd6616d96c6a76f81f77c6d92d40f8c0420bc69c497ead",
+          "rvc-golden/de-narrator-run/de_narrator-decoder.onnx": "304a4b60458e8d5a04412a3e2a80ebb4bbb41fc85b686fcc84235e9969e467ea",
+          "rvc-golden/qiqi-zh-run/hubert-realtime.onnx": "28e53187507c7483d97424648608eb0981824c27de51dd24f97da315d884e0d0",
+          "rvc-golden/qiqi-zh-run/rmvpe-realtime.onnx": "8238ebd20decd69121470753568da8d2bafbfb6fb02e5ca2fa405cd652d7ac65"
+        }
+      },
+      "tensorrt": [
+        {
+          "case": "captured-golden",
+          "cosine": 0.9999999999997472,
+          "elapsed_ms": [
+            10.394899,
+            10.408619,
+            9.871578,
+            9.867704,
+            9.862019
+          ],
+          "elements": 5760,
+          "max_abs": 3.337860107421875e-06,
+          "relative_rmse": 7.028465176017977e-07,
+          "runtime": {
+            "asset": "/home/moyamryia/Mozart/rvc-golden/de-narrator-run/de_narrator-front.engine",
+            "backend": "tensorrt",
+            "fallback_reason": ""
+          },
+          "stage": "front"
+        },
+        {
+          "case": "captured-golden",
+          "cosine": 0.9999999990202009,
+          "elapsed_ms": [
+            35.961026,
+            36.056175,
+            35.352147,
+            35.406232,
+            35.587511
+          ],
+          "elements": 14400,
+          "max_abs": 6.246566772460938e-05,
+          "relative_rmse": 4.42807606272434e-05,
+          "runtime": {
+            "asset": "/home/moyamryia/Mozart/rvc-golden/de-narrator-run/de_narrator-decoder.engine",
+            "backend": "tensorrt",
+            "fallback_reason": ""
+          },
+          "stage": "decoder"
+        },
+        {
+          "case": "captured-golden",
+          "cosine": 0.9999998732319514,
+          "elapsed_ms": [
+            23.958378,
+            23.759925,
+            23.8059,
+            23.825758,
+            23.823662
+          ],
+          "elements": 106752,
+          "max_abs": 0.0018472671508789062,
+          "relative_rmse": 0.0005036030405766796,
+          "runtime": {
+            "asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.engine",
+            "backend": "tensorrt",
+            "fallback_reason": ""
+          },
+          "stage": "hubert"
+        },
+        {
+          "case": "captured-golden",
+          "cosine": 0.999999810210542,
+          "elapsed_ms": [
+            14.402765,
+            14.347139,
+            14.318214,
+            14.318309,
+            14.341672
+          ],
+          "elements": 11520,
+          "max_abs": 0.001142740249633789,
+          "relative_rmse": 0.0006178821376537895,
+          "runtime": {
+            "asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.engine",
+            "backend": "tensorrt",
+            "fallback_reason": ""
+          },
+          "stage": "rmvpe"
+        }
+      ],
+      "stream": {
+        "input": "/home/moyamryia/Mozart/rvc-golden/de-narrator-run/de-narrator-espeak-input.wav",
+        "output": "/home/moyamryia/Mozart/rvc-golden/de-narrator-run/de-narrator-espeak-mozart-backend.wav",
+        "input_frames": 473,
+        "flush_frames": 150,
+        "received_frames": 623,
+        "missing_frames": [],
+        "output_samples": 453120,
+        "stream": {
+          "blocks": 51,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "packets_dropped": 0,
+          "packets_received": 623,
+          "packets_sent": 623,
+          "peer_host": "127.0.0.1",
+          "peer_port": 33405,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 180.0,
+          "rejected_clients": 0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        }
+      },
+      "realtime_quality": {
+        "reference_duration_s": 9.45,
+        "candidate_duration_s": 9.44,
+        "duration_delta_s": -0.009999999999999787,
+        "compared_duration_s": 9.44,
+        "alignment_lag_ms": 0,
+        "logmel_corr": 0.9880187650861664,
+        "logmel_mae_db": 2.0518505573272705,
+        "rms_envelope_corr": 0.9918880752477961,
+        "rms_ratio_db": 0.0548846498131752,
+        "centroid_median_delta_hz": 9.462543788153198,
+        "f0_median_cents": 9.999999999999636,
+        "f0_p90_cents": 20.000000000000068,
+        "voiced_iou": 0.9388038942976356,
+        "clip_percent": 0.0,
+        "boundary_spectral_step_mean_db": 3.4667932987213135,
+        "reference_boundary_spectral_step_mean_db": 3.382326602935791,
+        "all_spectral_step_mean_db": 3.1303813457489014,
+        "boundary_sample_jump_mean": 0.0146930618211627,
+        "all_sample_jump_mean": 0.016954945400357246
+      },
+      "runtime": {
+        "cached_models": "1",
+        "generator_asset": "/home/moyamryia/Mozart/rvc-backend/models/de_narrator/de_narrator.onnx",
+        "generator_backend": "onnx_cuda_ep",
+        "generator_fallback_reason": "",
+        "has_generator": "true",
+        "has_index": "false",
+        "has_realtime_generator": "true",
+        "hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx",
+        "hubert_backend": "deferred",
+        "id": "de_narrator",
+        "loaded": "true",
+        "model_cache_limit": "2",
+        "realtime_decoder_asset": "/home/moyamryia/Mozart/rvc-backend/models/de_narrator/de_narrator-decoder.engine",
+        "realtime_decoder_backend": "tensorrt",
+        "realtime_decoder_fallback_reason": "",
+        "realtime_front_asset": "/home/moyamryia/Mozart/rvc-backend/models/de_narrator/de_narrator-front.engine",
+        "realtime_front_backend": "tensorrt",
+        "realtime_front_fallback_reason": "",
+        "realtime_hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.engine",
+        "realtime_hubert_backend": "tensorrt",
+        "realtime_hubert_fallback_reason": "",
+        "realtime_rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.engine",
+        "realtime_rmvpe_backend": "tensorrt",
+        "realtime_rmvpe_fallback_reason": "",
+        "rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx",
+        "rmvpe_backend": "deferred",
+        "sample_rate": "48000"
+      }
+    },
+    "liuying": {
+      "onnx": {
+        "front": {
+          "shape": [
+            1,
+            192,
+            30
+          ],
+          "dtype": "float32",
+          "relative_rmse": 7.177600796530278e-07,
+          "cosine": 0.9999999999997461,
+          "max_abs": 8.344650268554688e-06,
+          "rms": 0.8467720544905976
+        },
+        "decoder": {
+          "shape": [
+            1,
+            1,
+            14400
+          ],
+          "dtype": "float32",
+          "relative_rmse": 5.233350037989293e-06,
+          "cosine": 0.9999999999863156,
+          "max_abs": 3.993511199951172e-06,
+          "rms": 0.06753606250038904
+        },
+        "pipeline": {
+          "shape": [
+            1,
+            1,
+            14400
+          ],
+          "dtype": "float32",
+          "relative_rmse": 5.591126450730516e-06,
+          "cosine": 0.9999999999843687,
+          "max_abs": 3.91155481338501e-06,
+          "rms": 0.06753607551588638
+        },
+        "sample_rate": 48000,
+        "output_seconds": 0.3,
+        "input_origin": "Captured offline Golden tail; fixed realtime crop",
+        "assets": {
+          "rvc-golden/liuying-run/\u6d41\u8424/\u6d41\u8424.pth": "27fe9bb7544bbb57ff4c76ef0d6c485cdaceaa686225c99ca036f8512358ba37",
+          "rvc-backend/models/liuying/liuying-front.onnx": "a1356064a592ebd07fb4d2e334e5da00e664dc152e10a49dfc232329cd04e0e0",
+          "rvc-backend/models/liuying/liuying-decoder.onnx": "de7a7f55c85fc47d4950e51e3891714f4d86c79ec5522a69be955af7026504b8"
+        }
+      },
+      "tensorrt": [
+        {
+          "case": "captured-liuying-golden",
+          "cosine": 0.9999999999994125,
+          "elapsed_ms": [
+            21.776059,
+            10.100544,
+            10.104929,
+            10.611114,
+            10.608138
+          ],
+          "elements": 5760,
+          "max_abs": 1.71661376953125e-05,
+          "relative_rmse": 1.0960359660223333e-06,
+          "runtime": {
+            "asset": "/home/moyamryia/Mozart/rvc-backend/models/liuying/liuying-front.engine",
+            "backend": "tensorrt",
+            "fallback_reason": ""
+          },
+          "stage": "liuying-front"
+        },
+        {
+          "case": "captured-liuying-golden",
+          "cosine": 0.9999999997707097,
+          "elapsed_ms": [
+            36.152415,
+            36.111297,
+            35.587095,
+            35.722065,
+            36.002085
+          ],
+          "elements": 14400,
+          "max_abs": 1.4310702681541443e-05,
+          "relative_rmse": 2.1431738136441132e-05,
+          "runtime": {
+            "asset": "/home/moyamryia/Mozart/rvc-backend/models/liuying/liuying-decoder.engine",
+            "backend": "tensorrt",
+            "fallback_reason": ""
+          },
+          "stage": "liuying-decoder"
+        }
+      ],
+      "stream": {
+        "input": "/home/moyamryia/Mozart/rvc-golden/de-narrator-run/de-narrator-espeak-input.wav",
+        "output": "/home/moyamryia/Mozart/rvc-golden/de-narrator-run/liuying-espeak-mozart-backend.wav",
+        "input_frames": 473,
+        "flush_frames": 150,
+        "received_frames": 623,
+        "missing_frames": [],
+        "output_samples": 453120,
+        "stream": {
+          "blocks": 51,
+          "history_resets": 0,
+          "inference_errors": 0,
+          "input_overruns": 0,
+          "late_blocks": 0,
+          "output_overruns": 0,
+          "output_underruns": 20,
+          "packets_dropped": 0,
+          "packets_received": 623,
+          "packets_sent": 623,
+          "peer_host": "127.0.0.1",
+          "peer_port": 48320,
+          "playout_delay_ms": 400,
+          "queued_output_ms": 180.0,
+          "rejected_clients": 0,
+          "resets": 0,
+          "skipped_blocks": 0,
+          "startup_output_underruns": 20
+        }
+      },
+      "realtime_quality": {
+        "reference_duration_s": 9.45,
+        "candidate_duration_s": 9.44,
+        "duration_delta_s": -0.009999999999999787,
+        "compared_duration_s": 9.44,
+        "alignment_lag_ms": 0,
+        "logmel_corr": 0.9823940342529759,
+        "logmel_mae_db": 2.574904203414917,
+        "rms_envelope_corr": 0.9708161352525128,
+        "rms_ratio_db": -0.07089563459157944,
+        "centroid_median_delta_hz": 8.331282579817298,
+        "f0_median_cents": 10.000000000000016,
+        "f0_p90_cents": 30.000000000000203,
+        "voiced_iou": 0.8163265306122449,
+        "clip_percent": 0.0,
+        "boundary_spectral_step_mean_db": 3.7820868492126465,
+        "reference_boundary_spectral_step_mean_db": 3.335489511489868,
+        "all_spectral_step_mean_db": 3.201417922973633,
+        "boundary_sample_jump_mean": 0.024082627147436142,
+        "all_sample_jump_mean": 0.02002481184899807
+      },
+      "runtime": {
+        "cached_models": "2",
+        "generator_asset": "/home/moyamryia/Mozart/rvc-backend/models/liuying/liuying.onnx",
+        "generator_backend": "onnx_cuda_ep",
+        "generator_fallback_reason": "",
+        "has_generator": "true",
+        "has_index": "false",
+        "has_realtime_generator": "true",
+        "hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx",
+        "hubert_backend": "deferred",
+        "id": "liuying",
+        "loaded": "true",
+        "model_cache_limit": "2",
+        "realtime_decoder_asset": "/home/moyamryia/Mozart/rvc-backend/models/liuying/liuying-decoder.engine",
+        "realtime_decoder_backend": "tensorrt",
+        "realtime_decoder_fallback_reason": "",
+        "realtime_front_asset": "/home/moyamryia/Mozart/rvc-backend/models/liuying/liuying-front.engine",
+        "realtime_front_backend": "tensorrt",
+        "realtime_front_fallback_reason": "",
+        "realtime_hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.engine",
+        "realtime_hubert_backend": "tensorrt",
+        "realtime_hubert_fallback_reason": "",
+        "realtime_rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.engine",
+        "realtime_rmvpe_backend": "tensorrt",
+        "realtime_rmvpe_fallback_reason": "",
+        "rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx",
+        "rmvpe_backend": "deferred",
+        "sample_rate": "48000"
+      }
+    }
+  },
+  "liuying_loader_regression": {
+    "weights": 353,
+    "all_weights_equal": true,
+    "samples": 96000,
+    "all_samples_equal": true,
+    "max_abs": 0.0,
+    "comparison": "HEAD exporter versus updated exporter; identical captured inputs and synthesis noise"
+  },
+  "liuying_file_regression": {
+    "samples": 384000,
+    "max_abs": 0.0,
+    "relative_rmse": 0.0,
+    "same_samples": true
+  },
+  "de_narrator_file_quality": {
+    "reference_duration_s": 7.98,
+    "candidate_duration_s": 7.98,
+    "duration_delta_s": 0.0,
+    "compared_duration_s": 7.98,
+    "alignment_lag_ms": 0,
+    "logmel_corr": 0.9882504314370654,
+    "logmel_mae_db": 2.0356807708740234,
+    "rms_envelope_corr": 0.9949365855580363,
+    "rms_ratio_db": -0.03378468006849289,
+    "centroid_median_delta_hz": -13.026317458297854,
+    "f0_median_cents": 10.000000000000016,
+    "f0_p90_cents": 49.99999999999971,
+    "voiced_iou": 0.8211920529801324,
+    "clip_percent": 0.0,
+    "boundary_spectral_step_mean_db": 2.8326852321624756,
+    "reference_boundary_spectral_step_mean_db": 2.8461787700653076,
+    "all_spectral_step_mean_db": 2.990614414215088,
+    "boundary_sample_jump_mean": 0.01700681261718273,
+    "all_sample_jump_mean": 0.015458575449883938
+  },
+  "wave_stats": {
+    "de-narrator-espeak-input.wav": {
+      "sample_rate": 22050,
+      "samples": 208573,
+      "rms": 0.08613538151780467,
+      "peak": 0.82464599609375,
+      "sha256": "aa7c77b75a335fccbedcef12af5990571be4e4dc900aa31c95c0e6568b9dd39d"
+    },
+    "de-narrator-espeak-mozart-backend.wav": {
+      "sample_rate": 48000,
+      "samples": 453120,
+      "rms": 0.11288226536399276,
+      "peak": 0.9001479744911194,
+      "sha256": "03dfae7634fcbc01e814f86fcfebdb728c1b28109b12339cc647ba3dc605c0ef"
+    },
+    "de-narrator-espeak-onnx-generator.wav": {
+      "sample_rate": 48000,
+      "samples": 453120,
+      "rms": 0.09917700640915669,
+      "peak": 0.9344974160194397,
+      "sha256": "3471b04b70a99ee6543ac6185219789d6e8d683e47c0b94bc0b0d6c55c13b799"
+    },
+    "de-narrator-espeak-python-realtime.wav": {
+      "sample_rate": 48000,
+      "samples": 453600,
+      "rms": 0.11210935803835265,
+      "peak": 0.9135231375694275,
+      "sha256": "6866747cd667deb67fd95d33c907e790bce60e1a1e44dd201ea9c07278777483"
+    },
+    "de-narrator-espeak-python-reference.wav": {
+      "sample_rate": 48000,
+      "samples": 453120,
+      "rms": 0.09916828325316396,
+      "peak": 0.934478759765625,
+      "sha256": "a1bd3f2584292320408c1ff55b3e77f51a69499fd7c91e057321daa6754dbb3b"
+    },
+    "liuying-espeak-mozart-backend.wav": {
+      "sample_rate": 48000,
+      "samples": 453120,
+      "rms": 0.07812228742282472,
+      "peak": 0.6654196977615356,
+      "sha256": "9f4dcb39a1531bd3531b48a810205abfe0fc9440ed21854425a8c93840a434a2"
+    },
+    "liuying-espeak-python-realtime.wav": {
+      "sample_rate": 48000,
+      "samples": 453600,
+      "rms": 0.07871914589831211,
+      "peak": 0.7200450301170349,
+      "sha256": "cfb1cc65a9bb9263745b1bf8548126575e7c86a783953412fa0786bef6d6f9b3"
+    },
+    "liuying-espeak-python-reference.wav": {
+      "sample_rate": 48000,
+      "samples": 453120,
+      "rms": 0.07219220243929138,
+      "peak": 0.665985107421875,
+      "sha256": "eac62eca6c39d159658f76fd18aed4af5dea069fbcea14ca75de7cf5c9e5137d"
+    }
+  },
+  "de_narrator_file_asset": {
+    "requested": "/home/moyamryia/Mozart/rvc-backend/models/de_narrator/de_narrator.onnx",
+    "resolved": "/home/moyamryia/Mozart/rvc-golden/de-narrator-run/de_narrator-dynamic.onnx",
+    "sha256": "0016ea2cd7517b866edbc9ea4781277929d375270a3e04ce333a425f313dd350",
+    "runtime": {
+      "cached_models": "1",
+      "generator_asset": "/home/moyamryia/Mozart/rvc-backend/models/de_narrator/de_narrator.onnx",
+      "generator_backend": "onnx_cpu",
+      "generator_fallback_reason": "Non-zero status code returned while running Greater node. Name:'/Greater' Status Message: CUDA error cudaErrorNoKernelImageForDevice:no kernel image is available for execution on the device",
+      "has_generator": "true",
+      "has_index": "false",
+      "has_realtime_generator": "true",
+      "hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert_base_dynamic.onnx",
+      "hubert_backend": "onnx_cpu",
+      "hubert_fallback_reason": "Non-zero status code returned while running Mul node. Name:'/model/feature_extractor/conv_layers.0/layer_norm/Mul' Status Message: CUDA error cudaErrorNoKernelImageForDevice:no kernel image is available for execution on the device; TensorRT profile excludes input shape; selected dynamic ONNX",
+      "id": "de_narrator",
+      "loaded": "true",
+      "model_cache_limit": "2",
+      "realtime_decoder_asset": "/home/moyamryia/Mozart/rvc-backend/models/de_narrator/de_narrator-decoder.engine",
+      "realtime_decoder_backend": "tensorrt",
+      "realtime_decoder_fallback_reason": "",
+      "realtime_front_asset": "/home/moyamryia/Mozart/rvc-backend/models/de_narrator/de_narrator-front.engine",
+      "realtime_front_backend": "tensorrt",
+      "realtime_front_fallback_reason": "",
+      "realtime_hubert_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/hubert-realtime.engine",
+      "realtime_hubert_backend": "tensorrt",
+      "realtime_hubert_fallback_reason": "",
+      "realtime_rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe-realtime.engine",
+      "realtime_rmvpe_backend": "tensorrt",
+      "realtime_rmvpe_fallback_reason": "",
+      "rmvpe_asset": "/home/moyamryia/Mozart/rvc-golden/qiqi-zh-run/rmvpe_dynamic.onnx",
+      "rmvpe_backend": "onnx_cpu",
+      "rmvpe_fallback_reason": "Non-zero status code returned while running Relu node. Name:'/inner/unet/encoder/layers.0/conv.0/conv/conv.2/Relu' Status Message: CUDA error cudaErrorNoKernelImageForDevice:no kernel image is available for execution on the device; Fixed TensorRT shape differs from input; selected dynamic ONNX",
+      "sample_rate": "48000"
+    }
+  },
+  "liuying_asset_regression": [
+    {
+      "asset": "rvc-backend/models/liuying/liuying-decoder.onnx",
+      "before_sha256": "de7a7f55c85fc47d4950e51e3891714f4d86c79ec5522a69be955af7026504b8",
+      "after_sha256": "de7a7f55c85fc47d4950e51e3891714f4d86c79ec5522a69be955af7026504b8"
+    },
+    {
+      "asset": "rvc-backend/models/liuying/liuying-front.onnx",
+      "before_sha256": "a1356064a592ebd07fb4d2e334e5da00e664dc152e10a49dfc232329cd04e0e0",
+      "after_sha256": "a1356064a592ebd07fb4d2e334e5da00e664dc152e10a49dfc232329cd04e0e0"
+    },
+    {
+      "asset": "rvc-backend/models/liuying/liuying.onnx",
+      "before_sha256": "d044123a0a469d2617af3855326cf10c3bd0af692358266784d8b24ea602ff91",
+      "after_sha256": "d044123a0a469d2617af3855326cf10c3bd0af692358266784d8b24ea602ff91"
+    },
+    {
+      "asset": "rvc-backend/models/liuying/liuying-decoder.engine",
+      "before_sha256": "8dac4b83aa04820fb3cfbe71a0edc95226b2433a0aa669fa41b370b0c7c73b4c",
+      "after_sha256": "8dac4b83aa04820fb3cfbe71a0edc95226b2433a0aa669fa41b370b0c7c73b4c"
+    },
+    {
+      "asset": "rvc-backend/models/liuying/liuying-front.engine",
+      "before_sha256": "903339843d23e5aed204472ebc57fb2474c7f9379377855330dbdb7416cdb5f6",
+      "after_sha256": "903339843d23e5aed204472ebc57fb2474c7f9379377855330dbdb7416cdb5f6"
+    }
+  ]
+}
