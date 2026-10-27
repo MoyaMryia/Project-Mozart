@@ -31,7 +31,8 @@ public:
         float index_rate = 0.0f,
         int filter_radius = 3,
         float rms_mix_rate = 1.0f,
-        float protect = 0.33f
+        float protect = 0.33f,
+        int index_nprobe = 1
     );
 
     std::vector<float> infer(
@@ -54,6 +55,7 @@ private:
     int filter_radius_;
     float rms_mix_rate_;
     float protect_;
+    int index_nprobe_;
     std::vector<int64_t> realtime_pitch_cache_;
     std::vector<float> realtime_pitchf_cache_;
     std::mt19937 realtime_random_{114514};

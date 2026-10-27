@@ -3,15 +3,17 @@
 // 视觉体系：语义化设计令牌（styles.css），亮/暗双主题；圆角两档（卡片 lg、控件 md）。
 // 逻辑：组合式状态 + SSE 字幕订阅。新增：主题切换（localStorage: mozart-theme）。
 import GlossaryPanel from './GlossaryPanel.vue';
+import PrePanel from './PrePanel.vue';
 import SpeechPanel from './SpeechPanel.vue';
 import StackPanel from './StackPanel.vue';
 import { createPoll } from './poll';
 import { runtimeStages } from './runtime';
 import { latestTranslation, upsertSubtitle } from './subtitles';
+import { subscribeSubtitles, type SubtitleState } from './subtitle-stream';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
-  type Mode, type MonitorSnapshot, type Preset, type RvcParameters, type Status,
+  type Mode, type MonitorSnapshot, type PreProcessorStatus, type Preset, type RvcParameters, type Status,
   type SubtitleEvent, type StackStatus,
 } from './api';
 
@@ -64,7 +66,7 @@ const logFilter = ref('all');
 const monitor = ref<MonitorSnapshot | null>(null);
 const toastMessage = ref('');
 const subtitleEvents = ref<SubtitleEvent[]>([]);
-const subtitleState = ref<'connecting' | 'online' | 'offline'>('connecting');
+const subtitleState = ref<SubtitleState>('connecting');
 
 
 // ---- toast ----
@@ -107,6 +109,14 @@ const filteredLogs = computed(() => {
 });
 const latestSubtitle = computed<SubtitleEvent | null>(
   () => subtitleEvents.value[subtitleEvents.value.length - 1] ?? null);
+// 译文源优先使用复核文本（见 tools/subtitle_bridge.py 的 translation_source）。
+// 主字幕必须显示同一个源，否则中英文对不上。
+const captionText = (caption: SubtitleEvent | null): string => {
+  if (!caption) return '';
+  return caption.refinement_status === 'completed' && caption.refined_zh
+    ? caption.refined_zh : caption.zh;
+};
+const latestCaptionText = computed(() => captionText(latestSubtitle.value));
 const latestTranslatedSubtitle = computed(() => latestTranslation(subtitleEvents.value));
 
 const statUnit = (text: string) => `<span class="stat-unit">${text}</span>`;
@@ -158,6 +168,31 @@ const stackPoll = createPoll(signal => appApi<StackStatus>('/api/stack/status', 
   stackStatus.value = value; stackError.value = '';
 }, error => { stackStatus.value = null; stackError.value = error instanceof Error ? error.message : '读取失败'; });
 const refreshStatus = (replace = false) => statusPoll.run(replace);
+
+const preStatus = ref<PreProcessorStatus | null>(null);
+const preBusy = ref(false);
+const preError = ref('');
+const prePoll = createPoll(signal => appApi<PreProcessorStatus>('/api/preprocessor', { signal }), value => {
+  preStatus.value = value; preError.value = value.error ?? '';
+}, error => { preStatus.value = null; preError.value = error instanceof Error ? error.message : '读取失败'; });
+const refreshPre = () => prePoll.run();
+const applyPreDevices = async (payload: { capture: string; playback: string }) => {
+  if (preBusy.value) return;
+  preBusy.value = true;
+  preError.value = '';
+  try {
+    await appApi('/api/preprocessor', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    await refreshPre();
+  } catch (error) {
+    preError.value = error instanceof Error ? error.message : '切换失败';
+  } finally {
+    preBusy.value = false;
+  }
+};
 
 const isModeOn = (mode: ActiveMode) =>
   !!status.value && (status.value.mode === mode || status.value.pending_target_mode === mode);
@@ -360,21 +395,12 @@ const toggleMicMute = () => void setRouting({ mic_muted: !micMuted.value });
 const toggleBypass = () => void setRouting({ bypass: !bypassOn.value });
 
 // ---- 字幕 SSE ----
-let eventSource: EventSource | null = null;
+let stopSubtitles: (() => void) | undefined;
 const connectSubtitles = () => {
-  try {
-    eventSource = new EventSource('/api/subtitles');
-    eventSource.onopen = () => { subtitleState.value = 'online'; };
-    eventSource.onmessage = (event) => {
-      try {
-        const caption = JSON.parse(event.data) as SubtitleEvent;
-        upsertSubtitle(subtitleEvents.value, caption);
-      } catch { /* 非 JSON 行忽略 */ }
-    };
-    eventSource.onerror = () => { subtitleState.value = 'offline'; };
-  } catch {
-    subtitleState.value = 'offline';
-  }
+  stopSubtitles = subscribeSubtitles(
+    caption => upsertSubtitle(subtitleEvents.value, caption),
+    state => { subtitleState.value = state; },
+  );
 };
 
 // ---- has_index 变化时刷新参数（行集合会变）----
@@ -388,6 +414,7 @@ onMounted(() => {
   selectedMode.value = stored && MODES.includes(stored) ? stored : 'rt_rvc';
   void refreshStatus();
   void stackPoll.run();
+  void refreshPre();
   void refreshModels();
   void refreshLogs();
   void refreshParameters();
@@ -396,6 +423,7 @@ onMounted(() => {
   connectSubtitles();
   timers.push(window.setInterval(() => void refreshStatus(), 1000));
   timers.push(window.setInterval(() => void stackPoll.run(), 1000));
+  timers.push(window.setInterval(() => void refreshPre(), 5000));
   timers.push(window.setInterval(() => void refreshLogs(), 1500));
   timers.push(window.setInterval(() => void refreshMonitor().catch(() => undefined), 2000));
 });
@@ -403,9 +431,9 @@ onUnmounted(() => {
   timers.forEach(clearInterval);
   clearTimeout(toastTimer);
   clearTimeout(parameterSyncTimer);
-  statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop();
+  statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop(); prePoll.stop();
   lifecycle.abort();
-  eventSource?.close();
+  stopSubtitles?.();
 });
 </script>
 
@@ -542,9 +570,9 @@ onUnmounted(() => {
     </section>
 
     <!-- 中栏：主操作面板 -->
-    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:grid md:grid-rows-2 md:gap-3 md:overflow-hidden md:h-full no-scrollbar">
+    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:gap-3 md:overflow-hidden md:h-full no-scrollbar">
 
-      <div class="min-h-0 flex flex-col overflow-y-auto no-scrollbar">
+      <div class="min-h-0 md:flex-1 flex flex-col overflow-y-auto no-scrollbar">
 
       <StackPanel :status="stackStatus" :error="stackError" />
       <SpeechPanel id="reference-speech" :stack-status="stackStatus" />
@@ -600,16 +628,16 @@ onUnmounted(() => {
       </div>
 
       <!-- 实时字幕条（文字路：STT → Qwen 翻译，SSE 订阅 /api/subtitles） -->
-      <div class="shrink-0 bg-surface border border-edge rounded-lg px-4 py-2.5 flex items-start gap-3 min-h-[52px]">
+      <div id="subtitle-panel" role="region" aria-label="实时字幕" class="shrink-0 bg-surface border border-edge rounded-lg px-4 py-2.5 flex items-start gap-3 min-h-[52px]">
         <div class="flex flex-col items-start shrink-0">
           <span class="text-micro font-extrabold tracking-wider text-ink-4 font-mono">SUB / 字幕</span>
           <span :class="['text-micro font-mono font-bold', subtitleState === 'online' ? 'state-ok' : subtitleState === 'offline' ? 'state-err' : 'text-ink-4']">{{ subtitleState.toUpperCase() }}</span>
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <div class="text-xs font-bold text-ink leading-5 truncate">{{ latestSubtitle?.zh || '等待语音输入…' }}</div>
-          <div class="text-tiny text-ink-3 leading-4">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
+          <div class="text-xs font-bold text-ink leading-5 truncate">{{ latestCaptionText || '等待语音输入…' }}</div>
+          <div class="text-tiny text-ink-3 leading-4">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'failed' ? '译文未通过校验' : latestSubtitle?.translation_status === 'skipped' ? '未送出翻译' : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
           <div v-if="latestTranslatedSubtitle && latestTranslatedSubtitle.utterance_id !== latestSubtitle?.utterance_id" class="text-tiny text-ink-3 leading-4" :title="latestTranslatedSubtitle.translation_error || latestTranslatedSubtitle.zh">{{ latestTranslatedSubtitle.translation_status === 'failed' ? '前文待核对译文：' : '前文译文：' }}{{ latestTranslatedSubtitle.en }}</div>
-          <div v-if="latestSubtitle?.refined_zh && latestSubtitle.refined_zh !== latestSubtitle.zh" class="text-tiny text-ink-3 leading-4">复核：{{ latestSubtitle.refined_zh }}</div>
+          <div v-if="latestSubtitle?.refinement_status === 'completed' && latestSubtitle.refined_zh && latestSubtitle.refined_zh !== latestSubtitle.zh" class="text-tiny text-ink-3 leading-4">原始识别：{{ latestSubtitle.zh }}</div>
           <p v-if="latestSubtitle?.speech_degraded" class="text-tiny state-warn leading-4" role="status">译文检查未通过，已尝试播报。</p>
           <p v-if="latestSubtitle?.translation_error" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.translation_error }}</p>
           <p v-if="latestSubtitle?.speech_error" class="text-tiny state-warn leading-4" role="status">播报失败：{{ latestSubtitle.speech_error }}</p>
@@ -620,7 +648,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 主界面下方：终端式系统日志 -->
-      <div id="log-panel" class="console-log md:flex-none md:min-h-0 overflow-hidden flex flex-col">
+      <div id="log-panel" class="console-log md:flex-1 md:min-h-0 overflow-hidden flex flex-col">
         <div class="console-header flex items-center justify-between gap-2 px-3 py-2 font-mono">
           <h2 class="text-tiny font-extrabold tracking-[0.16em] uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
           <div class="flex items-center gap-1 min-w-0">
@@ -650,6 +678,8 @@ onUnmounted(() => {
 
     <!-- 右栏：参数设置与硬件状态 -->
     <section v-if="!speechOnly" class="p-3 md:p-4 border-l border-edge-soft bg-surface flex flex-col gap-5 overflow-y-auto md:h-full" aria-label="Mode parameters and speaker selection">
+
+      <PrePanel :status="preStatus" :busy="preBusy" :error="preError" @apply="applyPreDevices" />
 
       <!-- 参数设置（按模式切换） -->
       <div class="card p-3">
