@@ -77,6 +77,7 @@ def main():
     assets = home/'models/sherpa-onnx'
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--backend-config', type=Path, required=True)
+    parser.add_argument('--api-port', type=int, default=18080, help='后端 HTTP 端口，与 backend-config 保持一致')
     parser.add_argument('--mode', choices=['full', 'captions'], default='full')
     parser.add_argument('--allow-degraded', action='store_true',
                         help='Allow source captions before optional translation and speech become ready')
@@ -128,6 +129,9 @@ def main():
     parser.add_argument('--no-denoise', dest='no_denoise', action='store_true')
     parser.add_argument('--archive-utterances',action='store_true',help='Save processed source utterances for diagnosis')
     args = parser.parse_args()
+    if not 1 <= args.api_port <= 65535:
+        parser.error('api-port must be from 1 to 65535')
+    api_base = f'http://127.0.0.1:{args.api_port}'
     try:
         validate_tempo_limits(args.playback_tempo_max, args.playback_target_delay, args.playback_recovery_seconds)
     except ValueError as error:
@@ -255,7 +259,7 @@ def main():
         return result
 
     def request(path, body=None):
-        return service_request('http://127.0.0.1:18080'+path, body, timeout=5)
+        return service_request(api_base+path, body, timeout=5)
 
     def monitor(entries):
         children = {name: {**state['children'][name], 'exit_code': process.poll()}
@@ -400,7 +404,7 @@ def main():
 
     try:
         save()
-        assert_ports_available([(18080, socket.SOCK_STREAM), (18081, socket.SOCK_STREAM),
+        assert_ports_available([(args.api_port, socket.SOCK_STREAM), (18081, socket.SOCK_STREAM),
                                 (18200, socket.SOCK_STREAM), (18100, socket.SOCK_DGRAM)])
         env = os.environ.copy()
         env['MOZART_SUBTITLES_JSONL'] = str(args.run_dir/'subtitles.jsonl')
@@ -414,7 +418,7 @@ def main():
         if args.corrections:
             env['MOZART_CORRECTIONS'] = str(args.corrections.resolve())
         backend = launch('backend', [ROOT/'build-gpu/state/mozart_stated', args.backend_config.resolve()], env)
-        ready('http://127.0.0.1:18080/api/status', backend)
+        ready(api_base+'/api/status', backend)
         speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
             '--provider', args.tts_provider, '--precision', args.tts_precision,
@@ -501,7 +505,7 @@ def main():
             save(state='waiting' if pre is None else 'running',
                  phase='waiting_for_audio' if pre is None else 'capturing',
                  capture_started_at=None if pre is None else time.time())
-            print(f'[stack] API port 18080, logs {args.run_dir}', flush=True)
+            print(f'[stack] API {api_base}, logs {args.run_dir}', flush=True)
             while not stopped and (pre is None or pre.poll() is None):
                 monitor([entry for entry in owned if entry[1] is not pre])
                 poll_startup()
