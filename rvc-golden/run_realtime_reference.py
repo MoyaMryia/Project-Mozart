@@ -119,6 +119,16 @@ def main() -> None:
     parser.add_argument("--sola-search-seconds", type=float, default=0.01)
     parser.add_argument("--f0-method", choices=("pm", "rmvpe", "fcpe"), default="rmvpe")
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--pitch", type=int, default=0,
+                        help="semitones applied inside RVC (f0_up_key)")
+    parser.add_argument("--formant", type=float, default=0.0,
+                        help="formant shift applied inside RVC")
+    parser.add_argument("--index", default="",
+                        help="faiss .index file; required when --index-rate is nonzero")
+    parser.add_argument("--index-rate", type=float, default=0.0,
+                        help="0 disables retrieval; 1 replaces every feature with the index match")
+    parser.add_argument("--index-nprobe", type=int, default=0,
+                        help="override faiss nprobe; 0 keeps the value stored in the file")
     parser.add_argument("--seed", type=int, default=114514)
     parser.add_argument("--max-seconds", type=float)
     args = parser.parse_args()
@@ -158,7 +168,10 @@ def main() -> None:
 
     hubert_module.HUBERT_MODEL_PATH = (ROOT / "assets" / "hubert_base").resolve()
     runtime = RuntimeConfig(args.device)
-    converter = RVC(0, 0.0, args.model, "", 0.0, runtime)
+    converter = RVC(args.pitch, args.formant, args.model, args.index,
+                    args.index_rate, runtime)
+    if args.index_nprobe > 0 and args.index_rate != 0:
+        converter.index.nprobe = args.index_nprobe
     if args.f0_method == "rmvpe":
         converter.model_rmvpe = RMVPE(
             str(ROOT / "assets" / "rmvpe" / "rmvpe.pt"),
@@ -248,6 +261,11 @@ def main() -> None:
         "output": str(output_path.resolve()),
         "device": str(runtime.device),
         "f0_method": args.f0_method,
+        "pitch_shift": args.pitch,
+        "formant_shift": args.formant,
+        "index": str(Path(args.index).resolve()) if args.index else "",
+        "index_rate": args.index_rate,
+        "index_nprobe": args.index_nprobe,
         "block_samples_16k": block_in,
         "block_seconds": block_in / IN_RATE,
         "extra_past_samples_16k": extra_in,
