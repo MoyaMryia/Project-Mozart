@@ -32,34 +32,36 @@ static bool parse_on_off(const char *text, bool *out)
 static size_t handle_line(char *line, char *reply, size_t reply_size,
                           const mozart_control_vt *vt, void *ctx)
 {
-    // 按空白切字段，各命令分别检查字段数量。
+    // 去掉行尾换行后按空白切两个字段
+    char *end = strpbrk(line, "\r\n");
+    if (end) *end = '\0';
     char *save = NULL;
-    const char *cmd = strtok_r(line, " \t\r\n", &save);
-    const char *arg = strtok_r(NULL, " \t\r\n", &save);
-    const char *value = strtok_r(NULL, " \t\r\n", &save);
-    const char *extra = strtok_r(NULL, " \t\r\n", &save);
-
-    if (extra || (value && (!cmd || strcmp(cmd, "stage"))))
-        return (size_t)snprintf(reply, reply_size, "err extra-argument\n") + 1;
+    const char *cmd = strtok_r(line, " \t", &save);
+    const char *arg = strtok_r(NULL, " \t", &save);
+    const char *extra = strtok_r(NULL, " \t", &save);
 
     if (cmd && !strcmp(cmd, "mode") && arg) {
-        if (!strcmp(arg, "ai") || !strcmp(arg, "direct")) {
-            if (!vt->set_route(ctx, !strcmp(arg, "direct")))
-                return (size_t)snprintf(reply, reply_size, "err unsupported mode %s\n", arg) + 1;
-            return (size_t)snprintf(reply, reply_size, "ok mode %s\n", arg) + 1;
-        }
-        return (size_t)snprintf(reply, reply_size, "err mode must be ai|direct\n") + 1;
+        if (extra)
+            return (size_t)snprintf(reply, reply_size, "err extra-argument\n");
+        if (!strcmp(arg, "ai")) { vt->set_route(ctx, 0); return (size_t)snprintf(reply, reply_size, "ok mode ai\n"); }
+        if (!strcmp(arg, "direct")) { vt->set_route(ctx, 1); return (size_t)snprintf(reply, reply_size, "ok mode direct\n"); }
+        return (size_t)snprintf(reply, reply_size, "err mode must be ai|direct\n");
     }
     if (cmd && !strcmp(cmd, "stage") && arg) {
+        // stage 需要三个字段：命令、名字、开或关。第四个字段才是多余参数。
+        const char *value = extra;
+        const char *beyond = strtok_r(NULL, " \t", &save);
+        if (beyond)
+            return (size_t)snprintf(reply, reply_size, "err extra-argument\n");
         if (!value)
-            return (size_t)snprintf(reply, reply_size, "err usage: stage <name> on|off\n") + 1;
+            return (size_t)snprintf(reply, reply_size, "err usage: stage <name> on|off\n");
         bool on = false;
         if (!parse_on_off(value, &on))
-            return (size_t)snprintf(reply, reply_size, "err value must be on|off\n") + 1;
+            return (size_t)snprintf(reply, reply_size, "err value must be on|off\n");
         if (!vt->set_stage(ctx, arg, on))
             return (size_t)snprintf(reply, reply_size,
-                                    "err unknown stage %s (denoise|gate|agc|limiter)\n", arg) + 1;
-        return (size_t)snprintf(reply, reply_size, "ok stage %s %s\n", arg, on ? "on" : "off") + 1;
+                                    "err unknown stage %s (denoise|gate|agc|limiter)\n", arg);
+        return (size_t)snprintf(reply, reply_size, "ok stage %s %s\n", arg, on ? "on" : "off");
     }
     if (cmd && !strcmp(cmd, "status") && !arg) {
         vt->snapshot(ctx, reply, reply_size);
@@ -67,36 +69,31 @@ static size_t handle_line(char *line, char *reply, size_t reply_size,
         if (len + 1 < reply_size && len > 0 && reply[len - 1] != '\n') {
             reply[len] = '\n';
             reply[len + 1] = '\0';
-            return len + 2;
+            return len + 1;
         }
         return len + 1;
     }
     return (size_t)snprintf(reply, reply_size,
-                            "err commands: mode ai|direct | stage <name> on|off | status\n") + 1;
+                            "err commands: mode ai|direct | stage <name> on|off | status\n");
 }
 
 static void *control_thread(void *arg)
 {
     mozart_control_t *c = arg;
     char buf[256];
-    char reply[2048];
+    char reply[1024];
     for (;;) {
         struct sockaddr_in peer;
         socklen_t peer_len = sizeof(peer);
-        const ssize_t n = recvfrom(c->fd, buf, sizeof(buf) - 1, MSG_TRUNC,
+        const ssize_t n = recvfrom(c->fd, buf, sizeof(buf) - 1, 0,
                                    (struct sockaddr *)&peer, &peer_len);
         if (n < 0) {
             if (errno == EINTR) continue;
             break;  // close() 触发 EBADF/EINVAL，线程退出
         }
-        size_t len;
-        if ((size_t)n >= sizeof(buf) || memchr(buf, '\0', (size_t)n)) {
-            len = (size_t)snprintf(reply, sizeof(reply), "err invalid-command\n") + 1;
-        } else {
-            buf[n] = '\0';
-            len = handle_line(buf, reply, sizeof(reply), &c->vt, c->ctx);
-        }
-        if (len > sizeof(reply)) len = sizeof(reply);  // snprintf 截断保护
+        buf[n] = '\0';
+        size_t len = handle_line(buf, reply, sizeof(reply), &c->vt, c->ctx);
+        if (len > sizeof(reply) - 1) len = sizeof(reply) - 1;  // snprintf 截断保护
         sendto(c->fd, reply, len, 0,
                (struct sockaddr *)&peer, peer_len);
     }

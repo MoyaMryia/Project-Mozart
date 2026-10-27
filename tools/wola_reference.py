@@ -25,6 +25,9 @@ SPEECH_SOURCES = [
     'rvc-golden/full-run-20261005/natural-qiqi-realtime-trimmed.wav',
 ]
 
+NS_INIT_FRAMES = 8
+NS_POWER_FLOOR = 1e-20
+
 # 门限（计划 D1）：任一不达标记为 FAIL。
 GATE_NR_DB = 12.0          # 稳态噪声抑制下限（纯噪声、排除首 1 秒收敛区）
 GATE_SPEECH_SI_SDR_MIN = -1.0   # 纯语音经处理后的 SI-SDR 下限（透明护栏）
@@ -52,8 +55,12 @@ class WolaSuppressor:
         n = config.frame
         self.window = np.sqrt(np.hanning(n + 1)[:n])  # 周期 sqrt-Hann
         self.bins = n // 2 + 1
-        self.power_slow = None    # 噪声通道的慢 EMA 谱（状态不做累积频域平滑）
-        self.noise = None         # 噪声谱估计
+        self.power_slow = np.zeros(self.bins)
+        self.noise = np.zeros(self.bins)
+        self.noise_init_count = np.zeros(self.bins, dtype=np.int64)
+        self.init_power = np.zeros(self.bins)
+        self.init_count = 0
+        self.ready = False
         self.in_buf = np.zeros(0)                    # 输入累积
         self.frame_queue: list[np.ndarray] = []      # 前瞻帧频谱队列
         self.ola = np.zeros(0)                       # 重叠叠加缓冲
@@ -61,7 +68,6 @@ class WolaSuppressor:
         self.norm = np.zeros(0)                      # 窗平方归一缓冲
         self.xi_prev = None         # 决策导向的上一帧先验 SNR
         self.gain_prev = np.ones(self.bins)          # 上一帧增益
-        self.init_frames = []       # 开局若干帧功率，取均值初始化（避免首帧抽样偏差）
 
     def _freq_smooth(self, spectrum: np.ndarray, radius: int) -> np.ndarray:
         """频域平滑（对副本做，不污染状态；两端复制延拓）。"""
@@ -78,25 +84,33 @@ class WolaSuppressor:
         cfg = self.cfg
         spectrum = np.fft.rfft(self.window * samples)
         power = np.abs(spectrum) ** 2
-        if self.power_slow is None:
-            # 开局取前几帧功率均值初始化，抑制单帧抽样偏差造成的长收敛尾部。
-            self.init_frames.append(power)
-            if len(self.init_frames) >= 8:
-                averaged = np.mean(self.init_frames, axis=0)
-                self.power_slow = averaged.copy()
-                self.noise = averaged.copy()
-            self.frame_queue.append(spectrum)
+        self.frame_queue.append(spectrum)
+        relearn = (self.noise_init_count == NS_INIT_FRAMES) & (self.noise <= NS_POWER_FLOOR)
+        self.noise_init_count[relearn] = 0
+        self.init_power[relearn] = 0.0
+        self.power_slow[relearn] = self.noise[relearn] = 0.0
+        learning = self.noise_init_count < NS_INIT_FRAMES
+        active = learning & (power > 0)
+        self.init_power[active] += power[active]
+        self.noise_init_count[active] += 1
+        learned = active & (self.noise_init_count == NS_INIT_FRAMES)
+        averaged = self.init_power[learned] / NS_INIT_FRAMES
+        self.power_slow[learned] = averaged
+        self.noise[learned] = averaged
+        tracking = ~learning
+        self.power_slow[tracking] = cfg.alpha_noise * self.power_slow[tracking] \
+            + (1 - cfg.alpha_noise) * power[tracking]
+        if not self.ready:
+            self.init_count += 1
+            self.ready = self.init_count >= NS_INIT_FRAMES
             return
-        else:
-            self.power_slow = cfg.alpha_noise * self.power_slow \
-                + (1 - cfg.alpha_noise) * power
         # 噪声 = 慢谱频域平滑后的低包络。上爬只在噪声主导的 bin 生效：
         # 持续音乐/语音的 bin 参考谱远高于噪声，门控关闭，估计不再爬升。
         reference = self._freq_smooth(self.power_slow, cfg.noise_smooth_bins)
-        rise = reference < cfg.leak_gate * np.maximum(self.noise, 1e-20)
+        rise = reference < cfg.leak_gate * np.maximum(self.noise, NS_POWER_FLOOR)
         proposed = np.where(rise, self.noise * (1.0 + cfg.noise_leak), self.noise)
-        self.noise = np.minimum(proposed, reference)
-        self.frame_queue.append(spectrum)
+        initialized = self.noise_init_count == NS_INIT_FRAMES
+        self.noise[initialized] = np.minimum(proposed, reference)[initialized]
 
     def _emit_oldest(self) -> None:
         """决策导向维纳增益：先验 SNR 平滑使增益不随帧级谱方差抖动。"""
@@ -104,14 +118,15 @@ class WolaSuppressor:
         spectrum = self.frame_queue.pop(0)
         power = np.abs(spectrum) ** 2
         floor = 10 ** (cfg.floor_db / 20)
-        post = power / np.maximum(self.noise, 1e-20)          # 后验 SNR
+        post = power / np.maximum(self.noise, NS_POWER_FLOOR)  # 后验 SNR
         if self.xi_prev is None:
             xi = np.maximum(post - 1.0, 0.0)
         else:
             # 标准决策导向：先验 = β·G²·post + (1-β)·max(post-1, 0)
             xi = cfg.beta_dd * self.gain_prev ** 2 * post \
                 + (1 - cfg.beta_dd) * np.maximum(post - 1.0, 0.0)
-        gain = np.maximum(xi / (1.0 + xi), floor)
+        gain = np.where(self.noise_init_count == NS_INIT_FRAMES,
+                        np.maximum(xi / (1.0 + xi), floor), 1.0)
         self.xi_prev = xi
         self.gain_prev = gain
 
@@ -132,7 +147,7 @@ class WolaSuppressor:
         while len(self.in_buf) >= cfg.frame + cfg.lookahead * cfg.hop:
             self._update_estimates(self.in_buf[:cfg.frame])
             self.in_buf = self.in_buf[cfg.hop:]
-            while self.noise is not None and len(self.frame_queue) > cfg.lookahead:
+            while self.ready and len(self.frame_queue) > cfg.lookahead:
                 self._emit_oldest()
                 hop_out = self.ola[:cfg.hop] / np.maximum(self.norm[:cfg.hop], 1e-9)
                 emitted = np.concatenate([emitted, hop_out])

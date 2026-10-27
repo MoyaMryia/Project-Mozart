@@ -135,13 +135,22 @@ static void test_reset(void)
 static void test_snr_vad_hangover(void)
 {
     printf("test_energy_vad_hangover\n");
-    // SNR-VAD：稳态噪声与语音同类；静音后接宽带爆发才能形成高后验 SNR。
+    // 先建立低电平噪声基线，再用高电平突发检查 SNR-VAD。
     mozart_dsp_t *d = mozart_dsp_new(NULL);
     mozart_input_frame_t out;
     int16_t in[MOZART_RAW_SAMPLES * 2];
     unsigned lcg = 12345;
     memset(in, 0, sizeof(in));
-    for (int k = 0; k < 25; ++k) mozart_dsp_process(d, in, &out);  // 0.5 s 静音打底
+    for (int k = 0; k < 25; ++k) mozart_dsp_process(d, in, &out);
+    for (int k = 0; k < 25; ++k) {
+        for (int i = 0; i < MOZART_RAW_SAMPLES; ++i) {
+            lcg = lcg * 1103515245u + 12345u;
+            const int16_t sample = (int16_t)((int)(lcg >> 16 & 0xffff) - 32768) / 300;
+            in[2*i] = in[2*i+1] = sample;
+        }
+        mozart_dsp_process(d, in, &out);
+    }
+    CHECK(out.meta.segment_id == 0, "stationary background remains outside speech");
     for (int k = 0; k < 6; ++k) {
         for (int i = 0; i < MOZART_RAW_SAMPLES; ++i) {
             lcg = lcg * 1103515245u + 12345u;
@@ -217,7 +226,7 @@ static void test_production_path_suppresses_noise(void)
         }
     }
 
-    // 旧会话有噪声估计。重置后用静音预热，再用低电平噪声检查估计器已清空。
+    // 重置后用短突发检查旧估计已清除；突发在新噪声学习完成前结束。
     mozart_dsp_reset(d);
     memset(in, 0, sizeof(in));
     size_t n = mozart_dsp_enhance(d, in, MOZART_RAW_SAMPLES, out,
@@ -230,7 +239,8 @@ static void test_production_path_suppresses_noise(void)
     double burst_input = 0.0, burst_output = 0.0;
     for (int i = 0; i < MOZART_RAW_SAMPLES; i++) {
         lcg = lcg * 1103515245u + 12345u;
-        in[i] = (float)((int)(lcg >> 16 & 0xffffu) - 32768) / 32768.0f * 0.1f;
+        in[i] = i < MOZART_RAW_SAMPLES / 4
+            ? (float)((int)(lcg >> 16 & 0xffffu) - 32768) / 32768.0f * 0.1f : 0.0f;
         burst_input += (double)in[i] * in[i];
     }
     n = mozart_dsp_enhance(d, in, MOZART_RAW_SAMPLES, out,
@@ -238,7 +248,7 @@ static void test_production_path_suppresses_noise(void)
     CHECK(n == MOZART_RAW_SAMPLES, "reset stream reaches steady emission count");
     for (int i = 0; i < MOZART_RAW_SAMPLES; i++)
         burst_output += (double)out[i] * out[i];
-    // 静音基线后的突发应通过；0.5 功率比覆盖末窗延迟和高通衰减。
+    // 保留 0.5 功率比门槛，覆盖末窗延迟和高通衰减。
     CHECK(burst_output / burst_input > 0.5, "reset discards previous noise estimate");
     mozart_dsp_free(d);
 }

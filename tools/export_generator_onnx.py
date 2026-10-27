@@ -118,6 +118,39 @@ def enable_dynamic_attention(generator):
         )
 
 
+def load_inference_weights(generator, weights):
+    """Load plain inference weights and normalized checkpoint weights."""
+    for name, module in generator.named_modules():
+        if not hasattr(module, "weight_g") or not hasattr(module, "weight_v"):
+            continue
+        prefix = f"{name}." if name else ""
+        weight_key = prefix + "weight"
+        weight_g_key = prefix + "weight_g"
+        weight_v_key = prefix + "weight_v"
+        if weight_key in weights:
+            if weight_g_key in weights or weight_v_key in weights:
+                raise RuntimeError(
+                    f"checkpoint has conflicting plain and normalized weights: {name}"
+                )
+            torch.nn.utils.remove_weight_norm(module)
+
+    incompatible = generator.load_state_dict(weights, strict=False)
+    missing = [
+        name for name in incompatible.missing_keys
+        if not name.startswith("enc_q.")
+    ]
+    unexpected = incompatible.unexpected_keys
+    if missing or unexpected:
+        raise RuntimeError(
+            f"checkpoint mismatch: missing={missing[:10]}, "
+            f"unexpected={unexpected[:10]}"
+        )
+
+    for module in generator.modules():
+        if hasattr(module, "weight_g") and hasattr(module, "weight_v"):
+            torch.nn.utils.remove_weight_norm(module)
+
+
 def load_generator(model_path, rvc_source):
     sys.path.insert(0, str(rvc_source))
     from infer.module.models import SynthesizerTrnMs768NSFsid
@@ -130,17 +163,7 @@ def load_generator(model_path, rvc_source):
     config[-3] = checkpoint["weight"]["emb_g.weight"].shape[0]
     generator = SynthesizerTrnMs768NSFsid(*config, is_half=False)
 
-    incompatible = generator.load_state_dict(checkpoint["weight"], strict=False)
-    missing = [name for name in incompatible.missing_keys if not name.startswith("enc_q.")]
-    unexpected = [name for name in incompatible.unexpected_keys if not name.startswith("enc_q.")]
-    if missing or unexpected:
-        raise RuntimeError(
-            f"checkpoint mismatch: missing={missing[:10]}, unexpected={unexpected[:10]}"
-        )
-
-    # Checkpoints store convolution parameters as weight_g/weight_v. They must
-    # be loaded before weight norm is removed.
-    generator.remove_weight_norm()
+    load_inference_weights(generator, checkpoint["weight"])
     if hasattr(generator, "enc_q"):
         del generator.enc_q
     return GeneratorWrapper(generator.eval().float()).eval(), int(config[-1])
