@@ -1,0 +1,42 @@
+[
+  {
+    "name": "03-pitch-up-5",
+    "shift": 5,
+    "file": "05-pitch-up-5.wav",
+    "samples": 1440010,
+    "peak": 0.22,
+    "pitch_method": "FFmpeg asetrate + aresample + atempo",
+    "effective_pitch_ratio": 1.3348333333333333,
+    "input_tail_padding_samples": 12000,
+    "discarded_output_tail_samples": 10468,
+    "live_buffering_measured": false,
+    "sha256": "dafb6af033d8ee8c39530522c800432fffbc13512acd03b19e9e1b92e993c16f"
+  },
+  {
+    "name": "04-pitch-up-7",
+    "shift": 7,
+    "file": "06-pitch-up-7.wav",
+    "samples": 1440010,
+    "peak": 0.214,
+    "pitch_method": "FFmpeg asetrate + aresample + atempo",
+    "effective_pitch_ratio": 1.4983125,
+    "input_tail_padding_samples": 12000,
+    "discarded_output_tail_samples": 9962,
+    "live_buffering_measured": false,
+    "sha256": "8d2fbb63b970721c190212c6792f41aa1a7234fea1dd86c7b2d5f6498061a83f"
+  },
+  {
+    "name": "07-pitch-up-9",
+    "shift": 9,
+    "file": "07-pitch-up-9.wav",
+    "samples": 1440010,
+    "peak": 0.2154,
+    "sha256": "f97cb552349d738126fb0cfc9576309165a90ec23b500d47ce7d713353879b5c",
+    "pitch_method": "FFmpeg asetrate + aresample + atempo",
+    "effective_pitch_ratio": 1.6817916666666666,
+    "input_tail_padding_samples": 12000,
+    "discarded_output_tail_samples": 9740,
+    "live_buffering_measured": false,
+    "pitch_filters": "asetrate=80726,aresample=48000,atempo=0.594603968981"
+  }
+]

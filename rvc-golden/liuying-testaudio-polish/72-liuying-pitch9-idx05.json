@@ -1,0 +1,37 @@
+{
+  "input": "/home/moyamryia/Mozart/rvc-golden/liuying-testaudio-polish/inputs/01-dry.wav",
+  "model": "/home/moyamryia/Mozart/rvc-golden/liuying-run/\u6d41\u8424/\u6d41\u8424.pth",
+  "rvc_source": "/home/moyamryia/mozart-archive/RVC",
+  "rvc_source_commit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
+  "output": "/home/moyamryia/Mozart/rvc-golden/liuying-testaudio-polish/72-liuying-pitch9-idx05.wav",
+  "device": "cuda",
+  "f0_method": "rmvpe",
+  "pitch_shift": 9,
+  "formant_shift": 0.0,
+  "index": "/home/moyamryia/Mozart/rvc-golden/liuying-run/\u6d41\u8424/added_IVF2870_Flat_nprobe_1_default_exp_name_v2.index",
+  "index_rate": 0.5,
+  "index_nprobe": 16,
+  "block_samples_16k": 3840,
+  "block_seconds": 0.24,
+  "extra_past_samples_16k": 40000,
+  "extra_past_seconds": 2.5,
+  "crossfade_samples_48k": 2400,
+  "sola_search_samples_48k": 480,
+  "inference_window_samples_16k": 44800,
+  "inference_window_seconds": 2.8,
+  "skip_head_frames": 250,
+  "return_frames": 30,
+  "blocks": 126,
+  "output_samples": 1440000,
+  "elapsed_seconds": 13.553005059999123,
+  "inference_ms": {
+    "median": 82.93777400012914,
+    "p95": 86.69091200090406,
+    "max": 2865.1011849997303
+  },
+  "sola_offset_samples_48k": {
+    "median": 245.5,
+    "max": 480
+  },
+  "seed": 114514
+}

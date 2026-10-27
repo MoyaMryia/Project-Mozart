@@ -1,0 +1,34 @@
+{
+  "input": "/home/moyamryia/Mozart/rvc-golden/liuying-testaudio-polish/inputs/01-dry.wav",
+  "model": "/home/moyamryia/Mozart/rvc-golden/liuying-run/\u6d41\u8424/\u6d41\u8424.pth",
+  "rvc_source": "/home/moyamryia/mozart-archive/RVC",
+  "rvc_source_commit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
+  "output": "/home/moyamryia/Mozart/rvc-golden/liuying-testaudio-polish/50-rvc-pitch-9.wav",
+  "device": "cuda",
+  "f0_method": "rmvpe",
+  "pitch_shift": 9,
+  "formant_shift": 0.0,
+  "block_samples_16k": 3840,
+  "block_seconds": 0.24,
+  "extra_past_samples_16k": 40000,
+  "extra_past_seconds": 2.5,
+  "crossfade_samples_48k": 2400,
+  "sola_search_samples_48k": 480,
+  "inference_window_samples_16k": 44800,
+  "inference_window_seconds": 2.8,
+  "skip_head_frames": 250,
+  "return_frames": 30,
+  "blocks": 126,
+  "output_samples": 1440000,
+  "elapsed_seconds": 11.77069501099868,
+  "inference_ms": {
+    "median": 67.94686449939036,
+    "p95": 74.31393775004835,
+    "max": 2832.9336530005094
+  },
+  "sola_offset_samples_48k": {
+    "median": 238.0,
+    "max": 480
+  },
+  "seed": 114514
+}

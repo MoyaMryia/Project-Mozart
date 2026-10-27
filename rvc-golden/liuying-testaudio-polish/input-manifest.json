@@ -1,0 +1,32 @@
+{
+  "origin": "test-audio.mp4 first 30 s, 48 kHz",
+  "variants": [
+    {
+      "name": "01-dry",
+      "source_file": "01-dry.wav",
+      "sha256": "cb0dc0c349883a666c8aa6be18afb5029dc2ab656fd8faeace041da6c7a392d0"
+    },
+    {
+      "name": "02-extreme",
+      "source_file": "05-extreme-demo.wav",
+      "sha256": "2a087b870bf67056f5e4e10452bb6a7f33e4d56f100980ef8abe47b967a3bd19"
+    },
+    {
+      "name": "03-gated",
+      "source_file": "06-extreme-gated.wav",
+      "sha256": "5b9dc0e3a17aed5e90823e163b8d0cfea8b058154b159097047c8eaeefae395f"
+    },
+    {
+      "name": "05-pitch-up-5",
+      "source_file": "05-pitch-up-5.wav",
+      "sha256": "dafb6af033d8ee8c39530522c800432fffbc13512acd03b19e9e1b92e993c16f",
+      "method": "FFmpeg asetrate+aresample+atempo, duration preserved"
+    },
+    {
+      "name": "06-pitch-up-7",
+      "source_file": "06-pitch-up-7.wav",
+      "sha256": "8d2fbb63b970721c190212c6792f41aa1a7234fea1dd86c7b2d5f6498061a83f",
+      "method": "FFmpeg asetrate+aresample+atempo, duration preserved"
+    }
+  ]
+}

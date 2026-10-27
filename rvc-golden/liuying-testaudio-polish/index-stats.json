@@ -1,0 +1,35 @@
+[
+  {
+    "file": "70-qiqi-pitch9-idx0.wav",
+    "rms": 0.1006409507091773,
+    "peak": 0.958984375,
+    "pitch": 9,
+    "index_rate": 0.0,
+    "index_nprobe": null,
+    "model": "\u4e03\u4e03.pth",
+    "elapsed": 11.811014539000098,
+    "blocks": 126
+  },
+  {
+    "file": "71-qiqi-pitch9-idx05.wav",
+    "rms": 0.09517481055956972,
+    "peak": 0.91064453125,
+    "pitch": 9,
+    "index_rate": 0.5,
+    "index_nprobe": 16,
+    "model": "\u4e03\u4e03.pth",
+    "elapsed": 12.714351974998863,
+    "blocks": 126
+  },
+  {
+    "file": "72-liuying-pitch9-idx05.wav",
+    "rms": 0.11240344219639116,
+    "peak": 0.8359375,
+    "pitch": 9,
+    "index_rate": 0.5,
+    "index_nprobe": 16,
+    "model": "\u6d41\u8424.pth",
+    "elapsed": 13.553005059999123,
+    "blocks": 126
+  }
+]
