@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# 提交前运行与 CI 相同的检查。安装：tools/install-hooks.sh
-exec bash "$(git rev-parse --show-toplevel)/tools/ci-local.sh" --staged
