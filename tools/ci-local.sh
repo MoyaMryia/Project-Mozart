@@ -55,7 +55,11 @@ staged() {
         if grep -qE "$paths" <<<"$changed"; then
             require_clean "$paths"
             echo "== $name ==" >&2
-            "stage_$name"
+            # 暂存区检查保留钩子环境；测试子进程使用各自仓库的 Git 上下文。
+            (
+                unset $(git rev-parse --local-env-vars)
+                "stage_$name"
+            )
         fi
     done
 }
