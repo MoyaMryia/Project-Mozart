@@ -113,6 +113,7 @@ private:
 bool IndexSearch::load(const std::filesystem::path& index_path, uint32_t feature_dim) {
     nlist_ = 0;
     ntotal_ = 0;
+    skipped_frames_ = 0;
     centroids_.clear();
     codes_.clear();
     list_offsets_.clear();
@@ -320,9 +321,12 @@ bool IndexSearch::parse_ivf_index(const std::filesystem::path& path) {
     return true;
 }
 
-uint32_t IndexSearch::find_nearest_centroid(const float* vec) const {
-    uint32_t best = 0;
-    float best_dist = std::numeric_limits<float>::max();
+void IndexSearch::find_nearest_centroids(const float* vec, std::vector<uint32_t>& ids) const {
+    // 全量扫描质心，维护 nprobe 个最近表。nlist 最大 1e6，但 RVC 索引实际
+    // 只有 977 / 2870 个表，扫描成本与 nprobe=1 时相同。
+    struct Entry { float dist; uint32_t id; };
+    std::vector<Entry> best;
+    best.reserve(nprobe_);
     const size_t dim = feature_dim_;
     for (uint32_t i = 0; i < nlist_; ++i) {
         const float* c = centroids_.data() + static_cast<size_t>(i) * dim;
@@ -331,12 +335,15 @@ uint32_t IndexSearch::find_nearest_centroid(const float* vec) const {
             const float dv = vec[j] - c[j];
             dist += dv * dv;
         }
-        if (dist < best_dist) {
-            best_dist = dist;
-            best = i;
-        }
+        if (best.size() == nprobe_ && dist >= best.back().dist) continue;
+        const auto pos = std::lower_bound(best.begin(), best.end(), dist,
+            [](const Entry& e, float value) { return e.dist < value; });
+        best.insert(pos, Entry{dist, i});
+        if (best.size() > nprobe_) best.pop_back();
     }
-    return best;
+    ids.clear();
+    ids.reserve(best.size());
+    for (const auto& e : best) ids.push_back(e.id);
 }
 
 std::vector<float> IndexSearch::search(
@@ -356,34 +363,57 @@ std::vector<float> IndexSearch::search(
     std::vector<float> result = features;
     const size_t dim = feature_dim_;
 
+    struct Candidate { float dist; const float* vec; };
+    std::vector<uint32_t> centroids;
     for (size_t t = 0; t < n_frames; ++t) {
         const float* feat_vec = features.data() + t * feat_dim;
-        const uint32_t cid = find_nearest_centroid(feat_vec);
+        find_nearest_centroids(feat_vec, centroids);
 
-        const uint64_t begin = list_offsets_[cid];
-        const uint64_t end = list_offsets_[cid + 1];
-        if (begin == end) continue;
-
-        // nprobe=1 语义（RVC 索引文件名即 nprobe_1）：只在最近质心的表内精确搜索
-        uint64_t best_idx = begin;
-        float best_dist = std::numeric_limits<float>::max();
-        for (uint64_t k = begin; k < end; ++k) {
-            const float* cand = codes_.data() + k * dim;
-            float dist = 0.0f;
-            for (size_t j = 0; j < dim; ++j) {
-                const float dv = feat_vec[j] - cand[j];
-                dist += dv * dv;
-            }
-            if (dist < best_dist) {
-                best_dist = dist;
-                best_idx = k;
+        Candidate best[kNeighbours];
+        size_t count = 0;
+        for (const auto cid : centroids) {
+            const uint64_t begin = list_offsets_[cid];
+            const uint64_t end = list_offsets_[cid + 1];
+            for (uint64_t k = begin; k < end; ++k) {
+                const float* cand = codes_.data() + k * dim;
+                float dist = 0.0f;
+                for (size_t j = 0; j < dim; ++j) {
+                    const float dv = feat_vec[j] - cand[j];
+                    dist += dv * dv;
+                }
+                if (count == kNeighbours && dist >= best[count - 1].dist) continue;
+                size_t pos = count < kNeighbours ? count : kNeighbours - 1;
+                while (pos > 0 && best[pos - 1].dist > dist) {
+                    if (pos < kNeighbours) best[pos] = best[pos - 1];
+                    --pos;
+                }
+                best[pos] = Candidate{dist, cand};
+                if (count < kNeighbours) ++count;
             }
         }
 
-        const float* nearest = codes_.data() + best_idx * dim;
+        // Golden 路径用 k=8 且要求全部命中；候选不足 8 个时整帧不混合。
+        if (count < kNeighbours) {
+            ++skipped_frames_;
+            continue;
+        }
+
+        // Golden: weight = (1 / distance)^2, then normalise.
+        float weight[kNeighbours];
+        float total = 0.0f;
+        for (size_t i = 0; i < kNeighbours; ++i) {
+            const float inv = 1.0f / (best[i].dist + 1e-12f);
+            weight[i] = inv * inv;
+            total += weight[i];
+        }
+        const float norm = 1.0f / total;
         for (size_t j = 0; j < dim; ++j) {
+            float blended = 0.0f;
+            for (size_t i = 0; i < kNeighbours; ++i) {
+                blended += weight[i] * norm * best[i].vec[j];
+            }
             result[t * feat_dim + j] = feat_vec[j] * (1.0f - index_rate) +
-                                        nearest[j] * index_rate;
+                                        blended * index_rate;
         }
     }
 
