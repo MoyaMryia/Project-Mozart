@@ -9,6 +9,7 @@ const char* invalid_rvc_parameter(const RvcParameters& parameters) {
     if (parameters.f0_method != "rmvpe") return "f0_method";
     if (parameters.pitch_shift < -12 || parameters.pitch_shift > 12) return "pitch_shift";
     if (!std::isfinite(parameters.index_rate) || parameters.index_rate < 0.0f || parameters.index_rate > 1.0f) return "index_rate";
+    if (parameters.index_nprobe < 1 || parameters.index_nprobe > 1024) return "index_nprobe";
     if (parameters.filter_radius < 0 || parameters.filter_radius > 7) return "filter_radius";
     if (!std::isfinite(parameters.rms_mix_rate) || parameters.rms_mix_rate < 0.0f || parameters.rms_mix_rate > 1.0f) return "rms_mix_rate";
     if (!std::isfinite(parameters.protect) || parameters.protect < 0.0f || parameters.protect > 0.5f) return "protect";
@@ -96,7 +97,8 @@ void RealRVCPipeline::rebuild_inferencer_locked() {
         model, feature_extractor_,
         input_sample_rate_, output_sample_rate_,
         parameters_.f0_method, parameters_.pitch_shift, parameters_.index_rate,
-        parameters_.filter_radius, parameters_.rms_mix_rate, parameters_.protect
+        parameters_.filter_radius, parameters_.rms_mix_rate, parameters_.protect,
+        parameters_.index_nprobe
     );
     spdlog::info("RVC inferencer rebuilt for model '{}'", model->id());
 }

@@ -181,7 +181,8 @@ RVCInferencer::RVCInferencer(
     float index_rate,
     int filter_radius,
     float rms_mix_rate,
-    float protect
+    float protect,
+    int index_nprobe
 )
     : model_(model)
     , feature_extractor_(feature_extractor)
@@ -193,6 +194,7 @@ RVCInferencer::RVCInferencer(
     , filter_radius_(filter_radius)
     , rms_mix_rate_(rms_mix_rate)
     , protect_(protect)
+    , index_nprobe_(index_nprobe)
 {
     reset_realtime();
 }
@@ -531,6 +533,7 @@ std::vector<float> RVCInferencer::infer_realtime(
             feats.end()
         );
         if (!tail.empty()) {
+            model_->index().set_nprobe(static_cast<uint32_t>(index_nprobe_));
             auto indexed = model_->index().search(tail, emb_dim, index_rate_);
             std::copy(
                 indexed.begin(), indexed.end(),
@@ -718,6 +721,7 @@ std::vector<float> RVCInferencer::apply_index(const std::vector<float>& feats) {
         return feats;
     }
 
+    model_->index().set_nprobe(static_cast<uint32_t>(index_nprobe_));
     return model_->index().search(
         feats,
         model_->config().emb_channels,
