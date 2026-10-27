@@ -146,8 +146,12 @@ if(MOZART_BUILD_TESTS)
 
     # 噪声抑制器对拍夹具：构建期由 Python 参考实现生成
     set(NS_FIXTURE_DIR ${CMAKE_CURRENT_BINARY_DIR}/ns-fixture)
+    set(NS_FIXTURE_OUTPUTS
+        ${NS_FIXTURE_DIR}/input.f32 ${NS_FIXTURE_DIR}/expected.f32
+        ${NS_FIXTURE_DIR}/silence-input.f32 ${NS_FIXTURE_DIR}/silence-expected.f32
+        ${NS_FIXTURE_DIR}/meta.json ${NS_FIXTURE_DIR}/gates.h)
     add_custom_command(
-        OUTPUT ${NS_FIXTURE_DIR}/expected.f32
+        OUTPUT ${NS_FIXTURE_OUTPUTS}
         COMMAND ${Python3_EXECUTABLE}
                 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_ns_fixture.py
                 ${NS_FIXTURE_DIR}
@@ -155,9 +159,10 @@ if(MOZART_BUILD_TESTS)
                 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/wola_reference.py
         COMMENT "生成噪声抑制器对拍夹具"
     )
-    add_custom_target(ns-fixture DEPENDS ${NS_FIXTURE_DIR}/expected.f32)
+    add_custom_target(ns-fixture DEPENDS ${NS_FIXTURE_OUTPUTS})
 
     add_executable(test_noise_suppressor tests/test_noise_suppressor.c)
+    target_include_directories(test_noise_suppressor PRIVATE ${NS_FIXTURE_DIR})
     target_link_libraries(test_noise_suppressor PRIVATE mozart_pre_core m)
     add_test(NAME test_noise_suppressor
              COMMAND test_noise_suppressor ${NS_FIXTURE_DIR})
@@ -179,6 +184,10 @@ if(MOZART_BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/../IO/include)
     target_link_libraries(test_usb_link PRIVATE m rt)
     add_test(NAME test_usb_link COMMAND test_usb_link)
+
+    add_executable(test_control tests/test_control.c)
+    target_link_libraries(test_control PRIVATE mozart_pre_core)
+    add_test(NAME test_control COMMAND test_control)
 
     # DTLN 对拍：需要 onnxruntime 运行库与模型资产；按选项启用
     option(MOZART_BUILD_DTLN_TESTS "Build DTLN golden comparison test" OFF)

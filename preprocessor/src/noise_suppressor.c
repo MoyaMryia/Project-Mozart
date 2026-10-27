@@ -4,7 +4,7 @@
 //   滑窗分析（步进 hop=64、窗长 128、50% 重叠）；
 //   噪声通道 = 慢 EMA + 频域平滑 + 最小值保持 + 门控慢上爬；
 //   增益在发射时对最老帧用当前噪声估计计算（决策导向维纳）；
-//   开局以首 8 帧功率均值初始化，初始化帧留在队列、就绪后一次排干；
+//   队列积压 8 帧后排干；各频点用前 8 个非零功率帧的均值初始化噪声；
 //   每发射一帧产出 hop 个样本，输出与输入索引对齐。
 // 内部 double 精度与参考实现（numpy float64）对齐。
 #include "mozart/noise_suppressor.h"
@@ -19,6 +19,7 @@
 #define NS_HOP 64
 #define NS_BINS MOZART_NS_BINS
 #define NS_INIT_FRAMES 8
+#define NS_POWER_FLOOR 1e-20
 #define NS_QUEUE_MAX 16   // 初始化积压 8 + 前瞻若干，16 足够
 
 _Static_assert(NS_FRAME / 2 + 1 == MOZART_NS_BINS, "bin 数与窗长不匹配");
@@ -36,6 +37,7 @@ struct mozart_ns {
     // 估计器状态
     bool   ready;
     int    init_count;
+    int    noise_init_count[NS_BINS];
     double init_power[NS_BINS];
     double power_slow[NS_BINS];
     double noise[NS_BINS];
@@ -142,26 +144,36 @@ static void ns_update(mozart_ns_t *ns)
     for (int b = 0; b < NS_BINS; b++)
         power[b] = ns->re[b] * ns->re[b] + ns->im[b] * ns->im[b];
 
-    if (!ns->ready) {
-        for (int b = 0; b < NS_BINS; b++) ns->init_power[b] += power[b];
-        if (++ns->init_count >= NS_INIT_FRAMES) {
-            for (int b = 0; b < NS_BINS; b++) {
-                const double averaged = ns->init_power[b] / (double)NS_INIT_FRAMES;
-                ns->power_slow[b] = averaged;
-                ns->noise[b] = averaged;
-            }
-            ns->ready = true;
-        }
-        return;
-    }
-
+    // 输出队列按总帧数就绪；各频点单独跳过数字零，继续学习噪声。
     for (int b = 0; b < NS_BINS; b++) {
-        ns->power_slow[b] = ns->alpha_noise * ns->power_slow[b]
-                            + (1.0 - ns->alpha_noise) * power[b];
+        // 长静音可将估计压到除法地板以下；此时重新学习。
+        if (ns->noise_init_count[b] == NS_INIT_FRAMES
+            && ns->noise[b] <= NS_POWER_FLOOR) {
+            ns->noise_init_count[b] = 0;
+            ns->init_power[b] = ns->power_slow[b] = ns->noise[b] = 0.0;
+        }
+        if (ns->noise_init_count[b] < NS_INIT_FRAMES) {
+            if (power[b] > 0.0) {
+                ns->init_power[b] += power[b];
+                if (++ns->noise_init_count[b] == NS_INIT_FRAMES) {
+                    const double averaged = ns->init_power[b] / (double)NS_INIT_FRAMES;
+                    ns->power_slow[b] = averaged;
+                    ns->noise[b] = averaged;
+                }
+            }
+        } else {
+            ns->power_slow[b] = ns->alpha_noise * ns->power_slow[b]
+                                + (1.0 - ns->alpha_noise) * power[b];
+        }
+    }
+    if (!ns->ready) {
+        ns->ready = ++ns->init_count >= NS_INIT_FRAMES;
+        return;
     }
     double reference[NS_BINS];
     freq_smooth(ns->power_slow, reference, ns->noise_smooth_bins);
     for (int b = 0; b < NS_BINS; b++) {
+        if (ns->noise_init_count[b] < NS_INIT_FRAMES) continue;
         const double proposed = reference[b] < ns->leak_gate * ns->noise[b]
                                     ? ns->noise[b] * (1.0 + ns->noise_leak)
                                     : ns->noise[b];
@@ -180,16 +192,20 @@ static void ns_emit_oldest(mozart_ns_t *ns, float *out, size_t out_cap, size_t *
     for (int b = 0; b < NS_BINS; b++) {
         power[b] = ns->queue_re[0][b] * ns->queue_re[0][b]
                    + ns->queue_im[0][b] * ns->queue_im[0][b];
-        const double post = power[b] / (ns->noise[b] > 1e-20 ? ns->noise[b] : 1e-20);
-        double xi;
-        if (ns->emitted == 0) {
-            xi = post - 1.0 > 0.0 ? post - 1.0 : 0.0;
-        } else {
-            xi = ns->beta_dd * ns->gain_prev[b] * ns->gain_prev[b] * post
-                 + (1.0 - ns->beta_dd) * (post - 1.0 > 0.0 ? post - 1.0 : 0.0);
+        const double post = power[b] / (ns->noise[b] > NS_POWER_FLOOR
+                                        ? ns->noise[b] : NS_POWER_FLOOR);
+        double g = 1.0;
+        if (ns->noise_init_count[b] == NS_INIT_FRAMES) {
+            double xi;
+            if (ns->emitted == 0) {
+                xi = post - 1.0 > 0.0 ? post - 1.0 : 0.0;
+            } else {
+                xi = ns->beta_dd * ns->gain_prev[b] * ns->gain_prev[b] * post
+                     + (1.0 - ns->beta_dd) * (post - 1.0 > 0.0 ? post - 1.0 : 0.0);
+            }
+            g = xi / (1.0 + xi);
+            if (g < ns->floor) g = ns->floor;
         }
-        double g = xi / (1.0 + xi);
-        if (g < ns->floor) g = ns->floor;
         if (ns->bypass) g = 1.0;
         gain[b] = g;
         ns->gain_prev[b] = g;
@@ -198,7 +214,7 @@ static void ns_emit_oldest(mozart_ns_t *ns, float *out, size_t out_cap, size_t *
         if (post >= 2.0) above += power[b];
     }
     ns->last_gain = gain_sum / (double)NS_BINS;
-    if (total > 1e-20) {
+    if (total > NS_POWER_FLOOR) {
         ns->conf_sum += above / total;
         ns->conf_count++;
     }

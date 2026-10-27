@@ -76,6 +76,19 @@ rvc-golden/qiqi-zh-run/**
 !rvc-golden/qiqi-zh-run/config.json
 !rvc-golden/qiqi-zh-run/presets.json
 
+# liuying runtime working dir: downloaded pth/index, exported ONNX/engines and temp
+# files stay out of git, only the run configs track
+rvc-golden/liuying-run/**
+!rvc-golden/liuying-run/backend.yaml
+!rvc-golden/liuying-run/backend-ui.yaml
+
+# de_narrator runtime assets and captured tensors stay local.
+rvc-golden/de-narrator-run/**
+!rvc-golden/de-narrator-run/backend.yaml
+!rvc-golden/de-narrator-run/backend-ui.yaml
+!rvc-golden/de-narrator-run/README.md
+!rvc-golden/de-narrator-run/verification.json
+
 # CMake
 CMakeCache.txt
 CMakeFiles/

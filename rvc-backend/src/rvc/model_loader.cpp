@@ -133,12 +133,11 @@ bool RVCModel::load(const std::string& device, bool half) {
             return false;
         }
 
-        // 默认配置 index_rate=0.0，预加载 .index 会让每个模型常驻约 115MB。
-        // inferencer 消费端有 index().loaded() 门，索引未加载时检索跳过。
-        // 恢复本调用前先完成 TODO.md P3 的输出一致性验证。
-        // if (std::filesystem::exists(index_path_)) {
-        //     load_index();
-        // }
+        // 索引按需常驻：七七 38109x768x4=117MB，流萤 111944x768x4=344MB。
+        // index_rate=0 的调用方在 inferencer 侧跳过检索，但内存仍会占用。
+        if (std::filesystem::exists(index_path_)) {
+            load_index();
+        }
 
         loaded_ = true;
         spdlog::info(

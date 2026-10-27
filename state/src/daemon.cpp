@@ -68,6 +68,7 @@ bool StateManagerDaemon::start() {
     default_parameters.f0_method = config_.get_string("rvc.f0_method", default_parameters.f0_method);
     default_parameters.pitch_shift = config_.get_int("rvc.pitch_shift", default_parameters.pitch_shift);
     default_parameters.index_rate = config_.get_double("rvc.index_rate", default_parameters.index_rate);
+    default_parameters.index_nprobe = config_.get_int("rvc.index_nprobe", default_parameters.index_nprobe);
     default_parameters.filter_radius = config_.get_int("rvc.filter_radius", default_parameters.filter_radius);
     default_parameters.rms_mix_rate = config_.get_double("rvc.rms_mix_rate", default_parameters.rms_mix_rate);
     default_parameters.protect = config_.get_double("rvc.protect", default_parameters.protect);
