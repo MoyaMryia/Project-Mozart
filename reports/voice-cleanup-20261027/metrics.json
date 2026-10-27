@@ -1,0 +1,292 @@
+{
+  "date": "2026-10-27",
+  "input_sha256": "d7dafb12f8d444b2270f2d06158f47c235ca7892aaca1513561dc9971f2a8654",
+  "source_rate": 16000,
+  "source_samples": 480007,
+  "output_rate": 48000,
+  "output_samples": 1440021,
+  "diagnostics": {
+    "source_samples": 480007,
+    "analysis_frame_samples": 320,
+    "complete_analysis_frames": 1500,
+    "quiet_frames": 225,
+    "active_frames": 983,
+    "quiet_threshold_dbfs": -59.9654761440339,
+    "quiet_median_dbfs": -65.5524683809836,
+    "active_threshold_dbfs": -44.9654761440339,
+    "peak_dbfs": -23.53986882710226,
+    "full_scale_samples": 0,
+    "repeated_near_peak_pairs": 0,
+    "isolated_spike_candidates": 580,
+    "spike_interpolation_enabled": false,
+    "tone_decisions": [
+      {
+        "frequency_hz": 62.5,
+        "median_quiet_prominence_db": 11.784753054387494,
+        "quiet_window_fraction_above_threshold": 0.8111111111111111,
+        "persistent": true,
+        "notch_candidate": true,
+        "reason": "confirmed low-band candidate"
+      },
+      {
+        "frequency_hz": 98.6328125,
+        "median_quiet_prominence_db": 11.717614391121902,
+        "quiet_window_fraction_above_threshold": 0.7555555555555555,
+        "persistent": true,
+        "notch_candidate": true,
+        "reason": "confirmed low-band candidate"
+      },
+      {
+        "frequency_hz": 200.1953125,
+        "median_quiet_prominence_db": 27.014983443034264,
+        "quiet_window_fraction_above_threshold": 1,
+        "persistent": true,
+        "notch_candidate": false,
+        "reason": "preserve speech fundamental region"
+      }
+    ],
+    "tone_prominence_threshold_db": 8,
+    "tone_persistence_threshold": 0.7,
+    "long_quiet_windows": 90,
+    "tone_window_samples": 4096,
+    "tone_hop_samples": 512,
+    "tone_fft_samples": 16384,
+    "frame_selection_method": "RMS threshold proxies; no manual speech labels",
+    "quiet_frames_are_verified_noise": false
+  },
+  "proxy_definition": "RMS threshold proxies; no manual speech labels",
+  "notch_trial": {
+    "used_in_main_variants": false,
+    "quiet_change_db_vs_current": 1.7248463111661367,
+    "quiet_core_regions": [
+      {
+        "start_seconds": 0.1,
+        "end_seconds": 0.12,
+        "level_change_db": -0.28679323822510305
+      },
+      {
+        "start_seconds": 1.12,
+        "end_seconds": 1.16,
+        "level_change_db": 1.1805458517868659
+      },
+      {
+        "start_seconds": 2.56,
+        "end_seconds": 2.62,
+        "level_change_db": 5.7403001966488
+      },
+      {
+        "start_seconds": 3.5,
+        "end_seconds": 3.54,
+        "level_change_db": 0.29472333316886135
+      },
+      {
+        "start_seconds": 5.36,
+        "end_seconds": 5.5600000000000005,
+        "level_change_db": 11.069194535851455
+      },
+      {
+        "start_seconds": 7.92,
+        "end_seconds": 7.96,
+        "level_change_db": 0.5155666542408852
+      },
+      {
+        "start_seconds": 8.2,
+        "end_seconds": 8.26,
+        "level_change_db": 0.051163673550625344
+      },
+      {
+        "start_seconds": 11.76,
+        "end_seconds": 11.82,
+        "level_change_db": 15.472735635036416
+      },
+      {
+        "start_seconds": 11.94,
+        "end_seconds": 12,
+        "level_change_db": 0.14792297462037338
+      },
+      {
+        "start_seconds": 14.26,
+        "end_seconds": 14.6,
+        "level_change_db": 1.057575690697502
+      },
+      {
+        "start_seconds": 14.66,
+        "end_seconds": 14.72,
+        "level_change_db": 0.37686027476313994
+      },
+      {
+        "start_seconds": 19.46,
+        "end_seconds": 19.54,
+        "level_change_db": 19.563004009050736
+      },
+      {
+        "start_seconds": 20.02,
+        "end_seconds": 20.06,
+        "level_change_db": 2.729022016988928
+      },
+      {
+        "start_seconds": 20.18,
+        "end_seconds": 20.22,
+        "level_change_db": -0.7412606458932212
+      },
+      {
+        "start_seconds": 25.92,
+        "end_seconds": 26.080000000000002,
+        "level_change_db": 0.7483057083552246
+      },
+      {
+        "start_seconds": 26.14,
+        "end_seconds": 26.66,
+        "level_change_db": -0.35156890591187384
+      },
+      {
+        "start_seconds": 26.72,
+        "end_seconds": 27.04,
+        "level_change_db": -0.30139852975579245
+      },
+      {
+        "start_seconds": 27.22,
+        "end_seconds": 27.46,
+        "level_change_db": 1.0353413047104085
+      },
+      {
+        "start_seconds": 27.6,
+        "end_seconds": 28.22,
+        "level_change_db": -0.122477172115881
+      },
+      {
+        "start_seconds": 28.28,
+        "end_seconds": 28.52,
+        "level_change_db": -0.08097145223609664
+      }
+    ]
+  },
+  "matched_outputs": {
+    "11-speech-matched-original.wav": {
+      "gain": 0.9785528336829219,
+      "active_rms": 0.025082639414221123,
+      "quiet_change_db_vs_current": 3.7303016582399167,
+      "samples": 1440021,
+      "rate": 48000,
+      "seconds": 30.0004375,
+      "rms": 0.02034291227124749,
+      "peak": 0.06514094024896622,
+      "sha256": "c2487f1a6943ff5cf3debf1db6950ce20abe839d82cba57e7763612b778b0d2c"
+    },
+    "12-speech-matched-current-denoise.wav": {
+      "gain": 1,
+      "active_rms": 0.025082639811387725,
+      "quiet_change_db_vs_current": 0,
+      "samples": 1440021,
+      "rate": 48000,
+      "seconds": 30.0004375,
+      "rms": 0.0203353233222232,
+      "peak": 0.08652984350919724,
+      "sha256": "67a1ec197e81af8db938054c10d7331b54c9ddd020cdb5b9cebdea9fd90170c7"
+    },
+    "13-speech-matched-clean-gentle.wav": {
+      "gain": 1.0028292592951997,
+      "active_rms": 0.025082641162070346,
+      "quiet_change_db_vs_current": -3.032826930722934,
+      "samples": 1440021,
+      "rate": 48000,
+      "seconds": 30.0004375,
+      "rms": 0.0203323128865619,
+      "peak": 0.08887666463851929,
+      "sha256": "c054251e335c0ecc0f427e211c39bd6032a788bc9deb8a03ce3478a7f33d92e7"
+    },
+    "14-speech-matched-clean-strong.wav": {
+      "gain": 1.0042882431996882,
+      "active_rms": 0.025082638646219284,
+      "quiet_change_db_vs_current": -4.244443109488109,
+      "samples": 1440021,
+      "rate": 48000,
+      "seconds": 30.0004375,
+      "rms": 0.020331201822981045,
+      "peak": 0.08910094946622849,
+      "sha256": "4d8370d1e1f176056b6147c275ff1c026a73b38ef7e5cfbb78144286897d9fe9"
+    }
+  },
+  "processing": {
+    "gentle": {
+      "native_seconds": 0.00673623900001985,
+      "settings": {
+        "notch_1_hz": 0,
+        "notch_2_hz": 0,
+        "notch_3_hz": 0,
+        "notch_q": 30,
+        "gate_open_db": -51.5524683809836,
+        "gate_close_db": -57.5524683809836,
+        "gate_hold_ms": 120,
+        "gate_attack_ms": 3,
+        "gate_release_ms": 100,
+        "plosive_ratio": 4,
+        "lowpass_hz": 6800,
+        "gate_floor_db": -12,
+        "plosive_max_db": -4
+      },
+      "telemetry": {
+        "samples": 1440021,
+        "gate_attenuated_samples": 266976,
+        "plosive_attenuated_samples": 81709,
+        "min_gate_gain": 0.25118864315107353,
+        "min_plosive_gain": 0.6309782051245237,
+        "max_abs_output": 0.08862591460425807
+      }
+    },
+    "strong": {
+      "spectral_seconds": 0.1410738879994824,
+      "analysis_window_samples": 1024,
+      "hop_samples": 256,
+      "noise_calibration_frames": 845,
+      "noise_floor_db": -24,
+      "noise_scale": 3,
+      "gain_attack_ms": 1,
+      "gain_release_ms": 20,
+      "noise_profile_mode": "whole-file low-energy proxy profile; offline",
+      "noise_profile_is_proxy": true,
+      "calibration_frames_speech_labels_available": false,
+      "centered_analysis": true,
+      "live_buffering_measured": false,
+      "native_seconds": 0.006746127999576856,
+      "settings": {
+        "notch_1_hz": 0,
+        "notch_2_hz": 0,
+        "notch_3_hz": 0,
+        "notch_q": 30,
+        "gate_open_db": -51.5524683809836,
+        "gate_close_db": -57.5524683809836,
+        "gate_hold_ms": 120,
+        "gate_attack_ms": 3,
+        "gate_release_ms": 100,
+        "plosive_ratio": 4,
+        "lowpass_hz": 6200,
+        "gate_floor_db": -18,
+        "plosive_max_db": -8
+      },
+      "telemetry": {
+        "samples": 1440021,
+        "gate_attenuated_samples": 273871,
+        "plosive_attenuated_samples": 108701,
+        "min_gate_gain": 0.12589254117961574,
+        "min_plosive_gain": 0.39814098859622027,
+        "max_abs_output": 0.08872050156334846
+      }
+    }
+  },
+  "tests": {
+    "total": 448,
+    "passed": 443,
+    "skipped": 5,
+    "skip_reason": "PyTorch unavailable on this host"
+  },
+  "configuration": {
+    "cpu": "Intel Core Ultra 9 285H",
+    "architecture": "x86_64",
+    "sample_count_recordings": 1,
+    "timing_statistic": "single whole-recording wall-clock call",
+    "live_deployment": false
+  },
+  "output_directory": "~/Projects/RVC-official/output/voice-cleanup-30s",
+  "scope_owner": "RESULTS.md#适用范围"
+}

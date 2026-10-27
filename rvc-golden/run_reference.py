@@ -20,10 +20,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(RVC_SOURCE))
 
 from infer.hubert import HubertModelWithFinalProj  # noqa: E402
-from infer.module.models import SynthesizerTrnMs768NSFsid  # noqa: E402
 from infer.rmvpe import RMVPE  # noqa: E402
 from infer.vc.pipeline import Pipeline  # noqa: E402
-from tools.export_generator_onnx import GeneratorWrapper  # noqa: E402
+from tools.export_generator_onnx import (  # noqa: E402
+    GeneratorWrapper,
+    load_generator as load_export_generator,
+)
 
 
 class ReferenceConfig:
@@ -119,27 +121,11 @@ class CapturingGenerator(torch.nn.Module):
 
 
 def load_generator(model_path, deterministic=False):
-    checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
-    if checkpoint.get("version") != "v2" or checkpoint.get("f0", 1) != 1:
-        raise ValueError("reference runner requires an RVC v2 F0 model")
-    checkpoint["config"][-3] = checkpoint["weight"]["emb_g.weight"].shape[0]
-    generator = SynthesizerTrnMs768NSFsid(*checkpoint["config"], is_half=False)
-    incompatible = generator.load_state_dict(checkpoint["weight"], strict=False)
-    missing_inference_weights = [
-        key for key in incompatible.missing_keys if not key.startswith("enc_q.")
-    ]
-    if missing_inference_weights or incompatible.unexpected_keys:
-        raise RuntimeError(
-            "generator checkpoint mismatch: "
-            f"missing={missing_inference_weights}, unexpected={incompatible.unexpected_keys}"
-        )
-    # Load weight-norm parameters before removing the parametrizations.
-    del generator.enc_q
-    generator.eval().float()
-    generator.remove_weight_norm()
+    generator_wrapper, sample_rate = load_export_generator(model_path, RVC_SOURCE)
+    generator = generator_wrapper.generator
     if deterministic:
         generator.dec.m_source.l_sin_gen.noise_std = 0.0
-    return generator, int(checkpoint["config"][-1])
+    return generator, sample_rate
 
 
 def main():

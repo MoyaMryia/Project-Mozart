@@ -1,6 +1,6 @@
 # 剩余工作
 
-更新日期：2026-10-25。当前实现见 [DESIGN.md](DESIGN.md)，部署与运维见 [docs/RUNBOOK.md](docs/RUNBOOK.md)。
+更新日期：2026-10-27。当前实现见 [DESIGN.md](DESIGN.md)，部署与运维见 [docs/RUNBOOK.md](docs/RUNBOOK.md)。
 
 ## 交付前必须
 
@@ -12,6 +12,14 @@
 
 ## 可以继续打磨
 
+- [ ] 按[轻量人声 DSP 计划](docs/FAST_VOICE_DSP_PLAN.md)添加人声处理。
+  - 覆盖环境降噪、停顿期软噪声门和语音频带外抑制。
+  - 增加爆破音、短脉冲、采集削波监测及电磁窄带干扰的输入保护。
+  - 优先用少量均衡、包络和动态算子增强降噪后的人声清晰度。
+  - 本机音色美化试听见[美化工具](tools/VOICE_POLISH_PREVIEW.md)。
+  - 在播放后处理添加可选的不变速变调算子，用于轻量男女性效果。
+  - 分别提供清晰度增强和变调开关。
+  - 保留各阶段输出，比较清晰度、变调听感、CPU 耗时和缓冲延迟。
 - 端到端声学终验：软件链 8.2 ms 已实测，DAC/USB 段待 PCM2902 声学回录，见[报告](reports/e2e-latency-20261025/RESULTS.md)。
 - dtln 接线 AI 分支：C 集成已对拍 1e-8，接线前需把标量 DFT 换 FFT（当前 2.5 ms 贴块周期线），见[报告](reports/m5-dtln-20261025/RESULTS.md)。
 - M4 第 2-3 步：控制台 WS 化、FILE 子协议、内部服务 Unix 化，见[报告](reports/m4-control-plane-20261025/RESULTS.md)。
@@ -26,6 +34,7 @@
 
 ## 本轮已完成
 
+- 本机原始 30 秒录音诊断、保守与较强人声清理、电平匹配试听，见[报告](reports/voice-cleanup-20261027/RESULTS.md)。
 - USB 全双工音频桥，取代模拟回路，见[报告](reports/usb-audio-20261020/RESULTS.md)。
 - 控制台静态服务与 `/api` 代理，部署步骤见[运行手册](docs/RUNBOOK.md#控制台)。
 - 术语表可配置，含配置页与同音纠错，见[设计](DESIGN.md#6-字幕与参考音色播报)。
