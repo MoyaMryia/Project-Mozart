@@ -166,6 +166,10 @@ if(MOZART_BUILD_TESTS)
     target_link_libraries(test_usb_link PRIVATE m)
     add_test(NAME test_usb_link COMMAND test_usb_link)
 
+    add_executable(test_control tests/test_control.c)
+    target_link_libraries(test_control PRIVATE mozart_pre_core)
+    add_test(NAME test_control COMMAND test_control)
+
     # DTLN 对拍：需要 onnxruntime 运行库与模型资产；按选项启用
     option(MOZART_BUILD_DTLN_TESTS "Build DTLN golden comparison test" OFF)
     if(MOZART_BUILD_DTLN_TESTS)

@@ -32,6 +32,8 @@ public:
     Json delete_preset(const std::string&) override { return {}; }
     Json list_models() const override { return {}; }
     std::filesystem::path upload_path(const std::string&) const override { return {}; }
+    nlohmann::json preprocessor_status() const override { return {{"available", false}}; }
+    nlohmann::json set_preprocessor(const nlohmann::json&) override { return {{"status", "failed"}}; }
 private:
     std::string last_mode_ = "realtime";
 };

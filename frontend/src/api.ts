@@ -62,6 +62,22 @@ export interface RvcParameters {
 
 export interface Preset { id: string; name: string; parameters: RvcParameters; }
 
+export interface PreDevice { id: string; card?: number; label: string; }
+export interface PreProcessorState {
+  state?: string;
+  mode?: string;
+  frames?: number;
+  send_errors?: number;
+  [key: string]: unknown;
+}
+export interface PreProcessorStatus {
+  available: boolean;
+  devices: { capture: PreDevice[]; playback: PreDevice[] };
+  current: { capture?: string; playback?: string };
+  state?: PreProcessorState;
+  error?: string;
+}
+
 export interface MonitorSnapshot {
   cpu_percent: number | null;
   memory: { total_bytes: number; used_bytes: number };

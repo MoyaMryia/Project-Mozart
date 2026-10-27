@@ -1,7 +1,8 @@
 """usb-audio/src.py 自适应重采样的行为测试。
 
 钉三条性质：跨块流式恒等（尾帧随下一块补出）、±500 ppm 漂移吸收、
-比例钳位。C 侧同算法测试见 preprocessor/tests/test_async_src.c。
+比例钳位。Python 接收播放侧使用输出水位负反馈。
+C 侧插值测试见 preprocessor/tests/test_async_src.c。
 """
 import sys
 import unittest
