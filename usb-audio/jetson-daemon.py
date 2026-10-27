@@ -75,6 +75,7 @@ class Daemon:
         self.exit_code = 0
         self.active = threading.Event()
         self.audio_lock = threading.Lock()
+        self.return_lock = threading.Lock()
         self.generation = 0
         self.ep0 = self.ep_out = self.ep_in = -1
         self.mic = self.speaker = None
@@ -91,6 +92,7 @@ class Daemon:
         self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=target_frames)
         self.last_rms = 0.0
         self.last_error = ''
+        self.backlog_error = False
         self.started = 0.0
         self.pending = b''
 
@@ -196,12 +198,17 @@ class Daemon:
 
     # --- 过期帧排空（M2 延迟修复）---
     def pipe_backlog(self, fd):
-        """FIONREAD 查询管道积压字节数；失败返回 0。"""
+        """FIONREAD 查询管道积压字节数；失败记录原因并返回 0。"""
         try:
             import fcntl
-            return struct.unpack('i', fcntl.ioctl(fd, 0x541B, b'\x00' * 4))[0]
-        except (OSError, ImportError):
+            backlog = struct.unpack('i', fcntl.ioctl(fd, 0x541B, b'\x00' * 4))[0]
+        except (OSError, ImportError) as error:
+            if not self.backlog_error:
+                self.fail(f'查询管道水位失败，按空管道处理: {error}')
+            self.backlog_error = True
             return 0
+        self.backlog_error = False
+        return backlog
 
     def drain_capture_backlog(self, stream, chunk_bytes, keep_frames):
         """积压超过 keep_frames 时丢最旧帧，计数到 dropped。"""
@@ -283,9 +290,12 @@ class Daemon:
             frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic() * 1e6),
                                  payload, stream=stream_id)
             try:
-                os.write(self.ep_in, frame)
+                written = os.write(self.ep_in, frame)
             except OSError as error:
                 self.request_restart(f'写 IN 端点失败，重启服务: {error}')
+                return
+            if written != len(frame):
+                self.request_restart(f'写 IN 端点短写，重启服务: {written}/{len(frame)}')
                 return
             sequence += 1
             self.frames_in += 1
@@ -304,7 +314,8 @@ class Daemon:
                 self.request_restart(f'读 OUT 端点失败，重启服务: {error}')
                 return
             if not chunk:
-                continue
+                self.request_restart('OUT 端点结束，重启服务')
+                return
             self.pending += chunk
             while True:
                 try:
@@ -334,16 +345,18 @@ class Daemon:
                     self.gaps += 1
                 self.expected_seq[stream] = seq + 1
                 self.frames_out += 1
-                fill = self.pipe_backlog(self.speaker_fd) / (proto.CHANNELS * proto.SAMPLE_BYTES)
-                ratio = self.return_src.ratio(fill)
-                adapted = self.return_src.process(payload, ratio)
-                self.write_speaker(adapted)
+                with self.return_lock:
+                    fill = self.pipe_backlog(self.speaker_fd) / (proto.CHANNELS * proto.SAMPLE_BYTES)
+                    ratio = self.return_src.ratio(fill)
+                    adapted = self.return_src.process(payload, ratio)
+                    self.write_speaker(adapted)
 
     def silencer(self):
         chunk = b'\x00' * proto.FRAME_BYTES
         while not self.stopping.is_set():
-            if self.speaker_fd >= 0 and not self.active.is_set():
-                self.write_speaker(chunk)
+            with self.return_lock:
+                if self.speaker_fd >= 0 and not self.active.is_set():
+                    self.write_speaker(chunk)
             time.sleep(0.02)
 
     def watchdog(self):
@@ -368,7 +381,7 @@ class Daemon:
             ep_out = os.open(f'{MNT}/ep1', os.O_RDWR)
             ep_in = os.open(f'{MNT}/ep2', os.O_RDWR)
         except OSError as error:
-            self.fail(f'打开端点失败: {error}')
+            self.request_restart(f'打开端点失败，重启服务: {error}')
             for fd in (locals().get('ep_out', -1), locals().get('ep_in', -1)):
                 if fd >= 0:
                     os.close(fd)
@@ -420,9 +433,17 @@ class Daemon:
                 self.fail(f'UDC 绑定失败: {error}（离线模式）')
         last_report = time.monotonic()
         while not self.stopping.is_set():
-            ready, _, _ = select.select([self.ep0], [], [], 0.5)
-            if ready:
-                self.handle_events(os.read(self.ep0, FFS_EVENT.size * 5))
+            try:
+                ready, _, _ = select.select([self.ep0], [], [], 0.5)
+                if ready:
+                    events = os.read(self.ep0, FFS_EVENT.size * 5)
+                    if not events:
+                        self.request_restart('ep0 事件流结束，重启服务')
+                        break
+                    self.handle_events(events)
+            except OSError as error:
+                self.request_restart(f'ep0 事件读取失败，重启服务: {error}')
+                break
             if time.monotonic() - last_report >= REPORT_SECONDS:
                 self.report()
                 last_report = time.monotonic()

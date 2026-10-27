@@ -12,7 +12,7 @@
 
 namespace rvc {
 ModeController::ModeController(RVCPipelineBase& pipeline, Config config)
-    : pipeline_(pipeline), config_(std::move(config)) {
+    : pipeline_(pipeline), config_(std::move(config)), pre_control_(config_.pre) {
     std::filesystem::create_directories(config_.storage_dir);
     if (!std::filesystem::exists(config_.presets_path)) save_presets_locked(nlohmann::json::array());
     FileRvcWorker::Config file_config;
@@ -385,7 +385,8 @@ nlohmann::json ModeController::parameters() const {
 nlohmann::json ModeController::parameters_json(const RvcParameters& parameters) {
     return {
         {"f0_method", parameters.f0_method}, {"pitch_shift", parameters.pitch_shift},
-        {"index_rate", parameters.index_rate}, {"filter_radius", parameters.filter_radius},
+        {"index_rate", parameters.index_rate}, {"index_nprobe", parameters.index_nprobe},
+        {"filter_radius", parameters.filter_radius},
         {"rms_mix_rate", parameters.rms_mix_rate}, {"protect", parameters.protect}
     };
 }
@@ -402,14 +403,16 @@ nlohmann::json ModeController::set_parameters(const nlohmann::json& input) {
     parameters.f0_method = input.value("f0_method", parameters.f0_method);
     parameters.pitch_shift = input.value("pitch_shift", parameters.pitch_shift);
     parameters.index_rate = input.value("index_rate", parameters.index_rate);
+    parameters.index_nprobe = input.value("index_nprobe", parameters.index_nprobe);
     parameters.filter_radius = input.value("filter_radius", parameters.filter_radius);
     parameters.rms_mix_rate = input.value("rms_mix_rate", parameters.rms_mix_rate);
     parameters.protect = input.value("protect", parameters.protect);
     if (invalid_rvc_parameter(parameters) || !pipeline_.set_parameters(parameters)) {
         return {{"status", "invalid"}, {"error", "parameters are outside the supported RVC range"}};
     }
-    spdlog::info("[rvc] parameters updated: f0={}, pitch={}, index_rate={}, filter_radius={}, rms_mix_rate={}, protect={}",
+    spdlog::info("[rvc] parameters updated: f0={}, pitch={}, index_rate={}, index_nprobe={}, filter_radius={}, rms_mix_rate={}, protect={}",
                  parameters.f0_method, parameters.pitch_shift, parameters.index_rate,
+                 parameters.index_nprobe,
                  parameters.filter_radius, parameters.rms_mix_rate, parameters.protect);
     return {{"status", "active"}, {"parameters", parameters_json(parameters)}};
 }
@@ -459,6 +462,7 @@ nlohmann::json ModeController::save_preset(const nlohmann::json& preset) {
     validated.f0_method = parameters.value("f0_method", validated.f0_method);
     validated.pitch_shift = parameters.value("pitch_shift", validated.pitch_shift);
     validated.index_rate = parameters.value("index_rate", validated.index_rate);
+    validated.index_nprobe = parameters.value("index_nprobe", validated.index_nprobe);
     validated.filter_radius = parameters.value("filter_radius", validated.filter_radius);
     validated.rms_mix_rate = parameters.value("rms_mix_rate", validated.rms_mix_rate);
     validated.protect = parameters.value("protect", validated.protect);
@@ -522,6 +526,37 @@ std::filesystem::path ModeController::upload_path(const std::string& original_na
         std::chrono::system_clock::now()).time_since_epoch().count();
     return config_.storage_dir / (std::to_string(now) + "_" + std::to_string(sequence.fetch_add(1))
                                  + "_input" + sanitize_extension(original_name) + ".upload");
+}
+
+nlohmann::json ModeController::preprocessor_status() const {
+    return pre_control_.status();
+}
+
+nlohmann::json ModeController::set_preprocessor(const nlohmann::json& request) {
+    const std::string capture = request.value("capture", std::string());
+    const std::string playback = request.value("playback", std::string());
+    if (capture.empty() || playback.empty()) {
+        return {{"status", "invalid"}, {"error", "capture 与 playback 都是必填项"}};
+    }
+    auto result = pre_control_.set_devices(capture, playback);
+    if (result.value("status", "") != "active") return result;
+
+    // 新的预处理进程用新的 UDP 客户端端口。UdpStream 只接受当前会话的客户端，
+    // 所以切换设备后必须重建实时会话，否则音频包会被丢弃。
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (mode_ == "rt_rvc") {
+        const std::string model = pipeline_.current_model_id();
+        transition_locked("idle", "");
+        const auto restarted = transition_locked("rt_rvc", model);
+        if (restarted.value("status", "") != "active") {
+            return {{"status", "failed"},
+                    {"error", "预处理已切换，但实时会话重建失败: " + restarted.value("error", std::string())}};
+        }
+        result["session"] = "restarted";
+    } else {
+        result["session"] = "unchanged";
+    }
+    return result;
 }
 
 void ModeController::file_loop() {

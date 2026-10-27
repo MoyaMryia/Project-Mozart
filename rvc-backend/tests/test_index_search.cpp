@@ -144,6 +144,7 @@ static std::vector<float> reference_search(const SyntheticIndex& spec,
                                            const std::vector<float>& feats,
                                            float rate) {
     const uint32_t d = spec.d;
+    constexpr uint32_t kNeighbours = 8;
     std::vector<float> out = feats;
     const size_t frames = feats.size() / d;
     for (size_t t = 0; t < frames; ++t) {
@@ -159,8 +160,10 @@ static std::vector<float> reference_search(const SyntheticIndex& spec,
             if (dist < best_cd) { best_cd = dist; best_c = c; }
         }
         if (spec.lists[best_c].empty()) continue;
-        uint64_t best_k = 0;
-        float best_d = std::numeric_limits<float>::max();
+
+        // Golden: k=8 in the nearest list, weight (1/distance)^2, normalised.
+        struct Cand { float dist; uint64_t k; };
+        std::vector<Cand> best;
         const uint64_t n = spec.lists[best_c].size() / d;
         for (uint64_t k = 0; k < n; ++k) {
             float dist = 0;
@@ -168,10 +171,27 @@ static std::vector<float> reference_search(const SyntheticIndex& spec,
                 const float e = q[j] - spec.lists[best_c][k * d + j];
                 dist += e * e;
             }
-            if (dist < best_d) { best_d = dist; best_k = k; }
+            if (best.size() == kNeighbours && dist >= best.back().dist) continue;
+            auto pos = std::lower_bound(best.begin(), best.end(), dist,
+                [](const Cand& c, float v) { return c.dist < v; });
+            best.insert(pos, Cand{dist, k});
+            if (best.size() > kNeighbours) best.pop_back();
+        }
+        if (best.size() < kNeighbours) continue;
+
+        float weight[kNeighbours];
+        float total = 0;
+        for (uint32_t i = 0; i < kNeighbours; ++i) {
+            const float inv = 1.0f / (best[i].dist + 1e-12f);
+            weight[i] = inv * inv;
+            total += weight[i];
         }
         for (uint32_t j = 0; j < d; ++j) {
-            out[t * d + j] = q[j] * (1.0f - rate) + spec.lists[best_c][best_k * d + j] * rate;
+            float blended = 0;
+            for (uint32_t i = 0; i < kNeighbours; ++i) {
+                blended += weight[i] / total * spec.lists[best_c][best[i].k * d + j];
+            }
+            out[t * d + j] = q[j] * (1.0f - rate) + blended * rate;
         }
     }
     return out;

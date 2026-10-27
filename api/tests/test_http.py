@@ -314,6 +314,8 @@ class HttpTests(unittest.TestCase):
                 line = stream.readline()
                 if line.startswith(b'data: '):
                     return json.loads(line[6:])
+        # 连接时补发已有内容：刷新页面后，控制台仍能看到上下文。
+        self.assertEqual(event(), {'old': True})
         with path.open('a') as output:
             output.write('{"seq":1}')
             output.flush()
@@ -327,6 +329,24 @@ class HttpTests(unittest.TestCase):
         path.write_text('{"seq":3}\n')
         self.assertEqual(event(), {'seq': 3})
         stream.close()
+
+    def test_subtitles_history_is_bounded(self):
+        path = Path(self.temporary.name)/'captions.jsonl'
+        path.write_text(''.join('{"seq":%d}\n' % i for i in range(260)))
+        client = self.connect()
+        client.sendall(b'GET /api/subtitles HTTP/1.1\r\n\r\n')
+        stream = client.makefile('rb')
+        while stream.readline() != b'\r\n':
+            pass
+        events = []
+        while len(events) < 200:
+            line = stream.readline()
+            if line.startswith(b'data: '):
+                events.append(json.loads(line[6:]))
+        self.assertEqual(events[0], {'seq': 60})
+        self.assertEqual(events[-1], {'seq': 259})
+        stream.close()
+        client.close()
 
     def test_subtitles_file_created_after_connection(self):
         client = self.connect()

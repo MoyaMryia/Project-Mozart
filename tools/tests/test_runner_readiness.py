@@ -3,6 +3,7 @@ from pathlib import Path
 import signal
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 import urllib.error
@@ -30,6 +31,8 @@ class RunnerReadinessTests(unittest.TestCase):
                 argv += ['--input', '/fixture/input.mp4']
             argv += [str(reference) if value == 'REFERENCE' else value for value in options]
 
+            self.launch_environments = []
+
             def snapshot():
                 path = run_dir/'stack-status.json'
                 if path.exists():
@@ -38,6 +41,7 @@ class RunnerReadinessTests(unittest.TestCase):
             def popen(command, **kwargs):
                 nonlocal health_calls, speech_calls, session_calls
                 snapshot()
+                self.launch_environments.append((list(command), kwargs.get('env')))
                 if any('mozart_stated' in word for word in command):
                     name = 'backend'
                 elif any('speech_service.py' in word for word in command):
@@ -76,6 +80,11 @@ class RunnerReadinessTests(unittest.TestCase):
                 process.wait.side_effect = wait
                 process.terminate.side_effect = wait
                 self.processes[name] = process
+                if name == 'captions' and '--external-capture' in argv and scenario != 'external_no_audio':
+                    self.write_audio_status = lambda last: (run_dir/'audio-status.json').write_text(json.dumps({
+                        'packets': 500, 'rejected': 0, 'last_audio_at': last,
+                        'instance_id': self.snapshots[-1]['instance_id']}))
+                    self.write_audio_status(time.time())
                 return process
 
             def urlopen(request, **kwargs):
@@ -147,6 +156,12 @@ class RunnerReadinessTests(unittest.TestCase):
                         if scenario != 'mixed_recovery' or (current['readiness']['translation']
                                 and not current['readiness']['speech_runtime']) or clock[0] > 5:
                             handlers[signal.SIGTERM](signal.SIGTERM, None)
+                if scenario == 'stop_external_capture' and self.snapshots[-1]['phase'] == 'capturing':
+                    handlers[signal.SIGTERM](signal.SIGTERM, None)
+                if scenario == 'external_audio_stops' and self.snapshots[-1]['phase'] == 'capturing':
+                    self.write_audio_status(time.time() - runner.STARTUP_TIMEOUT_SECONDS - 1)
+                if scenario == 'external_child_exit' and self.snapshots[-1]['phase'] == 'capturing':
+                    self.processes['translation'].returncode = 7
                 if ((scenario == 'stop_waiting' and self.snapshots[-1]['phase'] == 'waiting_for_voice')
                         or (scenario == 'stop_loading' and self.snapshots[-1]['phase'] == 'preparing_services')):
                     handlers[signal.SIGTERM](signal.SIGTERM, None)
@@ -211,6 +226,68 @@ class RunnerReadinessTests(unittest.TestCase):
         self.assertEqual(status['state'], 'failed')
         self.assertEqual(status['error']['type'], 'CalledProcessError')
         self.assertNotIn('microphone', self.launches)
+
+    def test_glossary_and_corrections_reach_every_child(self):
+        with tempfile.TemporaryDirectory() as labels:
+            glossary = Path(labels)/'glossary.json'
+            corrections = Path(labels)/'corrections.json'
+            glossary.write_text('{"赌博": "gambling"}')
+            corrections.write_text('{"痛赌": "赌博"}')
+            self.run_scenario(options=['--glossary', str(glossary), '--corrections', str(corrections)])
+            for name in ('mozart_stated', 'subtitle_bridge.py', 'llama-server'):
+                found = [environment for command, environment in self.launch_environments
+                         if any(name in str(word) for word in command)]
+                self.assertEqual(len(found), 1, name)
+                self.assertEqual(found[0]['MOZART_GLOSSARY'], str(glossary.resolve()), name)
+            found = [environment for command, environment in self.launch_environments
+                     if any('subtitle_bridge.py' in str(word) for word in command)]
+            self.assertEqual(found[0]['MOZART_CORRECTIONS'], str(corrections.resolve()))
+
+    def test_external_capture_stops_without_launching_another_microphone(self):
+        status = self.run_scenario(microphone=True, options=['--external-capture', '--mode', 'captions'],
+                                   scenario='stop_external_capture')
+        self.assertEqual(status['state'], 'stopped')
+        self.assertIsNotNone(status['capture_started_at'])
+        self.assertNotIn('microphone', self.launches)
+
+    def test_external_capture_monitors_owned_services(self):
+        status = self.run_scenario(microphone=True, options=['--external-capture', '--mode', 'captions'],
+                                   scenario='external_child_exit', expected_error=RuntimeError)
+        self.assertEqual(status['state'], 'failed')
+        self.assertEqual(status['children']['translation']['exit_code'], 7)
+        self.assertNotIn('microphone', self.launches)
+
+    def test_external_capture_waits_for_audio_before_declaring_capture(self):
+        status = self.run_scenario(microphone=True, options=['--external-capture', '--mode', 'captions'],
+                                   scenario='external_no_audio', expected_error=runner.ServiceUnavailable)
+        self.assertEqual(status['state'], 'failed')
+        self.assertIsNone(status['capture_started_at'])
+        self.assertNotIn('running', [item['state'] for item in self.snapshots])
+
+    def test_external_capture_stops_when_audio_becomes_stale(self):
+        status = self.run_scenario(microphone=True, options=['--external-capture', '--mode', 'captions'],
+                                   scenario='external_audio_stops', expected_error=runner.ServiceUnavailable)
+        self.assertEqual(status['state'], 'failed')
+        self.assertIn('External audio unavailable', status['error']['message'])
+        self.assertIsNotNone(status['capture_started_at'])
+
+    def test_external_capture_rejects_file_replay(self):
+        with patch.object(sys, 'argv', ['runner', '--backend-config', 'fake',
+                                        '--external-capture', '--input', '/fixture/input.mp4']), \
+                patch.object(runner.subprocess, 'Popen') as launch, patch.object(sys, 'stderr'):
+            with self.assertRaises(SystemExit) as error:
+                runner.main()
+            self.assertEqual(error.exception.code, 2)
+            launch.assert_not_called()
+
+    def test_capture_preprocessor_does_not_take_the_realtime_control_port(self):
+        # 实时变声链路占用 19040。字幕栈的采集预处理器必须关闭控制通道。
+        self.run_scenario(options=['--mic-device', 'dsnoop:CARD=MIC,DEV=0'])
+        found = [command for command, _ in self.launch_environments
+                 if any('mozart-pre' in str(word) for word in command)]
+        self.assertEqual(len(found), 1)
+        self.assertIn('--ctl-port', found[0])
+        self.assertEqual(found[0][found[0].index('--ctl-port')+1], '0')
 
     def test_captions_mode_has_no_speech_process(self):
         status = self.run_scenario(options=['--mode', 'captions'])

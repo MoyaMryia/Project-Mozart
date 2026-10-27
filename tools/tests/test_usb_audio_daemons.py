@@ -75,6 +75,29 @@ class FunctionEventsTests(unittest.TestCase):
         read.assert_called_once_with(10, jetson.FFS_EVENT.size * 5)
 
 
+    def test_event_eof_and_io_errors_request_restart_and_clean_up(self):
+        for failure in (b'', OSError('event endpoint lost')):
+            with self.subTest(failure=failure), contextlib.ExitStack() as stack:
+                daemon = jetson.Daemon()
+                for obj, name in ((jetson.signal, 'signal'), (jetson.threading.Thread, 'start'),
+                                  (jetson.os, 'close'), (daemon, 'start_audio')):
+                    stack.enter_context(patch.object(obj, name))
+                stack.enter_context(patch.dict(os.environ, {'MOZART_UDC': ''}))
+                stack.enter_context(patch.object(jetson.os, 'open', return_value=10))
+                stack.enter_context(patch.object(jetson.os, 'write'))
+                stack.enter_context(patch.object(jetson.select, 'select', return_value=([10], [], [])))
+                read = stack.enter_context(patch.object(jetson.os, 'read'))
+                if isinstance(failure, OSError):
+                    read.side_effect = failure
+                else:
+                    read.return_value = failure
+                stop = stack.enter_context(patch.object(daemon, 'stop_audio'))
+                self.assertEqual(daemon.run(), 1)
+                self.assertIn('ep0', daemon.last_error)
+                stop.assert_called_once_with()
+                read.assert_called_once()
+
+
 class EndpointRecoveryTests(unittest.TestCase):
     def assert_restart_requested(self, daemon):
         self.assertTrue(daemon.stopping.is_set())
@@ -96,6 +119,36 @@ class EndpointRecoveryTests(unittest.TestCase):
                 patch.object(daemon, 'pipe_backlog', return_value=2048), \
                 patch.object(jetson.os, 'write', side_effect=OSError('endpoint disconnected')):
             daemon.mic_pump(daemon.generation)
+        self.assert_restart_requested(daemon)
+
+    def test_short_in_write_requests_restart(self):
+        daemon = jetson.Daemon()
+        daemon.active.set()
+        size = proto.FAST_BYTES if jetson.FAST else proto.FRAME_BYTES
+        daemon.mic = types.SimpleNamespace(stdout=io.BytesIO(b'\x01\x00' * (size // 2)))
+        with patch.object(daemon, 'drain_capture_backlog'), \
+                patch.object(jetson.os, 'write', return_value=1):
+            daemon.mic_pump(daemon.generation)
+        self.assert_restart_requested(daemon)
+        self.assertEqual(daemon.frames_in, 0)
+
+    def test_open_failure_requests_restart_and_closes_partial_endpoints(self):
+        for opens, closed in (([OSError('ep1 lost')], []), ([10, OSError('ep2 lost')], [10])):
+            with self.subTest(opens=opens):
+                daemon = jetson.Daemon()
+                with patch.object(jetson.os, 'open', side_effect=opens), \
+                        patch.object(jetson.os, 'close') as close:
+                    daemon.enable()
+                self.assert_restart_requested(daemon)
+                self.assertEqual([call.args[0] for call in close.call_args_list], closed)
+
+    def test_out_eof_requests_restart(self):
+        daemon = jetson.Daemon()
+        daemon.active.set()
+        daemon.ep_out = 10
+        with patch.object(jetson.select, 'select', return_value=([10], [], [])), \
+                patch.object(jetson.os, 'read', return_value=b''):
+            daemon.usb_pump(daemon.generation)
         self.assert_restart_requested(daemon)
 
     def test_failed_out_read_requests_service_restart(self):
@@ -192,13 +245,36 @@ class PipeFeedbackTests(unittest.TestCase):
                         bridge.mic = types.SimpleNamespace(stdout=stream)
                         bridge.active.set()
                     with patch.object(bridge, 'drain_capture_backlog'), \
-                            patch.object(module.os, 'write', side_effect=lambda *a: bridge.stopping.set()) as write:
+                            patch.object(module.os, 'write', side_effect=lambda *a: (
+                                bridge.stopping.set(), len(a[1]))[1]) as write:
                         if kind == 'host':
                             bridge.alsa_to_usb()
                         else:
                             bridge.mic_pump(bridge.generation)
                     frame = bridge.ep_out.write.call_args.args[0] if kind == 'host' else write.call_args.args[1]
                     self.assertEqual(proto.decode(frame)[-1], PAYLOAD)
+
+    def test_silence_writes_use_the_playback_lock(self):
+        for module, bridge in ((host, host.Bridge()), (jetson, jetson.Daemon())):
+            with self.subTest(module=module.__name__):
+                bridge.speaker_fd = 20
+                def write(_):
+                    self.assertTrue(bridge.return_lock.locked())
+                    bridge.stopping.set()
+                with patch.object(bridge, 'write_speaker', side_effect=write), \
+                        patch.object(module.time, 'sleep'):
+                    bridge.silencer()
+
+    def test_pipe_feedback_failure_records_the_fallback_reason(self):
+        read_fd, write_fd = os.pipe()
+        os.close(read_fd)
+        os.close(write_fd)
+        for bridge in (host.Bridge(), jetson.Daemon()):
+            self.assertEqual(bridge.pipe_backlog(read_fd), 0)
+            self.assertEqual(bridge.pipe_backlog(read_fd), 0)
+            self.assertTrue(bridge.backlog_error)
+            self.assertIn('查询管道水位失败', bridge.last_error)
+            self.assertEqual(bridge.errors, 1)
 
     def test_jetson_return_uses_real_pipe_sample_frames(self):
         daemon = jetson.Daemon()

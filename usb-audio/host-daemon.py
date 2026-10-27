@@ -58,6 +58,7 @@ class Bridge:
         target_frames = proto.FAST_SAMPLES * TARGET_BLOCKS
         self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=target_frames)
         self.last_error = ''
+        self.backlog_error = False
 
     # --- 记录 ---
     def fail(self, reason):
@@ -151,12 +152,17 @@ class Bridge:
 
     # --- 过期帧排空（M2 延迟修复）---
     def pipe_backlog(self, fd):
-        """FIONREAD 查询管道积压字节数；失败返回 0。"""
+        """FIONREAD 查询管道积压字节数；失败记录原因并返回 0。"""
         try:
             import fcntl
-            return struct.unpack('i', fcntl.ioctl(fd, 0x541B, b'\x00' * 4))[0]
-        except (OSError, ImportError):
+            backlog = struct.unpack('i', fcntl.ioctl(fd, 0x541B, b'\x00' * 4))[0]
+        except (OSError, ImportError) as error:
+            if not self.backlog_error:
+                self.fail(f'查询管道水位失败，按空管道处理: {error}')
+            self.backlog_error = True
             return 0
+        self.backlog_error = False
+        return backlog
 
     def drain_capture_backlog(self, stream, chunk_bytes, keep_frames):
         """积压超过 keep_frames 时丢最旧帧，计数到 dropped。"""
@@ -424,8 +430,9 @@ class Bridge:
     def silencer(self):
         chunk = b'\x00' * proto.FRAME_BYTES
         while not self.stopping.is_set():
-            if self.speaker_fd >= 0 and self.ep_in is None:
-                self.write_speaker(chunk)
+            with self.return_lock:
+                if self.speaker_fd >= 0 and self.ep_in is None:
+                    self.write_speaker(chunk)
             time.sleep(0.02)
 
     def watchdog(self):

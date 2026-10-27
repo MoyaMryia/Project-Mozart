@@ -145,6 +145,7 @@ set(RUNTIME_SOURCES
     src/rvc/onnx_engine.cpp
     src/rvc/index_search.cpp
     src/state/mode_controller.cpp
+    src/state/pre_control.cpp
     src/state/realtime_rvc_worker.cpp
     src/state/file_rvc_worker.cpp
     src/state/log_store.cpp
@@ -253,6 +254,10 @@ if(BUILD_TESTS)
         add_test(NAME onnx_unavailable COMMAND test_onnx_unavailable)
     endif()
     add_executable(test_mode_controller tests/test_mode_controller.cpp)
+    add_executable(test_pre_control tests/test_pre_control.cpp)
+    target_link_libraries(test_pre_control PRIVATE mozart_rvc_runtime)
+    add_test(NAME pre_control COMMAND test_pre_control)
+    set_tests_properties(pre_control PROPERTIES TIMEOUT 30)
     target_link_libraries(test_mode_controller PRIVATE mozart_rvc_runtime)
     foreach(case capacity position clear_queued active_cancel eviction clear_completed clear_failed disabled
                  file_paths file_duration cancel_decode cancel_encode timeout failure)

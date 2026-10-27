@@ -40,25 +40,28 @@ static size_t handle_line(char *line, char *reply, size_t reply_size,
     const char *arg = strtok_r(NULL, " \t", &save);
     const char *extra = strtok_r(NULL, " \t", &save);
 
-    if (extra)
-        return (size_t)snprintf(reply, reply_size, "err extra-argument\n") + 1;
-
     if (cmd && !strcmp(cmd, "mode") && arg) {
-        if (!strcmp(arg, "ai")) { vt->set_route(ctx, 0); return (size_t)snprintf(reply, reply_size, "ok mode ai\n") + 1; }
-        if (!strcmp(arg, "direct")) { vt->set_route(ctx, 1); return (size_t)snprintf(reply, reply_size, "ok mode direct\n") + 1; }
-        return (size_t)snprintf(reply, reply_size, "err mode must be ai|direct\n") + 1;
+        if (extra)
+            return (size_t)snprintf(reply, reply_size, "err extra-argument\n");
+        if (!strcmp(arg, "ai")) { vt->set_route(ctx, 0); return (size_t)snprintf(reply, reply_size, "ok mode ai\n"); }
+        if (!strcmp(arg, "direct")) { vt->set_route(ctx, 1); return (size_t)snprintf(reply, reply_size, "ok mode direct\n"); }
+        return (size_t)snprintf(reply, reply_size, "err mode must be ai|direct\n");
     }
     if (cmd && !strcmp(cmd, "stage") && arg) {
-        const char *value = strtok_r(NULL, " \t", &save);
+        // stage 需要三个字段：命令、名字、开或关。第四个字段才是多余参数。
+        const char *value = extra;
+        const char *beyond = strtok_r(NULL, " \t", &save);
+        if (beyond)
+            return (size_t)snprintf(reply, reply_size, "err extra-argument\n");
         if (!value)
-            return (size_t)snprintf(reply, reply_size, "err usage: stage <name> on|off\n") + 1;
+            return (size_t)snprintf(reply, reply_size, "err usage: stage <name> on|off\n");
         bool on = false;
         if (!parse_on_off(value, &on))
-            return (size_t)snprintf(reply, reply_size, "err value must be on|off\n") + 1;
+            return (size_t)snprintf(reply, reply_size, "err value must be on|off\n");
         if (!vt->set_stage(ctx, arg, on))
             return (size_t)snprintf(reply, reply_size,
-                                    "err unknown stage %s (denoise|gate|agc|limiter)\n", arg) + 1;
-        return (size_t)snprintf(reply, reply_size, "ok stage %s %s\n", arg, on ? "on" : "off") + 1;
+                                    "err unknown stage %s (denoise|gate|agc|limiter)\n", arg);
+        return (size_t)snprintf(reply, reply_size, "ok stage %s %s\n", arg, on ? "on" : "off");
     }
     if (cmd && !strcmp(cmd, "status") && !arg) {
         vt->snapshot(ctx, reply, reply_size);
@@ -66,12 +69,12 @@ static size_t handle_line(char *line, char *reply, size_t reply_size,
         if (len + 1 < reply_size && len > 0 && reply[len - 1] != '\n') {
             reply[len] = '\n';
             reply[len + 1] = '\0';
-            return len + 2;
+            return len + 1;
         }
         return len + 1;
     }
     return (size_t)snprintf(reply, reply_size,
-                            "err commands: mode ai|direct | stage <name> on|off | status\n") + 1;
+                            "err commands: mode ai|direct | stage <name> on|off | status\n");
 }
 
 static void *control_thread(void *arg)
@@ -90,7 +93,7 @@ static void *control_thread(void *arg)
         }
         buf[n] = '\0';
         size_t len = handle_line(buf, reply, sizeof(reply), &c->vt, c->ctx);
-        if (len > sizeof(reply)) len = sizeof(reply);  // snprintf 截断保护
+        if (len > sizeof(reply) - 1) len = sizeof(reply) - 1;  // snprintf 截断保护
         sendto(c->fd, reply, len, 0,
                (struct sockaddr *)&peer, peer_len);
     }
