@@ -1,6 +1,0 @@
-[ 50%] Building C object preprocessor/CMakeFiles/mozart_tempo_filter.dir/src/tempo_filter.c.o
-[100%] Linking C shared library libmozart-tempo.so
-[100%] Built target mozart_tempo_filter
-[ 50%] Building C object preprocessor/CMakeFiles/mozart-tempo.dir/src/tempo_filter.c.o
-[100%] Linking C executable mozart-tempo
-[100%] Built target mozart-tempo

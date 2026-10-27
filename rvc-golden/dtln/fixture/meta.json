@@ -1,7 +1,0 @@
-{
- "input_samples": 16000,
- "golden_samples": 15488,
- "golden_offset": 384,
- "note": "golden = python full stream [384:384+15488]",
- "max_diff_threshold": 1e-05
-}
