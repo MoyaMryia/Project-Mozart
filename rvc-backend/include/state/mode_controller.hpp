@@ -17,6 +17,7 @@
 #include "rvc/pipeline.hpp"
 #include "state/control_plane.hpp"
 #include "state/file_rvc_worker.hpp"
+#include "state/pre_control.hpp"
 #include "state/realtime_rvc_worker.hpp"
 
 namespace rvc {
@@ -42,6 +43,7 @@ public:
         std::filesystem::path models_dir = "./models";
         std::filesystem::path presets_path = "./storage/presets.json";
         RvcParameters default_parameters{};
+        PreControl::Config pre;
     };
 
     ModeController(RVCPipelineBase& pipeline, Config config);
@@ -73,6 +75,8 @@ public:
     nlohmann::json delete_preset(const std::string& preset_id) override;
     nlohmann::json list_models() const override;
     std::filesystem::path upload_path(const std::string& original_name) const override;
+    nlohmann::json preprocessor_status() const override;
+    nlohmann::json set_preprocessor(const nlohmann::json& request) override;
 
 private:
     struct Job {
@@ -89,6 +93,7 @@ private:
 
     RVCPipelineBase& pipeline_;
     Config config_;
+    PreControl pre_control_;
     mutable std::mutex mutex_;
     std::condition_variable jobs_changed_;
     std::deque<Job> jobs_;

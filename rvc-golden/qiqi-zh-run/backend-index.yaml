@@ -40,3 +40,10 @@ storage:
   ffmpeg_path: ffmpeg
   file_rnnoise: false
   max_queue_depth: 5
+# 预处理由 tools/run-realtime-voice.sh 管理。控制面只读设备与状态，
+# 并按请求调用脚本的 pre-restart。
+preprocessor:
+  script: /home/moyamryia/Mozart/tools/run-realtime-voice.sh
+  status_file: /tmp/mozart-realtime/pre-status.json
+  devices_file: /tmp/mozart-realtime/pre-devices.json
+  timeout_ms: 20000

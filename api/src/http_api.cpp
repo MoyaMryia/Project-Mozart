@@ -462,6 +462,12 @@ void HttpApiServer::handle_request(int client_fd) {
     else if (route == "/api/parameters" && method == "PUT") {
         response = handle_parameters_set(body);
     }
+    else if (route == "/api/preprocessor" && method == "GET") {
+        response = handle_preprocessor_get();
+    }
+    else if (route == "/api/preprocessor" && method == "PUT") {
+        response = handle_preprocessor_set(body);
+    }
     else if (route == "/api/parameters/reset" && method == "POST") {
         response = handle_parameters_reset();
     }
@@ -794,6 +800,25 @@ std::string HttpApiServer::handle_glossary_set(const std::string& body) {
 
 std::string HttpApiServer::handle_parameters_get() {
     return http_response(200, controller_ ? controller_->parameters().dump() : R"({"error":"controller not initialized"})");
+}
+
+std::string HttpApiServer::handle_preprocessor_get() {
+    if (!controller_) return http_response(503, R"({"error":"controller not initialized"})");
+    return http_response(200, controller_->preprocessor_status().dump());
+}
+
+std::string HttpApiServer::handle_preprocessor_set(const std::string& body) {
+    if (!controller_) return http_response(503, R"({"error":"controller not initialized"})");
+    nlohmann::json request;
+    try {
+        request = nlohmann::json::parse(body);
+    } catch (const std::exception&) {
+        return http_response(400, R"({"error":"invalid preprocessor JSON"})");
+    }
+    const auto result = controller_->set_preprocessor(request);
+    const std::string status = result.value("status", "");
+    const int code = status == "invalid" ? 422 : status == "failed" ? 502 : 200;
+    return http_response(code, result.dump());
 }
 
 std::string HttpApiServer::handle_parameters_set(const std::string& body) {
