@@ -112,6 +112,7 @@ prepare_host() {
         [[ "$rc" == 3 && "$state" == inactive ]] || fail "旧服务状态查询失败：$state ($rc)"
     fi
     [[ "$FILE_MODE" == 0 ]] || return 0
+    [[ "${AUDIO_MODE:-direct}" == direct ]] || return 0
     sink=${MOZART_PULSE_SINK:-}
     if [[ -z "$sink" ]]; then sink=$(limited pactl get-default-sink); fi
     listing=$(limited pactl list short sinks)
@@ -150,8 +151,12 @@ run_native() {
     rm -f -- "$PIDFILE" "$STATUS" "$STATUS.tmp"
     printf '%s\n' "$$" > "$RUN/supervisor.pid"
     if [[ "$ROLE" == host ]]; then prepare_host; else prepare_pre; fi
+    local -a pw_env=()
+    if [[ "${AUDIO_MODE:-direct}" != direct ]]; then
+        pw_env=(XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" PIPEWIRE_REMOTE="${PIPEWIRE_REMOTE:-pipewire-0}")
+    fi
     # sudo 子进程关闭锁；监督 shell 持锁直至恢复结束。
-    sudo -n sh -c 'pidfile=$1; shift; printf "%s\n" "$$" > "$pidfile" || exit 1; exec chrt --fifo 40 "$@"' \
+    sudo -n env "${pw_env[@]}" sh -c 'pidfile=$1; shift; printf "%s\n" "$$" > "$pidfile" || exit 1; exec chrt --fifo 40 "$@"' \
         mozart-native "$PIDFILE" "$BIN" "${ARGS[@]}" 9>&- &
     CHILD=$!
     local rc

@@ -171,6 +171,8 @@ struct ArtifactCollision : std::runtime_error { using std::runtime_error::runtim
 struct Options {
     std::string capture = "default", playback = "default", input, output, trace;
     std::string status = "build/run/usb-native.json";
+    std::string audio_mode = "direct";
+    std::string pw_capture = "mozart_speaker", pw_playback = "mozart_mic";
     uint64_t seconds = 0;
     unsigned periods = 6, prefill = 4, target = 3;
     bool legacy = false, pace = false;
@@ -184,6 +186,9 @@ inline Options parse(const std::vector<std::string>& args) {
         auto count = [&]() { auto n = integer(value()); require(n <= UINT_MAX, "option exceeds unsigned range"); return unsigned(n); };
         if (k == "--capture") { o.capture = text(); devices = true; }
         else if (k == "--playback") { o.playback = text(); devices = true; }
+        else if (k == "--audio-mode") o.audio_mode = text();
+        else if (k == "--pw-capture") o.pw_capture = text();
+        else if (k == "--pw-playback") o.pw_playback = text();
         else if (k == "--input") o.input = text();
         else if (k == "--output") o.output = text();
         else if (k == "--trace-dir") o.trace = text();
@@ -200,6 +205,9 @@ inline Options parse(const std::vector<std::string>& args) {
             o.prefill >= 2 && o.prefill < o.periods && o.target >= 2 && o.target < o.periods,
             "invalid periods/prefill/target");
     require(o.seconds <= UINT64_MAX / MOZART_USB_RATE, "seconds sample count overflow");
+    require(o.audio_mode == "direct" || o.audio_mode == "virtual-shared" || o.audio_mode == "virtual-exclusive",
+            "audio mode must be direct, virtual-shared or virtual-exclusive");
+    require(o.audio_mode == "direct" || !devices, "PipeWire mode excludes --capture/--playback");
     require(o.input.empty() == o.output.empty(), "--input and --output must be specified together");
     require(o.input.empty() || !devices, "file mode excludes ALSA device options");
     require(!o.pace || !o.input.empty(), "--pace requires file mode");
@@ -349,6 +357,7 @@ inline std::string json_string(const std::string& s) {
 }
 struct Status {
     std::string state = "warming", reason, fallback_reason, trace_cleanup_reason;
+    std::string audio_mode = "direct";
     unsigned block = 0, stream = 0;
     bool negotiated = false;
     uint64_t tx = 0, rx = 0, played = 0, warmup = 0, source_frames = 0, source_total_frames = 0;
@@ -382,6 +391,7 @@ struct Status {
         o << "{\"state\":" << json_string(state) << ",\"reason\":" << json_string(reason)
           << ",\"fallback_reason\":" << json_string(fallback_reason)
           << ",\"trace_cleanup_reason\":" << json_string(trace_cleanup_reason)
+          << ",\"audio_mode\":" << json_string(audio_mode)
           << ",\"negotiated\":" << (negotiated ? "true" : "false") << ",\"block\":" << block << ",\"stream\":" << stream
           << ",\"tx\":" << tx << ",\"rx\":" << rx << ",\"played\":" << played << ",\"warmup\":" << warmup
           << ",\"source_frames\":" << source_frames << ",\"source_total_frames\":" << source_total_frames

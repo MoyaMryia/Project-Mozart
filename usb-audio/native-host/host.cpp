@@ -1,4 +1,8 @@
 #include "runtime.hpp"
+#include "audio_pcm.hpp"
+#include "pipewire_pcm.hpp"
+#include "socket_playback.hpp"
+#include "playback_helper.hpp"
 #include "wav.hpp"
 #include "session.hpp"
 #include <libusb.h>
@@ -94,7 +98,7 @@ void negotiate(const Options& o, Usb& usb, Receiver<Usb>& receiver, Shared& shar
     });
 }
 // Pcm 的启动、target 等待和非阻塞 drain 移植自实测 bridge.cpp。
-class Pcm {
+class AlsaPcm final : public AudioPcm {
     Shared& shared_;
     bool capture_;
     std::string name_;
@@ -113,7 +117,7 @@ public:
     snd_pcm_t* pcm = nullptr;
     unsigned block;
     snd_pcm_uframes_t buffer;
-    Pcm(const std::string& name, bool capture, unsigned frames, const Options& o, Shared& shared)
+    AlsaPcm(const std::string& name, bool capture, unsigned frames, const Options& o, Shared& shared)
         : shared_(shared), capture_(capture), name_(name), block(frames), buffer(frames * o.periods) {
         try {
             check(snd_pcm_open(&pcm, name.c_str(), capture ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK), "PCM open");
@@ -139,22 +143,22 @@ public:
             check(snd_pcm_prepare(pcm), "PCM prepare");
         } catch (const std::exception&) { if (pcm) snd_pcm_close(pcm); throw; }
     }
-    ~Pcm() { if (pcm) snd_pcm_close(pcm); }
-    void start() { check(snd_pcm_start(pcm), "capture start"); }
-    void stop_capture() { check(snd_pcm_drop(pcm), "capture stop"); }
-    void set_target(unsigned target) {
+    ~AlsaPcm() { if (pcm) snd_pcm_close(pcm); }
+    void start() override { check(snd_pcm_start(pcm), "capture start"); }
+    void stop_capture() override { check(snd_pcm_drop(pcm), "capture stop"); }
+    void set_target(unsigned target) override {
         snd_pcm_sw_params_t* sw; snd_pcm_sw_params_alloca(&sw);
         check(snd_pcm_sw_params_current(pcm, sw), "target sw params");
         target_available_ = buffer - target * block + block;
         check(snd_pcm_sw_params_set_avail_min(pcm, sw, target_available_), "target avail_min");
         check(snd_pcm_sw_params(pcm, sw), "apply playback target");
     }
-    int64_t delay() {
+    int64_t delay() override {
         snd_pcm_sframes_t value = 0; check(snd_pcm_delay(pcm, &value), "PCM delay");
         require(value >= 0, "negative PCM delay: " + name_);
         return value;
     }
-    void wait_target() {
+    void wait_target() override {
         auto deadline = Clock::now() + OperationTimeout;
         for (;;) {
             shared_.failure.check();
@@ -164,7 +168,7 @@ public:
             int rc = snd_pcm_wait(pcm, PollMs); if (rc != -EINTR) check(rc, "playback target wait");
         }
     }
-    void transfer(uint8_t* data, unsigned frames) {
+    void transfer(uint8_t* data, unsigned frames) override {
         unsigned offset = 0; auto deadline = Clock::now() + OperationTimeout;
         while (offset < frames) {
             shared_.failure.check();
@@ -178,7 +182,7 @@ public:
             require(n > 0, "zero PCM transfer"); offset += unsigned(n);
         }
     }
-    void drain() {
+    void drain() override {
         shared_.failure.check();
         int rc = snd_pcm_drain(pcm);
         if (rc == 0) return;
@@ -191,6 +195,7 @@ public:
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
+    bool running() override { return snd_pcm_state(pcm) == SND_PCM_STATE_RUNNING; }
 };
 struct PlaybackItem {
     uint32_t seq; unsigned valid; std::vector<uint8_t> bytes;
@@ -254,11 +259,23 @@ void run(const Options& o, Shared& shared) {
         std::lock_guard<std::mutex> lock(shared.mutex);
         block = shared.status.block; stream = uint8_t(shared.status.stream); negotiated = shared.status.negotiated;
     }
+    shared.update([&](Status& s) { s.audio_mode = o.audio_mode; });
     save_status(o.status, shared.snapshot());
-    std::unique_ptr<Pcm> capture, playback;
+    std::unique_ptr<AudioPcm> capture, playback;
     if (!input) {
-        capture = std::make_unique<Pcm>(o.capture, true, block, o, shared);
-        playback = std::make_unique<Pcm>(o.playback, false, block, o, shared);
+        if (o.audio_mode == "direct") {
+            capture = std::make_unique<AlsaPcm>(o.capture, true, block, o, shared);
+            playback = std::make_unique<AlsaPcm>(o.playback, false, block, o, shared);
+        } else {
+            auto xrun = [&](bool capture_side, bool) {
+                shared.update([&](Status& s) {
+                    if (capture_side) ++s.capture_overrun; else ++s.playback_underrun;
+                });
+            };
+            capture = std::make_unique<PipeWirePcm>(true, block, o.periods, o.pw_capture, shared.failure, xrun);
+            playback = std::make_unique<SocketPlayback>(block, o.periods, o.target, o.pw_playback, shared.failure);
+        }
+        save_status(o.status, shared.snapshot());
     }
     Queue<PlaybackItem> queue; CaptureLedger<Ledger> ledger; Trace trace(o, shared);
     std::thread tx, rx, player;
@@ -277,7 +294,7 @@ void run(const Options& o, Shared& shared) {
                 }
                 auto delay = playback->delay();
                 shared.update([&](Status& s) { s.playback_delay = delay; });
-                require(snd_pcm_state(playback->pcm) == SND_PCM_STATE_RUNNING, "startup silence did not start playback");
+                require(playback->running(), "startup silence did not start playback");
                 playback->set_target(o.target);
             }
             shared.playback_ready.store(true);
@@ -411,6 +428,8 @@ void run(const Options& o, Shared& shared) {
 }
 }
 int main(int argc, char** argv) {
+    for (int i = 1; i < argc; ++i)
+        if (std::strcmp(argv[i], "--playback-helper") == 0) return run_playback_helper(argc, argv);
     Shared shared; Options options;
     try { options = parse(std::vector<std::string>(argv + 1, argv + argc)); }
     catch (const std::exception& e) { std::cerr << "invalid arguments: " << e.what() << '\n'; return 2; }

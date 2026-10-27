@@ -10,8 +10,9 @@ usage() {
         "用法：$0 {build|run|start|stop|status|rollback} [原生参数]" \
         'run/start 支持：--input WAV --output WAV --trace-dir DIR --seconds N' \
         '               --periods N --prefill N --target N --legacy --pace' \
+        '               --audio-mode direct|virtual-shared|virtual-exclusive' \
         '输出与 trace-dir 必须位于仓库 build/run 下；status-file 由脚本管理。' \
-        'MOZART_CAPTURE/MOZART_PLAYBACK：ALSA 设备，默认 hw:CARD=sofhdadsp,DEV=0。' \
+        'MOZART_CAPTURE/MOZART_PLAYBACK：direct 模式的 ALSA 设备，默认 hw:CARD=sofhdadsp,DEV=0。' \
         'MOZART_PULSE_SINK：测试 sink 名称，默认使用 PulseAudio 默认 sink。' \
         '文件模式不访问 PulseAudio；stop/rollback 等待 STOP/drain 后恢复旧状态。'
 }
@@ -22,7 +23,7 @@ case "$ACTION" in
     *) usage >&2; exit 2 ;;
 esac
 CLI_ARGS=("$@")
-ARGS=() FILE_MODE=0
+ARGS=() FILE_MODE=0 AUDIO_MODE=direct
 if [[ "$ACTION" == run || "$ACTION" == start ]]; then
     while (($#)); do
         case "$1" in
@@ -32,13 +33,16 @@ if [[ "$ACTION" == run || "$ACTION" == start ]]; then
                 artifact=$(realpath -m -- "$2")
                 case "$artifact" in "$ROOT/build/run/"*) ;; *) fail "输出路径必须位于仓库 build/run：$artifact" ;; esac
                 ARGS+=("$1" "$artifact"); shift 2 ;;
+            --audio-mode)
+                [[ $# -ge 2 && -n "$2" ]] || { usage >&2; exit 2; }
+                AUDIO_MODE=$2; ARGS+=("$1" "$2"); shift 2 ;;
             --seconds|--periods|--prefill|--target)
                 [[ $# -ge 2 ]] || { usage >&2; exit 2; }; ARGS+=("$1" "$2"); shift 2 ;;
             --legacy|--pace) ARGS+=("$1"); shift ;;
             *) usage >&2; exit 2 ;;
         esac
     done
-    if [[ "$FILE_MODE" == 0 ]]; then
+    if [[ "$FILE_MODE" == 0 && "$AUDIO_MODE" == direct ]]; then
         ARGS+=(--capture "${MOZART_CAPTURE:-hw:CARD=sofhdadsp,DEV=0}" \
                --playback "${MOZART_PLAYBACK:-hw:CARD=sofhdadsp,DEV=0}")
     fi
