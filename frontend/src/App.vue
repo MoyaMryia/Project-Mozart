@@ -9,6 +9,7 @@ import StackPanel from './StackPanel.vue';
 import { createPoll } from './poll';
 import { runtimeStages } from './runtime';
 import { latestTranslation, upsertSubtitle } from './subtitles';
+import { subscribeSubtitles, type SubtitleState } from './subtitle-stream';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
@@ -65,7 +66,7 @@ const logFilter = ref('all');
 const monitor = ref<MonitorSnapshot | null>(null);
 const toastMessage = ref('');
 const subtitleEvents = ref<SubtitleEvent[]>([]);
-const subtitleState = ref<'connecting' | 'online' | 'offline'>('connecting');
+const subtitleState = ref<SubtitleState>('connecting');
 
 
 // ---- toast ----
@@ -394,21 +395,12 @@ const toggleMicMute = () => void setRouting({ mic_muted: !micMuted.value });
 const toggleBypass = () => void setRouting({ bypass: !bypassOn.value });
 
 // ---- 字幕 SSE ----
-let eventSource: EventSource | null = null;
+let stopSubtitles: (() => void) | undefined;
 const connectSubtitles = () => {
-  try {
-    eventSource = new EventSource('/api/subtitles');
-    eventSource.onopen = () => { subtitleState.value = 'online'; };
-    eventSource.onmessage = (event) => {
-      try {
-        const caption = JSON.parse(event.data) as SubtitleEvent;
-        upsertSubtitle(subtitleEvents.value, caption);
-      } catch { /* 非 JSON 行忽略 */ }
-    };
-    eventSource.onerror = () => { subtitleState.value = 'offline'; };
-  } catch {
-    subtitleState.value = 'offline';
-  }
+  stopSubtitles = subscribeSubtitles(
+    caption => upsertSubtitle(subtitleEvents.value, caption),
+    state => { subtitleState.value = state; },
+  );
 };
 
 // ---- has_index 变化时刷新参数（行集合会变）----
@@ -441,7 +433,7 @@ onUnmounted(() => {
   clearTimeout(parameterSyncTimer);
   statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop(); prePoll.stop();
   lifecycle.abort();
-  eventSource?.close();
+  stopSubtitles?.();
 });
 </script>
 
@@ -578,9 +570,9 @@ onUnmounted(() => {
     </section>
 
     <!-- 中栏：主操作面板 -->
-    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:grid md:grid-rows-2 md:gap-3 md:overflow-hidden md:h-full no-scrollbar">
+    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:gap-3 md:overflow-hidden md:h-full no-scrollbar">
 
-      <div class="min-h-0 flex flex-col overflow-y-auto no-scrollbar">
+      <div class="min-h-0 md:flex-1 flex flex-col overflow-y-auto no-scrollbar">
 
       <StackPanel :status="stackStatus" :error="stackError" />
       <SpeechPanel id="reference-speech" :stack-status="stackStatus" />
@@ -636,7 +628,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 实时字幕条（文字路：STT → Qwen 翻译，SSE 订阅 /api/subtitles） -->
-      <div class="shrink-0 bg-surface border border-edge rounded-lg px-4 py-2.5 flex items-start gap-3 min-h-[52px]">
+      <div id="subtitle-panel" role="region" aria-label="实时字幕" class="shrink-0 bg-surface border border-edge rounded-lg px-4 py-2.5 flex items-start gap-3 min-h-[52px]">
         <div class="flex flex-col items-start shrink-0">
           <span class="text-micro font-extrabold tracking-wider text-ink-4 font-mono">SUB / 字幕</span>
           <span :class="['text-micro font-mono font-bold', subtitleState === 'online' ? 'state-ok' : subtitleState === 'offline' ? 'state-err' : 'text-ink-4']">{{ subtitleState.toUpperCase() }}</span>
@@ -656,7 +648,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 主界面下方：终端式系统日志 -->
-      <div id="log-panel" class="console-log md:flex-none md:min-h-0 overflow-hidden flex flex-col">
+      <div id="log-panel" class="console-log md:flex-1 md:min-h-0 overflow-hidden flex flex-col">
         <div class="console-header flex items-center justify-between gap-2 px-3 py-2 font-mono">
           <h2 class="text-tiny font-extrabold tracking-[0.16em] uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
           <div class="flex items-center gap-1 min-w-0">
