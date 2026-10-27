@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """跨时钟域自适应重采样（Python 侧，两守护共用）。
 
-与 preprocessor/src/async_src.c 同算法：水位驱动比例 + 一阶平滑 +
-线性插值。调用方监控 USB 入口队列水位（帧数），按比例插值消费——
-水位高于目标时消费更慢（输出多于输入），低于时更快。
+调用方读取音频管道的积压，以采样帧为单位传入水位。
+水位高时减少输出，水位低时增加输出。比例经过一阶平滑后用于线性插值。
 
 帧 = CHANNELS 个交错 int16。纯标准库实现（守护进程运行环境无 numpy）。
 """
 import struct
+
+TARGET_BLOCKS = 4
 
 
 class AsyncSrc:
@@ -24,7 +25,7 @@ class AsyncSrc:
         self.ratio_count = 0
 
     def ratio(self, fill_frames):
-        desired = fill_frames / self.target
+        desired = 2.0 - fill_frames / self.target
         lo, hi = 1.0 - self.ratio_max, 1.0 + self.ratio_max
         return min(max(desired, lo), hi)
 
@@ -32,7 +33,7 @@ class AsyncSrc:
         """按 ratio 对交错 S16LE 帧序列插值，返回输出字节流。
 
         相位语义：pos 为浮点读位置（帧单位），每输出一帧 pos += 1/ratio；
-        pos 跨过整数帧界时消费新输入帧。ratio>1（水位高）时输出多于输入。
+        pos 跨过整数帧界时消费新输入帧。ratio>1 时输出多于输入。
         """
         frame_bytes = self.channels * 2
         count = len(payload) // frame_bytes
@@ -40,7 +41,8 @@ class AsyncSrc:
         out = []
         previous = self.carried
         pos = self.phase
-        step = 1.0 / ratio
+        self.smooth += (ratio - self.smooth) / 64.0
+        step = 1.0 / self.smooth
         for i in range(count):
             base = i * self.channels
             current = values[base:base + self.channels]
@@ -59,8 +61,7 @@ class AsyncSrc:
         self.carried = previous
         self.phase = pos
         if out:
-            self.ratio_sum += ratio
+            self.ratio_sum += self.smooth
             self.ratio_count += 1
-            self.smooth += (ratio - self.smooth) / 64.0
             return struct.pack('<%dh' % len(out), *out)
         return b''
