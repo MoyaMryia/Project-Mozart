@@ -6,6 +6,7 @@ import sys
 import threading
 import types
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -52,7 +53,7 @@ class CaptionDispatchTests(unittest.TestCase):
                 patch('subtitle_bridge.translate_recognized_event', side_effect=translate):
             path = pathlib.Path(directory)/'queue.sqlite3'
             dispatcher = CaptionDispatcher(rows.append, 'original', 'http://example', spool_path=path)
-            dispatcher.accept({'type': 'final', 'seq': 7, 'text': '你好。'})
+            dispatcher.accept({'type': 'final', 'seq': 7, 'text': '你好。', 'emitted_at': time.time()-3600})
             self.assertTrue(entered.wait(3))
             self.assertFalse(dispatcher.close(0))
             count = len(rows)
@@ -63,6 +64,8 @@ class CaptionDispatchTests(unittest.TestCase):
             self.assertTrue(resumed.close())
         self.assertEqual(rows[-1]['utterance_id'], 'original:7')
         self.assertEqual(rows[-1]['translation_status'], 'completed')
+        self.assertIsNone(rows[-1]['translation_queue_wait_ms'])
+        self.assertIsNone(rows[-1]['translation_after_asr_ms'])
 
     def test_slow_translation_does_not_hold_next_source_or_partial(self):
         entered, release = threading.Event(), threading.Event()

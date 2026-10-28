@@ -1,0 +1,2972 @@
+{
+  "command": [
+    "/home/moyamryia/mozart-archive/qwen35/llama.cpp/build-cuda-bin/llama-server",
+    "-m",
+    "/home/moyamryia/mozart-archive/qwen35/gguf/qwen35-0.8b-text-Q4_K_M.gguf",
+    "-c",
+    "2048",
+    "-b",
+    "256",
+    "-ub",
+    "128",
+    "-ngl",
+    "99",
+    "-np",
+    "1",
+    "-t",
+    "2",
+    "-tb",
+    "2",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "19200",
+    "--jinja"
+  ],
+  "input_sha256": {
+    "subtitle_bridge.py": "f55a724d3b785f6aa1af7a2b7cd80286efd98ae1ead30186661807400eeaae8d",
+    "asr_checks.py": "5f7f68dded3371f09b72bb211c698092929ad46e5098924609fc39347dd19413",
+    "records.json": "4036534544e97fa10196a193d59dd91b5ba5c36788cd0c1cb976b0916d9341dd"
+  },
+  "records": [
+    {
+      "seq": 1,
+      "raw": "嗯那为什么你让我们的心里",
+      "refined": "嗯那为什么这种心欢？",
+      "recorded_en": "Why is this heart happy?",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.5714285714285714
+      },
+      "candidate": {
+        "source": "嗯那为什么这种心欢？",
+        "status": "completed",
+        "en": "Why is this heart happy?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Why is this heart happy?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "嗯那为什么这种心欢？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 339
+      },
+      "baseline": {
+        "source": "嗯那为什么这种心欢？",
+        "status": "completed",
+        "en": "Why is this heart happy?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Why is this heart happy?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "嗯那为什么这种心欢？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 276
+      }
+    },
+    {
+      "seq": 2,
+      "raw": "只答说他们心烦",
+      "refined": "时代传统新访明。",
+      "recorded_en": "They are upset.",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "baseline": {
+        "source": "只答说他们心烦",
+        "status": "completed",
+        "en": "They are upset.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "They are upset.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "只答说他们心烦",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 193
+      },
+      "candidate": {
+        "source": "只答说他们心烦",
+        "status": "completed",
+        "en": "They are annoyed.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "They are annoyed.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "只答说他们心烦",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 243
+      }
+    },
+    {
+      "seq": 3,
+      "raw": "明",
+      "refined": "嗯个。",
+      "recorded_en": "Ming",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "candidate": {
+        "source": "明",
+        "status": "completed",
+        "en": "Ming",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Ming",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "明",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 149
+      },
+      "baseline": {
+        "source": "明",
+        "status": "completed",
+        "en": "Ming",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Ming",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "明",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 190
+      }
+    },
+    {
+      "seq": 4,
+      "raw": "白",
+      "refined": "嗯。",
+      "recorded_en": "White",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "baseline": {
+        "source": "白",
+        "status": "completed",
+        "en": "White",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "White",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "白",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 122
+      },
+      "candidate": {
+        "source": "白",
+        "status": "completed",
+        "en": "White",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "White",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "白",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 172
+      }
+    },
+    {
+      "seq": 5,
+      "raw": "痴男少爷团我们心怀民",
+      "refined": "上一团，我喜欢你。",
+      "recorded_en": "The madman and the young lord, together with us, hold the people.",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.23529411764705882
+      },
+      "candidate": {
+        "source": "痴男少爷团我们心怀民",
+        "status": "completed",
+        "en": "The madman's son's group, we hold the people.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "The madman's son's group, we hold the people.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "痴男少爷团我们心怀民",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 378
+      },
+      "baseline": {
+        "source": "痴男少爷团我们心怀民",
+        "status": "completed",
+        "en": "The madman and the young lord, together with us, hold the people.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "The madman and the young lord, together with us, hold the people.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "痴男少爷团我们心怀民",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 448
+      }
+    },
+    {
+      "seq": 6,
+      "raw": "的正确思想",
+      "refined": "人的正确思想。",
+      "recorded_en": "Correct thought",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.9090909090909091
+      },
+      "baseline": {
+        "source": "的正确思想",
+        "status": "completed",
+        "en": "Correct thought",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Correct thought",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "的正确思想",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 137
+      },
+      "candidate": {
+        "source": "人的正确思想。",
+        "status": "completed",
+        "en": "The correct thought of man.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "The correct thought of man.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "人的正确思想。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 261
+      }
+    },
+    {
+      "seq": 7,
+      "raw": "人人的正确思想失从哪里来的",
+      "refined": "人的正确思想是从哪里来的？",
+      "recorded_en": "The correct thought of a person comes from where?",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.88
+      },
+      "candidate": {
+        "source": "人的正确思想是从哪里来的？",
+        "status": "completed",
+        "en": "The correct thought of a human comes from where?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "The correct thought of a human comes from where?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "人的正确思想是从哪里来的？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 295
+      },
+      "baseline": {
+        "source": "人的正确思想是从哪里来的？",
+        "status": "completed",
+        "en": "The correct thought of a person comes from where?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "The correct thought of a person comes from where?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "人的正确思想是从哪里来的？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 333
+      }
+    },
+    {
+      "seq": 8,
+      "raw": "原神是一款游戏",
+      "refined": "元神是一款游戏。",
+      "recorded_en": "Neuro Spirit is a game.",
+      "selection": {
+        "selected": "online",
+        "reason": "protected_term_changed",
+        "issues": [],
+        "similarity": 0.8571428571428571,
+        "changed_terms": [
+          "原神"
+        ]
+      },
+      "baseline": {
+        "source": "元神是一款游戏。",
+        "status": "completed",
+        "en": "Neuro Spirit is a game.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Neuro Spirit is a game.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "元神是一款游戏。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 236
+      },
+      "candidate": {
+        "source": "原神是一款游戏",
+        "status": "completed",
+        "en": "Genshin Impact is a game.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Genshin Impact is a game.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "原神是一款游戏",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 309
+      }
+    },
+    {
+      "seq": 9,
+      "raw": "儿而我们要做的是",
+      "refined": "而我们要做的是。",
+      "recorded_en": "We must do what we are doing.",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.9333333333333333
+      },
+      "candidate": {
+        "source": "而我们要做的是。",
+        "status": "completed",
+        "en": "We shall do what we must do.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "We shall do what we must do.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "而我们要做的是。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 301
+      },
+      "baseline": {
+        "source": "而我们要做的是。",
+        "status": "completed",
+        "en": "We must do what we are doing.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "We must do what we are doing.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "而我们要做的是。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 292
+      }
+    },
+    {
+      "seq": 10,
+      "raw": "明明为呢能相信了是我们熟路相中的人",
+      "refined": "我们唯一能相信的是我们什么都相动不了。",
+      "recorded_en": "Mingming can believe that we are the right person to meet.",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.4
+      },
+      "baseline": {
+        "source": "明明为呢能相信了是我们熟路相中的人",
+        "status": "completed",
+        "en": "Mingming can believe that we are the right person to meet.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Mingming can believe that we are the right person to meet.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "明明为呢能相信了是我们熟路相中的人",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 377
+      },
+      "candidate": {
+        "source": "明明为呢能相信了是我们熟路相中的人",
+        "status": "completed",
+        "en": "Mingming can believe that we are the right path to meet someone.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Mingming can believe that we are the right path to meet someone.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "明明为呢能相信了是我们熟路相中的人",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 442
+      }
+    },
+    {
+      "seq": 11,
+      "raw": "我们能相信任吗",
+      "refined": "我们能相信什吗？",
+      "recorded_en": "Can we believe what?",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.8571428571428571
+      },
+      "candidate": {
+        "source": "我们能相信什吗？",
+        "status": "completed",
+        "en": "Can we believe what?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Can we believe what?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我们能相信什吗？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 197
+      },
+      "baseline": {
+        "source": "我们能相信什吗？",
+        "status": "completed",
+        "en": "Can we believe what?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Can we believe what?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我们能相信什吗？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 234
+      }
+    },
+    {
+      "seq": 12,
+      "raw": "能相信着吗",
+      "refined": "我们能相信他吗？",
+      "recorded_en": "Can you believe in it?",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.6666666666666666
+      },
+      "baseline": {
+        "source": "能相信着吗",
+        "status": "completed",
+        "en": "Can you believe in it?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Can you believe in it?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "能相信着吗",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 214
+      },
+      "candidate": {
+        "source": "能相信着吗",
+        "status": "completed",
+        "en": "Can you believe in it?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Can you believe in it?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "能相信着吗",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 261
+      }
+    },
+    {
+      "seq": 13,
+      "raw": "我们还能相信什么",
+      "refined": "我们还能相信什么？",
+      "recorded_en": "What can we still believe?",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "我们还能相信什么？",
+        "status": "completed",
+        "en": "What can we still believe?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "What can we still believe?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我们还能相信什么？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 217
+      },
+      "baseline": {
+        "source": "我们还能相信什么？",
+        "status": "completed",
+        "en": "What can we still believe?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "What can we still believe?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我们还能相信什么？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 253
+      }
+    },
+    {
+      "seq": 14,
+      "raw": "你说的对",
+      "refined": "你说的对。",
+      "recorded_en": "You're right",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "baseline": {
+        "source": "你说的对",
+        "status": "completed",
+        "en": "You're right",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "You're right",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你说的对",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 156
+      },
+      "candidate": {
+        "source": "你说的对。",
+        "status": "completed",
+        "en": "You are right.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "You are right.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你说的对。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 223
+      }
+    },
+    {
+      "seq": 15,
+      "raw": "但是",
+      "refined": "但是。",
+      "recorded_en": "But",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "但是。",
+        "status": "completed",
+        "en": "But.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "But.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "但是。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 136
+      },
+      "baseline": {
+        "source": "但是",
+        "status": "completed",
+        "en": "But",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "But",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "但是",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 148
+      }
+    },
+    {
+      "seq": 16,
+      "raw": "中东英文",
+      "refined": "中英文。",
+      "recorded_en": "Middle East English",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.8571428571428571
+      },
+      "baseline": {
+        "source": "中东英文",
+        "status": "completed",
+        "en": "Middle East English",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Middle East English",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "中东英文",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 156
+      },
+      "candidate": {
+        "source": "中英文。",
+        "status": "completed",
+        "en": "Chinese and English.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Chinese and English.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "中英文。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 235
+      }
+    },
+    {
+      "seq": 17,
+      "raw": "中英文",
+      "refined": "中英文。",
+      "recorded_en": "Chinese: 英文",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "中英文。",
+        "status": "completed",
+        "en": "Chinese and English.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Chinese and English.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "中英文。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 161
+      },
+      "baseline": {
+        "source": "中英文",
+        "status": "failed",
+        "error": "Translation rejected: untranslated Chinese in English output",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Chinese: 英文",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": true,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "中英文",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          },
+          {
+            "attempt": 2,
+            "content": "Chinese: 英文",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": true,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "中英文",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 443
+      }
+    },
+    {
+      "seq": 18,
+      "raw": "中文和英文",
+      "refined": "中文和英文。",
+      "recorded_en": "Chinese and English",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "baseline": {
+        "source": "中文和英文",
+        "status": "completed",
+        "en": "Chinese and English",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Chinese and English",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "中文和英文",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 214
+      },
+      "candidate": {
+        "source": "中文和英文。",
+        "status": "completed",
+        "en": "Chinese and English.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Chinese and English.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "中文和英文。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 227
+      }
+    },
+    {
+      "seq": 19,
+      "raw": "我能说什么呢",
+      "refined": "我能说什么呢？",
+      "recorded_en": "What can I say?",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "我能说什么呢？",
+        "status": "completed",
+        "en": "What can I say?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "What can I say?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我能说什么呢？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 204
+      },
+      "baseline": {
+        "source": "我能说什么呢？",
+        "status": "completed",
+        "en": "What can I say?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "What can I say?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我能说什么呢？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 235
+      }
+    },
+    {
+      "seq": 20,
+      "raw": "慢吧走吧",
+      "refined": "那妈走了。",
+      "recorded_en": "Slow down, let's go.",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.25
+      },
+      "baseline": {
+        "source": "慢吧走吧",
+        "status": "completed",
+        "en": "Slow down, let's go.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Slow down, let's go.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "慢吧走吧",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 228
+      },
+      "candidate": {
+        "source": "慢吧走吧",
+        "status": "completed",
+        "en": "Slow down, let's go.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Slow down, let's go.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "慢吧走吧",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 279
+      }
+    },
+    {
+      "seq": 21,
+      "raw": "慢慢熬着",
+      "refined": "曼巴out。",
+      "recorded_en": "Slowly endure",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "candidate": {
+        "source": "慢慢熬着",
+        "status": "completed",
+        "en": "Slowly endure",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Slowly endure",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "慢慢熬着",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 157
+      },
+      "baseline": {
+        "source": "慢慢熬着",
+        "status": "completed",
+        "en": "Slowly endure",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Slowly endure",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "慢慢熬着",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 192
+      }
+    },
+    {
+      "seq": 22,
+      "raw": "好",
+      "refined": "。",
+      "recorded_en": "Good",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "baseline": {
+        "source": "好",
+        "status": "completed",
+        "en": "Good",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Good",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 112
+      },
+      "candidate": {
+        "source": "好",
+        "status": "completed",
+        "en": "Good",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Good",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 169
+      }
+    },
+    {
+      "seq": 23,
+      "raw": "我死了",
+      "refined": "我死了。",
+      "recorded_en": "I died.",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "我死了。",
+        "status": "completed",
+        "en": "I died.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "I died.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我死了。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 169
+      },
+      "baseline": {
+        "source": "我死了",
+        "status": "completed",
+        "en": "I died.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "I died.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我死了",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 199
+      }
+    },
+    {
+      "seq": 24,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 121
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 197
+      }
+    },
+    {
+      "seq": 25,
+      "raw": "你好",
+      "refined": "好嗯。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.5
+      },
+      "candidate": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 117
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 164
+      }
+    },
+    {
+      "seq": 26,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 91
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 198
+      }
+    },
+    {
+      "seq": 27,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 118
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 159
+      }
+    },
+    {
+      "seq": 28,
+      "raw": "好好玩游",
+      "refined": "有。",
+      "recorded_en": "Play well.",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "baseline": {
+        "source": "好好玩游",
+        "status": "completed",
+        "en": "Play well.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Play well.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "好好玩游",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 171
+      },
+      "candidate": {
+        "source": "好好玩游",
+        "status": "completed",
+        "en": "Play well.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Play well.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "好好玩游",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 220
+      }
+    },
+    {
+      "seq": 29,
+      "raw": "你好",
+      "refined": "好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.6666666666666666
+      },
+      "candidate": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 121
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 159
+      }
+    },
+    {
+      "seq": 30,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 91
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 198
+      }
+    },
+    {
+      "seq": 31,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 118
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 159
+      }
+    },
+    {
+      "seq": 32,
+      "raw": "喽",
+      "refined": "哦。",
+      "recorded_en": "Oo",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "baseline": {
+        "source": "喽",
+        "status": "completed",
+        "en": "Oo",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Oo",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "喽",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 148
+      },
+      "candidate": {
+        "source": "喽",
+        "status": "completed",
+        "en": "Oo",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Oo",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "喽",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 198
+      }
+    },
+    {
+      "seq": 33,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 149
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 160
+      }
+    },
+    {
+      "seq": 34,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 90
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 198
+      }
+    },
+    {
+      "seq": 35,
+      "raw": "你好",
+      "refined": "你好。",
+      "recorded_en": "Hello",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "你好。",
+        "status": "completed",
+        "en": "Hello.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 118
+      },
+      "baseline": {
+        "source": "你好",
+        "status": "completed",
+        "en": "Hello",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Hello",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你好",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 160
+      }
+    },
+    {
+      "seq": 36,
+      "raw": "你说得对",
+      "refined": "你说的对。",
+      "recorded_en": "You are right.",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.75
+      },
+      "baseline": {
+        "source": "你说得对",
+        "status": "completed",
+        "en": "You are right.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "You are right.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你说得对",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 192
+      },
+      "candidate": {
+        "source": "你说得对",
+        "status": "completed",
+        "en": "You're right.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "You're right.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你说得对",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 226
+      }
+    },
+    {
+      "seq": 37,
+      "raw": "我能说什么",
+      "refined": "我能说什么吗？",
+      "recorded_en": "I can say what I can.",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.9090909090909091
+      },
+      "candidate": {
+        "source": "我能说什么吗？",
+        "status": "completed",
+        "en": "Can I say anything?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Can I say anything?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我能说什么吗？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 210
+      },
+      "baseline": {
+        "source": "我能说什么",
+        "status": "completed",
+        "en": "I can say what I can.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "I can say what I can.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我能说什么",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 269
+      }
+    },
+    {
+      "seq": 38,
+      "raw": "这很明明你知道吧",
+      "refined": "没意义，你知道吧？",
+      "recorded_en": "It is meaningless, do you know that?",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.5333333333333333
+      },
+      "baseline": {
+        "source": "没意义，你知道吧？",
+        "status": "completed",
+        "en": "It is meaningless, do you know that?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "It is meaningless, do you know that?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "没意义，你知道吧？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 274
+      },
+      "candidate": {
+        "source": "没意义，你知道吧？",
+        "status": "completed",
+        "en": "It is meaningless, do you know that?",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "It is meaningless, do you know that?",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "没意义，你知道吧？",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 318
+      }
+    },
+    {
+      "seq": 39,
+      "raw": "我麻了兄弟",
+      "refined": "我麻了兄弟。",
+      "recorded_en": "I'm shocked at your brother",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "我麻了兄弟。",
+        "status": "completed",
+        "en": "I am stunned brother.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "I am stunned brother.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我麻了兄弟。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 247
+      },
+      "baseline": {
+        "source": "我麻了兄弟",
+        "status": "completed",
+        "en": "I'm shocked at your brother",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "I'm shocked at your brother",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我麻了兄弟",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 271
+      }
+    },
+    {
+      "seq": 40,
+      "raw": "你说得对",
+      "refined": "你说的对。",
+      "recorded_en": "You are right.",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.75
+      },
+      "baseline": {
+        "source": "你说得对",
+        "status": "completed",
+        "en": "You are right.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "You are right.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你说得对",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 176
+      },
+      "candidate": {
+        "source": "你说得对",
+        "status": "completed",
+        "en": "You're right.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "You're right.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "你说得对",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 220
+      }
+    },
+    {
+      "seq": 41,
+      "raw": "我们对此无能为力",
+      "refined": "我们对此无能为力。",
+      "recorded_en": "We cannot do this.",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 1.0
+      },
+      "candidate": {
+        "source": "我们对此无能为力。",
+        "status": "completed",
+        "en": "We are powerless against this.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "We are powerless against this.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我们对此无能为力。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 264
+      },
+      "baseline": {
+        "source": "我们对此无能为力。",
+        "status": "completed",
+        "en": "We cannot do this.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "We cannot do this.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "我们对此无能为力。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 252
+      }
+    },
+    {
+      "seq": 42,
+      "raw": "非常遗憾的是英国拒绝了我们的条款",
+      "refined": "非常遗憾的是，已经国拒绝了我们的条款。",
+      "recorded_en": "Sincere regret, we have been refused our terms by the State.",
+      "selection": {
+        "selected": "online",
+        "reason": "protected_term_changed",
+        "issues": [],
+        "similarity": 0.9090909090909091,
+        "changed_terms": [
+          "英国"
+        ]
+      },
+      "baseline": {
+        "source": "非常遗憾的是，已经国拒绝了我们的条款。",
+        "status": "completed",
+        "en": "Sincere regret, we have been refused our terms by the State.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Sincere regret, we have been refused our terms by the State.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "非常遗憾的是，已经国拒绝了我们的条款。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 394
+      },
+      "candidate": {
+        "source": "非常遗憾的是英国拒绝了我们的条款",
+        "status": "completed",
+        "en": "Sincere regret that the United Kingdom refused our terms.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Sincere regret that the United Kingdom refused our terms.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "非常遗憾的是英国拒绝了我们的条款",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 383
+      }
+    },
+    {
+      "seq": 43,
+      "raw": "非常遗憾的是英国拒绝了我们的条款",
+      "refined": "遗憾的是，英国拒绝了我们的条款。",
+      "recorded_en": "Unfortunately, the United Kingdom refused our terms.",
+      "selection": {
+        "selected": "refined",
+        "reason": "refined",
+        "issues": [],
+        "similarity": 0.9333333333333333
+      },
+      "candidate": {
+        "source": "遗憾的是，英国拒绝了我们的条款。",
+        "status": "completed",
+        "en": "Unfortunately, the United Kingdom refused our terms.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Unfortunately, the United Kingdom refused our terms.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "遗憾的是，英国拒绝了我们的条款。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 275
+      },
+      "baseline": {
+        "source": "遗憾的是，英国拒绝了我们的条款。",
+        "status": "completed",
+        "en": "Unfortunately, the United Kingdom refused our terms.",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "Unfortunately, the United Kingdom refused our terms.",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "遗憾的是，英国拒绝了我们的条款。",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 341
+      }
+    },
+    {
+      "seq": 44,
+      "raw": "这",
+      "refined": "嗯。",
+      "recorded_en": "This",
+      "selection": {
+        "selected": "online",
+        "reason": "dissimilar_refinement",
+        "issues": [],
+        "similarity": 0.0
+      },
+      "baseline": {
+        "source": "这",
+        "status": "completed",
+        "en": "This",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "This",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "这",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 110
+      },
+      "candidate": {
+        "source": "这",
+        "status": "completed",
+        "en": "This",
+        "audit": [
+          {
+            "attempt": 1,
+            "content": "This",
+            "missing_numbers": [],
+            "repeated_numbers": [],
+            "added_large_numbers": [],
+            "values_changed_to_item_counts": [],
+            "loan_repayment_changed": false,
+            "explicit_role_issues": [],
+            "source_role_constraints": [],
+            "untranslated_chinese": false,
+            "finish_reason": "stop",
+            "repeated_context_translation": false,
+            "translation_source": "这",
+            "term_repair": null,
+            "added_negation": [],
+            "homophone_fixes": [],
+            "repeated_source_terms": []
+          }
+        ],
+        "elapsed_ms": 155
+      }
+    }
+  ],
+  "checks": {
+    "all_candidates_completed": true,
+    "record_8": true,
+    "record_16": true,
+    "record_17": true,
+    "record_39": true,
+    "record_41": true,
+    "record_42": true,
+    "record_43": true
+  }
+}

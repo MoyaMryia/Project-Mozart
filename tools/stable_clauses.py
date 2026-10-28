@@ -205,6 +205,7 @@ class StableClauseDispatcher(CaptionDispatcher):
                 if seconds is not None and not correction:
                     state['committed_audio_end_pts_ns'] = end_pts
                 item = {'event': part_event, 'session_id': self.session_id,
+                    'queue_owner': self.queue_owner,
                     'work_key': f'{key}/part/{index}', 'record': deepcopy(record)}
                 try:
                     self.pending.put_nowait(item)
@@ -244,6 +245,7 @@ class StableClauseDispatcher(CaptionDispatcher):
                     previous = [p for p in parts[:index] if p.get('en') and p.get('translation_status') == 'completed']
                 context = [{'source': p['source_text'][:256], 'translation': p['en'][:512]} for p in previous[-2:]]
                 event['translation_context'] = context
+                event['_translation_clock_current'] = item.get('queue_owner') == self.queue_owner
                 updates = caption_updates(event, event['seq'], session_id, self.llama_url, self.speech_url)
                 next(updates)
                 for result in updates:

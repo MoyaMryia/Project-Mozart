@@ -8,7 +8,10 @@ import SpeechPanel from './SpeechPanel.vue';
 import StackPanel from './StackPanel.vue';
 import { createPoll } from './poll';
 import { runtimeStages } from './runtime';
-import { latestTranslation, upsertSubtitle } from './subtitles';
+import {
+  captionSourceNote, captionText, captionTiming, latestTranslation, originalCaptionText,
+  refinedCandidate, upsertSubtitle,
+} from './subtitles';
 import { subscribeSubtitles, type SubtitleState } from './subtitle-stream';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
@@ -109,14 +112,13 @@ const filteredLogs = computed(() => {
 });
 const latestSubtitle = computed<SubtitleEvent | null>(
   () => subtitleEvents.value[subtitleEvents.value.length - 1] ?? null);
-// 译文源优先使用复核文本（见 tools/subtitle_bridge.py 的 translation_source）。
-// 主字幕必须显示同一个源，否则中英文对不上。
-const captionText = (caption: SubtitleEvent | null): string => {
-  if (!caption) return '';
-  return caption.refinement_status === 'completed' && caption.refined_zh
-    ? caption.refined_zh : caption.zh;
-};
+// 主字幕显示翻译实际采用的源文本（见 tools/subtitle_bridge.py 的 translation_source）。
+// refined_zh 是复核候选，显示在单独的候选行。
 const latestCaptionText = computed(() => captionText(latestSubtitle.value));
+const latestOriginalCaption = computed(() => originalCaptionText(latestSubtitle.value));
+const latestRefinedCandidate = computed(() => refinedCandidate(latestSubtitle.value));
+const latestSourceNote = computed(() => captionSourceNote(latestSubtitle.value));
+const latestCaptionTiming = computed(() => captionTiming(latestSubtitle.value));
 const latestTranslatedSubtitle = computed(() => latestTranslation(subtitleEvents.value));
 
 const statUnit = (text: string) => `<span class="stat-unit">${text}</span>`;
@@ -637,14 +639,15 @@ onUnmounted(() => {
           <div class="text-xs font-bold text-ink leading-5 truncate">{{ latestCaptionText || '等待语音输入…' }}</div>
           <div class="text-tiny text-ink-3 leading-4">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'failed' ? '译文未通过校验' : latestSubtitle?.translation_status === 'skipped' ? '未送出翻译' : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
           <div v-if="latestTranslatedSubtitle && latestTranslatedSubtitle.utterance_id !== latestSubtitle?.utterance_id" class="text-tiny text-ink-3 leading-4" :title="latestTranslatedSubtitle.translation_error || latestTranslatedSubtitle.zh">{{ latestTranslatedSubtitle.translation_status === 'failed' ? '前文待核对译文：' : '前文译文：' }}{{ latestTranslatedSubtitle.en }}</div>
-          <div v-if="latestSubtitle?.refinement_status === 'completed' && latestSubtitle.refined_zh && latestSubtitle.refined_zh !== latestSubtitle.zh" class="text-tiny text-ink-3 leading-4">原始识别：{{ latestSubtitle.zh }}</div>
+          <div v-if="latestRefinedCandidate" class="text-tiny text-ink-3 leading-4" :title="latestSourceNote">复核候选：{{ latestRefinedCandidate }}</div>
+          <div v-if="latestOriginalCaption" class="text-tiny text-ink-3 leading-4">原始识别：{{ latestOriginalCaption }}</div>
           <p v-if="latestSubtitle?.speech_degraded" class="text-tiny state-warn leading-4" role="status">译文检查未通过，已尝试播报。</p>
           <p v-if="latestSubtitle?.translation_error" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.translation_error }}</p>
           <p v-if="latestSubtitle?.speech_error" class="text-tiny state-warn leading-4" role="status">播报失败：{{ latestSubtitle.speech_error }}</p>
           <p v-if="latestSubtitle?.source_revision_warning" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.source_revision_warning }}</p>
           <p v-if="latestSubtitle?.boundary_classifier_warning" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.boundary_classifier_warning }}</p>
         </div>
-        <span v-if="latestSubtitle?.translate_ms !== undefined" class="shrink-0 font-mono text-micro text-ink-4 tabular-nums self-center">{{ latestSubtitle.translate_ms }}ms</span>
+        <span v-if="latestCaptionTiming" class="shrink-0 font-mono text-micro text-ink-4 tabular-nums self-center" :title="latestCaptionTiming.title">{{ latestCaptionTiming.label }}</span>
       </div>
 
       <!-- 主界面下方：终端式系统日志 -->

@@ -2284,12 +2284,6 @@
   {
    "path": "tools/REFERENCE_SPEECH.md",
    "rule": "hedge-in-body",
-   "text": "Agreement between readings does not prove transcript accuracy.",
-   "count": 1
-  },
-  {
-   "path": "tools/REFERENCE_SPEECH.md",
-   "rule": "hedge-in-body",
    "text": "Output that reaches this limit has an unverified end.",
    "count": 1
   },
@@ -2375,7 +2369,7 @@
    "path": "tools/subtitle_bridge.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 2
+   "count": 1
   },
   {
    "path": "tools/tempo_player.py",

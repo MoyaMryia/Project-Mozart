@@ -152,6 +152,8 @@ class StableClauseTests(unittest.TestCase):
         self.assertEqual(rows[-1]['utterance_id'], 'original:1')
         self.assertEqual(rows[-1]['translation_status'], 'completed')
         self.assertEqual(len(rows[-1]['translation_segments']), 2)
+        self.assertTrue(all(part['translation_after_asr_ms'] is None
+                            for part in rows[-1]['translation_segments']))
 
     def test_evicted_parents_keep_all_work_and_failed_candidate(self):
         entered, release = threading.Event(), threading.Event()

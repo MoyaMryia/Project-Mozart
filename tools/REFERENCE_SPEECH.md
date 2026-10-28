@@ -326,20 +326,38 @@ These checks do not prove semantic accuracy.
 ### Recognition uncertainty
 
 Optional SenseVoice refinement runs in one background worker.
-The online Zipformer result starts translation before refinement finishes.
+The whole-utterance dispatcher waits for refinement within a duration-based window.
+Failed or skipped refinement wakes the translation worker immediately.
+Configuration errors during refinement produce queryable error fields. Internal selection errors stop the worker and propagate to the bridge.
 Two utterances can wait behind the active refinement task.
 A full queue, initialization failure, or shutdown deadline produces an explicit refinement status.
+
+Source selection compares normalized text. For sources shorter than six characters, the minimum similarity is `0.8`.
+For longer sources, the minimum similarity remains `0.5`.
+The short-source threshold admits one deletion from four characters while rejecting the recorded unrelated short candidates.
+Configured glossary terms retain their source occurrence counts.
+Built-in translation terms appear in `TRANSLATION_TERMS` in [subtitle_bridge.py](subtitle_bridge.py).
+These entries provide translation hints; they do not replace sentences with fixed English output.
+Configured glossary entries retain their existing role in automatic phonetic source correction.
+The source audit records the selected path and the reason for each fallback.
+The frontend uses `translation_source_text` for the main caption and shows other refinement text as a candidate.
 
 SenseVoice uses a second decode for explicit amounts or years of at least 100.
 Both decodes use the same PCM and one loaded model.
 The second decode uses the literal-number mode.
 Conflicting values produce `refinement_numeric_audit`; strict 可能/不可能 conflicts produce `refinement_polarity_audit`.
-These later audits do not cancel or replace speech from the online result.
-The frontend shows a different refinement separately. It does not replace the original translation source.
-Agreement between readings does not prove transcript accuracy.
+The refinement fields retain audits of the original decoder output.
+Source selection checks the normalized candidate after echo removal and phonetic correction.
+When selection accepts the refinement, its source audit also includes the decoder audit issues.
+Selection rejects unrelated candidates before checking quantity or polarity conflicts.
+Changed significant quantity counts and strict modal polarity conflicts produce source audit issues.
+A change in negation-marker count produces an issue when removing negation leaves identical normalized text.
+A source audit issue prevents translation and speech.
+A refinement that arrives after translation remains a separate candidate.
 
 External final records with `asr_numeric_audit` or `asr_polarity_audit` still use the existing rejection rules.
-Those rules can prevent translation and speech when the supplied audit contains an issue.
+Those rules prevent translation and speech when the supplied audit contains an issue.
+See [subtitle fields](../state/API.md#captions-parameters-and-speech) for timing field definitions.
 
 Two reproduced boundary forms produce `asr_boundary_audit` and `speech_skipped_reason=asr_boundary_uncertainty`.
 The forms are a clause ending after 不管自己…在 and the ambiguous repeated mother-doubt subject.
