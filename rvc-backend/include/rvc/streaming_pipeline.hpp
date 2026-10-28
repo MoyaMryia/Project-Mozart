@@ -129,14 +129,15 @@ private:
 
     // 块间淡化尾（crossfade_out 样本），cv_mutex_ 保护（仅推理线程读写）
     std::vector<float> tail_;
+    uint64_t tail_gen_ = 0;      // 淡化尾所属的重置代数
     bool tail_valid_ = false;    // false = 下一块直接输出不混合
 
     void handle_discontinuity();
     void reset_full_history_locked();   // 需持 cv_mutex_
     void read_last_window(size_t count, std::vector<float>& dst);
     bool read_prefix(size_t count, std::vector<float>& dst);
-    void push_output(const float* data, size_t n);
-    void push_output_zeros(size_t n);
+    bool push_output(const float* data, size_t n, uint64_t generation);
+    void push_output_zeros(uint64_t generation, size_t n);
 };
 
 } // namespace rvc

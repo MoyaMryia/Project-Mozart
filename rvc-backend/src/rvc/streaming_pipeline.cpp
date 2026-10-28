@@ -234,6 +234,13 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         have_window_base_ = true;
     }
 
+    // 重置后旧淡化尾作废：代数与推理块一起校验。
+    if (tail_gen_ != window_gen) {
+        tail_gen_ = window_gen;
+        std::fill(tail_.begin(), tail_.end(), 0.0f);
+        tail_valid_ = false;
+    }
+
     // ---- 静音窗：跳过推理，输出等长静音 ----
     if (cfg_.skip_silence && !voiced) {
         static std::atomic<uint64_t> skip_logged{0};
@@ -242,7 +249,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         }
         std::fill(tail_.begin(), tail_.end(), 0.0f);
         tail_valid_ = false;
-        push_output_zeros(emit_out_);
+        push_output_zeros(window_gen, emit_out_);
         stats_.skipped_blocks.fetch_add(1, std::memory_order_relaxed);
         return true;
     }
@@ -270,7 +277,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         }
         std::fill(tail_.begin(), tail_.end(), 0.0f);
         tail_valid_ = false;
-        push_output_zeros(emit_out_);
+        push_output_zeros(window_gen, emit_out_);
         return true;
     }
     const auto t_pipeline_done = profile::Clock::now();
@@ -284,7 +291,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
                 converted.size(), output_start + out_block_);
             std::fill(tail_.begin(), tail_.end(), 0.0f);
             tail_valid_ = false;
-            push_output_zeros(emit_out_);
+            push_output_zeros(window_gen, emit_out_);
             return true;
         }
         converted = std::vector<float>(
@@ -299,7 +306,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
                      converted.size(), out_block_);
         std::fill(tail_.begin(), tail_.end(), 0.0f);
         tail_valid_ = false;
-        push_output_zeros(emit_out_);
+        push_output_zeros(window_gen, emit_out_);
         return true;
     }
 
@@ -344,7 +351,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
             spdlog::warn("realtime SOLA: output too short after offset {}", sola_offset);
             std::fill(tail_.begin(), tail_.end(), 0.0f);
             tail_valid_ = false;
-            push_output_zeros(emit_out_);
+            push_output_zeros(window_gen, emit_out_);
             return true;
         }
         std::copy_n(
@@ -382,7 +389,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         tail_valid_ = true;
     }
 
-    push_output(emit.data(), emit.size());
+    if (!push_output(emit.data(), emit.size(), window_gen)) return true;
     stats_.blocks.fetch_add(1, std::memory_order_relaxed);
     if (profile::enabled()) {
         const auto t_done = profile::Clock::now();
@@ -480,9 +487,11 @@ size_t StreamingRvc::output_pending() const
     return out_size_;
 }
 
-void StreamingRvc::push_output(const float* data, size_t n)
+bool StreamingRvc::push_output(const float* data, size_t n, uint64_t generation)
 {
     std::lock_guard<std::mutex> lk(out_mutex_);
+    // 重置先推进代数再清空输出；此锁把代数检查与写入放在同一事务中。
+    if (reset_gen_.load() != generation) return false;
     for (size_t i = 0; i < n; ++i) {
         if (out_size_ == kOutRingCapacity) {
             out_head_ = (out_head_ + 1) % kOutRingCapacity;
@@ -492,12 +501,13 @@ void StreamingRvc::push_output(const float* data, size_t n)
         out_ring_[(out_head_ + out_size_) % kOutRingCapacity] = data[i];
         ++out_size_;
     }
+    return true;
 }
 
-void StreamingRvc::push_output_zeros(size_t n)
+void StreamingRvc::push_output_zeros(uint64_t generation, size_t n)
 {
     std::vector<float> zeros(n, 0.0f);
-    push_output(zeros.data(), n);
+    push_output(zeros.data(), n, generation);
 }
 
 } // namespace rvc

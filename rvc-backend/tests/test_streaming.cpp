@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cstdio>
 #include <vector>
+#include <future>
+#include <stdexcept>
 
 using namespace rvc;
 
@@ -410,6 +412,47 @@ int main()
         CHECK(s.stats().resets.load() == 1, "backward clock triggers reset");
         s.push(make_frame(302, 1, .1f, 1, 2000000000ull));
         CHECK(s.stats().resets.load() == 2, "large forward clock jump triggers reset");
+    }
+
+    printf("test_reset_rejects_all_old_inference_outcomes\n");
+    for (int outcome = 0; outcome < 3; ++outcome) {
+        class BlockedPipeline : public Upsample3Pipeline {
+        public:
+            explicit BlockedPipeline(int result) : outcome(result) {}
+            std::promise<void> entered, release;
+            std::shared_future<void> gate = release.get_future().share();
+            int outcome;
+            bool first = true;
+            std::vector<float> process(const std::vector<float>& input) override {
+                if (first) {
+                    first = false;
+                    entered.set_value();
+                    if (gate.wait_for(std::chrono::seconds(3)) != std::future_status::ready)
+                        throw std::runtime_error("test gate timed out");
+                    if (outcome == 0) throw std::runtime_error("injected engine failure");
+                    if (outcome == 1) return {};
+                }
+                return Upsample3Pipeline::process(input);
+            }
+        } pipeline(outcome);
+        StreamingRvc::Config cfg;
+        cfg.window_samples = 3840;
+        cfg.crossfade_out = 2400;
+        cfg.upstream_realtime = true;
+        cfg.skip_silence = false;
+        StreamingRvc stream(cfg);
+        for (uint32_t i = 1; i <= 12; ++i) stream.push(make_frame(i, 1, .2f));
+        auto inference = std::async(std::launch::async, [&] { return stream.try_process_one(pipeline); });
+        CHECK(pipeline.entered.get_future().wait_for(std::chrono::seconds(2)) == std::future_status::ready,
+              "inference reaches the reset barrier");
+        stream.push(make_frame(1000, 1, .3f));
+        pipeline.release.set_value();
+        inference.get();
+        CHECK(stream.output_pending() == 0, "old success, short output and failure cannot refill the reset stream");
+        for (uint32_t i = 1001; i < 1012; ++i) stream.push(make_frame(i, 1, .3f));
+        CHECK(stream.try_process_one(pipeline), "the new stream resumes after every old outcome");
+        const auto output = drain(stream);
+        CHECK(output.size() == 11520, "only the new output block is retained");
     }
 
     if (g_fail) {
