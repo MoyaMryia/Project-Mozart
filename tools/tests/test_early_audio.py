@@ -1,16 +1,20 @@
+import errno
 import io
 import json
+import os
 from pathlib import Path
+import select
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import Mock, patch
 import wave
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from speech_service import SpeechService
+from speech_service import SpeechService, atomic_json
 from tempo_player import TempoPlayer
 import test_speech_service as speech_tests
 
@@ -26,6 +30,8 @@ for line in sys.stdin:
    time.sleep(10)
   if i==1 and j['text'].startswith('latefail'):
    print(json.dumps({'error':'late generation failure'}),flush=True);break
+  if i==1 and j['text'].startswith('latereject'):
+   print(json.dumps({'error':'late duration limit','rejected':True}),flush=True);break
   block=output.with_name(output.stem+f'-block-{i:05d}.wav')
   pcm=bytes([i+1,0])*1920;pieces.append(pcm)
   with wave.open(str(block),'wb') as w:
@@ -72,6 +78,12 @@ class EarlyAudioTests(unittest.TestCase):
         self.player_patch.stop()
         self.temp.cleanup()
 
+    def realtime_service(self):
+        command, voices = self.service.command, self.service.voices
+        self.service.close()
+        self.service = SpeechService(self.root, command, playback_device='null')
+        self.service.voices = voices
+
     def first_play(self, job):
         deadline = time.monotonic()+3
         while time.monotonic() < deadline:
@@ -103,6 +115,95 @@ class EarlyAudioTests(unittest.TestCase):
         self.assertIn('late generation failure', failed['error'])
         following = self.wait(self.submit('normal', playback=True, live=True)['id'])
         self.assertEqual(following['status'], 'completed', following.get('error'))
+
+    def test_marked_late_reject_keeps_child_and_next_job_uses_same_pid(self):
+        first = self.submit('latereject', playback=True, live=True)
+        self.first_play(first)
+        failed = self.wait(first['id'])
+        self.assertEqual(failed['status'], 'failed')
+        self.assertIn('late duration limit', failed['error'])
+        self.assertTrue(failed['rejected'])
+        status = self.service.status()
+        self.assertTrue(status['runtime_ready'])
+        self.assertIsNone(status['worker_error'])
+        self.assertFalse(status['storage_failed'])
+        pid = self.service.child.pid
+        following = self.wait(self.submit('normal', playback=True, live=True)['id'])
+        self.assertEqual(following['status'], 'completed', following.get('error'))
+        self.assertEqual(self.service.child.pid, pid)
+
+    def test_marked_late_reject_during_a_paused_pipe_write_keeps_runtime_ready(self):
+        """拒绝关闭播放管道后，写管道报错只结束该任务。"""
+        entered, release = threading.Event(), threading.Event()
+        real_select = select.select
+        def paused_select(read, write, xlist, timeout=None):
+            ready = real_select(read, write, xlist, timeout)
+            if write and not read and not entered.is_set():
+                entered.set()
+                release.wait(timeout=3)
+            return ready
+        with patch('speech_service.select.select', side_effect=paused_select):
+            first = self.submit('latereject', playback=True, live=True)
+            self.assertTrue(entered.wait(timeout=2))
+            failed = self.wait(first['id'])
+            self.assertEqual(failed['status'], 'failed')
+            self.assertIn('late duration limit', failed['error'])
+            self.assertTrue(failed['rejected'])
+            release.set()
+            status = self.service.status()
+            self.assertTrue(status['runtime_ready'])
+            self.assertIsNone(status['worker_error'])
+            self.assertFalse(status['storage_failed'])
+            pid = self.service.child.pid
+            self.assertEqual(status['runtime_pid'], pid)
+            following = self.wait(self.submit('normal', playback=True, live=True)['id'])
+        self.assertEqual(following['status'], 'completed', following.get('error'))
+        self.assertEqual(self.service.child.pid, pid)
+
+    def test_playback_pipe_write_failure_for_a_live_task_stays_fatal(self):
+        """任务未结束时写播放管道失败，仍令播放组件致命失败。"""
+        self.realtime_service()
+        original = os.write
+        def failing_write(descriptor, data):
+            player = self.service.player
+            current = None
+            if player is not None and player.stdin is not None:
+                try:
+                    current = player.stdin.fileno()
+                except ValueError:
+                    current = None
+            if current is not None and descriptor == current:
+                raise OSError(errno.EIO, 'playback pipe write failed')
+            return original(descriptor, data)
+        with patch('speech_service.os.write', side_effect=failing_write):
+            job = self.submit('quick', playback=True, live=True)
+            result = self.wait(job['id'])
+        self.assertEqual(result['status'], 'failed')
+        status = self.service.status()
+        self.assertEqual(status['worker_error']['component'], 'playback')
+        self.assertEqual(status['worker_error']['type'], 'OSError')
+        self.assertFalse(status['storage_failed'])
+        self.assertFalse(status['runtime_ready'])
+
+    def test_streamed_playback_disk_full_is_queryable_and_close_reclaims(self):
+        self.realtime_service()
+        def write(path, value):
+            if value.get('status') == 'playing':
+                raise OSError(errno.ENOSPC, 'No space left on device')
+            return atomic_json(path, value)
+        with patch('speech_service.atomic_json', side_effect=write):
+            job = self.submit('latecomplete', playback=True, live=True)
+            result = self.wait(job['id'])
+            self.assertEqual(result['status'], 'failed')
+            status = self.service.status()
+            self.assertFalse(status['runtime_ready'])
+            self.assertEqual(status['worker_error']['component'], 'playback')
+            self.assertIn('No space left', status['storage_warning'])
+            self.assertTrue(status['storage_failed'])
+            self.service.close()
+        self.assertFalse(self.service.worker.is_alive())
+        self.assertFalse(self.service.play_worker.is_alive())
+        self.assertIsNotNone(self.service.child.poll())
 
     def test_cancel_interrupts_the_pipe_and_worker(self):
         first = self.submit('cancel', playback=True, live=True)

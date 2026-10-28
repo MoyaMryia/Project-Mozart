@@ -5,6 +5,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -29,7 +30,11 @@ void require(bool condition, const std::string& message) {
 // FFmpeg decode/encode, and temporary files; no Jetson or model assets required.
 class TestPipeline final : public rvc::RVCPipelineBase {
 public:
-    explicit TestPipeline(bool blocked, bool fail) : blocked_(blocked), fail_(fail) {}
+    enum class Output { Normal, Short, MissingSample, Empty, Extra, NonFinite };
+
+    explicit TestPipeline(bool blocked, bool fail,
+                          Output output = Output::Normal)
+        : blocked_(blocked), fail_(fail), output_(output) {}
 
     std::string current_model_id() const override { return "fixture"; }
 
@@ -41,6 +46,13 @@ public:
             throw std::runtime_error("test inference release timed out");
         }
         if (fail_) throw std::runtime_error("intentional inference failure");
+        if (output_ == Output::Short) return std::vector<float>(audio.size(), 0.1f);
+        if (output_ == Output::MissingSample) return std::vector<float>(audio.size() * 3 - 1, 0.1f);
+        if (output_ == Output::Empty) return {};
+        if (output_ == Output::Extra) return std::vector<float>(audio.size() * 3 + 480, 0.1f);
+        if (output_ == Output::NonFinite) {
+            return std::vector<float>(audio.size() * 3, std::numeric_limits<float>::quiet_NaN());
+        }
         return std::vector<float>(audio.size() * 3, 0.1f);
     }
 
@@ -61,6 +73,7 @@ private:
     std::condition_variable changed_;
     bool blocked_;
     bool fail_;
+    Output output_;
     bool entered_ = false;
 };
 
@@ -94,8 +107,10 @@ void write_wav(const fs::path& path, unsigned samples) {
 class Fixture {
 public:
     Fixture(size_t depth = 50, uint64_t cache_bytes = 1024 * 1024,
-            bool blocked = false, bool fail = false)
-        : pipeline(blocked, fail) {
+            bool blocked = false, bool fail = false,
+            TestPipeline::Output output = TestPipeline::Output::Normal,
+            bool denoise = false)
+        : pipeline(blocked, fail, output) {
         rvc::ModeController::Config config;
         config.audio_host = "127.0.0.1";
         config.storage_dir = temporary.path / "audio";
@@ -103,6 +118,7 @@ public:
         config.models_dir = temporary.path / "models";
         config.max_queue_depth = depth;
         config.max_cache_bytes = cache_bytes;
+        config.file_denoise = denoise;
         controller = std::make_unique<rvc::ModeController>(pipeline, config);
     }
 
@@ -118,6 +134,8 @@ public:
         write_wav(path, samples);
         return path;
     }
+
+    fs::path presets_file() const { return temporary.path / "presets.json"; }
 
     nlohmann::json enqueue(const fs::path& path) {
         return controller->enqueue_file(path, path.filename().string(), "");
@@ -139,6 +157,37 @@ public:
 std::string job_id(const nlohmann::json& result) {
     require(result.value("status", "") == "queued", "enqueue failed: " + result.dump());
     return result.at("job_id").get<std::string>();
+}
+
+void write_file(const fs::path& path, const std::string& content) {
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    output << content;
+    output.close();
+    require(static_cast<bool>(output), "could not write test file: " + path.string());
+}
+
+std::string read_file(const fs::path& path) {
+    std::ifstream input(path, std::ios::binary);
+    require(static_cast<bool>(input), "could not read test file: " + path.string());
+    return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+}
+
+size_t wav_output_samples(const fs::path& path) {
+    const auto wav = read_file(path);
+    require(wav.size() >= 12 && wav.compare(0, 4, "RIFF") == 0
+            && wav.compare(8, 4, "WAVE") == 0, "converted output is not a WAV");
+    for (size_t offset = 12; offset + 8 <= wav.size();) {
+        size_t bytes = 0;
+        for (unsigned i = 0; i < 4; ++i)
+            bytes |= size_t(static_cast<unsigned char>(wav[offset + 4 + i])) << (8 * i);
+        require(bytes <= wav.size() - offset - 8, "converted WAV chunk is truncated");
+        if (wav.compare(offset, 4, "data") == 0) {
+            require(bytes % sizeof(float) == 0, "converted WAV data is not aligned");
+            return bytes / sizeof(float);
+        }
+        offset += 8 + bytes + (bytes & 1);
+    }
+    throw std::runtime_error("converted WAV has no data chunk");
 }
 
 void test_capacity() {
@@ -300,6 +349,146 @@ void test_file_duration() {
     }
 }
 
+void test_file_output_validation() {
+    const unsigned input_samples = 320;
+    struct Case {
+        bool denoise;
+        TestPipeline::Output output;
+        const char* status;
+        const char* error;
+    };
+    const Case cases[] = {
+        {false, TestPipeline::Output::Normal, "completed", ""},
+        {false, TestPipeline::Output::Short, "failed", "truncated audio"},
+        {false, TestPipeline::Output::MissingSample, "failed", "truncated audio"},
+        {false, TestPipeline::Output::Empty, "failed", "no audio"},
+        {false, TestPipeline::Output::Extra, "completed", ""},
+        {false, TestPipeline::Output::NonFinite, "failed", "non-finite samples"},
+        {true, TestPipeline::Output::Normal, "completed", ""},
+        {true, TestPipeline::Output::Short, "failed", "truncated audio"},
+        {true, TestPipeline::Output::MissingSample, "failed", "truncated audio"},
+        {true, TestPipeline::Output::Empty, "failed", "no audio"},
+        {true, TestPipeline::Output::Extra, "completed", ""},
+        {true, TestPipeline::Output::NonFinite, "failed", "non-finite samples"},
+    };
+    for (const auto& item : cases) {
+        Fixture f(50, 1024 * 1024, false, false, item.output, item.denoise);
+        const auto id = job_id(f.enqueue(f.source(item.denoise ? "denoise.wav" : "plain.wav", input_samples)));
+        require(f.controller->request_mode("file_rvc").value("status", "") == "active",
+                "mode switch failed");
+        f.wait([&] {
+            const auto status = f.controller->job_status(id).value("status", "");
+            return status == "completed" || status == "failed" || status == "cancelled";
+        }, "file job did not reach a terminal state");
+        const auto status = f.controller->job_status(id);
+        require(status.value("status", "") == item.status, "unexpected job status: " + status.dump());
+        if (std::string(item.status) == "completed") {
+            const auto output = f.controller->completed_output(id);
+            require(output.has_value() && fs::exists(*output),
+                    "valid inference output was not published");
+            require(wav_output_samples(*output) == input_samples * MOZART_OUTPUT_SAMPLE_RATE / MOZART_INPUT_SAMPLE_RATE,
+                    "published sample count differs from the input duration");
+            continue;
+        }
+        require(status.value("error", "").find(item.error) != std::string::npos,
+                "unexpected validation error: " + status.dump());
+        require(!f.controller->completed_output(id).has_value(),
+                "invalid inference output was published");
+        const std::string prefix = id.substr(4);
+        for (const auto& entry : fs::directory_iterator(f.temporary.path / "audio")) {
+            const auto name = entry.path().filename().string();
+            require(name.compare(0, prefix.size(), prefix) != 0,
+                    "failed job retained temporary file: " + name);
+        }
+    }
+}
+
+void require_presets_rejected(Fixture& f, const std::string& content,
+                              const std::string& reason) {
+    const auto path = f.presets_file();
+    write_file(path, content);
+    const auto listed = f.controller->list_presets();
+    require(listed.value("status", "") == "failed",
+            "corrupt preset file was not reported: " + listed.dump());
+    require(listed.value("error", "").find(reason) != std::string::npos,
+            "unexpected preset read error: " + listed.dump());
+    require(listed.at("presets").is_array() && listed.at("presets").empty(),
+            "corrupt preset file returned entries");
+
+    const auto saved = f.controller->save_preset({{"name", "Blocked"}});
+    require(saved.value("status", "") == "failed",
+            "save overwrote corrupt preset file: " + saved.dump());
+    require(read_file(path) == content, "save modified the corrupt preset file");
+    require(!fs::exists(path.string() + ".tmp"), "failed save left a temporary file");
+
+    const auto deleted = f.controller->delete_preset("preset_missing");
+    require(deleted.value("status", "") == "failed",
+            "delete changed corrupt preset state: " + deleted.dump());
+    require(read_file(path) == content, "delete modified the corrupt preset file");
+}
+
+void test_presets_missing() {
+    Fixture f;
+    const auto path = f.presets_file();
+    require(!fs::exists(path), "preset file was created before the first save");
+
+    const auto listed = f.controller->list_presets();
+    require(!listed.contains("error"), "missing preset file reported an error: " + listed.dump());
+    require(listed.at("presets").is_array() && listed.at("presets").empty(),
+            "missing preset file did not list empty");
+
+    const auto saved = f.controller->save_preset({{"name", "First"}});
+    require(saved.value("status", "") == "saved",
+            "save on missing preset file failed: " + saved.dump());
+    require(fs::exists(path), "save did not create the preset file");
+    require(f.controller->list_presets().at("presets").size() == 1,
+            "saved preset was not persisted");
+}
+
+void test_presets_write_failure() {
+    Fixture f;
+    const auto path = f.presets_file();
+    write_file(path, "[]");
+    const auto original = read_file(path);
+    fs::create_symlink("/dev/full", path.string() + ".tmp");
+    const auto saved = f.controller->save_preset({{"name", "disk full"}});
+    require(saved.value("status", "") == "failed", "failed preset write was reported as saved");
+    require(read_file(path) == original, "failed preset write replaced the original file");
+    require(!fs::exists(path.string() + ".tmp"), "failed preset write retained the temporary file");
+}
+
+void test_presets_bad_json() {
+    Fixture f;
+    require_presets_rejected(f, "{\"presets\": [", "corrupt");
+}
+
+void test_presets_non_array() {
+    Fixture f;
+    require_presets_rejected(f, "{\"presets\": []}", "JSON array");
+}
+
+void test_presets_read_failure() {
+    Fixture f;
+    const auto path = f.presets_file();
+    fs::remove(path);
+    fs::create_directory(path);
+
+    const auto listed = f.controller->list_presets();
+    require(listed.value("status", "") == "failed",
+            "read failure was not reported: " + listed.dump());
+    require(listed.value("error", "").find("regular file") != std::string::npos,
+            "unexpected read failure error: " + listed.dump());
+
+    const auto saved = f.controller->save_preset({{"name", "Blocked"}});
+    require(saved.value("status", "") == "failed",
+            "save ignored preset read failure: " + saved.dump());
+    const auto deleted = f.controller->delete_preset("preset_missing");
+    require(deleted.value("status", "") == "failed",
+            "delete ignored preset read failure: " + deleted.dump());
+    require(fs::is_directory(path), "read failure replaced the preset path");
+    require(!fs::exists(path.string() + ".tmp"), "failed save left a temporary file");
+}
+
 void test_ffmpeg_lifecycle(const std::string& scenario) {
     Fixture f;
     const auto marker = f.temporary.path / "child.pid";
@@ -356,6 +545,12 @@ int main(int argc, char** argv) {
         const std::string name = argv[1];
         if (name == "file_paths") test_file_paths();
         else if (name == "file_duration") test_file_duration();
+        else if (name == "file_output_validation") test_file_output_validation();
+        else if (name == "presets_missing") test_presets_missing();
+        else if (name == "presets_bad_json") test_presets_bad_json();
+        else if (name == "presets_write_failure") test_presets_write_failure();
+        else if (name == "presets_non_array") test_presets_non_array();
+        else if (name == "presets_read_failure") test_presets_read_failure();
         else if (name == "cancel_decode" || name == "cancel_encode" || name == "timeout" || name == "failure") test_ffmpeg_lifecycle(name);
         else if (name == "capacity") test_capacity();
         else if (name == "position") test_position();

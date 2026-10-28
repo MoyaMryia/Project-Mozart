@@ -139,7 +139,7 @@ Windows 主机不使用 `snd-aloop` 与主机守护进程，改用 [windows-brid
 
 准备步骤：
 
-1. 安装依赖：`pip install pyusb sounddevice numpy`。
+1. 安装依赖：`pip install pyusb sounddevice`。
 2. 用 Zadig 安装 WinUSB 驱动：Options → List All Devices，
    选择 `USB Device`（`1d6b:0105`）的接口 0，替换驱动为 WinUSB。
    每台主机执行一次。
@@ -152,7 +152,10 @@ python windows-bridge.py --play --capture    # 全双工
 ```
 
 该程序只使用接口 0。接收方向接受两种帧长，发送方向固定 20 ms 帧。
-该程序在 Linux 主机验证过录放与采集。
+USB 或声卡故障时，程序记录原因并以状态码 1 停止双工会话。
+程序先等待音频线程退出，再关闭 WAV 和声卡。
+断线后，重新连接设备并重启程序。
+当前离线回归见[展示前修复回归](../reports/demo-fixes-20261028/RESULTS.md)。
 
 ## 离线模式
 
@@ -165,6 +168,9 @@ Jetson 侧继续消费管线播放，并向管线采集端写入静音。
 
 Jetson 端点读写失败或发送停滞时，守护进程记录错误并以状态码 1 退出。
 systemd 单元按 `Restart=always` 重新启动服务，重新写入描述符并绑定 UDC。
+
+两端排空播放积压时，若 aplay 已读空管道，则继续处理后续帧。
+排空管道的打开或读取发生其他 I/O 故障时，守护进程记录原因并以状态码 1 退出。
 
 采集端按原样发送 PCM。两端只在 USB 接收后、写入播放设备前做自适应重采样。
 反馈水位来自播放管道实际积压，字节数换算为音频采样帧；每帧包含两个声道样本。

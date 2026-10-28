@@ -38,6 +38,10 @@ class WorkerError(RuntimeError):
     pass
 
 
+class TaskRejected(WorkerError):
+    pass
+
+
 class ApiError(Exception):
     def __init__(self, code, message):
         self.code, self.message = code, message
@@ -71,6 +75,7 @@ class SpeechService:
         self.lock = threading.Condition(threading.RLock())
         self.delivery_policy = delivery_policy
         self.storage_warning = None
+        self.storage_failed = False
         self.voices = {p.stem: json.loads(p.read_text()) for p in (self.root/'voices').glob('*.json')}
         self.jobs, self.pending, self.keys = OrderedDict(), deque(), OrderedDict()
         if self.delivery_policy == 'coverage':
@@ -117,8 +122,8 @@ class SpeechService:
         self.preload = preload
         self.warmup_error = None
         self.worker = threading.Thread(target=self.run, daemon=True)
-        self.worker.start()
         self.play_worker = threading.Thread(target=self.play_loop, daemon=True)
+        self.worker.start()
         self.play_worker.start()
 
     def status(self):
@@ -129,6 +134,7 @@ class SpeechService:
             return {'available': True, 'engine': self.engine, **runtime,
                 'delivery_policy': self.delivery_policy,
                 'storage_warning': self.storage_warning,
+                'storage_failed': self.storage_failed,
                 'unfinished_jobs': self.jobs.unfinished() if coverage else sum(j['status'] not in TERMINAL for j in self.jobs.values()),
                 'pending_jobs': len(self.pending),
                 'resident_jobs': len(self.jobs.cache) if coverage else len(self.jobs),
@@ -194,6 +200,7 @@ class SpeechService:
                 'last_prepare': dict(self.last_preparation) if self.last_preparation else None,
                 'worker_error': dict(self.worker_error) if self.worker_error else None,
                 'worker_alive': self.worker.is_alive(),
+                'playback_worker_alive': self.play_worker.is_alive(),
                 'runtime_pid': self.child.pid if self.child else None,
                 'runtime_exit_code': self.child.poll() if self.child else None,
                 'prepare': dict(self.preparation) if self.preparation else None}
@@ -201,7 +208,7 @@ class SpeechService:
     def prepare(self):
         with self.lock:
             current = self.runtime_status()
-            if self.closed or self.worker_error or not self.worker.is_alive():
+            if self.closed or self.worker_error or self.storage_failed or not self.worker.is_alive():
                 raise ApiError(503, 'Speech worker is unavailable; restart the service')
             if current['runtime_ready'] or (self.preparation and
                     self.preparation['status'] in ('queued', 'preparing')):
@@ -221,15 +228,82 @@ class SpeechService:
 
     def save_job(self, job):
         self.sync_playback_start(job)
+        if self.storage_failed:
+            return
         if self.delivery_policy == 'coverage':
-            self.jobs[job['id']] = job
+            try:
+                self.jobs[job['id']] = job
+            except sqlite3.Error as error:
+                self.note_storage_failure(error)
+                raise
+            try:
+                atomic_json(self.root/'results'/f"{job['id']}.json", job)
+            except OSError as error:
+                self.storage_warning = str(error)
+                print(f'[speech] JSON snapshot failed; the SQLite task remains stored: {error}', file=sys.stderr, flush=True)
+            return
         try:
             atomic_json(self.root/'results'/f"{job['id']}.json", job)
         except OSError as error:
-            if self.delivery_policy != 'coverage':
-                raise
+            self.note_storage_failure(error)
+            raise
+
+    def note_storage_failure(self, error):
+        with self.lock:
             self.storage_warning = str(error)
-            print(f'[speech] JSON snapshot failed; the SQLite task remains stored: {error}', file=sys.stderr, flush=True)
+            self.storage_failed = True
+            self.lock.notify_all()
+
+    def owned_job(self, job_id):
+        """Read a resident job. Do not reload records evicted from the disk cache."""
+        return self.jobs.cache.get(job_id) if self.delivery_policy == 'coverage' else self.jobs.get(job_id)
+
+    def fatal_error(self, error, component, jobs=()):
+        """Stop the service in memory. Fail the owned jobs and keep one reason."""
+        with self.lock:
+            if isinstance(error, sqlite3.Error):
+                self.note_storage_failure(error)
+            if self.worker_error is None:
+                self.worker_error = {'type': type(error).__name__, 'message': str(error),
+                                     'at': time.time(), 'component': component}
+            self.invalidate_runtime(f'Internal speech {component} error: {error}', 'failed')
+            self.session['enabled'] = False
+            self.kill(self.child)
+            self.kill(self.player)
+            failed = {job['id']: job for job in jobs if job is not None}
+            for key in {getattr(self, 'active', None), getattr(self, 'active_play', None)}-{None}:
+                job = self.owned_job(key)
+                if job is not None:
+                    failed.setdefault(key, job)
+            # 已生成但仍等待播放的任务同样无法继续。
+            for piece in self.play_pending:
+                job = self.owned_job(piece['job_id'])
+                if job is not None:
+                    failed.setdefault(job['id'], job)
+            self.play_pending = deque()
+            # realtime 的等待队列在内存中，就地失败。coverage 的磁盘等待队列
+            # 保留 pending 状态，供重启后恢复，不整体读入内存。
+            if self.delivery_policy != 'coverage':
+                for job_id in self.pending:
+                    job = self.owned_job(job_id)
+                    if job is not None:
+                        failed.setdefault(job_id, job)
+                self.pending.clear()
+            self.active_play = self.active_play_piece = None
+            self.player_job_id = None
+            finished_at = time.time()
+            for job in failed.values():
+                if job['status'] not in TERMINAL:
+                    job.update(status='failed', error=self.runtime_error, finished_at=finished_at)
+                else:
+                    job.setdefault('finished_at', finished_at)
+                if self.storage_failed:
+                    continue
+                try:
+                    self.save_job(job)
+                except (OSError, sqlite3.Error) as persist_error:
+                    self.note_storage_failure(persist_error)
+            self.lock.notify_all()
 
     def reset_waiting(self, job):
         for name in ('error', 'finished_at', 'started_at', 'queue_seconds', 'admitted_at',
@@ -321,7 +395,7 @@ class SpeechService:
         if language == 'en' and any('\u3400' <= c <= '\u9fff' for c in text):
             raise ApiError(422, 'English output contains Chinese text; translation is required')
         with self.lock:
-            if self.closed or self.worker_error:
+            if self.closed or self.worker_error or self.storage_failed:
                 raise ApiError(503, 'Speech worker is unavailable; restart the service')
             key = str(body.get('utterance_id', ''))
             if len(key) > 128:
@@ -387,6 +461,8 @@ class SpeechService:
                 self.save_job(job)
                 self.pending.append(job_id)
             except (OSError, sqlite3.Error) as error:
+                self.note_storage_failure(error)
+                self.fatal_error(error, 'submit', [job])
                 raise ApiError(507, 'Speech task storage failed; inspect the service log') from error
             if key and self.delivery_policy != 'coverage':
                 self.keys[key] = job_id
@@ -424,6 +500,8 @@ class SpeechService:
         return total
 
     def prune(self):
+        if self.storage_failed:
+            return
         coverage = self.delivery_policy == 'coverage'
         candidates = self.jobs.history_to_remove(self.history_limit) if coverage else list(self.jobs)
         for job_id in candidates:
@@ -445,7 +523,14 @@ class SpeechService:
             if job['status'] not in TERMINAL:
                 job['status'] = 'cancelled'
                 if self.delivery_policy == 'coverage':
-                    self.pending.discard(job_id)
+                    if not self.storage_failed:
+                        try:
+                            self.pending.discard(job_id)
+                        except sqlite3.Error as error:
+                            self.note_storage_failure(error)
+                            self.fatal_error(error, 'cancel', [job])
+                            if not self.closed:
+                                raise ApiError(507, 'Speech task storage failed; inspect the service log') from error
                 else:
                     self.pending = deque(i for i in self.pending if i != job_id)
                 self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job_id)
@@ -582,29 +667,18 @@ class SpeechService:
         try:
             self.run_worker()
         except Exception as error:
-            with self.lock:
-                self.worker_error = {'type': type(error).__name__, 'message': str(error), 'at': time.time()}
-                self.invalidate_runtime(f'Internal speech worker error: {error}', 'failed')
-                self.session['enabled'] = False
-                self.kill(self.child)
-                active = getattr(self, 'active', None)
-                if active is not None and self.jobs[active]['status'] not in TERMINAL:
-                    job = self.jobs[active]
-                    job.update(status='failed', error=self.runtime_error, finished_at=time.time())
-                    self.play_pending = deque(p for p in self.play_pending if p['job_id'] != active)
-                    if getattr(self, 'active_play', None) == active:
-                        self.kill(self.player)
-                    self.save_job(job)
-                self.lock.notify_all()
+            self.fatal_error(error, 'worker')
             traceback.print_exc()
 
     def run_worker(self):
         with (self.root/'speech-worker.log').open('a') as self.worker_log:
             while True:
                 with self.lock:
+                    if self.worker_error is not None:
+                        return
                     self.refresh_runtime()
-                    self.lock.wait_for(lambda: self.pending or self.prepare_requested or self.closed, timeout=.1)
-                    if self.closed:
+                    self.lock.wait_for(lambda: self.pending or self.prepare_requested or self.closed or self.worker_error, timeout=.1)
+                    if self.closed or self.worker_error:
                         return
                     if not self.pending and not self.prepare_requested:
                         continue
@@ -616,7 +690,7 @@ class SpeechService:
                         pass
                     continue
                 with self.lock:
-                    if self.closed:
+                    if self.closed or self.worker_error:
                         return
                     if not self.pending:
                         continue
@@ -628,7 +702,7 @@ class SpeechService:
                     # Keep a bounded FIFO of text awaiting capacity. It reserves
                     # no audio and never synthesizes until the existing budget
                     # allows it. The original 30-second deadline still applies.
-                    while job.get('admission_pending') and not self.closed and job['status'] not in TERMINAL:
+                    while job.get('admission_pending') and not self.closed and not self.worker_error and job['status'] not in TERMINAL:
                         if self.expire_before_first_audio(job):
                             break
                         if self.audio_backlog_seconds()+job['estimated_duration_seconds'] <= self.live_audio_budget_seconds:
@@ -641,6 +715,8 @@ class SpeechService:
                         return
                     if job['status'] in TERMINAL:
                         continue
+                    if self.worker_error:
+                        return
                     self.active = job['id']
                     job['status'] = 'processing'
                     job['started_at'] = time.time()
@@ -665,10 +741,10 @@ class SpeechService:
                             # a finished WAV. Include the active player's remainder.
                             while (job['playback'] and self.buffered_audio_seconds()+
                                    estimated_audio_seconds(text, job['language']) > self.playback_limit_seconds):
-                                if job['status'] in TERMINAL or self.closed or self.expire_before_first_audio(job):
+                                if job['status'] in TERMINAL or self.closed or self.worker_error or self.expire_before_first_audio(job):
                                     break
                                 self.lock.wait(timeout=.1)
-                            if job['status'] in TERMINAL or self.closed or self.expire_before_first_audio(job):
+                            if job['status'] in TERMINAL or self.closed or self.worker_error or self.expire_before_first_audio(job):
                                 break
                         path = self.root/'results'/f"{job['id']}-part-{index:03d}.wav"
                         partial = path.with_suffix('.tmp')
@@ -707,6 +783,8 @@ class SpeechService:
                                     break
                                 blocks += 1
                                 result = self.read_child(timeout=deadline-time.monotonic())
+                            if result.get('rejected') is True and 'error' in result:
+                                raise TaskRejected(result['error'])
                             if 'error' in result:
                                 raise WorkerError(result['error'])
                             if job['early_audio']:
@@ -761,7 +839,15 @@ class SpeechService:
                         job['generation_finished_at'] = time.time()
                         if not job['playback'] or (not job['continuous_playback'] and job['played_chunks'] == job['chunk_count']):
                             self.complete(job)
-                except (OSError, WorkerError, wave.Error, EOFError, subprocess.TimeoutExpired) as error:
+                except TaskRejected as error:
+                    with self.lock:
+                        if job['status'] not in TERMINAL:
+                            job.update(status='failed', error=str(error), rejected=True)
+                        if getattr(self, 'active_play', None) == job['id']:
+                            self.kill(self.player)
+                        self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job['id'])
+                        self.lock.notify_all()
+                except (WorkerError, wave.Error, EOFError, subprocess.TimeoutExpired) as error:
                     with self.lock:
                         if job['status'] not in TERMINAL:
                             self.invalidate_runtime(str(error), 'failed')
@@ -771,6 +857,8 @@ class SpeechService:
                             if getattr(self, 'active_play', None) == job['id']:
                                 self.kill(self.player)
                             self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job['id'])
+                except (OSError, sqlite3.Error) as error:
+                    self.fatal_error(error, 'worker')
                 finally:
                     temporary.unlink(missing_ok=True)
                     with self.lock:
@@ -786,10 +874,10 @@ class SpeechService:
         with self.lock:
             while (job['playback'] and self.buffered_audio_seconds()+
                    chunk['duration_seconds'] > self.playback_limit_seconds):
-                if job['status'] in TERMINAL or self.closed or self.expire_before_first_audio(job):
+                if job['status'] in TERMINAL or self.closed or self.worker_error or self.expire_before_first_audio(job):
                     return False
                 self.lock.wait(timeout=.1)
-            if job['status'] in TERMINAL or self.closed or self.expire_before_first_audio(job):
+            if job['status'] in TERMINAL or self.closed or self.worker_error or self.expire_before_first_audio(job):
                 return False
             job['chunks'].append(chunk)
             job['generated_chunks'] += 1
@@ -879,12 +967,20 @@ class SpeechService:
                         raise RuntimeError('Early audio playback process exited before the final block')
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Early audio playback pipe timed out')
-                    if select.select([], [self.player.stdin], [], .1)[1]:
-                        try:
+                    try:
+                        writable = select.select([], [self.player.stdin], [], .1)[1]
+                        if writable:
                             count = os.write(self.player.stdin.fileno(), pcm)
                             pcm = pcm[count:]
-                        except BlockingIOError:
-                            pass
+                    except BlockingIOError:
+                        pass
+                    except (OSError, ValueError):
+                        # 取消或标记拒绝已经关闭播放管道。只在任务确实结束时收尾，
+                        # 其他管道错误仍然让播放组件致命失败。
+                        with self.lock:
+                            if self.closed or job['status'] in TERMINAL:
+                                return
+                        raise
                 if self.device == 'null':
                     remaining = chunk['duration_seconds']/tempo-(time.time()-chunk['playback_started_at'])
                     if remaining > 0:
@@ -926,7 +1022,7 @@ class SpeechService:
                         if self.capture_playback:
                             job['playback_audio_filename'] = f"{job['id']}-playback.wav"
                     self.complete(job)
-        except Exception as error:
+        except (RuntimeError, wave.Error, subprocess.TimeoutExpired) as error:
             with self.lock:
                 if job['status'] not in TERMINAL:
                     job.update(status='failed', error=str(error))
@@ -972,96 +1068,118 @@ class SpeechService:
         return 1.05 if delay >= 1 else 1.
 
     def play_loop(self):
-        with (self.root/'playback.log').open('a') as log:
-            while True:
-                with self.lock:
-                    self.lock.wait_for(lambda: self.play_pending or self.closed)
-                    if self.closed:
-                        return
-                    chunk = self.play_pending.popleft()
-                    job = self.jobs[chunk['job_id']]
-                    if job['status'] in TERMINAL or self.expire_before_first_audio(job):
-                        continue
-                if chunk.get('streamed') or job.get('continuous_playback'):
-                    self.play_stream(job, chunk, log)
-                    continue
-                with self.lock:
-                    if self.closed or job['status'] in TERMINAL:
-                        continue
-                    self.active_play = job['id']
-                    self.active_play_piece = chunk
-                    chunk['status'] = 'playing'
-                    chunk['playback_started_at'] = time.time()
-                    job['status'] = 'playing'
-                    job.setdefault('playback_started_at', chunk['playback_started_at'])
-                    self.save_job(job)
-                try:
+        job = None
+        try:
+            with (self.root/'playback.log').open('a') as log:
+                while True:
+                    job = None
                     with self.lock:
-                        if job['status'] in TERMINAL or self.closed:
+                        if self.worker_error is not None:
+                            return
+                        self.lock.wait_for(lambda: self.play_pending or self.closed or self.worker_error)
+                        if self.closed or self.worker_error:
+                            return
+                        chunk = self.play_pending.popleft()
+                        job = self.jobs[chunk['job_id']]
+                        if job['status'] in TERMINAL or self.expire_before_first_audio(job):
                             continue
-                        self.player = subprocess.Popen(['aplay', '-q', '-D', self.device,
-                            str(self.root/'results'/chunk['filename'])], stderr=log)
-                    code = self.player.wait(timeout=chunk['duration_seconds']+10)
-                    if code:
-                        raise RuntimeError(f'Playback failed (aplay exit {code})')
-                    if self.device == 'null':
-                        remaining = chunk['duration_seconds']-(time.time()-chunk['playback_started_at'])
-                        if remaining > 0:
-                            with self.lock:
-                                self.lock.wait_for(lambda: job['status'] in TERMINAL or self.closed, timeout=remaining)
+                    if chunk.get('streamed') or job.get('continuous_playback'):
+                        self.play_stream(job, chunk, log)
+                        job = None
+                        continue
                     with self.lock:
-                        if job['status'] not in TERMINAL and not self.closed:
-                            chunk.update(status='completed', finished_at=time.time())
-                            job['played_chunks'] += 1
-                            job['played_duration_seconds'] += chunk['duration_seconds']
-                            if job['generation_done'] and job['played_chunks'] == job['chunk_count']:
-                                self.complete(job)
-                except Exception as error:
-                    self.kill(self.player)
-                    with self.lock:
-                        if job['status'] not in TERMINAL:
-                            job.update(status='failed', error=str(error))
-                            self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job['id'])
-                            if getattr(self, 'active', None) == job['id']:
-                                self.kill(self.child)
-                finally:
-                    with self.lock:
-                        if job['status'] in TERMINAL:
-                            job['finished_at'] = time.time()
+                        if self.closed or job['status'] in TERMINAL:
+                            continue
+                        self.active_play = job['id']
+                        self.active_play_piece = chunk
+                        chunk['status'] = 'playing'
+                        chunk['playback_started_at'] = time.time()
+                        job['status'] = 'playing'
+                        job.setdefault('playback_started_at', chunk['playback_started_at'])
                         self.save_job(job)
-                        self.active_play = None
-                        self.active_play_piece = None
-                        self.prune()
-                        self.lock.notify_all()
+                    try:
+                        with self.lock:
+                            if job['status'] in TERMINAL or self.closed:
+                                continue
+                            self.player = subprocess.Popen(['aplay', '-q', '-D', self.device,
+                                str(self.root/'results'/chunk['filename'])], stderr=log)
+                        code = self.player.wait(timeout=chunk['duration_seconds']+10)
+                        if code:
+                            raise RuntimeError(f'Playback failed (aplay exit {code})')
+                        if self.device == 'null':
+                            remaining = chunk['duration_seconds']-(time.time()-chunk['playback_started_at'])
+                            if remaining > 0:
+                                with self.lock:
+                                    self.lock.wait_for(lambda: job['status'] in TERMINAL or self.closed, timeout=remaining)
+                        with self.lock:
+                            if job['status'] not in TERMINAL and not self.closed:
+                                chunk.update(status='completed', finished_at=time.time())
+                                job['played_chunks'] += 1
+                                job['played_duration_seconds'] += chunk['duration_seconds']
+                                if job['generation_done'] and job['played_chunks'] == job['chunk_count']:
+                                    self.complete(job)
+                    except (RuntimeError, wave.Error, subprocess.TimeoutExpired) as error:
+                        self.kill(self.player)
+                        with self.lock:
+                            if job['status'] not in TERMINAL:
+                                job.update(status='failed', error=str(error))
+                                self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job['id'])
+                                if getattr(self, 'active', None) == job['id']:
+                                    self.kill(self.child)
+                    finally:
+                        with self.lock:
+                            if job['status'] in TERMINAL:
+                                job['finished_at'] = time.time()
+                            self.save_job(job)
+                            self.active_play = None
+                            self.active_play_piece = None
+                            self.prune()
+                            self.lock.notify_all()
+        except Exception as error:
+            self.fatal_error(error, 'playback', [job] if job else ())
+            traceback.print_exc()
 
     def close(self):
         restore = []
         with self.lock:
-            if self.closed:
-                return
-            self.closed = True
-            self.invalidate_runtime('Speech service closed', 'closed')
-            if self.delivery_policy == 'coverage':
-                keys = self.jobs.ids("pending=0 AND status NOT IN ('completed','failed','cancelled','expired')")
-                jobs = [self.jobs[key] for key in keys]
-            else:
-                jobs = list(self.jobs.values())
-            for job in jobs:
-                if job['status'] not in TERMINAL:
-                    if self.delivery_policy == 'coverage' and 'playback_started_at' not in job:
-                        restore.append(json.loads(json.dumps(job)))
-                    self.cancel(job['id'])
-            self.lock.notify_all()
+            closing = not self.closed
+            if closing:
+                self.closed = True
+                self.invalidate_runtime('Speech service closed', 'closed')
+                try:
+                    if self.delivery_policy == 'coverage':
+                        keys = self.jobs.ids("pending=0 AND status NOT IN ('completed','failed','cancelled','expired')")
+                        jobs = [self.jobs[key] for key in keys]
+                    else:
+                        jobs = list(self.jobs.values())
+                    for job in jobs:
+                        if job['status'] not in TERMINAL:
+                            if self.delivery_policy == 'coverage' and 'playback_started_at' not in job:
+                                restore.append(json.loads(json.dumps(job)))
+                            try:
+                                self.cancel(job['id'])
+                            except (OSError, sqlite3.Error) as error:
+                                self.note_storage_failure(error)
+                except (OSError, sqlite3.Error) as error:
+                    self.note_storage_failure(error)
+                self.lock.notify_all()
         self.kill(self.child)
         self.kill(self.player)
         self.play_worker.join(timeout=5)
         self.worker.join(timeout=5)
         if not self.worker.is_alive() and not self.play_worker.is_alive():
             with self.lock:
-                for job in restore:
-                    self.reset_waiting(job)
+                if closing and not self.storage_failed:
+                    for job in restore:
+                        try:
+                            self.reset_waiting(job)
+                        except (OSError, sqlite3.Error) as error:
+                            self.note_storage_failure(error)
                 if self.delivery_policy == 'coverage':
-                    self.jobs.close()
+                    try:
+                        self.jobs.close()
+                    except sqlite3.Error as error:
+                        self.note_storage_failure(error)
         if self.child:
             self.child.stdin.close()
             self.child.stdout.close()

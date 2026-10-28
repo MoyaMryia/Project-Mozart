@@ -1,5 +1,6 @@
 """USB 事件、端点故障退出与管道水位的回归测试。"""
 import contextlib
+import errno
 import importlib.util
 import io
 import os
@@ -289,6 +290,164 @@ class PipeFeedbackTests(unittest.TestCase):
                 patch.object(daemon, 'write_speaker', side_effect=lambda _: daemon.stopping.set()):
             daemon.usb_pump(daemon.generation)
         ratio.assert_called_once_with(3 * proto.FAST_SAMPLES)
+
+
+class SpeakerDrainTests(unittest.TestCase):
+    """F2：水位查询过期后 aplay 已读空管道，排空读返回 EAGAIN。"""
+
+    def bridges(self):
+        return ((host, host.Bridge()), (jetson, jetson.Daemon()))
+
+    def speaker_pipe(self, bridge):
+        read_fd, write_fd = os.pipe()
+        os.set_blocking(read_fd, False)
+        os.set_blocking(write_fd, False)
+        self.addCleanup(os.close, write_fd)
+        self.addCleanup(os.close, read_fd)
+        bridge.speaker_fd = write_fd
+        return read_fd, write_fd
+
+    def test_empty_pipe_after_backlog_query_stops_drain_without_failure(self):
+        for module, bridge in self.bridges():
+            with self.subTest(daemon=module.__name__), contextlib.ExitStack() as stack:
+                read_fd, _write_fd = self.speaker_pipe(bridge)
+                stack.enter_context(patch.object(bridge, 'pipe_backlog',
+                                                return_value=len(PAYLOAD) * 4))
+                handles, eagain = [], []
+                real_open, real_read = os.open, os.read
+
+                def tracking_open(*args, **kwargs):
+                    handle = real_open(*args, **kwargs)
+                    handles.append(handle)
+                    return handle
+
+                def tracking_read(handle, size):
+                    try:
+                        return real_read(handle, size)
+                    except BlockingIOError as error:
+                        eagain.append(error)
+                        raise
+
+                stack.enter_context(patch.object(module.os, 'open', side_effect=tracking_open))
+                stack.enter_context(patch.object(module.os, 'read', side_effect=tracking_read))
+                self.assertTrue(bridge.write_speaker(PAYLOAD))
+                self.assertEqual(len(eagain), 1)    # 真实空管道返回 EAGAIN
+                self.assertEqual(bridge.errors, 0)
+                self.assertEqual(bridge.dropped, 0)
+                self.assertEqual(bridge.last_error, '')
+                self.assertFalse(bridge.stopping.is_set())
+                self.assertEqual(len(handles), 1)
+                with self.assertRaises(OSError):    # 排空读句柄已关闭
+                    os.fstat(handles[0])
+                self.assertEqual(real_read(read_fd, len(PAYLOAD)), PAYLOAD)
+
+    def test_real_backlog_is_drained_before_the_next_frame(self):
+        for module, bridge in self.bridges():
+            with self.subTest(daemon=module.__name__), contextlib.ExitStack() as stack:
+                read_fd, write_fd = self.speaker_pipe(bridge)
+                os.write(write_fd, PAYLOAD * 3)
+                stack.enter_context(patch.object(bridge, 'pipe_backlog',
+                                                 return_value=len(PAYLOAD) * 3))
+                self.assertTrue(bridge.write_speaker(PAYLOAD))
+                self.assertEqual(bridge.dropped, 1)
+                self.assertEqual(bridge.last_error, '播放积压排空（丢弃最旧帧）')
+                self.assertEqual(bridge.errors, 0)
+                self.assertEqual(os.read(read_fd, 65536), PAYLOAD * 2)
+
+    def test_host_pump_keeps_running_when_aplay_drained_the_pipe(self):
+        bridge = host.Bridge()
+        read_fd, _write_fd = self.speaker_pipe(bridge)
+        frame = proto.encode(proto.TYPE_PCM, 0, 0, PAYLOAD)
+        bridge.ep_in = types.SimpleNamespace(read=lambda _size, timeout=0: (
+            bridge.stopping.set() or frame))
+        with patch.object(bridge, 'pipe_backlog', return_value=len(PAYLOAD) * 4):
+            bridge.usb_to_alsa()
+        self.assertEqual(bridge.received, 1)
+        self.assertEqual(bridge.errors, 0)
+        self.assertGreater(len(os.read(read_fd, 65536)), 0)
+
+    def test_jetson_pump_keeps_running_when_aplay_drained_the_pipe(self):
+        daemon = jetson.Daemon()
+        daemon.active.set()
+        daemon.ep_out = 10
+        read_fd, _write_fd = self.speaker_pipe(daemon)
+        frame = proto.encode(proto.TYPE_PCM, 0, 0, PAYLOAD)
+        real_read = os.read
+
+        def fake_read(handle, size):
+            if handle == daemon.ep_out:
+                daemon.stopping.set()
+                return frame
+            return real_read(handle, size)
+
+        with patch.object(jetson.select, 'select', return_value=([10], [], [])), \
+                patch.object(jetson.os, 'read', side_effect=fake_read), \
+                patch.object(daemon, 'pipe_backlog', return_value=len(PAYLOAD) * 4):
+            daemon.usb_pump(daemon.generation)
+        self.assertEqual(daemon.frames_out, 1)
+        self.assertEqual(daemon.errors, 0)
+        self.assertGreater(len(real_read(read_fd, 65536)), 0)
+
+    def test_drain_read_fault_records_reason_and_stops(self):
+        for module, bridge in self.bridges():
+            with self.subTest(daemon=module.__name__), contextlib.ExitStack() as stack:
+                read_fd, _write_fd = self.speaker_pipe(bridge)
+                stack.enter_context(patch.object(bridge, 'pipe_backlog',
+                                                 return_value=len(PAYLOAD) * 4))
+                handles = []
+                real_open, real_read = os.open, os.read
+
+                def tracking_open(*args, **kwargs):
+                    handle = real_open(*args, **kwargs)
+                    handles.append(handle)
+                    return handle
+
+                stack.enter_context(patch.object(module.os, 'open', side_effect=tracking_open))
+                stack.enter_context(patch.object(
+                    module.os, 'read',
+                    side_effect=OSError(errno.EIO, 'Input/output error')))
+                self.assertFalse(bridge.write_speaker(PAYLOAD))
+                self.assertEqual(bridge.errors, 1)
+                self.assertEqual(bridge.dropped, 0)
+                self.assertIn('排空播放积压失败', bridge.last_error)
+                self.assertIn('Input/output error', bridge.last_error)
+                self.assertEqual(bridge.exit_code, 1)
+                self.assertTrue(bridge.stopping.is_set())
+                if hasattr(bridge, 'active'):
+                    self.assertFalse(bridge.active.is_set())
+                with self.assertRaises(OSError):
+                    os.fstat(handles[0])
+                with self.assertRaises(BlockingIOError):    # 未写入扬声器
+                    real_read(read_fd, len(PAYLOAD))
+
+    def test_drain_open_fault_records_reason_and_stops(self):
+        for module, bridge in self.bridges():
+            with self.subTest(daemon=module.__name__), contextlib.ExitStack() as stack:
+                read_fd, _write_fd = self.speaker_pipe(bridge)
+                stack.enter_context(patch.object(bridge, 'pipe_backlog',
+                                                 return_value=len(PAYLOAD) * 4))
+                stack.enter_context(patch.object(
+                    module.os, 'open',
+                    side_effect=OSError(errno.EACCES, 'Permission denied')))
+                real_read = os.read
+                self.assertFalse(bridge.write_speaker(PAYLOAD))
+                self.assertEqual(bridge.errors, 1)
+                self.assertEqual(bridge.dropped, 0)
+                self.assertIn('打开播放管道读端失败', bridge.last_error)
+                self.assertIn('Permission denied', bridge.last_error)
+                self.assertEqual(bridge.exit_code, 1)
+                self.assertTrue(bridge.stopping.is_set())
+                with self.assertRaises(BlockingIOError):
+                    real_read(read_fd, len(PAYLOAD))
+
+    def test_host_run_exits_nonzero_after_drain_fault(self):
+        bridge = host.Bridge()
+        bridge.request_restart('排空播放积压失败，重启服务: [Errno 5] Input/output error')
+        with contextlib.ExitStack() as stack:
+            for obj, name in ((host.signal, 'signal'), (host.threading.Thread, 'start'),
+                              (bridge, 'start_audio'), (bridge, 'open_usb'), (bridge, 'report')):
+                stack.enter_context(patch.object(obj, name))
+            self.assertEqual(bridge.run(), 1)
 
 
 class FrameSizeCompatTests(unittest.TestCase):
