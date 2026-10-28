@@ -12,6 +12,7 @@ SCRIPT = REPO/'tools'/'run-realtime-voice.sh'
 
 CAPTURE = 'plughw:CARD=MIC,DEV=0'
 PLAYBACK = 'plughw:CARD=Device,DEV=0'
+MIXING = 'mozartout'
 SAVED_TARGET = '127.0.0.1:18100'
 OVERRIDE_TARGET = '127.0.0.1:18999'
 
@@ -130,6 +131,47 @@ class RealtimeVoiceRunnerTests(unittest.TestCase):
         self.assert_subtitle_arg(self.pre_argv(), None)
         devices = json.loads(self.devices_file.read_text())
         self.assertEqual(devices['subtitle_target'], '')
+
+    def run_start(self, **extra_env):
+        """用空壳依赖执行 start，只验证入口校验。"""
+        env = {
+            'PATH': str(self.bin) + os.pathsep + os.environ.get('PATH', '/usr/bin:/bin'),
+            'HOME': str(self.root),
+            'LANG': 'C.UTF-8',
+            'RUN_DIR': str(self.run_dir),
+            'READY_TIMEOUT': '1',
+            'PYTHON': '/bin/true',
+        }
+        env.update(extra_env)
+        return subprocess.run(['bash', str(self.script), 'start'],
+                              capture_output=True, text=True, timeout=20, env=env)
+
+    def prepare_start_dependencies(self, playback):
+        self.write_executable(self.root/'build-gpu'/'state'/'mozart_stated', '#!/bin/sh\n')
+        self.write_executable(self.root/'build'/'usb-pre'/'mozart-pre', '#!/bin/sh\n')
+        config = self.root/'backend.yaml'
+        config.write_text('storage_dir: /tmp\n')
+        self.write_executable(self.bin/'arecord', FAKE_ALSA.format(
+            devices=f'{CAPTURE}\nplughw:CARD=MIC,DEV=1'))
+        self.write_executable(self.bin/'aplay', FAKE_ALSA.format(devices=playback))
+        return config
+
+    def test_speech_rejects_direct_hardware_playback(self):
+        config = self.prepare_start_dependencies(PLAYBACK)
+
+        result = self.run_start(SPEECH='1', PLAYBACK=PLAYBACK, CONFIG=str(config))
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('播报需要混音 PCM', result.stderr)
+
+    def test_speech_accepts_a_mixing_device(self):
+        config = self.prepare_start_dependencies(MIXING)
+
+        result = self.run_start(SPEECH='1', PLAYBACK=MIXING, CONFIG=str(config),
+                                REFERENCE=str(self.root/'missing.wav'))
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('参考音频不存在', result.stderr)
 
     def test_environment_target_overrides_saved_target(self):
         self.seed_devices()
