@@ -23,7 +23,7 @@ class HttpTests(unittest.TestCase):
         self.instance_id = 'fixture-instance'
         self.start_fixture()
 
-    def start_fixture(self, managed=True):
+    def start_fixture(self, managed=True, presets=None):
         with socket.socket() as reserve:
             reserve.bind(('127.0.0.1', 0))
             self.port = reserve.getsockname()[1]
@@ -34,6 +34,9 @@ class HttpTests(unittest.TestCase):
         env.pop('MOZART_STACK_INSTANCE_ID', None)
         if managed:
             env.update(MOZART_STACK_STATUS_JSON=str(self.stack_path), MOZART_STACK_INSTANCE_ID=self.instance_id)
+        env.pop('MOZART_FIXTURE_PRESETS', None)
+        if presets:
+            env['MOZART_FIXTURE_PRESETS'] = presets
         self.process = subprocess.Popen([EXECUTABLE, str(self.port), str(self.output)],
                                         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                                         stderr=subprocess.PIPE, env=env)
@@ -77,6 +80,28 @@ class HttpTests(unittest.TestCase):
                 result = json.loads(response.split(b'\r\n\r\n', 1)[1])
                 self.assertEqual(result['status'], 'failed')
                 self.assertEqual(result['error'], 'preset file is corrupt')
+
+    def preset_request(self, method, path, body=b''):
+        header = f'{method} {path} HTTP/1.1\r\nContent-Length: {len(body)}\r\n\r\n'.encode()
+        response = self.request(header + body)
+        return response.split(b'\r\n', 1)[0], json.loads(response.split(b'\r\n\r\n', 1)[1])
+
+    def test_preset_routes_map_success_and_missing_to_status_codes(self):
+        self.stop()
+        self.start_fixture(presets='ok')
+        # 载荷形状取自 ModeController：成功列表没有 status，删除缺失只返回 error。
+        line, body = self.preset_request('GET', '/api/presets')
+        self.assertIn(b'200 ', line)
+        self.assertEqual(body, {'presets': []})
+        line, body = self.preset_request('POST', '/api/presets', b'{"name":"new"}')
+        self.assertIn(b'200 ', line)
+        self.assertEqual(body, {'status': 'saved', 'id': 'new'})
+        line, body = self.preset_request('DELETE', '/api/presets/existing')
+        self.assertIn(b'200 ', line)
+        self.assertEqual(body, {'status': 'deleted'})
+        line, body = self.preset_request('DELETE', '/api/presets/missing')
+        self.assertIn(b'404 ', line)
+        self.assertEqual(body, {'error': 'preset not found'})
 
     def test_glossary_starts_empty_and_round_trips(self):
         response, data = self.glossary_request('GET')

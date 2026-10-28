@@ -375,6 +375,10 @@ The [source review report](../reports/sentence-context-20261007/RESULTS.md) give
 | `POST /api/speech/events` | Accepts final translation `{text,utterance_id}` from the bridge. |
 | `POST /api/speech/stop` | Disables live admission and cancels unfinished jobs. |
 
+The stop response contains `stop_errors` with the number of failed task writes or queue reads.
+The stop request still invalidates the runtime and releases processes when that count is not zero.
+The `storage_warning` field carries the reason.
+
 Speech jobs and events also accept optional `source_duration_seconds` and `source_emitted_at` fields.
 Use seconds for both fields. Use Unix time for `source_emitted_at`.
 Source duration must be positive and at most 300 seconds. Invalid timing values return HTTP 400.
@@ -410,6 +414,8 @@ SQLite commits waiting tasks before the service returns success. The service kee
 JSON result files remain available as snapshots. SQLite remains the task source if a JSON snapshot write fails.
 The `storage_warning` status field reports that failure.
 A task storage failure returns HTTP 507. Existing stored tasks remain available.
+If a finished result file cannot be removed, the service keeps the task record and retries the removal on the next cleanup.
+That removal failure sets `storage_warning` and does not stop admission.
 Only one process can own each disk queue.
 The system can still use its configured swap. The application does not change system swap settings.
 

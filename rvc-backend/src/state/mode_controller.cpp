@@ -427,7 +427,7 @@ bool ModeController::read_presets_locked(nlohmann::json& presets, std::string& e
         error = "failed to read preset file: " + status_error.message();
         return false;
     }
-    if (status_error || status.type() == std::filesystem::file_type::not_found) {
+    if (status.type() == std::filesystem::file_type::not_found) {
         presets = nlohmann::json::array();
         return true;
     }
