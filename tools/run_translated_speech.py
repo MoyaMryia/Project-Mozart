@@ -22,6 +22,7 @@ from tempo_control import DEFAULT_TEMPO_MAX, validate_tempo_limits
 
 ROOT = Path(__file__).resolve().parents[1]
 STARTUP_TIMEOUT_SECONDS = 90
+AUDIO_TIMEOUT_SECONDS = 30
 POLL_SECONDS = .2
 
 
@@ -76,6 +77,7 @@ def main():
     assets = home/'models/sherpa-onnx'
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--backend-config', type=Path, required=True)
+    parser.add_argument('--api-port', type=int, default=18080, help='后端 HTTP 端口，与 backend-config 保持一致')
     parser.add_argument('--mode', choices=['full', 'captions'], default='full')
     parser.add_argument('--allow-degraded', action='store_true',
                         help='Allow source captions before optional translation and speech become ready')
@@ -94,6 +96,8 @@ def main():
     parser.add_argument('--tts-provider-config', type=Path)
     parser.add_argument('--stt-model', type=Path, default=assets/'zipformer-zh-14M')
     parser.add_argument('--final-model', type=Path, default=None, help='Optional SenseVoice final-utterance model')
+    parser.add_argument('--glossary', type=Path, help='JSON 术语表；同时供控制台编辑')
+    parser.add_argument('--corrections', type=Path, help='JSON 同音纠错表')
     parser.add_argument('--llama-server', type=Path, default=home/'mozart-archive/qwen35/llama.cpp/build-cuda-bin/llama-server')
     parser.add_argument('--llama-model', type=Path, default=home/'mozart-archive/qwen35/gguf/qwen35-0.8b-text-Q4_K_M.gguf')
     parser.add_argument('--translation-batch-size', type=int, default=256)
@@ -120,9 +124,14 @@ def main():
     parser.add_argument('--data-dir', type=Path, default=home/'.local/share/mozart/speech')
     parser.add_argument('--run-dir', type=Path, default=Path('/tmp/mozart-translated-speech'))
     parser.add_argument('--no-playback', action='store_true', help='Generate downloadable speech without ALSA playback')
+    parser.add_argument('--external-capture', action='store_true',
+                        help='外部进程已提供 MZRT 音频到 18100，本栈不启动采集预处理器')
     parser.add_argument('--no-denoise', dest='no_denoise', action='store_true')
     parser.add_argument('--archive-utterances',action='store_true',help='Save processed source utterances for diagnosis')
     args = parser.parse_args()
+    if not 1 <= args.api_port <= 65535:
+        parser.error('api-port must be from 1 to 65535')
+    api_base = f'http://127.0.0.1:{args.api_port}'
     try:
         validate_tempo_limits(args.playback_tempo_max, args.playback_target_delay, args.playback_recovery_seconds)
     except ValueError as error:
@@ -137,6 +146,8 @@ def main():
         parser.error('boundary-threshold must be between 0 and 1; clause-max-chars must be from 12 to 64')
     if args.keep_open and not args.input:
         parser.error('--keep-open requires file input; microphone capture already runs until stopped')
+    if args.external_capture and args.input:
+        parser.error('--external-capture requires microphone capture, not file replay')
     if not math.isfinite(args.seconds) or not math.isfinite(args.start) or args.seconds <= 0 or args.start < 0:
         parser.error('seconds must be positive and start nonnegative')
     if args.input and args.seconds < .02:
@@ -248,7 +259,7 @@ def main():
         return result
 
     def request(path, body=None):
-        return service_request('http://127.0.0.1:18080'+path, body, timeout=5)
+        return service_request(api_base+path, body, timeout=5)
 
     def monitor(entries):
         children = {name: {**state['children'][name], 'exit_code': process.poll()}
@@ -393,14 +404,21 @@ def main():
 
     try:
         save()
-        assert_ports_available([(18080, socket.SOCK_STREAM), (18081, socket.SOCK_STREAM),
+        assert_ports_available([(args.api_port, socket.SOCK_STREAM), (18081, socket.SOCK_STREAM),
                                 (18200, socket.SOCK_STREAM), (18100, socket.SOCK_DGRAM)])
         env = os.environ.copy()
         env['MOZART_SUBTITLES_JSONL'] = str(args.run_dir/'subtitles.jsonl')
+        audio_status_path = args.run_dir/'audio-status.json'
+        env['MOZART_STT_STATUS_JSON'] = str(audio_status_path.resolve())
         env['MOZART_STACK_STATUS_JSON'] = str(status_path.resolve())
         env['MOZART_STACK_INSTANCE_ID'] = state['instance_id']
+        # 术语表与纠错表是外部输入，子进程各自读取同一份文件。
+        if args.glossary:
+            env['MOZART_GLOSSARY'] = str(args.glossary.resolve())
+        if args.corrections:
+            env['MOZART_CORRECTIONS'] = str(args.corrections.resolve())
         backend = launch('backend', [ROOT/'build-gpu/state/mozart_stated', args.backend_config.resolve()], env)
-        ready('http://127.0.0.1:18080/api/status', backend)
+        ready(api_base+'/api/status', backend)
         speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
             '--provider', args.tts_provider, '--precision', args.tts_precision,
@@ -422,11 +440,12 @@ def main():
             speech_environment['PYTHONPATH'] = str(args.tts_pythonpath)+os.pathsep+speech_environment.get('PYTHONPATH', '')
         if args.mode == 'full':
             speech = launch_optional('speech', speech_command, speech_environment)
-        env = os.environ.copy()
-        env['LD_LIBRARY_PATH'] = str(args.llama_server.parent)+':'+env.get('LD_LIBRARY_PATH','')
+        # 不要覆盖 env：后面的字幕桥要复用同一份术语表与纠错表路径。
+        translation_env = dict(env)
+        translation_env['LD_LIBRARY_PATH'] = str(args.llama_server.parent)+':'+translation_env.get('LD_LIBRARY_PATH','')
         translation = launch_optional('translation', [args.llama_server, '-m', args.llama_model, '-c', '2048',
             '-b',args.translation_batch_size,'-ub',args.translation_ubatch_size,'--cache-ram',args.translation_cache_mib,
-            '-ngl','99','-np','1','-t','2','-tb','2','--host','127.0.0.1','--port','18200','--jinja'], env)
+            '-ngl','99','-np','1','-t','2','-tb','2','--host','127.0.0.1','--port','18200','--jinja'], translation_env)
         startup_deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
         if args.allow_degraded:
             record_degraded('startup', 'Source captions may begin before required services are ready')
@@ -446,7 +465,7 @@ def main():
             bridge_command += ['--utterance-dir',args.run_dir/'utterances']
         if args.mode == 'full':
             bridge_command += ['--speak']
-        bridge = launch('captions', bridge_command)
+        bridge = launch('captions', bridge_command, env)
         save(phase='preparing_captions')
         deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
         while time.monotonic() < deadline:
@@ -462,7 +481,10 @@ def main():
         else:
             raise ServiceUnavailable('ASR readiness timeout')
         with tempfile.TemporaryDirectory(prefix='mozart-replay-') as temporary:
-            pre_args = [ROOT/'build-gpu/preprocessor/mozart-pre','-a','127.0.0.1','-p','18100']
+            # 采集用预处理器属于本栈私有，没有外部控制者。默认端口 19040
+            # 会与实时变声链路冲突，这里关闭控制通道。
+            pre_args = [ROOT/'build-gpu/preprocessor/mozart-pre','-a','127.0.0.1','-p','18100',
+                        '--ctl-port','0']
             if args.input:
                 wav = Path(temporary)/'microphone.wav'
                 subprocess.run(['ffmpeg','-v','error','-y','-ss',str(args.start),'-i',str(args.input.resolve()),
@@ -474,22 +496,39 @@ def main():
             if stopped:
                 raise StopRequested()
             monitor(owned)
-            pre = launch('microphone', pre_args)
-            if pre.poll() not in (None, 0):
+            pre = None if args.external_capture else launch('microphone', pre_args)
+            if pre is not None and pre.poll() not in (None, 0):
                 raise RuntimeError(f'Preprocessor exited ({pre.returncode})')
-            if pre.poll() is not None and not args.input and not stopped:
+            if pre is not None and pre.poll() is not None and not args.input and not stopped:
                 raise RuntimeError('Microphone exited before a stop request')
-            save(state='running', phase='capturing', capture_started_at=time.time())
-            print(f'[stack] running; API port 18080, logs {args.run_dir}', flush=True)
-            while not stopped and pre.poll() is None:
+            capture_deadline = time.monotonic() + STARTUP_TIMEOUT_SECONDS
+            save(state='waiting' if pre is None else 'running',
+                 phase='waiting_for_audio' if pre is None else 'capturing',
+                 capture_started_at=None if pre is None else time.time())
+            print(f'[stack] API {api_base}, logs {args.run_dir}', flush=True)
+            while not stopped and (pre is None or pre.poll() is None):
                 monitor([entry for entry in owned if entry[1] is not pre])
                 poll_startup()
+                if pre is None:
+                    try:
+                        audio = json.loads(audio_status_path.read_text())
+                    except FileNotFoundError:
+                        audio = {}
+                    if audio.get('instance_id') != state['instance_id']:
+                        audio = {'packets': 0, 'rejected': 0, 'last_audio_at': None}
+                    save(capture=audio)
+                    if audio['packets'] > 0 and time.time() - audio['last_audio_at'] < AUDIO_TIMEOUT_SECONDS:
+                        if state['capture_started_at'] is None:
+                            save(state='running', phase='capturing', capture_started_at=time.time())
+                    elif state['capture_started_at'] is not None or time.monotonic() >= capture_deadline:
+                        raise ServiceUnavailable(f'External audio unavailable: {audio}')
                 time.sleep(POLL_SECONDS)
-            if pre.poll() not in (None, 0):
+            if pre is not None and pre.poll() not in (None, 0):
                 raise RuntimeError(f'Preprocessor exited ({pre.returncode})')
-            if pre.poll() is not None and not args.input and not stopped:
+            if pre is not None and pre.poll() is not None and not args.input and not stopped:
                 raise RuntimeError('Microphone exited before a stop request')
-            finish('microphone', pre)
+            if pre is not None:
+                finish('microphone', pre)
             if stopped:
                 raise StopRequested()
             save(state='draining', phase='captions')
