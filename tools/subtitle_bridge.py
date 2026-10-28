@@ -498,8 +498,8 @@ def main():
     parser.add_argument('--stt-port', type=int, default=18100)
     parser.add_argument('--llama-url', default='http://127.0.0.1:18200')
     parser.add_argument('--jsonl', default='/tmp/opencode/subtitles.jsonl')
-    parser.add_argument('--speech-url', default='http://127.0.0.1:18080',
-                        help='Speech-session API; speech is enabled in the control UI')
+    parser.add_argument('--speech-url',
+                        help='Speech-session API; required with --speak')
     parser.add_argument('--speak', action='store_true', help='Submit translated text to an enabled speech session')
     parser.add_argument('--delivery-policy', choices=['coverage', 'realtime'], default='coverage')
     parser.add_argument('--stable-clauses', action='store_true', help='Submit stable source clauses before the final recognition result')
@@ -512,6 +512,8 @@ def main():
         args.stable_clauses = True
     if args.stable_clauses and args.delivery_policy != 'coverage':
         parser.error('stable-clauses requires the coverage delivery policy')
+    if args.speak and not args.speech_url:
+        parser.error('--speak requires --speech-url')
     if not 0 < args.boundary_threshold < 1 or not 12 <= args.clause_max_chars <= 64:
         parser.error('boundary-threshold must be between 0 and 1; clause-max-chars must be from 12 to 64')
     boundary_classifier = None

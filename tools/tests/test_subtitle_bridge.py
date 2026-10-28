@@ -1,4 +1,4 @@
-import json,os,pathlib,sys,tempfile,time,unittest
+import json,os,pathlib,subprocess,sys,tempfile,time,unittest
 from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 from subtitle_bridge import (CaptionDispatcher, caption_updates, source_caption, translate,
@@ -442,3 +442,14 @@ class BridgeChecks(unittest.TestCase):
         self.assertIn('repay the loan',call.call_args.args[1]['messages'][1]['content'])
 
 if __name__=='__main__':unittest.main()
+
+
+class EntryValidationTests(unittest.TestCase):
+    def test_speak_requires_a_speech_url(self):
+        """--speak 没有 --speech-url 时不得静默退回默认端口。"""
+        bridge = pathlib.Path(__file__).resolve().parents[1]/'subtitle_bridge.py'
+        result = subprocess.run(
+            [sys.executable, str(bridge), '--stt-model', '/nonexistent', '--speak'],
+            capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--speak requires --speech-url', result.stderr)
