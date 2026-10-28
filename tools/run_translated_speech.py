@@ -340,6 +340,10 @@ def main():
             if status.get('runtime_ready') is not True:
                 mark_ready('speech_runtime', False)
                 mark_ready('voice_session', False)
+                # 用户停止或取消任务后运行时进入 stopped。字幕继续，恢复由显式准备触发。
+                if status.get('runtime_state') == 'stopped':
+                    record_degraded('speech', 'Speech runtime stopped')
+                    return
                 if had_runtime or status.get('runtime_error') or time.monotonic() >= startup_deadline:
                     reason = status.get('runtime_error') or ('Speech runtime became unavailable'
                         if had_runtime else 'Speech warmup readiness timeout')
@@ -382,7 +386,13 @@ def main():
                         and (reference_voice is None or session['voice_id'] == reference_voice))
             mark_ready('voice_session', selected)
             if not selected and state['capture_started_at'] is not None:
-                startup_failure('speech', ServiceUnavailable('Speech session became unavailable or playback configuration changed'))
+                # 用户停止播报时保留字幕与翻译，恢复由显式准备操作触发。
+                playback_changed = session.get('playback') is not (not args.no_playback)
+                if playback_changed:
+                    startup_failure('speech', ServiceUnavailable(
+                        'Speech session became unavailable or playback configuration changed'))
+                else:
+                    record_degraded('speech', 'Speech session stopped')
             if selected and 'speech' in state['degraded']:
                 save(degraded={key: value for key, value in state['degraded'].items() if key != 'speech'})
         if (state['readiness']['translation'] and (args.mode == 'captions' or
