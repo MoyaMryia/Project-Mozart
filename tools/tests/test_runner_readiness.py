@@ -148,7 +148,8 @@ class RunnerReadinessTests(unittest.TestCase):
                 if scenario == 'keep_open_runtime_regression' and self.snapshots[-1]['phase'] == 'preview':
                     regression_active = True
                 if scenario in ('ready_exit', 'speech_exit', 'runtime_regression', 'warmup_regression',
-                                'health_regression', 'session_regression', 'mixed_recovery'):
+                                'health_regression', 'session_regression', 'mixed_recovery',
+                                'keep_open_runtime_regression'):
                     current = self.snapshots[-1]
                     if not regression_active and all(current['readiness'].values()):
                         regression_active = True
@@ -396,11 +397,14 @@ class RunnerReadinessTests(unittest.TestCase):
         self.assertFalse(status['readiness']['voice_session'])
         self.assertIn('model warmup failed', status['degraded']['speech'])
 
-    def test_full_runtime_regression_stops_capture(self):
-        status = self.run_scenario(scenario='runtime_regression', expected_error=runner.ServiceUnavailable)
-        self.assertEqual(status['state'], 'failed')
+    def test_full_runtime_regression_keeps_captions_and_degrades_speech(self):
+        """采集开始后语音运行时失效只降级语音，字幕与翻译继续。"""
+        status = self.run_scenario(scenario='runtime_regression')
+        self.assertEqual(status['state'], 'stopped')
+        self.assertTrue(status['readiness']['translation'])
         self.assertFalse(status['readiness']['speech_runtime'])
         self.assertFalse(status['readiness']['voice_session'])
+        self.assertIn('runtime became unavailable', status['degraded']['speech'])
 
     def test_full_warmup_regression_stops_capture(self):
         status = self.run_scenario(scenario='warmup_regression', expected_error=runner.ServiceUnavailable)
@@ -420,12 +424,12 @@ class RunnerReadinessTests(unittest.TestCase):
         self.assertFalse(status['readiness']['voice_session'])
         self.assertIn('speech', status['degraded'])
 
-    def test_full_runtime_regression_during_preview_fails(self):
-        status = self.run_scenario(options=['--keep-open'], scenario='keep_open_runtime_regression',
-                                   expected_error=runner.ServiceUnavailable)
-        self.assertEqual(status['state'], 'failed')
+    def test_full_runtime_regression_during_preview_degrades_speech(self):
+        status = self.run_scenario(options=['--keep-open'], scenario='keep_open_runtime_regression')
         self.assertIn('preview', [item['phase'] for item in self.snapshots])
         self.assertFalse(status['readiness']['speech_runtime'])
+        self.assertTrue(status['readiness']['translation'])
+        self.assertIn('speech', status['degraded'])
 
     def test_reference_activation_retry_reuses_registered_voice(self):
         status = self.run_scenario(options=['--reference', 'REFERENCE'], scenario='session_retry')
