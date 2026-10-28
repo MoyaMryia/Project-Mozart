@@ -57,26 +57,29 @@ tools/run-realtime-voice.sh start
 ssh -N -L 18080:127.0.0.1:18181 jetson-net
 ```
 
-## 译文播报
+## 输出开关
 
-`SPEECH=1` 同时启动译文播报。播报和变声写同一个输出设备，所以该设备必须是混音 PCM。
+`OUTPUT` 选择扬声器输出哪一路。两路不同时输出。
+
+| 值 | 输出 |
+| --- | --- |
+| `voice`（默认） | 变声音频；不启动播报 |
+| `speech` | 译文播报；后端保持 `idle`，预处理把变声音频写入 `null` |
 
 ```bash
-cp usb-audio/asoundrc.mozartout ~/.asoundrc        # 首次使用
-PLAYBACK=mozartout SPEECH=1 \
-  REFERENCE=$HOME/models/reference/english.wav \
+OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
   tools/run-realtime-voice.sh start
 ```
 
 | 变量 | 作用 |
 | --- | --- |
-| `SPEECH` | `1` 启动播报；`0` 只做变声和字幕 |
-| `REFERENCE` | 启动时注册并选中的参考音频，长度 3–15 s |
+| `OUTPUT` | `voice` 或 `speech`；其他值在启动前拒绝 |
+| `REFERENCE` | 播报模式注册并选中的参考音频，长度 3–15 s |
 | `REFERENCE_NAME` | 参考音色的显示名 |
 
-`SPEECH=1` 且 `PLAYBACK` 为 `hw:` 或 `plughw:` 时，脚本在启动前拒绝运行并给出原因。
+`OUTPUT=speech` 时，播放设备只由播报进程使用，因此不需要混音配置。
 启动返回前，脚本等待字幕状态文件的 `readiness.speech_runtime` 为真。
-播报失败时，语音服务状态返回 `worker_error`、`storage_warning` 和 `playback_worker_alive`。
+切换模式需要执行 `stop` 再 `start`。字幕和翻译在两种模式下都保持运行。
 
 ## 日志与状态
 

@@ -12,8 +12,8 @@
 # 环境变量覆盖：CONFIG CAPTURE PLAYBACK MODEL PITCH INDEX_RATE INDEX_NPROBE
 #               API AUDIO_PORT RUN_DIR PYTHON CAPTIONS_DIR
 #               STT_MODEL FINAL_MODEL LLAMA_SERVER LLAMA_MODEL GLOSSARY CORRECTIONS
-#               SPEECH REFERENCE REFERENCE_NAME
-# SPEECH=1 同时启动译文播报。播报与变声共用一个混音 PCM，见 README。
+#               OUTPUT REFERENCE REFERENCE_NAME
+# OUTPUT=voice 输出变声音频；OUTPUT=speech 输出译文播报。两者不同时输出。
 # API 默认 18181；字幕音频固定送往本机 18100；翻译使用本机 18200。
 set -euo pipefail
 
@@ -31,7 +31,7 @@ CORRECTIONS=${CORRECTIONS:-${MOZART_CORRECTIONS:-}}
 CONFIG=${CONFIG:-$ROOT/rvc-golden/qiqi-zh-run/backend-index.yaml}
 CAPTURE=${CAPTURE:-plughw:CARD=MIC,DEV=0}
 PLAYBACK=${PLAYBACK:-plughw:CARD=Device,DEV=0}
-SPEECH=${SPEECH:-0}
+OUTPUT=${OUTPUT:-voice}
 REFERENCE=${REFERENCE:-}
 REFERENCE_NAME=${REFERENCE_NAME:-Reference voice}
 MODEL=${MODEL:-qiqi-zh}
@@ -246,10 +246,11 @@ command_start() {
 
     aplay -L 2>/dev/null | grep -qx "$PLAYBACK" \
         || fail "播放设备不存在: $PLAYBACK"
-    if [ "$SPEECH" != 0 ]; then
-        case "$PLAYBACK" in
-            hw:*|plughw:*) fail "播报需要混音 PCM，直接写硬件设备会被变声进程占用；设置 PLAYBACK=mozartout 这类 dmix 插头" ;;
-        esac
+    case "$OUTPUT" in
+        voice|speech) ;;
+        *) fail "OUTPUT 必须是 voice 或 speech: $OUTPUT" ;;
+    esac
+    if [ "$OUTPUT" = speech ]; then
         [ -z "$REFERENCE" ] || [ -f "$REFERENCE" ] || fail "参考音频不存在: $REFERENCE"
     fi
     local api_port
@@ -278,7 +279,7 @@ PY
     printf '%s\n' "$captions_dir" >"$STACK_RUN_FILE"
     local extra=()
     local mode_args=(--mode captions --no-playback)
-    if [ "$SPEECH" != 0 ]; then
+    if [ "$OUTPUT" = speech ]; then
         mode_args=(--mode full --playback-device "$PLAYBACK")
         [ -z "$REFERENCE" ] || extra+=(--reference "$REFERENCE" --reference-name "$REFERENCE_NAME")
     fi
@@ -299,18 +300,20 @@ PY
     wait_http "$stack_pid" || { tail -20 "$captions_dir/supervisor.log" >&2; fail "后端在 ${READY_TIMEOUT}s 内未就绪"; }
     wait_stack "$captions_dir/stack-status.json" "$stack_pid" waiting_for_audio \
         || fail "字幕和翻译启动失败，查看 $captions_dir"
-    if [ "$SPEECH" != 0 ]; then
+    if [ "$OUTPUT" = speech ]; then
         wait_readiness "$captions_dir/stack-status.json" speech_runtime "$stack_pid" \
             || fail "播报运行时未就绪，查看 $captions_dir/supervisor.log"
     fi
 
     api_request POST /api/mode/switch '{"mode":"idle"}'
-    api_request POST /api/mode/switch "{\"mode\":\"rt_rvc\",\"model_id\":\"$MODEL\"}"
-    api_request PUT /api/parameters "{\"pitch_shift\":$PITCH,\"index_rate\":$INDEX_RATE,\"index_nprobe\":$INDEX_NPROBE}"
+    if [ "$OUTPUT" = voice ]; then
+        api_request POST /api/mode/switch "{\"mode\":\"rt_rvc\",\"model_id\":\"$MODEL\"}"
+        api_request PUT /api/parameters "{\"pitch_shift\":$PITCH,\"index_rate\":$INDEX_RATE,\"index_nprobe\":$INDEX_NPROBE}"
 
-    local has_index
-    has_index=$(curl -sf --max-time 3 "$API/api/status" | python3 -c "import json,sys;print(json.load(sys.stdin)['model'].get('has_index','false'))")
-    [ "$has_index" = "true" ] || fail "模型 $MODEL 未加载索引，检查 $CONFIG 与模型目录"
+        local has_index
+        has_index=$(curl -sf --max-time 3 "$API/api/status" | python3 -c "import json,sys;print(json.load(sys.stdin)['model'].get('has_index','false'))")
+        [ "$has_index" = "true" ] || fail "模型 $MODEL 未加载索引，检查 $CONFIG 与模型目录"
+    fi
 
     start_pre
     wait_stack "$captions_dir/stack-status.json" "$stack_pid" capturing \
@@ -324,7 +327,9 @@ PY
 
 # 用当前 CAPTURE/PLAYBACK 起预处理，并把设备写进 pre-devices.json 供控制面读取。
 start_pre() {
-    echo "启动预处理 $CAPTURE -> $AUDIO_PORT -> $PLAYBACK"
+    local pre_playback=$PLAYBACK
+    [ "$OUTPUT" = voice ] || pre_playback=null
+    echo "启动预处理 $CAPTURE -> $AUDIO_PORT -> $pre_playback"
     if [ -f "$PRE_STATUS" ]; then
         mv "$PRE_STATUS" "$PRE_STATUS.previous"
     fi
@@ -332,7 +337,7 @@ start_pre() {
     if [ -n "${SUBTITLE_TARGET:-}" ]; then
         extra=(-b "$SUBTITLE_TARGET")
     fi
-    setsid "$PRE_BIN" -d "$CAPTURE" -o "$PLAYBACK" -a 127.0.0.1 -p "$AUDIO_PORT" "${extra[@]}" \
+    setsid "$PRE_BIN" -d "$CAPTURE" -o "$pre_playback" -a 127.0.0.1 -p "$AUDIO_PORT" "${extra[@]}" \
         --mode ai --period-frames 64 --no-denoise \
         --ctl-port 19040 --status-file "$PRE_STATUS" >>"$PRE_LOG" 2>&1 < /dev/null &
     local pre_pid=$!
