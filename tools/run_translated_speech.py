@@ -344,6 +344,10 @@ def main():
                 if status.get('runtime_state') == 'stopped':
                     record_degraded('speech', 'Speech runtime stopped')
                     return
+                # 采集开始后，语音重启是临时降级；就绪超时只约束启动阶段。
+                if state['capture_started_at'] is not None:
+                    record_degraded('speech', 'Speech runtime became unavailable')
+                    return
                 if had_runtime or status.get('runtime_error') or time.monotonic() >= startup_deadline:
                     reason = status.get('runtime_error') or ('Speech runtime became unavailable'
                         if had_runtime else 'Speech warmup readiness timeout')

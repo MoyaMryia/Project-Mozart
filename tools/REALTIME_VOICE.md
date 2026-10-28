@@ -82,7 +82,8 @@ OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
 切换模式需要执行 `stop` 再 `start`。字幕和翻译在两种模式下都保持运行。
 
 在页面停止播报只停止语音会话，字幕和翻译继续。状态文件把语音记为 `degraded.speech`，`voice_session` 变为假。
-重新启用会话并准备后，就绪状态恢复。
+重新启用会话并准备后，就绪状态恢复。采集开始后，语音运行时不可用只记入 `degraded.speech`，不结束链路。
+语音进程退出或报告内部错误仍按失败处理。
 
 ## 日志与状态
 
