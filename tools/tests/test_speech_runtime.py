@@ -417,6 +417,62 @@ class SpeechRuntimeTests(unittest.TestCase):
         self.assertFalse(self.service.play_worker.is_alive())
         self.assertIsNotNone(self.service.child.poll())
 
+    def test_stop_cancels_remaining_jobs_after_one_storage_failure(self):
+        """单个任务保存失败不得中断停止流程。"""
+        self.replace_worker()
+        first = self.submit('first')
+        second = self.submit('second')
+        def write(path, value):
+            if value.get('id') == first['id']:
+                raise OSError(errno.EIO, 'result directory is read-only')
+            return atomic_json(path, value)
+        with patch('speech_service.atomic_json', side_effect=write):
+            result = self.service.route('POST', '/api/speech/stop', {})
+        self.assertEqual(result, {'stopped': True, 'stop_errors': 1})
+        self.assertEqual(self.service.jobs[second['id']]['status'], 'cancelled')
+        status = self.service.status()
+        self.assertTrue(status['storage_failed'])
+        self.assertFalse(status['runtime_ready'])
+        self.assertIn('read-only', status['storage_warning'])
+
+    def test_stop_records_a_queue_read_failure_and_still_stops(self):
+        """磁盘等待队列读失败时记录原因，并继续停止。"""
+        self.replace_worker(delivery_policy='coverage')
+        self.submit('queued')
+        with patch.object(self.service.jobs, 'ids', side_effect=sqlite3.OperationalError('database is locked')):
+            result = self.service.route('POST', '/api/speech/stop', {})
+        self.assertEqual(result, {'stopped': True, 'stop_errors': 1})
+        status = self.service.status()
+        self.assertTrue(status['storage_failed'])
+        self.assertIn('database is locked', status['storage_warning'])
+        self.assertFalse(status['runtime_ready'])
+
+    def test_prune_keeps_the_task_when_result_file_removal_fails(self):
+        """结果文件删不掉时保留任务记录，服务继续接收任务。"""
+        self.replace_worker()
+        self.service.history_limit = 1
+        first = self.wait(self.submit('first')['id'])
+        self.assertEqual(first['status'], 'completed')
+        # 用目录占住结果文件路径，让 unlink 产生真实的 OSError。
+        result_file = self.service.root/'results'/f"{first['id']}.wav"
+        result_file.unlink()
+        result_file.mkdir()
+        with self.service.lock:
+            self.service.jobs['queued-job'] = {'id': 'queued-job', 'status': 'queued', 'playback': False}
+            self.service.prune()
+        status = self.service.status()
+        self.assertFalse(status['storage_failed'])
+        self.assertIn(first['id'], status['storage_warning'])
+        self.assertIn(first['id'], self.service.jobs)
+        self.assertIn('queued-job', self.service.jobs)
+        result_file.rmdir()
+        with self.service.lock:
+            self.service.prune()
+            self.service.jobs.pop('queued-job', None)
+        self.assertNotIn(first['id'], self.service.jobs)
+        following = self.wait(self.submit('next')['id'])
+        self.assertEqual(following['status'], 'completed', following.get('error'))
+
     def test_unavailable_storage_rejects_new_work_before_fatal_handler_runs(self):
         self.replace_worker()
         with self.service.lock:

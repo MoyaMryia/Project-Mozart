@@ -140,6 +140,7 @@ Windows 主机不使用 `snd-aloop` 与主机守护进程，改用 [windows-brid
 准备步骤：
 
 1. 安装依赖：`pip install pyusb sounddevice`。
+   `sounddevice` 需支持 `RawInputStream` 的 `finished_callback` 参数。
 2. 用 Zadig 安装 WinUSB 驱动：Options → List All Devices，
    选择 `USB Device`（`1d6b:0105`）的接口 0，替换驱动为 WinUSB。
    每台主机执行一次。

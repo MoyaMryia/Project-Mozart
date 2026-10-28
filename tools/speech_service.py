@@ -76,6 +76,7 @@ class SpeechService:
         self.delivery_policy = delivery_policy
         self.storage_warning = None
         self.storage_failed = False
+        self.discard_warning = None
         self.voices = {p.stem: json.loads(p.read_text()) for p in (self.root/'voices').glob('*.json')}
         self.jobs, self.pending, self.keys = OrderedDict(), deque(), OrderedDict()
         if self.delivery_policy == 'coverage':
@@ -239,8 +240,7 @@ class SpeechService:
             try:
                 atomic_json(self.root/'results'/f"{job['id']}.json", job)
             except OSError as error:
-                self.storage_warning = str(error)
-                print(f'[speech] JSON snapshot failed; the SQLite task remains stored: {error}', file=sys.stderr, flush=True)
+                self.note_storage_warning(error, 'JSON snapshot failed; the SQLite task remains stored')
             return
         try:
             atomic_json(self.root/'results'/f"{job['id']}.json", job)
@@ -248,9 +248,17 @@ class SpeechService:
             self.note_storage_failure(error)
             raise
 
-    def note_storage_failure(self, error):
+    def note_storage_warning(self, error, message):
+        """记录可查询的存储降级原因。服务继续接收任务。"""
         with self.lock:
             self.storage_warning = str(error)
+            self.lock.notify_all()
+        print(f'[speech] {message}: {error}', file=sys.stderr, flush=True)
+
+    def note_storage_failure(self, error):
+        """记录不可继续的存储故障：停止接收新任务。"""
+        self.note_storage_warning(error, 'task storage failed; the service stops new tasks')
+        with self.lock:
             self.storage_failed = True
             self.lock.notify_all()
 
@@ -508,12 +516,26 @@ class SpeechService:
             if not coverage and len(self.jobs) <= self.history_limit:
                 break
             if self.jobs[job_id]['status'] in TERMINAL and job_id not in {getattr(self, 'active', None), getattr(self, 'active_play', None)}:
+                # 文件删不掉时保留任务记录，下次清理重试。
+                if not self.discard_results(job_id):
+                    continue
                 del self.jobs[job_id]
-                (self.root/'results'/f'{job_id}.wav').unlink(missing_ok=True)
-                (self.root/'results'/f'{job_id}.json').unlink(missing_ok=True)
-                for path in (self.root/'results').glob(f'{job_id}-part-*.wav'):
-                    path.unlink(missing_ok=True)
-                (self.root/'results'/f'{job_id}-playback.wav').unlink(missing_ok=True)
+
+    def discard_results(self, job_id):
+        """删除任务的结果文件。删除失败时记录原因并返回 False。"""
+        try:
+            paths = [self.root/'results'/f'{job_id}.wav', self.root/'results'/f'{job_id}.json',
+                     self.root/'results'/f'{job_id}-playback.wav']
+            paths.extend((self.root/'results').glob(f'{job_id}-part-*.wav'))
+            for path in paths:
+                path.unlink(missing_ok=True)
+        except OSError as error:
+            if self.discard_warning != str(error):
+                self.discard_warning = str(error)
+                self.note_storage_warning(error, 'result file removal failed; the task record is kept')
+            return False
+        self.discard_warning = None
+        return True
 
     def cancel(self, job_id):
         with self.lock:
@@ -1218,14 +1240,30 @@ class SpeechService:
             if parts == ['api', 'speech', 'stop'] and method == 'POST':
                 self.session['enabled'] = False
                 self.tempo_controller.previous.clear()
-                keys = self.jobs.ids("status NOT IN ('completed','failed','cancelled','expired')") if self.delivery_policy == 'coverage' else list(self.jobs)
+                stop_errors = 0
+                try:
+                    keys = self.jobs.ids("status NOT IN ('completed','failed','cancelled','expired')") if self.delivery_policy == 'coverage' else list(self.jobs)
+                except sqlite3.Error as error:
+                    # 队列读失败时仍执行停止，原因写入状态。
+                    self.note_storage_failure(error)
+                    keys, stop_errors = [], 1
                 for job_id in keys:
-                    self.cancel(job_id)
+                    # 单个任务的存储故障不中断停止流程。
+                    try:
+                        self.cancel(job_id)
+                    except (OSError, sqlite3.Error) as error:
+                        stop_errors += 1
+                        if not self.storage_failed:
+                            self.note_storage_failure(error)
+                    except ApiError as error:
+                        if error.code != 507:
+                            raise
+                        stop_errors += 1
                 self.invalidate_runtime('Speech stopped', 'stopped')
                 self.kill(self.child)
                 self.prune()
                 self.lock.notify_all()
-                return {'stopped': True}
+                return {'stopped': True, 'stop_errors': stop_errors}
             if parts == ['api', 'speech', 'jobs']:
                 if method == 'GET':
                     return {'jobs': self.status()['jobs']}

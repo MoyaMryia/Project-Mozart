@@ -4,6 +4,12 @@
 
 using Json = nlohmann::json;
 
+// 预设夹具按环境变量切换成功与失败形状，用于覆盖 HTTP 状态码映射。
+static bool presets_available() {
+    const char* mode = std::getenv("MOZART_FIXTURE_PRESETS");
+    return mode != nullptr && std::string(mode) == "ok";
+}
+
 class TestControl final : public rvc::ControlPlane {
 public:
     explicit TestControl(std::filesystem::path output) : output_(std::move(output)) {}
@@ -22,9 +28,19 @@ public:
     Json parameters() const override { return {}; }
     Json set_parameters(const Json&) override { return {}; }
     Json reset_parameters() override { return {}; }
-    Json list_presets() const override { return {{"status", "failed"}, {"error", "preset file is corrupt"}}; }
-    Json save_preset(const Json&) override { return {{"status", "failed"}, {"error", "preset file is corrupt"}}; }
-    Json delete_preset(const std::string&) override { return {{"status", "failed"}, {"error", "preset file is corrupt"}}; }
+    Json list_presets() const override {
+        if (presets_available()) return {{"presets", Json::array()}};
+        return {{"status", "failed"}, {"error", "preset file is corrupt"}};
+    }
+    Json save_preset(const Json&) override {
+        if (presets_available()) return {{"status", "saved"}, {"id", "new"}};
+        return {{"status", "failed"}, {"error", "preset file is corrupt"}};
+    }
+    Json delete_preset(const std::string& id) override {
+        if (!presets_available()) return {{"status", "failed"}, {"error", "preset file is corrupt"}};
+        if (id == "missing") return {{"error", "preset not found"}};
+        return {{"status", "deleted"}};
+    }
     Json list_models() const override { return {}; }
     std::filesystem::path upload_path(const std::string&) const override { return output_.parent_path() / "upload"; }
     nlohmann::json preprocessor_status() const override { return {{"available", false}}; }

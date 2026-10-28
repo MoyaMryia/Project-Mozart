@@ -195,12 +195,10 @@ def receive(inp, sink, stopping, show_stats=True, on_error=None):
             if version != proto.VERSION:
                 print(f'未知协议版本 {version}', file=sys.stderr)
                 continue
-            if not proto.is_audio(kind, stream):
-                continue
             if not proto.is_audio_frame(kind, stream, len(payload)):
                 rejected += 1
                 if rejected == 1:
-                    print(f'帧长 {len(payload)} 不在 512/3840 之内，丢弃', file=sys.stderr)
+                    print(f'非音频帧或帧长非法：流 {stream}，{len(payload)} 字节，丢弃', file=sys.stderr)
                 continue
             if stream in expected and sequence != expected[stream]:
                 gaps += 1
