@@ -10,7 +10,6 @@ import os
 import glossary
 import homophones
 import json
-import os
 from pathlib import Path
 import signal
 import subprocess
@@ -26,11 +25,12 @@ from translation_checks import repeated_source_terms
 from speech_duration import source_duration
 from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles, added_negation
 import re
-from asr_checks import boundary_fragment_audit
+from asr_checks import boundary_fragment_audit, polarity_audit, negation_edit_audit, significant_quantities
 
-# 复核（final model）只在片段足够长、且与流式原文足够接近时替换译文源。
+# 短句采用更高相似度门限，允许「中东英文」到「中英文」这类局部修改。
 REFINED_MIN_CHARS = 6
 REFINED_MIN_SIMILARITY = 0.5
+REFINED_SHORT_MIN_SIMILARITY = 0.8
 # 复核耗时随片段长度增长：实测 7 s 片段 1.93 s、3 s 片段 0.58 s。
 # 等待窗口按时长缩放，并设上限，避免无限推迟翻译。
 REFINED_WAIT_BASE = 0.4
@@ -51,19 +51,37 @@ def normalise_source(text):
 BROKEN_NUMERAL = re.compile(r'[零〇一二两三四五六七八九十百千]\d|\d[零〇一二两三四五六七八九十百千]')
 
 
-def translation_source(raw, refined):
-    """复核文本可信时用它做译文源，否则退回流式原文。"""
-    if not refined:
-        return raw
-    raw_n, refined_n = normalise_source(raw), normalise_source(refined)
-    if len(raw_n) < REFINED_MIN_CHARS:
-        return raw
-    if difflib.SequenceMatcher(None, raw_n, refined_n).ratio() < REFINED_MIN_SIMILARITY:
-        return raw
-    # 复核把「一千」写成「一00」时，流式原文仍可用，退回原文。
-    if BROKEN_NUMERAL.search(refined_n) and not BROKEN_NUMERAL.search(raw_n):
-        return raw
-    return refined.strip()
+def translation_source(raw, refined, *, audit=None):
+    """选择译文源，记录词条改动、数字冲突和选择原因。"""
+    decision = {'selected': 'online', 'reason': 'refinement_absent', 'issues': []}
+    selected = raw
+    if refined:
+        raw_n, refined_n = normalise_source(raw), normalise_source(refined)
+        similarity = difflib.SequenceMatcher(None, raw_n, refined_n).ratio()
+        decision['similarity'] = similarity
+        changed_terms = [term for term in translation_glossary()
+                         if term in raw_n and raw_n.count(term) != refined_n.count(term)]
+        polarity = polarity_audit(raw, refined)
+        if not (polarity or {}).get('issues'):
+            polarity = negation_edit_audit(raw_n, refined_n)
+        threshold = (REFINED_SHORT_MIN_SIMILARITY if len(raw_n) < REFINED_MIN_CHARS
+                     else REFINED_MIN_SIMILARITY)
+        if similarity < threshold:
+            decision['reason'] = 'dissimilar_refinement'
+        elif BROKEN_NUMERAL.search(refined_n) and not BROKEN_NUMERAL.search(raw_n):
+            decision['reason'] = 'broken_numeral'
+        elif significant_quantities(raw) != significant_quantities(refined):
+            decision.update(reason='quantity_conflict', issues=['refinement_quantity_disagreement'])
+        elif polarity and polarity['issues']:
+            decision.update(reason='polarity_conflict', issues=polarity['issues'])
+        elif changed_terms:
+            decision.update(reason='protected_term_changed', changed_terms=changed_terms)
+        else:
+            selected = refined.strip()
+            decision.update(selected='refined', reason='refined')
+    if audit is not None:
+        audit.update(decision)
+    return selected
 
 # 复核模型常把下一句的开头带进本句末尾。片段长度上限与正常词语长度一致。
 BOUNDARY_ECHO_MAX_CHARS = 2
@@ -105,7 +123,8 @@ SYSTEM_PROMPT = (
     'Translate the Chinese utterance into English. Return only the translation. '
     'Preserve names, years, numbers, negation and uncertainty exactly. '
     'Use Arabic numerals for years and large quantities. '
-    'Do not invent context, people, relationships or events.'
+    'Do not invent context, people, relationships or events. '
+    'Keep direct address as direct address, not a possession or a family relationship.'
 )
 
 
@@ -118,6 +137,11 @@ def request_json(url, body, timeout=10):
 
 # 通用年龄称谓。这里不修正识别原文，也不推断亲属关系。
 TITLE_GLOSSARY = {'大妈': 'older woman', '大爷': 'older man'}
+# 已确认的专名和口语释义，按源文命中后加入提示词。
+CORRECTION_TERMS = {**TITLE_GLOSSARY, '麻醉剂': 'anesthetic'}
+TRANSLATION_TERMS = {**CORRECTION_TERMS,
+                     '原神': 'Genshin Impact', '英国': 'United Kingdom', '我麻了': 'I am stunned',
+                     '中英文': 'Chinese and English', '无能为力': 'powerless'}
 # 领域术语：只在源文出现时写入提示词。词表随配置文件变化，改完不必重启。
 GLOSSARY_LIMIT = 64*1024
 
@@ -128,11 +152,20 @@ def correction_table():
     return homophones.load_corrections(source) if source else {}
 
 
-def translation_glossary():
+def configured_glossary():
     path = glossary.path()
     if path and path.exists() and path.stat().st_size <= GLOSSARY_LIMIT:
-        return {**TITLE_GLOSSARY, **glossary.load(path), '麻醉剂': 'anesthetic'}
-    return {**TITLE_GLOSSARY, '麻醉剂': 'anesthetic'}
+        return glossary.load(path)
+    return {}
+
+
+def translation_glossary():
+    return {**TRANSLATION_TERMS, **configured_glossary()}
+
+
+def correction_glossary():
+    # 翻译专名只供提示和保护；自动同音替换继续使用原有词条与显式配置。
+    return {**CORRECTION_TERMS, **configured_glossary()}
 
 
 def repair_chinese_terms(source, candidate):
@@ -148,7 +181,7 @@ def repair_chinese_terms(source, candidate):
 
 def translate(url, text, timeout=10, audit=None, context=None, repair_untranslated=True):
     started = time.monotonic()
-    text, fixes = homophones.correct(text, translation_glossary(), corrections=correction_table())
+    text, fixes = homophones.correct(text, correction_glossary(), corrections=correction_table())
     constraints = required_numbers(text)
     translation_source = normalize_translation_quantities(text)
     if '还贷款' in text:
@@ -252,8 +285,8 @@ def translate(url, text, timeout=10, audit=None, context=None, repair_untranslat
 
 
 def translate_recognized_event(url, event, audit=None):
-    issues = [issue for key in ('asr_numeric_audit','asr_polarity_audit')
-              for issue in event.get(key, {}).get('issues', [])]
+    issues = [issue for key in ('asr_numeric_audit', 'asr_polarity_audit', 'translation_source_audit')
+              for issue in (event.get(key) or {}).get('issues', [])]
     if issues:
         raise ValueError('Recognition uncertain: '+', '.join(issues))
     boundary = boundary_fragment_audit(event['text'].strip())
@@ -265,7 +298,7 @@ def translate_recognized_event(url, event, audit=None):
 
 def source_caption(event, seq, session_id):
     raw_text = (event.get('text_raw') or event['text']).strip()
-    text, fixes = homophones.correct(raw_text, translation_glossary(), corrections=correction_table())
+    text, fixes = homophones.correct(raw_text, correction_glossary(), corrections=correction_table())
     final = event.get('type', 'final') == 'final'
     record = {'seq': seq, 'utterance_id': f'{session_id}:{event["seq"]}',
         'zh': text, 'en': '', 'asr_engine': event.get('final_engine', 'zipformer'),
@@ -276,7 +309,7 @@ def source_caption(event, seq, session_id):
         'revision': 0, 'translation_status': 'pending' if final else 'recognizing'}
     for name in ('source_audio','source_audio_sha256','source_audio_seconds',
                  'audio_start_pts_ns','audio_end_pts_ns','asr_numeric_audit','asr_polarity_audit',
-                 'refinement_status'):
+                 'refinement_status', 'translation_source_audit'):
         if name in event:
             record[name] = event[name]
     if fixes:
@@ -308,10 +341,12 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None, translat
         record.update(translation_error=str(error), translation_status='failed')
         record['en'] = next((item['content'] for item in reversed(record['translation_audit'])
                              if item.get('content')), '')
-        if record.get('asr_numeric_audit', {}).get('issues'):
+        if (record.get('asr_numeric_audit') or {}).get('issues'):
             record['speech_skipped_reason'] = 'asr_numeric_uncertainty'
-        elif record.get('asr_polarity_audit', {}).get('issues'):
+        elif (record.get('asr_polarity_audit') or {}).get('issues'):
             record['speech_skipped_reason'] = 'asr_polarity_uncertainty'
+        elif (record.get('translation_source_audit') or {}).get('issues'):
+            record['speech_skipped_reason'] = 'asr_refinement_uncertainty'
         elif record.get('asr_boundary_audit', {}).get('issues'):
             record['speech_skipped_reason'] = 'asr_boundary_uncertainty'
         else:
@@ -320,7 +355,11 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None, translat
     if event.get('source_correction') and record['en']:
         record['en'] = 'Correction. '+record['en']
     record.update(translate_ms=round((time.monotonic()-translating)*1000),
-                  translated_at=time.time(), revision=1)
+                  translated_at=time.time(), translation_attempts=len(record['translation_audit']), revision=1)
+    if not event.get('_translation_clock_current', True):
+        record['translation_after_asr_ms'] = None
+    elif event.get('emitted_at') is not None:
+        record['translation_after_asr_ms'] = round((record['translated_at']-event['emitted_at'])*1000)
     yield dict(record)
 
     if speech_url and record['translation_status'] == 'completed':
@@ -350,8 +389,10 @@ class CaptionDispatcher:
         self.lock = threading.RLock()
         self.closing = threading.Event()
         self.aborted = False
+        self.worker_error = None
         self.refine = refine
         self.refined = {}
+        self.queue_owner = uuid.uuid4().hex
         self.refined_ready = threading.Condition(self.lock)
         self.worker = threading.Thread(target=self.run, daemon=True)
         self.worker.start()
@@ -379,18 +420,16 @@ class CaptionDispatcher:
             changes = {'refinement_status': event['refinement_status']}
             if refined_text:
                 # 纠错后的文本同时供显示与翻译，两者必须一致。
-                corrected, fixes = homophones.correct(refined_text, translation_glossary(),
-                                                      corrections=correction_table())
-                refined_text = corrected
-                changes['refined_text'] = corrected
-                if fixes:
-                    changes['refined_homophone_fixes'] = fixes
-            if self.refine and event.get('refinement_status') == 'completed':
-                with self.refined_ready:
-                    self.refined[event['seq']] = refined_text
-                    while len(self.refined) > 64:
-                        self.refined.pop(next(iter(self.refined)))
-                    self.refined_ready.notify_all()
+                try:
+                    corrected, fixes = homophones.correct(refined_text, correction_glossary(),
+                                                          corrections=correction_table())
+                except (OSError, ValueError) as error:
+                    changes.update(refinement_status='failed', refinement_error=str(error))
+                else:
+                    refined_text = corrected
+                    changes['refined_text'] = corrected
+                    if fixes:
+                        changes['refined_homophone_fixes'] = fixes
             for source, target in (('refined_text', 'refined_zh'), ('refinement_error', 'refinement_error'),
                                    ('final_decode_ms', 'refinement_decode_ms'),
                                    ('asr_numeric_audit', 'refinement_numeric_audit'),
@@ -399,7 +438,13 @@ class CaptionDispatcher:
                     changes[target] = changes[source]
                 elif source in event:
                     changes[target] = event[source]
-            self.update(f'{self.session_id}:{event["seq"]}', changes)
+            with self.refined_ready:
+                if self.refine:
+                    self.refined[event['seq']] = dict(changes)
+                    while len(self.refined) > 64:
+                        self.refined.pop(next(iter(self.refined)))
+                    self.refined_ready.notify_all()
+                self.update(f'{self.session_id}:{event["seq"]}', changes)
             return
         if event.get('type') not in ('partial', 'final') or not event.get('text', '').strip():
             return
@@ -412,8 +457,9 @@ class CaptionDispatcher:
             if not record['final']:
                 return
             try:
-                item = {'event': dict(event), 'session_id': self.session_id,
-                        'record': dict(self.latest[key])} if self.durable else dict(event)
+                item = {'event': {**event, 'text': record['zh']}, 'session_id': self.session_id,
+                        'record': dict(self.latest[key]), 'queue_owner': self.queue_owner,
+                        'enqueued_monotonic': time.monotonic()}
                 self.pending.put_nowait(item)
             except queue.Full:
                 self.update(key, {'translation_status': 'skipped',
@@ -425,24 +471,51 @@ class CaptionDispatcher:
     def run(self):
         try:
             self.process_pending()
+        except Exception as error:
+            self.worker_error = error
+            raise
         finally:
             if self.durable:
                 self.pending.close()
 
-    def await_refinement(self, event):
-        """等待同一 seq 的复核结果，超时或不可信时使用流式原文。"""
+    def raise_worker_error(self):
+        if self.worker_error is not None:
+            raise RuntimeError(f'Translation worker failed: {self.worker_error}') from self.worker_error
+
+    def await_refinement(self, event, *, diagnostics=None):
+        """等待同一 seq 的复核终态，记录选择原因和实际等待时间。"""
         raw = event['text'].strip()
-        if event.get('refined_text'):
-            return translation_source(raw, event['refined_text'])
-        deadline = time.monotonic() + refinement_wait(event)
-        with self.refined_ready:
-            while event['seq'] not in self.refined and not self.closing.is_set():
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    break
-                self.refined_ready.wait(remaining)
-            refined = self.refined.pop(event['seq'], '')
-        return translation_source(raw, refined)
+        began = time.monotonic()
+        if event.get('refinement_status') in ('disabled', 'failed', 'skipped'):
+            result = {'refinement_status': event['refinement_status']}
+        elif event.get('refined_text'):
+            result = {'refinement_status': 'completed', 'refined_text': event['refined_text'],
+                      'refinement_numeric_audit': event.get('asr_numeric_audit'),
+                      'refinement_polarity_audit': event.get('asr_polarity_audit')}
+        else:
+            deadline = began + refinement_wait(event)
+            with self.refined_ready:
+                while event['seq'] not in self.refined and not self.closing.is_set():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        break
+                    self.refined_ready.wait(remaining)
+                result = self.refined.pop(event['seq'],
+                    {'refinement_status': 'shutdown' if self.closing.is_set() else 'timeout'})
+        audit = {}
+        selected = translation_source(raw,
+            result.get('refined_text') if result['refinement_status'] == 'completed' else None, audit=audit)
+        if result['refinement_status'] != 'completed':
+            audit['reason'] = 'refinement_' + result['refinement_status']
+        if audit['selected'] == 'refined':
+            for key in ('refinement_numeric_audit', 'refinement_polarity_audit'):
+                audit['issues'].extend((result.get(key) or {}).get('issues', []))
+            audit['issues'] = list(dict.fromkeys(audit['issues']))
+        if diagnostics is not None:
+            diagnostics.update(translation_source_text=selected, translation_source_reason=audit['reason'],
+                               translation_source_audit=audit,
+                               translation_refinement_wait_ms=round((time.monotonic()-began)*1000))
+        return selected
 
     def process_pending(self):
         while not self.aborted and (not self.closing.is_set() or not self.pending.empty()):
@@ -450,12 +523,21 @@ class CaptionDispatcher:
                 item = self.pending.get(timeout=.1)
             except queue.Empty:
                 continue
-            event = item['event'] if self.durable else item
-            session_id = item['session_id'] if self.durable else self.session_id
+            event = item['event']
+            session_id = item['session_id']
             key = f'{session_id}:{event["seq"]}'
-            translate_text = self.await_refinement(event) if self.refine else event['text'].strip()
+            clock_current = item.get('queue_owner') == self.queue_owner
+            diagnostics = {'translation_queue_wait_ms': (
+                round((time.monotonic()-item['enqueued_monotonic'])*1000) if clock_current else None)}
             try:
-                updates = caption_updates(event, event['seq'], session_id,
+                if self.refine:
+                    translate_text = self.await_refinement(event, diagnostics=diagnostics)
+                else:
+                    translate_text = event['text'].strip()
+                    diagnostics.update(translation_source_reason='refinement_disabled',
+                                       translation_source_text=translate_text, translation_refinement_wait_ms=0)
+                updates = caption_updates({**event, **diagnostics, '_translation_clock_current': clock_current},
+                                          event['seq'], session_id,
                                           self.llama_url, self.speech_url,
                                           translate_text=translate_text)
                 next(updates)
@@ -465,10 +547,13 @@ class CaptionDispatcher:
                     changes = {name: value for name, value in record.items()
                                if name.startswith(('translation_', 'speech')) or name in
                                ('en', 'translate_ms', 'translated_at')}
-                    changes['translation_source_text'] = translate_text
+                    changes.update(diagnostics)
                     self.update(key, changes)
-            except Exception as error:
+            except (OSError, ValueError) as error:
                 self.update(key, {'translation_status': 'failed', 'translation_error': str(error)})
+            except Exception:
+                self.aborted = True
+                raise
             finally:
                 if self.durable:
                     self.pending.task_done(retain=self.aborted)
@@ -476,7 +561,9 @@ class CaptionDispatcher:
                     self.pending.task_done()
 
     def close(self, timeout=None):
-        self.closing.set()
+        with self.refined_ready:
+            self.closing.set()
+            self.refined_ready.notify_all()
         if timeout is None and not self.durable:
             timeout = 20
         self.worker.join(timeout=timeout)
@@ -487,6 +574,7 @@ class CaptionDispatcher:
                         self.update(key, {'translation_status': 'skipped',
                             'translation_error': 'Translation stopped at the shutdown deadline'})
                 self.aborted = True
+        self.raise_worker_error()
         return not self.worker.is_alive()
 
 
@@ -559,6 +647,7 @@ def main():
                 **dispatcher_options)
             try:
                 for line in stt.stdout:
+                    dispatcher.raise_worker_error()
                     try:
                         event = json.loads(line.strip())
                     except json.JSONDecodeError:

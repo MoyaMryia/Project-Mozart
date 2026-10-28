@@ -87,17 +87,35 @@ export interface MonitorSnapshot {
   vad: { available: boolean; voiced_percent: number; confidence_percent: number };
 }
 
+// 译文源审计：selected=refined 表示翻译采用了复核文本，online 表示采用流式识别文本。
+export interface TranslationSourceAudit {
+  selected: 'online' | 'refined';
+  reason: string;
+  issues: string[];
+  changed_terms?: string[];
+}
+
 export interface SubtitleEvent {
   seq: number;
   utterance_id?: string;
   revision?: number;
   final?: boolean;
   translation_status?: 'recognizing' | 'pending' | 'completed' | 'failed' | 'skipped';
+  // 复核候选文本。它是候选，主字幕使用 translation_source_text。
   refined_zh?: string;
   refinement_status?: 'disabled' | 'pending' | 'completed' | 'failed' | 'skipped';
   zh: string;
   en: string;
   translate_ms?: number;
+  // 翻译实际使用的源文本；旧事件没有该字段，界面回退到 zh。
+  translation_source_text?: string;
+  translation_source_reason?: string;
+  translation_source_audit?: TranslationSourceAudit;
+  // 磁盘恢复的记录没有排队起点，该字段为 null。
+  translation_queue_wait_ms?: number | null;
+  translation_refinement_wait_ms?: number;
+  translation_after_asr_ms?: number | null;
+  translation_attempts?: number;
   translation_error?: string;
   speech_degraded?: boolean;
   speech_error?: string;

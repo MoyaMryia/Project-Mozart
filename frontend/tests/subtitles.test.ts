@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { SubtitleEvent } from '../src/api.ts';
-import { latestTranslation, upsertSubtitle } from '../src/subtitles.ts';
+import {
+  captionSourceNote, captionText, captionTiming, latestTranslation, originalCaptionText,
+  refinedCandidate, upsertSubtitle,
+} from '../src/subtitles.ts';
 
 const source = (id: string): SubtitleEvent => ({
   seq: 1, utterance_id: id, revision: 0, zh: '你好。', en: '',
@@ -82,4 +85,82 @@ test('a newer partial keeps the latest completed translation available separatel
   assert.equal(events[events.length-1].utterance_id, 'session:2');
   assert.equal(latestTranslation(events)?.utterance_id, 'session:1');
   assert.equal(latestTranslation(events)?.en, 'Hello.');
+});
+
+test('legacy events without a source selection show the recognized text', () => {
+  const legacy: SubtitleEvent = {...source('legacy'), en: 'Hello.', translate_ms: 900,
+    translation_status: 'completed', refinement_status: 'completed', refined_zh: '你好呀。'};
+  assert.equal(captionText(legacy), '你好。');
+  assert.equal(originalCaptionText(legacy), null);
+  assert.equal(refinedCandidate(legacy), '你好呀。');
+  assert.equal(captionText(null), '');
+  assert.equal(captionSourceNote(legacy), '');
+});
+
+test('an adopted refinement supplies the caption source text', () => {
+  const adopted: SubtitleEvent = {...source('adopted'), en: 'Hello.', translate_ms: 700,
+    translation_status: 'completed', translation_source_text: '你好呀。', refined_zh: '你好呀。',
+    translation_source_reason: 'refined',
+    translation_source_audit: {selected: 'refined', reason: 'refined', issues: []}};
+  assert.equal(captionText(adopted), '你好呀。');
+  assert.equal(originalCaptionText(adopted), '你好。');
+  assert.equal(refinedCandidate(adopted), null);
+  assert.match(captionSourceNote(adopted), /复核已采用/);
+});
+
+test('a rejected refinement stays a candidate with its reason', () => {
+  const rejected: SubtitleEvent = {...source('rejected'), en: 'Hello.', translate_ms: 640,
+    translation_status: 'completed', translation_source_text: '你好。', refined_zh: '你好 3 次。',
+    translation_source_reason: 'quantity_conflict',
+    translation_source_audit: {selected: 'online', reason: 'quantity_conflict',
+      issues: ['refinement_quantity_disagreement'], changed_terms: ['跑分']}};
+  assert.equal(captionText(rejected), '你好。');
+  assert.equal(originalCaptionText(rejected), null);
+  assert.equal(refinedCandidate(rejected), '你好 3 次。');
+  assert.match(captionSourceNote(rejected), /复核未采用（quantity_conflict）/);
+  assert.match(captionSourceNote(rejected), /refinement_quantity_disagreement/);
+  assert.match(captionSourceNote(rejected), /跑分/);
+});
+
+test('a late refinement does not replace the translation source', () => {
+  const events: SubtitleEvent[] = [];
+  upsertSubtitle(events, {...source('session:1'), en: 'Hello.', translate_ms: 640,
+    translation_status: 'completed', translation_source_text: '你好。',
+    translation_source_audit: {selected: 'online', reason: 'refinement_timeout', issues: []}});
+  upsertSubtitle(events, {...events[0], revision: 1, refinement_status: 'completed',
+    refined_zh: '你好呀。'});
+  assert.equal(events.length, 1);
+  assert.equal(captionText(events[0]), '你好。');
+  assert.equal(refinedCandidate(events[0]), '你好呀。');
+});
+
+test('legacy events fall back to the translation request timing', () => {
+  assert.deepEqual(captionTiming({...source('legacy'), translate_ms: 900}),
+    {label: '翻译 900 ms', title: '翻译请求：900 ms'});
+  assert.equal(captionTiming(null), null);
+  assert.equal(captionTiming(source('untimed')), null);
+});
+
+test('timing prefers the ASR-to-translation total and lists its segments', () => {
+  const timed: SubtitleEvent = {...source('timed'), translate_ms: 640,
+    translation_after_asr_ms: 1900, translation_queue_wait_ms: 120,
+    translation_refinement_wait_ms: 1100, translation_attempts: 2};
+  const timing = captionTiming(timed)!;
+  assert.equal(timing.label, 'ASR 后 1900 ms');
+  assert.match(timing.title, /排队：120 ms/);
+  assert.match(timing.title, /复核等待：1100 ms/);
+  assert.match(timing.title, /翻译请求：640 ms/);
+  assert.match(timing.title, /ASR 后总计：1900 ms/);
+  assert.match(timing.title, /翻译尝试：2 次/);
+});
+
+test('a disk-restored caption shows an unknown queue wait as unknown', () => {
+  const restored: SubtitleEvent = {...source('restored'), translate_ms: 500,
+    translation_queue_wait_ms: null, translation_after_asr_ms: null, translation_attempts: 1};
+  const timing = captionTiming(restored)!;
+  assert.equal(timing.label, '翻译 500 ms');
+  assert.match(timing.title, /排队等待：未知（磁盘恢复）/);
+  assert.doesNotMatch(timing.title, /排队：0 ms/);
+  assert.doesNotMatch(timing.title, /翻译尝试/);
+  assert.doesNotMatch(timing.title, /ASR 后总计/);
 });

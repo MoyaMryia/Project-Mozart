@@ -6,7 +6,7 @@ The second stream reuses the loaded recognizer; it loads no additional model.
 Agreement does not establish that either reading matches the speaker.
 """
 import re
-from translation_checks import required_number_counts
+from translation_checks import required_number_counts, NEGATION_ZH
 
 
 def significant_quantities(text):
@@ -57,6 +57,20 @@ def polarity_audit(online, refined):
             'issues': ['modal_polarity_disagreement'] if before != after else [],
             'transcripts_exactly_aligned': False,
             'human_source_transcript_verified': False}
+
+
+def negation_edit_audit(online_normalized, refined_normalized):
+    """比较仅有否定词改动的规范化文本，记录冲突。"""
+    online_normalized = online_normalized.replace('没有', '没')
+    refined_normalized = refined_normalized.replace('没有', '没')
+    before = NEGATION_ZH.findall(online_normalized)
+    after = NEGATION_ZH.findall(refined_normalized)
+    if len(before) == len(after):
+        return None
+    if NEGATION_ZH.sub('', online_normalized) != NEGATION_ZH.sub('', refined_normalized):
+        return None
+    return {'online_negation': before, 'refined_negation': after,
+            'issues': ['negation_edit_disagreement']}
 
 
 def boundary_fragment_audit(text):

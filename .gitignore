@@ -190,6 +190,9 @@ reports/**/__pycache__/
 !reports/flexible-tempo-20261015/jetson-build.log
 !reports/flexible-tempo-20261015/playback-verification.log
 
+# 识别复核选择的离线调查脚本与对照记录。
+!rvc-golden/asr-selection-20261028/
+
 # 1.30 倍上限的识别对照证据。
 !rvc-golden/tempo-cap-20261020/
 

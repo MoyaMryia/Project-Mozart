@@ -158,16 +158,31 @@ It keeps only recent caption records in memory.
 With `--delivery-policy realtime`, the queue holds four waiting final utterances and one active utterance.
 For that policy, a full queue produces `translation_status: skipped`; source captions continue.
 Partial captions do not start translation or speech.
-Optional refinement runs after online ASR. The original `zh` remains the translation source.
-The frontend shows a different `refined_zh` separately.
+Optional refinement runs after online ASR. The whole-utterance dispatcher waits within a bounded window.
+In whole-utterance mode, `translation_source_text` records the selected source before translation normalization.
+The `translation_source_reason` field records the decision. The exact model input is in `translation_audit[].translation_source`.
+The `translation_source_audit` field records the selected path, changed glossary terms, and recognition conflicts.
+See [source selection](../tools/REFERENCE_SPEECH.md#recognition-uncertainty) for the selection rules.
+The frontend displays the selected source. It shows a different `refined_zh` as a candidate.
+A late refinement does not replace the source of an existing translation.
 If a newer partial caption arrives, the frontend keeps the most recent available translation in a separate, labeled line.
 If translation checks fail, `en` contains the last available candidate and `translation_status` stays `failed`.
 The frontend labels this candidate and keeps it visible when a newer partial caption arrives.
-With speech enabled, the bridge submits that candidate and sets `speech_degraded: true`.
-This flag permits Chinese characters in an English speech candidate. It does not add Chinese support to the engine.
+The bridge submits speech only when `translation_status` is `completed`.
+A rejected candidate remains visible and receives `speech_skipped_reason`.
 The record keeps `translation_error`, `translation_audit`, and any `speech_error`.
 Without a candidate, `en` stays empty. The source text and error remain available.
 Refinement audits use `refinement_numeric_audit` and `refinement_polarity_audit`.
+The whole-utterance dispatcher includes those issues in `translation_source_audit` when it selects the refinement.
+An issue sets `speech_skipped_reason: asr_refinement_uncertainty` and prevents translation and speech.
+In whole-utterance mode, `translation_queue_wait_ms` measures enqueue to dequeue within one dispatcher instance.
+After disk recovery, this field is `null` because the saved monotonic clock belongs to another dispatcher.
+The `translation_refinement_wait_ms` field measures refinement waiting and source selection.
+The `translate_ms` field measures translation and its checks, including retries.
+The `translation_attempts` field counts translation audit rounds, including local term repair.
+The `translation_after_asr_ms` field measures final ASR emission to translation completion using wall-clock timestamps.
+After disk recovery, this field is `null` in both whole-utterance and stable-clause modes.
+Stable-clause segments report translation timing without whole-utterance source selection or refinement-wait fields.
 With the coverage policy, normal shutdown waits for queued translations.
 An interrupted process can resume stored requests with their original utterance IDs.
 With the realtime policy, shutdown allows 20 seconds. Remaining translations then receive an explicit skipped status.
