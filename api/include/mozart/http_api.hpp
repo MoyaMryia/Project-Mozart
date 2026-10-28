@@ -80,6 +80,8 @@ private:
     std::string handle_logs(const std::string& path);
     std::string handle_logs_clear();
     std::string handle_parameters_get();
+    std::string handle_preprocessor_get();
+    std::string handle_preprocessor_set(const std::string& body);
     std::string handle_parameters_set(const std::string& body);
     std::string handle_parameters_reset();
     std::string handle_glossary_get();

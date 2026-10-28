@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cstring>
 #include <fstream>
+#include <deque>
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -462,6 +463,12 @@ void HttpApiServer::handle_request(int client_fd) {
     else if (route == "/api/parameters" && method == "PUT") {
         response = handle_parameters_set(body);
     }
+    else if (route == "/api/preprocessor" && method == "GET") {
+        response = handle_preprocessor_get();
+    }
+    else if (route == "/api/preprocessor" && method == "PUT") {
+        response = handle_preprocessor_set(body);
+    }
     else if (route == "/api/parameters/reset" && method == "POST") {
         response = handle_parameters_reset();
     }
@@ -585,6 +592,24 @@ void HttpApiServer::handle_subtitles_stream(int client_fd) {
     opened_once = true;
     // 在响应头发出前确定起点，避免客户端随后追加的首条字幕被跳过。
     if (!send_all(client_fd, kHead, std::strlen(kHead), Clock::now() + limits_.write_timeout)) return;
+    // 刷新页面会建立新的连接。先补发最近 200 行，控制台才有上下文。
+    {
+        std::ifstream recent_file(file_path);
+        if (recent_file) {
+            std::deque<std::string> recent;
+            std::string line;
+            while (std::getline(recent_file, line)) {
+                if (line.empty()) continue;
+                recent.push_back(line);
+                if (recent.size() > 200) recent.pop_front();
+            }
+            for (const auto& item : recent) {
+                const std::string payload = "data: " + item + "\n\n";
+                if (!send_all(client_fd, payload.data(), payload.size(), Clock::now() + limits_.write_timeout))
+                    return;
+            }
+        }
+    }
     auto last_heartbeat = Clock::now();
 
     while (running_) {
@@ -794,6 +819,25 @@ std::string HttpApiServer::handle_glossary_set(const std::string& body) {
 
 std::string HttpApiServer::handle_parameters_get() {
     return http_response(200, controller_ ? controller_->parameters().dump() : R"({"error":"controller not initialized"})");
+}
+
+std::string HttpApiServer::handle_preprocessor_get() {
+    if (!controller_) return http_response(503, R"({"error":"controller not initialized"})");
+    return http_response(200, controller_->preprocessor_status().dump());
+}
+
+std::string HttpApiServer::handle_preprocessor_set(const std::string& body) {
+    if (!controller_) return http_response(503, R"({"error":"controller not initialized"})");
+    nlohmann::json request;
+    try {
+        request = nlohmann::json::parse(body);
+    } catch (const std::exception&) {
+        return http_response(400, R"({"error":"invalid preprocessor JSON"})");
+    }
+    const auto result = controller_->set_preprocessor(request);
+    const std::string status = result.value("status", "");
+    const int code = status == "invalid" ? 422 : status == "failed" ? 502 : 200;
+    return http_response(code, result.dump());
 }
 
 std::string HttpApiServer::handle_parameters_set(const std::string& body) {

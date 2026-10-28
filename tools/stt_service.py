@@ -104,9 +104,13 @@ def main():
     current_seg = None   # 最近看到的段 id（0=静音），仅用于切句判定
     seg_start_pts = 0
     packets = 0
+    rejected = 0
+    packets_at_report = 0
     finals = 0
     last_report = time.monotonic()
     last_packet = 0.0
+    last_audio_at = None
+    status_path = os.environ.get('MOZART_STT_STATUS_JSON')
     last_partial = ""
     last_partial_emit = 0.0
     cut_offset = 0       # 已切出 final 的累计字符位置（get_result 是全连接累计文本）
@@ -199,6 +203,18 @@ def main():
 
     try:
         while True:
+            now = time.monotonic()
+            if now - last_report >= 10:
+                print(f"\n[stt] packets={packets} delta={packets - packets_at_report} "
+                      f"rejected={rejected} finals={finals} pending_seg={current_seg}",
+                      flush=True, file=sys.stderr)
+                if status_path:
+                    temporary = Path(status_path).with_suffix('.json.tmp')
+                    temporary.write_text(json.dumps({'packets': packets, 'rejected': rejected,
+                                                      'last_audio_at': last_audio_at,
+                                                      'instance_id': os.environ.get('MOZART_STACK_INSTANCE_ID')}))
+                    temporary.replace(status_path)
+                last_report, packets_at_report = now, packets
             try:
                 pkt, _ = sock.recvfrom(65536)
                 last_packet = time.monotonic()
@@ -211,19 +227,18 @@ def main():
                         finish_stream()
                     elif recognizer.is_ready(stream):
                         show_partial()
-                if time.monotonic() - last_report > 10:
-                    print(f"\n[stt] packets={packets} finals={finals} "
-                          f"pending_seg={current_seg}", flush=True, file=sys.stderr)
-                    last_report = time.monotonic()
                 continue
 
             if len(pkt) != HEADER.size + FRAME_SAMPLES * 4:
+                rejected += 1
                 continue
             magic, pts, idx, vad, energy, conf, seg = HEADER.unpack(pkt[:HEADER.size])
             if magic != MZRT_MAGIC:
+                rejected += 1
                 continue
             pcm = struct.unpack(f"<{FRAME_SAMPLES}f", pkt[HEADER.size:])
             packets += 1
+            last_audio_at = time.time()
 
             if stream is None:
                 start_stream(pts)        # 连接首包即开流（模型约束，见文件头）

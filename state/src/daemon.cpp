@@ -99,6 +99,10 @@ bool StateManagerDaemon::start() {
     const auto control_host = address("network.control.host");
     const auto control_port = port("network.control.port", 18080);
     controller_config.default_parameters = default_parameters;
+    controller_config.pre.script = config_.get_string("preprocessor.script", "");
+    controller_config.pre.status_file = config_.get_string("preprocessor.status_file", "");
+    controller_config.pre.devices_file = config_.get_string("preprocessor.devices_file", "");
+    controller_config.pre.timeout_ms = config_.get_int("preprocessor.timeout_ms", 20000, 1000, 120000);
 
     spdlog::info("RVC config: generator={}, hubert={}, rmvpe={}, models={}",
                  !rvc_enabled || mock.generator ? "mock" : "real",

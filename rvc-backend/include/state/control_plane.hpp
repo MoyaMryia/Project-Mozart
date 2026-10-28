@@ -36,6 +36,9 @@ public:
     virtual nlohmann::json delete_preset(const std::string& preset_id) = 0;
     virtual nlohmann::json list_models() const = 0;
     virtual std::filesystem::path upload_path(const std::string& original_name) const = 0;
+    // 预处理链路的设备与状态。进程由外部脚本管理，控制面只转发请求。
+    virtual nlohmann::json preprocessor_status() const = 0;
+    virtual nlohmann::json set_preprocessor(const nlohmann::json& request) = 0;
 };
 
 } // namespace rvc
