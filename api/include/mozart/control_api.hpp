@@ -6,6 +6,9 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 #include <memory>
 #include <string>
 #include <thread>
@@ -13,6 +16,9 @@
 #include "state/control_plane.hpp"
 
 namespace rvc {
+
+// 解析一条控制数据报；传输层负责接收和发送。
+std::vector<unsigned char> control_reply(ControlPlane& controller, const unsigned char* data, size_t size);
 
 class ControlApiServer {
 public:
