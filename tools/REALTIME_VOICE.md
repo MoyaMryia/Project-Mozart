@@ -81,6 +81,9 @@ OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
 启动返回前，脚本等待字幕状态文件的 `readiness.speech_runtime` 为真。
 切换模式需要执行 `stop` 再 `start`。字幕和翻译在两种模式下都保持运行。
 
+在页面停止播报只停止语音会话，字幕和翻译继续。状态文件把语音记为 `degraded.speech`，`voice_session` 变为假。
+重新启用会话并准备后，就绪状态恢复。
+
 ## 日志与状态
 
 每次启动默认在 `~/mozart-archive/logs/realtime-日期时间-PID/` 保存字幕、分句音频和服务日志。

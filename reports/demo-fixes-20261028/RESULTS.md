@@ -29,6 +29,7 @@
 - `POST /api/speech/stop` 按任务隔离存储错误。一个任务写入失败时，继续取消其余任务，返回 `cancel_errors` 计数。
 - 清理旧任务时，结果文件删除失败保留任务记录，下次清理重试。该故障写入 `storage_warning`，不停止接收新任务。
 - 预设文件缺失时直接按空数组读取。删除冗余的 `status_error` 操作数。
+- 页面停止播报不再结束整条链路。语音运行时进入 `stopped` 时记入 `degraded.speech`，字幕与翻译继续；重新启用会话并准备后恢复。
 - 修复播报请求发往 18080 导致的 `Connection refused`。语音服务端口只在启动器定义一处，字幕桥按 18081 提交；`--speak` 缺少 `--speech-url` 时在入口报错。
 - `tools/export_generator_onnx.py` 提取 `load_inference_weights`。加载前拒绝同一模块的明文与归一化权重混用，加载后移除权重归一化。装有 PyTorch 的机器上，5 项检查点用例现在实际执行。
 

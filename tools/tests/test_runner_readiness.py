@@ -412,10 +412,13 @@ class RunnerReadinessTests(unittest.TestCase):
         self.assertEqual(status['state'], 'failed')
         self.assertFalse(status['readiness']['translation'])
 
-    def test_full_session_disabled_stops_capture(self):
-        status = self.run_scenario(scenario='session_regression', expected_error=runner.ServiceUnavailable)
-        self.assertEqual(status['state'], 'failed')
+    def test_full_session_stop_keeps_captions_and_degrades_speech(self):
+        """用户在界面停止播报后，字幕与翻译继续，语音记为降级。"""
+        status = self.run_scenario(scenario='session_regression')
+        self.assertEqual(status['state'], 'stopped')
+        self.assertTrue(status['readiness']['translation'])
         self.assertFalse(status['readiness']['voice_session'])
+        self.assertIn('speech', status['degraded'])
 
     def test_full_runtime_regression_during_preview_fails(self):
         status = self.run_scenario(options=['--keep-open'], scenario='keep_open_runtime_regression',
