@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <cmath>
 #include <fstream>
 #include <vector>
 #include <chrono>
@@ -66,6 +67,24 @@ std::vector<float> read_f32le(const std::filesystem::path& path, uintmax_t max_b
     input.read(reinterpret_cast<char*>(samples.data()),
                static_cast<std::streamsize>(samples.size() * sizeof(float)));
     return input ? samples : std::vector<float>{};
+}
+
+bool validate_inference_output(std::vector<float>& audio, size_t expected_samples,
+                               std::string& error) {
+    if (audio.empty()) { error = "RVC inference returned no audio"; return false; }
+    // 保留既有裁剪：固定窗口结果可包含输入末尾之后的样本。
+    if (audio.size() > expected_samples) audio.resize(expected_samples);
+    // 固定窗口推理已完成补齐；文件结果应覆盖输入时长对应的全部样本。
+    if (audio.size() < expected_samples) {
+        error = "RVC inference returned truncated audio: " + std::to_string(audio.size())
+            + " samples, expected " + std::to_string(expected_samples);
+        return false;
+    }
+    if (!std::all_of(audio.begin(), audio.end(), [](float sample) { return std::isfinite(sample); })) {
+        error = "RVC inference returned non-finite samples";
+        return false;
+    }
+    return true;
 }
 
 } // namespace
@@ -199,9 +218,7 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
             return false;
         }
         const size_t valid_output_samples = valid_contract_samples * config_.output_sample_rate / 16000;
-        if (converted.size() > valid_output_samples) converted.resize(valid_output_samples);
-        if (converted.empty()) {
-            error = "RVC inference returned no audio";
+        if (!validate_inference_output(converted, valid_output_samples, error)) {
             cleanup();
             return false;
         }
@@ -239,9 +256,7 @@ bool FileRvcWorker::process(const Request& request, const std::atomic<bool>& can
         }
         // 与 RNNoise 分支一致：裁到输入时长对应的输出样本数，避免块边界漂移。
         const size_t expected_output = audio_16k.size() * config_.output_sample_rate / 16000;
-        if (converted.size() > expected_output) converted.resize(expected_output);
-        if (converted.empty()) {
-            error = "RVC inference returned no audio";
+        if (!validate_inference_output(converted, expected_output, error)) {
             cleanup();
             return false;
         }

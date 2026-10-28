@@ -18,6 +18,10 @@ def asset_digest(path):
     return digest.hexdigest()
 
 
+class RejectedAudio(ValueError):
+    """A known duration or frame limit rejected the result; the engine remains usable."""
+
+
 def early_runtime(module):
     package = Path(module.__file__).parent
     manifest = json.loads((package/'mozart_early_decode.json').read_text())
@@ -34,6 +38,7 @@ class AudioBlocks:
         self.np, self.sf = numpy, soundfile
         self.count = self.samples = self.limited = 0
         self.error = None
+        self.rejected = False
         self.previous = started
 
     def emit(self, samples):
@@ -46,6 +51,7 @@ class AudioBlocks:
             return False
         if (self.samples+len(pcm))/self.rate > self.limit:
             self.error = 'Early audio exceeded the duration limit'
+            self.rejected = True
             return False
         limited = int(self.np.count_nonzero(self.np.abs(pcm) > .98))
         filename = self.output.stem+f'-block-{self.count:05d}.wav'
@@ -54,7 +60,7 @@ class AudioBlocks:
         try:
             self.sf.write(temporary, self.np.clip(pcm, -.98, .98), self.rate, subtype='PCM_16', format='WAV')
             temporary.replace(path)
-        except Exception as error:
+        except (OSError, RuntimeError) as error:
             self.error = f'Early audio storage failed: {error}'
             temporary.unlink(missing_ok=True)
             return False
@@ -181,15 +187,17 @@ def main():
             synthesis_text = pocket_input_text(job['text']) if args.engine == 'pocket' else job['text']
             audio = tts.generate(synthesis_text, config, callback)
             if blocks and blocks.error:
-                raise ValueError(blocks.error)
+                if blocks.rejected:
+                    raise RejectedAudio(blocks.error)
+                raise RuntimeError(blocks.error)
             pcm = np.asarray(audio.samples, dtype='float32')
             duration = len(pcm) / audio.sample_rate
             if not len(pcm) or not np.isfinite(pcm).all():
                 raise ValueError('Engine returned empty or non-finite audio')
             if duration > limit or received / tts.sample_rate > limit:
-                raise ValueError('Generated speech exceeded the duration limit; result rejected')
+                raise RejectedAudio('Generated speech exceeded the duration limit; result rejected')
             if maximum_frames is not None and duration >= maximum_frames*.08-.001:
-                raise ValueError('Generation reached the frame limit without a verified ending; result rejected')
+                raise RejectedAudio('Generation reached the frame limit without a verified ending; result rejected')
             peak = float(np.max(np.abs(pcm)))
             if peak > 4:
                 raise ValueError('Engine amplitude exceeds the safe range; result rejected')
@@ -208,8 +216,11 @@ def main():
                 'raw_peak': peak, 'output_gain': gain,
                 'stream_blocks': blocks.count if blocks else 0,
                 'limited_samples': blocks.limited if blocks else 0}), flush=True)
+        except RejectedAudio as error:
+            print(json.dumps({'error': str(error), 'rejected': True}), flush=True)
         except Exception as error:
-            print(json.dumps({'error': str(error)}), flush=True)
+            print(json.dumps({'error': str(error), 'rejected': False}), flush=True)
+            sys.exit(1)
 
 
 if __name__ == '__main__':

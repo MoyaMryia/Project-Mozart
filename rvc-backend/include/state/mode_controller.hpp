@@ -125,7 +125,7 @@ private:
     nlohmann::json job_json(const Job& job) const;
     static nlohmann::json parameters_json(const RvcParameters& parameters);
     bool save_presets_locked(const nlohmann::json& presets) const;
-    nlohmann::json read_presets_locked() const;
+    bool read_presets_locked(nlohmann::json& presets, std::string& error) const;
     nlohmann::json list_models_locked() const;
 };
 

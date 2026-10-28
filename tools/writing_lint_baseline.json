@@ -2351,13 +2351,13 @@
    "path": "tools/clone_worker.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 2
+   "count": 1
   },
   {
    "path": "tools/speech_service.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 4
+   "count": 3
   },
   {
    "path": "tools/stable_clauses.py",

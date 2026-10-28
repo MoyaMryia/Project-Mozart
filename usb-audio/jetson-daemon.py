@@ -181,7 +181,8 @@ class Daemon:
                 setattr(self, name, -1)
 
     def write_speaker(self, payload):
-        self.drain_speaker_backlog(len(payload))
+        if not self.drain_speaker_backlog(len(payload)):
+            return False
         try:
             written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
@@ -229,28 +230,39 @@ class Daemon:
         self.last_error = '采集积压排空（丢弃最旧帧）'
 
     def drain_speaker_backlog(self, keep_bytes):
-        """aplay stdin 积压超限时从读端排空旧数据（写端无读权限，借 /proc/self/fd）。"""
+        """aplay stdin 积压超限时从读端排空旧数据（写端无读权限，借 /proc/self/fd）。
+        返回 False 表示排空遇到 I/O 故障，此时已记录原因并请求重启服务。"""
         fd = self.speaker_fd
-        if fd < 0:
-            return
         backlog = self.pipe_backlog(fd)
         if backlog <= keep_bytes:
-            return
+            return True
         try:
             read_handle = os.open(f'/proc/self/fd/{fd}', os.O_RDONLY | os.O_NONBLOCK)
-        except OSError:
-            return
+        except OSError as error:
+            self.request_restart(f'打开播放管道读端失败，重启服务: {error}')
+            return False
+        drained = 0
         try:
             stale = backlog - keep_bytes
             while stale > 0:
-                got = os.read(read_handle, min(stale, 65536))
+                try:
+                    got = os.read(read_handle, min(stale, 65536))
+                except BlockingIOError:
+                    # aplay 已读走查询到的积压，排空到此结束。
+                    break
+                except OSError as error:
+                    self.request_restart(f'排空播放积压失败，重启服务: {error}')
+                    return False
                 if not got:
                     break
+                drained += len(got)
                 stale -= len(got)
-            self.dropped += 1
-            self.last_error = '播放积压排空（丢弃最旧帧）'
         finally:
             os.close(read_handle)
+        if drained:
+            self.dropped += 1
+            self.last_error = '播放积压排空（丢弃最旧帧）'
+        return True
 
     # --- 搬运 ---
     def mic_pump(self, generation):

@@ -22,9 +22,9 @@ public:
     Json parameters() const override { return {}; }
     Json set_parameters(const Json&) override { return {}; }
     Json reset_parameters() override { return {}; }
-    Json list_presets() const override { return {}; }
-    Json save_preset(const Json&) override { return {}; }
-    Json delete_preset(const std::string&) override { return {}; }
+    Json list_presets() const override { return {{"status", "failed"}, {"error", "preset file is corrupt"}}; }
+    Json save_preset(const Json&) override { return {{"status", "failed"}, {"error", "preset file is corrupt"}}; }
+    Json delete_preset(const std::string&) override { return {{"status", "failed"}, {"error", "preset file is corrupt"}}; }
     Json list_models() const override { return {}; }
     std::filesystem::path upload_path(const std::string&) const override { return output_.parent_path() / "upload"; }
     nlohmann::json preprocessor_status() const override { return {{"available", false}}; }

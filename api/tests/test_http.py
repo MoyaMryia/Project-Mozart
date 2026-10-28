@@ -65,6 +65,19 @@ class HttpTests(unittest.TestCase):
         response = self.request(head + body)
         return response, json.loads(response.split(b'\r\n\r\n', 1)[1])
 
+    def test_preset_storage_failure_returns_server_error(self):
+        for method, path, body in (
+                ('GET', '/api/presets', b''),
+                ('POST', '/api/presets', b'{"name":"new"}'),
+                ('DELETE', '/api/presets/existing', b'')):
+            with self.subTest(method=method):
+                header = f'{method} {path} HTTP/1.1\r\nContent-Length: {len(body)}\r\n\r\n'.encode()
+                response = self.request(header + body)
+                self.assertIn(b'500 Internal Server Error', response)
+                result = json.loads(response.split(b'\r\n\r\n', 1)[1])
+                self.assertEqual(result['status'], 'failed')
+                self.assertEqual(result['error'], 'preset file is corrupt')
+
     def test_glossary_starts_empty_and_round_trips(self):
         response, data = self.glossary_request('GET')
         self.assertIn(b'200 OK', response)

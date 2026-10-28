@@ -74,11 +74,73 @@ class WorkerOptionsTests(unittest.TestCase):
                 0, np, SimpleNamespace(write=Mock()))
             self.assertFalse(blocks.emit(np.zeros(241)))
             self.assertIn('duration limit', blocks.error)
+            self.assertTrue(blocks.rejected)
             self.assertEqual(output.getvalue(), '')
+
+    def test_early_block_write_handles_io_errors_but_not_programming_errors(self):
+        import numpy as np
+        with tempfile.TemporaryDirectory() as directory:
+            def failing(error):
+                def write(path, pcm, *args, **kwargs):
+                    raise error
+                return SimpleNamespace(write=write)
+            blocks = clone_worker.AudioBlocks(Path(directory)/'part.tmp', 24000, 1, 0, np,
+                failing(RuntimeError('libsndfile failed')))
+            self.assertFalse(blocks.emit([.1]))
+            self.assertIn('libsndfile failed', blocks.error)
+            blocks = clone_worker.AudioBlocks(Path(directory)/'part.tmp', 24000, 1, 0, np,
+                failing(AssertionError('bookkeeping defect')))
+            with self.assertRaises(AssertionError):
+                blocks.emit([.1])
 
     def native_stub(self):
         return SimpleNamespace(__version__='test', OfflineTts=Mock(), OfflineTtsConfig=Mock(),
-                               OfflineTtsModelConfig=Mock(), OfflineTtsPocketModelConfig=Mock())
+                               OfflineTtsModelConfig=Mock(), OfflineTtsPocketModelConfig=Mock(),
+                               GenerationConfig=Mock())
+
+    def test_business_reject_is_marked_and_the_engine_continues(self):
+        import numpy as np
+        native = self.native_stub()
+        tts = native.OfflineTts.return_value
+        tts.sample_rate = 24000
+        tts.generate.side_effect = [
+            clone_worker.RejectedAudio('duration limit rejected'),
+            SimpleNamespace(samples=np.zeros(240, dtype='float32'), sample_rate=24000)]
+        jobs = [json.dumps({'text': text, 'output': '/tmp/out.wav', 'reference': '/ref.wav',
+                            'max_duration_seconds': 10}) for text in ('first', 'second')]
+        args = ['clone_worker.py', '--engine', 'pocket', '--model', '/model']
+        soundfile = Mock()
+        soundfile.read.return_value = (np.zeros(240, dtype='float32'), 24000)
+        with patch.dict(sys.modules, soundfile=soundfile, sherpa_onnx=native), \
+                patch.object(sys, 'argv', args), patch.object(sys, 'stdin', io.StringIO('\n'.join(jobs)+'\n')), \
+                patch('clone_worker.sherpa_runtime_info', return_value={}), \
+                patch.object(sys, 'stdout', io.StringIO()) as output:
+            clone_worker.main()
+        lines = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertTrue(lines[0]['ready'])
+        self.assertEqual(lines[1], {'error': 'duration limit rejected', 'rejected': True})
+        self.assertEqual(lines[2]['type'], 'complete')
+
+    def test_unmarked_engine_error_stops_the_worker(self):
+        import numpy as np
+        native = self.native_stub()
+        native.OfflineTts.return_value.sample_rate = 24000
+        native.OfflineTts.return_value.generate.side_effect = RuntimeError('model failed')
+        job = json.dumps({'text': 'first', 'output': '/tmp/out.wav', 'reference': '/ref.wav',
+                          'max_duration_seconds': 10})
+        args = ['clone_worker.py', '--engine', 'pocket', '--model', '/model']
+        soundfile = Mock()
+        soundfile.read.return_value = (np.zeros(240, dtype='float32'), 24000)
+        with patch.dict(sys.modules, soundfile=soundfile, sherpa_onnx=native), \
+                patch.object(sys, 'argv', args), patch.object(sys, 'stdin', io.StringIO(job+'\n')), \
+                patch('clone_worker.sherpa_runtime_info', return_value={}), \
+                patch.object(sys, 'stdout', io.StringIO()) as output:
+            with self.assertRaises(SystemExit) as stopped:
+                clone_worker.main()
+        self.assertEqual(stopped.exception.code, 1)
+        lines = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertTrue(lines[0]['ready'])
+        self.assertEqual(lines[1], {'error': 'model failed', 'rejected': False})
 
     def test_cuda_request_does_not_initialize_a_cpu_only_runtime(self):
         native = self.native_stub()

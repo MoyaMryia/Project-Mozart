@@ -5,7 +5,7 @@
 本程序自己做设备读写，用普通声卡播放与采集。
 
 Windows 准备：
-  1. pip install pyusb sounddevice numpy
+  1. pip install pyusb sounddevice
   2. 用 Zadig 给 `1d6b:0105` 的接口 0 安装 WinUSB 驱动（一次即可）。
 
 Linux 用法相同，可直接用于测试。
@@ -18,6 +18,8 @@ Linux 用法相同，可直接用于测试。
   python windows-bridge.py --capture            # 把本机麦克风送到 Jetson
 """
 import argparse
+import math
+import queue
 import sys
 import threading
 import time
@@ -34,6 +36,7 @@ except ImportError:
     raise SystemExit('需要 pyusb：pip install pyusb')
 
 VID, PID = 0x1d6b, 0x0105
+CAPTURE_QUEUE_BLOCKS = 32
 
 
 def open_device():
@@ -59,6 +62,46 @@ def open_device():
     return device, out, inp
 
 
+class AudioError(RuntimeError):
+    """声卡或 WAV 输出失败。"""
+
+
+class Session:
+    """共享会话状态：停止通知、首个错误原因与退出码。"""
+
+    def __init__(self):
+        self.stopping = threading.Event()
+        self.error = None
+        self.exit_code = 0
+        self._lock = threading.Lock()
+
+    def fail(self, message):
+        """记录首个错误并通知所有线程停止。"""
+        with self._lock:
+            if self.error is None:
+                self.error = message
+                self.exit_code = 1
+        self.stopping.set()
+
+    def run(self, target, *args):
+        """线程结束时同步会话状态；内部异常保留原始 traceback。"""
+        try:
+            target(*args, self.stopping, on_error=self.fail)
+        finally:
+            error = sys.exc_info()[1]
+            if error is not None:
+                _report_failure(self.stopping, self.fail,
+                                f'{target.__name__} 线程异常结束：{error}')
+
+
+def _report_failure(stopping, on_error, message):
+    """打印错误，回传会话状态，并请求停止。"""
+    print(message, file=sys.stderr)
+    if on_error is not None:
+        on_error(message)
+    stopping.set()
+
+
 class Sink:
     """接收端：写 WAV 或用 sounddevice 播放。"""
 
@@ -66,33 +109,66 @@ class Sink:
         self.writer = None
         self.stream = None
         self.frames = 0
+        self._portaudio_error = None
         if path:
-            self.writer = wave.open(str(path), 'wb')
+            try:
+                self.writer = wave.open(str(path), 'wb')
+            except OSError as error:
+                raise AudioError(f'打开 WAV 失败：{error}') from error
             self.writer.setnchannels(proto.CHANNELS)
             self.writer.setsampwidth(proto.SAMPLE_BYTES)
             self.writer.setframerate(proto.RATE)
         if play:
-            import sounddevice as sd
-            self.stream = sd.RawOutputStream(samplerate=proto.RATE, channels=proto.CHANNELS,
-                                             dtype='int16', blocksize=0)
-            self.stream.start()
+            try:
+                import sounddevice as sd
+            except ImportError as error:
+                self._close_writer()
+                raise AudioError(f'需要 sounddevice：{error}') from error
+            self._portaudio_error = sd.PortAudioError
+            try:
+                self.stream = sd.RawOutputStream(samplerate=proto.RATE,
+                                                 channels=proto.CHANNELS,
+                                                 dtype='int16', blocksize=0)
+                self.stream.start()
+            except sd.PortAudioError as error:
+                self.close()
+                raise AudioError(f'打开播放设备失败：{error}') from error
+
+    def _close_writer(self):
+        if self.writer:
+            writer, self.writer = self.writer, None
+            writer.close()
 
     def write(self, payload):
         self.frames += 1
         if self.writer:
-            self.writer.writeframes(payload)
+            try:
+                self.writer.writeframes(payload)
+            except OSError as error:
+                raise AudioError(f'写 WAV 失败：{error}') from error
         if self.stream:
-            self.stream.write(payload)
+            try:
+                self.stream.write(payload)
+            except self._portaudio_error as error:
+                raise AudioError(f'写播放设备失败：{error}') from error
 
     def close(self):
-        if self.writer:
-            self.writer.close()
-        if self.stream:
-            self.stream.stop()
-            self.stream.close()
+        try:
+            self._close_writer()
+        finally:
+            if self.stream:
+                stream, self.stream = self.stream, None
+                try:
+                    try:
+                        stream.stop()
+                    finally:
+                        stream.close()
+                except self._portaudio_error as error:
+                    raise AudioError(f'关闭播放设备失败：{error}') from error
 
 
-def receive(inp, sink, stopping, show_stats=True):
+def receive(inp, sink, stopping, show_stats=True, on_error=None):
+    """读 USB 并写入 Sink；USB 或播放故障时记录错误并返回 1。"""
     buffer = b''
     expected = {}
     gaps = 0
@@ -103,8 +179,8 @@ def receive(inp, sink, stopping, show_stats=True):
         except usb.core.USBTimeoutError:
             continue
         except usb.core.USBError as error:
-            print(f'读 USB 失败：{error}', file=sys.stderr)
-            return
+            _report_failure(stopping, on_error, f'读 USB 失败：{error}')
+            return 1
         while True:
             try:
                 frame = proto.decode(buffer)
@@ -129,39 +205,78 @@ def receive(inp, sink, stopping, show_stats=True):
             if stream in expected and sequence != expected[stream]:
                 gaps += 1
             expected[stream] = sequence + 1
-            sink.write(payload)
+            try:
+                sink.write(payload)
+            except AudioError as error:
+                _report_failure(stopping, on_error, str(error))
+                return 1
             if show_stats and sink.frames % 50 == 0:
                 print(f'已接收 {sink.frames} 帧，缺口 {gaps}，丢弃 {rejected}', flush=True)
+    return 0
 
 
-def capture(out, stopping):
-    """把本机麦克风送给 Jetson，20 毫秒一帧。"""
-    import sounddevice as sd
-    import numpy as np
+def capture(out, stopping, on_error=None):
+    """把本机麦克风送给 Jetson，20 毫秒一帧；USB 写在本线程执行。"""
+    try:
+        import sounddevice as sd
+    except ImportError as error:
+        _report_failure(stopping, on_error, f'需要 sounddevice：{error}')
+        return 1
     blocks = int(proto.RATE * proto.FRAME_MS / 1000)
+    pending = queue.Queue(maxsize=CAPTURE_QUEUE_BLOCKS)
     sequence = 0
+    dropped = 0
+    code = 0
+    buffered = bytearray()
 
     def callback(indata, _frames, _time, status):
-        nonlocal sequence
+        nonlocal dropped
         if status:
             print(f'采集状态：{status}', file=sys.stderr)
-        payload = np.asarray(indata[:blocks], dtype=np.int16).tobytes()
-        if len(payload) != proto.FRAME_BYTES:
-            return
-        frame = proto.encode(proto.TYPE_PCM, sequence, int(time.monotonic()*1e6), payload)
-        try:
-            out.write(frame, timeout=2000)
-            sequence += 1
-        except usb.core.USBError as error:
-            print(f'写 USB 失败：{error}', file=sys.stderr)
-            stopping.set()
+        buffered.extend(indata)
+        while len(buffered) >= proto.FRAME_BYTES:
+            payload = bytes(buffered[:proto.FRAME_BYTES])
+            del buffered[:proto.FRAME_BYTES]
+            try:
+                pending.put_nowait(payload)
+            except queue.Full:
+                dropped += 1
+                if dropped == 1 or dropped % 100 == 0:
+                    print(f'发送队列已满，丢弃 {dropped} 帧', file=sys.stderr)
 
-    with sd.RawInputStream(samplerate=proto.RATE, channels=proto.CHANNELS, dtype='int16',
-                           blocksize=blocks, callback=callback):
-        while not stopping.is_set():
-            time.sleep(0.2)
-    print(f'已发送 {sequence} 帧')
-    return sequence
+    def finished():
+        nonlocal code
+        if not stopping.is_set():
+            code = 1
+            _report_failure(stopping, on_error, '音频采集流意外结束')
+
+    try:
+        with sd.RawInputStream(samplerate=proto.RATE, channels=proto.CHANNELS,
+                               dtype='int16', blocksize=blocks, callback=callback,
+                               finished_callback=finished):
+            while not stopping.is_set():
+                try:
+                    payload = pending.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                if stopping.is_set():
+                    break
+                frame = proto.encode(proto.TYPE_PCM, sequence,
+                                     int(time.monotonic() * 1e6), payload)
+                try:
+                    out.write(frame, timeout=2000)
+                except usb.core.USBError as error:
+                    _report_failure(stopping, on_error, f'写 USB 失败：{error}')
+                    code = 1
+                    break
+                sequence += 1
+    except sd.PortAudioError as error:
+        _report_failure(stopping, on_error, f'音频采集失败：{error}')
+        code = 1
+    print(f'已发送 {sequence} 帧', flush=True)
+    if dropped:
+        print(f'发送队列已满，共丢弃 {dropped} 帧', file=sys.stderr, flush=True)
+    return code
 
 
 def main():
@@ -173,35 +288,47 @@ def main():
     arguments = parser.parse_args()
     if not (arguments.record or arguments.play or arguments.capture):
         parser.error('至少选择一个动作：--record / --play / --capture')
+    if arguments.seconds is not None and (not math.isfinite(arguments.seconds) or arguments.seconds < 0):
+        parser.error('--seconds 必须是有限的非负秒数')
 
-    _device, out, inp = open_device()
-    stopping = threading.Event()
-    threads = []
+    session = Session()
     sink = None
-    if arguments.record or arguments.play:
-        sink = Sink(arguments.record, arguments.play)
-        thread = threading.Thread(target=receive, args=(inp, sink, stopping), daemon=True)
-        thread.start()
-        threads.append(thread)
-    if arguments.capture:
-        thread = threading.Thread(target=capture, args=(out, stopping), daemon=True)
-        thread.start()
-        threads.append(thread)
-
+    threads = []
     try:
-        if arguments.seconds:
-            time.sleep(arguments.seconds)
-            stopping.set()
+        _device, out, inp = open_device()
+        if arguments.record or arguments.play:
+            sink = Sink(arguments.record, arguments.play)
+            thread = threading.Thread(target=session.run, args=(receive, inp, sink),
+                                      daemon=True)
+            thread.start()
+            threads.append(thread)
+        if arguments.capture:
+            thread = threading.Thread(target=session.run, args=(capture, out), daemon=True)
+            thread.start()
+            threads.append(thread)
+        if arguments.seconds is not None:
+            session.stopping.wait(arguments.seconds)
         else:
-            while any(thread.is_alive() for thread in threads):
-                time.sleep(0.2)
+            while not session.stopping.is_set() and any(t.is_alive() for t in threads):
+                session.stopping.wait(0.2)
     except KeyboardInterrupt:
-        stopping.set()
+        pass
+    except AudioError as error:
+        _report_failure(session.stopping, session.fail, str(error))
     finally:
+        session.stopping.set()
+        for thread in threads:
+            thread.join()
         if sink:
-            sink.close()
-    print('结束', flush=True)
-    return 0
+            try:
+                sink.close()
+            except (AudioError, OSError) as error:
+                _report_failure(session.stopping, session.fail, f'关闭输出失败：{error}')
+    if session.error is not None:
+        print(f'会话失败：{session.error}', file=sys.stderr, flush=True)
+    else:
+        print('结束', flush=True)
+    return session.exit_code
 
 
 if __name__ == '__main__':

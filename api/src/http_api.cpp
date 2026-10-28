@@ -858,7 +858,8 @@ std::string HttpApiServer::handle_parameters_reset() {
 }
 
 std::string HttpApiServer::handle_presets_get() {
-    return http_response(200, controller_->list_presets().dump());
+    const auto result = controller_->list_presets();
+    return http_response(result.value("status", "") == "failed" ? 500 : 200, result.dump());
 }
 
 std::string HttpApiServer::handle_presets_post(const std::string& body) {
@@ -874,7 +875,9 @@ std::string HttpApiServer::handle_presets_post(const std::string& body) {
 std::string HttpApiServer::handle_presets_delete(const std::string& path) {
     const std::string id = path.substr(std::string("/api/presets/").size());
     const auto result = controller_->delete_preset(id);
-    return http_response(result.value("status", "") == "deleted" ? 200 : 404, result.dump());
+    const int code = result.value("status", "") == "failed" ? 500
+        : result.value("status", "") == "deleted" ? 200 : 404;
+    return http_response(code, result.dump());
 }
 
 std::string HttpApiServer::handle_list_models() {

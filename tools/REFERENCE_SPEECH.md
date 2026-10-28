@@ -225,6 +225,14 @@ The result reports `limited_samples`. Nonfinite samples and peaks above 4 still 
 For samples within that range, this mode does not change the sample amplitude.
 Complete-piece output keeps its existing whole-piece gain calculation.
 
+The service marks duration and frame-limit rejections with `rejected: true`.
+It fails that job and keeps the synthesis process for the next job.
+Other engine failures invalidate the runtime.
+
+The status response reports `worker_error`, `storage_failed`, and `playback_worker_alive`.
+If task storage fails, the service stops new tasks and releases its processes.
+In coverage mode, a JSON snapshot failure keeps the SQLite task and sets `storage_warning`.
+
 An engine error can occur after playback starts. The service then reports the job as failed and stops the remaining output.
 It cannot withdraw audio that has reached the device.
 The restart rules still prevent automatic repetition of interrupted playback.

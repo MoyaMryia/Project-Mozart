@@ -14,7 +14,6 @@ namespace rvc {
 ModeController::ModeController(RVCPipelineBase& pipeline, Config config)
     : pipeline_(pipeline), config_(std::move(config)), pre_control_(config_.pre) {
     std::filesystem::create_directories(config_.storage_dir);
-    if (!std::filesystem::exists(config_.presets_path)) save_presets_locked(nlohmann::json::array());
     FileRvcWorker::Config file_config;
     file_config.storage_dir = config_.storage_dir;
     file_config.ffmpeg_path = config_.ffmpeg_path;
@@ -421,15 +420,37 @@ nlohmann::json ModeController::reset_parameters() {
     return set_parameters(parameters_json(config_.default_parameters));
 }
 
-nlohmann::json ModeController::read_presets_locked() const {
-    std::ifstream input(config_.presets_path);
-    if (!input) return nlohmann::json::array();
-    try {
-        auto presets = nlohmann::json::parse(input);
-        return presets.is_array() ? presets : nlohmann::json::array();
-    } catch (...) {
-        return nlohmann::json::array();
+bool ModeController::read_presets_locked(nlohmann::json& presets, std::string& error) const {
+    std::error_code status_error;
+    const auto status = std::filesystem::status(config_.presets_path, status_error);
+    if (status_error && status_error != std::errc::no_such_file_or_directory) {
+        error = "failed to read preset file: " + status_error.message();
+        return false;
     }
+    if (status_error || status.type() == std::filesystem::file_type::not_found) {
+        presets = nlohmann::json::array();
+        return true;
+    }
+    if (status.type() != std::filesystem::file_type::regular) {
+        error = "preset file is not a regular file";
+        return false;
+    }
+    std::ifstream input(config_.presets_path);
+    if (!input) {
+        error = "failed to open preset file";
+        return false;
+    }
+    try {
+        presets = nlohmann::json::parse(input);
+    } catch (const nlohmann::json::exception& exception) {
+        error = std::string("preset file is corrupt: ") + exception.what();
+        return false;
+    }
+    if (!presets.is_array()) {
+        error = "preset file must contain a JSON array";
+        return false;
+    }
+    return true;
 }
 
 bool ModeController::save_presets_locked(const nlohmann::json& presets) const {
@@ -439,18 +460,26 @@ bool ModeController::save_presets_locked(const nlohmann::json& presets) const {
     output << presets.dump(2);
     output.close();
     std::error_code error;
+    if (!output) {
+        std::filesystem::remove(temporary, error);
+        return false;
+    }
     std::filesystem::rename(temporary, config_.presets_path, error);
     if (error) {
-        std::filesystem::remove(config_.presets_path, error);
-        error.clear();
-        std::filesystem::rename(temporary, config_.presets_path, error);
+        std::filesystem::remove(temporary, error);
+        return false;
     }
-    return !error;
+    return true;
 }
 
 nlohmann::json ModeController::list_presets() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return {{"presets", read_presets_locked()}};
+    nlohmann::json presets;
+    std::string error;
+    if (!read_presets_locked(presets, error)) {
+        return {{"presets", nlohmann::json::array()}, {"status", "failed"}, {"error", error}};
+    }
+    return {{"presets", presets}};
 }
 
 nlohmann::json ModeController::save_preset(const nlohmann::json& preset) {
@@ -467,7 +496,11 @@ nlohmann::json ModeController::save_preset(const nlohmann::json& preset) {
     validated.rms_mix_rate = parameters.value("rms_mix_rate", validated.rms_mix_rate);
     validated.protect = parameters.value("protect", validated.protect);
     if (invalid_rvc_parameter(validated)) return {{"status", "invalid"}, {"error", "preset parameters are invalid"}};
-    auto presets = read_presets_locked();
+    nlohmann::json presets;
+    std::string read_error;
+    if (!read_presets_locked(presets, read_error)) {
+        return {{"status", "failed"}, {"error", read_error + "; preset file was not modified"}};
+    }
     const std::string id = "preset_" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     presets.push_back({{"id", id}, {"name", name}, {"parameters", parameters_json(validated)}});
     if (!save_presets_locked(presets)) return {{"status", "failed"}, {"error", "failed to save preset"}};
@@ -477,7 +510,11 @@ nlohmann::json ModeController::save_preset(const nlohmann::json& preset) {
 
 nlohmann::json ModeController::delete_preset(const std::string& preset_id) {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto presets = read_presets_locked();
+    nlohmann::json presets;
+    std::string read_error;
+    if (!read_presets_locked(presets, read_error)) {
+        return {{"status", "failed"}, {"error", read_error + "; preset file was not modified"}};
+    }
     const auto preset = std::find_if(presets.begin(), presets.end(), [&](const auto& item) { return item.value("id", "") == preset_id; });
     if (preset == presets.end()) return {{"error", "preset not found"}};
     presets.erase(preset);

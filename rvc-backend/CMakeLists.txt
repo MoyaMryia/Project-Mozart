@@ -260,7 +260,9 @@ if(BUILD_TESTS)
     set_tests_properties(pre_control PROPERTIES TIMEOUT 30)
     target_link_libraries(test_mode_controller PRIVATE mozart_rvc_runtime)
     foreach(case capacity position clear_queued active_cancel eviction clear_completed clear_failed disabled
-                 file_paths file_duration cancel_decode cancel_encode timeout failure)
+                 file_paths file_duration file_output_validation
+                 presets_missing presets_bad_json presets_non_array presets_read_failure presets_write_failure
+                 cancel_decode cancel_encode timeout failure)
         add_test(NAME state_${case} COMMAND test_mode_controller ${case})
         set_tests_properties(state_${case} PROPERTIES TIMEOUT 30)
     endforeach()

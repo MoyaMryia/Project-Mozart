@@ -58,12 +58,19 @@ class Bridge:
         self.return_src = AsyncSrc(channels=proto.CHANNELS, target_frames=target_frames)
         self.last_error = ''
         self.backlog_error = False
+        self.exit_code = 0
 
     # --- 记录 ---
     def fail(self, reason):
         self.errors += 1
         self.last_error = reason
         print(f'错误: {reason}', flush=True)
+
+    def request_restart(self, reason):
+        """记录原因并退出主循环；systemd 的 Restart=always 重新启动本服务。"""
+        self.fail(reason)
+        self.exit_code = 1
+        self.stopping.set()
 
     # --- 子进程 ---
     def spawn(self, argv, **kwargs):
@@ -131,7 +138,8 @@ class Bridge:
     def write_speaker(self, payload):
         if self.speaker_fd < 0:
             return False
-        self.drain_speaker_backlog(len(payload))
+        if not self.drain_speaker_backlog(len(payload)):
+            return False
         try:
             written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
@@ -186,28 +194,39 @@ class Bridge:
         self.last_error = '采集积压排空（丢弃最旧帧）'
 
     def drain_speaker_backlog(self, keep_bytes):
-        """aplay stdin 积压超限时从读端排空旧数据（写端无读权限，借 /proc/self/fd）。"""
+        """aplay stdin 积压超限时从读端排空旧数据（写端无读权限，借 /proc/self/fd）。
+        返回 False 表示排空遇到 I/O 故障，此时已记录原因并请求重启服务。"""
         fd = self.speaker_fd
-        if fd < 0:
-            return
         backlog = self.pipe_backlog(fd)
         if backlog <= keep_bytes:
-            return
+            return True
         try:
             read_handle = os.open(f'/proc/self/fd/{fd}', os.O_RDONLY | os.O_NONBLOCK)
-        except OSError:
-            return
+        except OSError as error:
+            self.request_restart(f'打开播放管道读端失败，重启服务: {error}')
+            return False
+        drained = 0
         try:
             stale = backlog - keep_bytes
             while stale > 0:
-                got = os.read(read_handle, min(stale, 65536))
+                try:
+                    got = os.read(read_handle, min(stale, 65536))
+                except BlockingIOError:
+                    # aplay 已读走查询到的积压，排空到此结束。
+                    break
+                except OSError as error:
+                    self.request_restart(f'排空播放积压失败，重启服务: {error}')
+                    return False
                 if not got:
                     break
+                drained += len(got)
                 stale -= len(got)
-            self.dropped += 1
-            self.last_error = '播放积压排空（丢弃最旧帧）'
         finally:
             os.close(read_handle)
+        if drained:
+            self.dropped += 1
+            self.last_error = '播放积压排空（丢弃最旧帧）'
+        return True
 
     # --- USB ---
     def open_usb(self):
@@ -480,7 +499,7 @@ class Bridge:
                 last_report = time.monotonic()
         self.stop_audio()
         self.report()
-        return 0
+        return self.exit_code
 
 
 if __name__ == '__main__':
