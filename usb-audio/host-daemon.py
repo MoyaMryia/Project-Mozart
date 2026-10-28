@@ -27,11 +27,10 @@ from src import AsyncSrc, TARGET_BLOCKS
 VID, PID = 0x1d6b, 0x0105
 MIC_SINK = os.environ.get('MOZART_MIC_SINK', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
 APP_SOURCE = os.environ.get('MOZART_APP_SOURCE', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
-# M2 直连模式：MOZART_DIRECT=1 时直接使用物理设备并走 128 样本快流。
+# 直连模式：MOZART_DIRECT=1 时使用物理设备，并优先使用接口 1 的 128 样本帧端点。
 DIRECT = os.environ.get('MOZART_DIRECT', '0') == '1'
 DIRECT_MIC = os.environ.get('MOZART_DIRECT_MIC', 'default')
 DIRECT_SPEAKER = os.environ.get('MOZART_DIRECT_SPEAKER', 'default')
-FAST_PERIOD_US = int(1e6 * 128 / 48000)   # 2667 µs
 REPORT_SECONDS = 2.0
 
 
@@ -92,7 +91,8 @@ class Bridge:
             device = DIRECT_SPEAKER if DIRECT else MIC_SINK
             aplay = ['aplay', '-D', device, '-f', 'S16_LE', '-r', str(proto.RATE),
                      '-c', str(proto.CHANNELS), '-t', 'raw', '-q',
-                     '--period-time', '2667', '--buffer-time', '16000']
+                     '--period-time', str(proto.FAST_PERIOD_US),
+                     '--buffer-time', str(proto.FAST_PERIOD_US * 6)]
             self.speaker = self.spawn(aplay,
                 stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
             self.speaker_fd = self.speaker.stdin.fileno()
@@ -105,7 +105,8 @@ class Bridge:
             for attempt in range(10):
                 arecord = ['arecord', '-D', device, '-f', 'S16_LE', '-r', str(proto.RATE),
                            '-c', str(proto.CHANNELS), '-t', 'raw', '-q',
-                           '--period-time', '2667', '--buffer-time', '16000']
+                           '--period-time', str(proto.FAST_PERIOD_US),
+                           '--buffer-time', str(proto.FAST_PERIOD_US * 6)]
                 self.capture = self.spawn(arecord,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
                 time.sleep(0.4)
@@ -130,7 +131,7 @@ class Bridge:
     def write_speaker(self, payload):
         if self.speaker_fd < 0:
             return False
-        self.drain_speaker_backlog(proto.FRAME_BYTES)
+        self.drain_speaker_backlog(len(payload))
         try:
             written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
@@ -145,12 +146,13 @@ class Bridge:
 
     def play_pcm(self, payload):
         with self.return_lock:
+            self.return_src.observe(payload)
             fill = self.pipe_backlog(self.speaker_fd) / (proto.CHANNELS * proto.SAMPLE_BYTES)
             ratio = self.return_src.ratio(fill)
             self.write_speaker(self.return_src.process(payload, ratio))
 
 
-    # --- 过期帧排空（M2 延迟修复）---
+    # --- 过期帧排空 ---
     def pipe_backlog(self, fd):
         """FIONREAD 查询管道积压字节数；失败记录原因并返回 0。"""
         try:
@@ -237,22 +239,25 @@ class Bridge:
                 self.fail('设备缺少 bulk 端点')
                 return False
             self.device = device
-            # M3：描述符含接口 1（快流专用端点）。直连模式下声明并优先使用；
-            # 声明失败或接口不存在时回退接口 0 复用（兼容 M2 形态）。
+            # 接口 1 只在直连模式下声明；默认路径使用接口 0。
             self.fast_ep_out = self.fast_ep_in = None
-            try:
-                fast_interface = configuration[(1, 0)]
-                if device.is_kernel_driver_active(1):
-                    device.detach_kernel_driver(1)
-                usb.util.claim_interface(device, 1)
-                self.fast_ep_out = usb.util.find_descriptor(
-                    fast_interface, custom_match=lambda e:
-                        usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
-                self.fast_ep_in = usb.util.find_descriptor(
-                    fast_interface, custom_match=lambda e:
-                        usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_IN)
-            except (KeyError, IndexError, usb.core.USBError, NotImplementedError):
-                self.fast_ep_out = self.fast_ep_in = None
+            if DIRECT:
+                try:
+                    fast_interface = configuration[(1, 0)]
+                    if device.is_kernel_driver_active(1):
+                        device.detach_kernel_driver(1)
+                    usb.util.claim_interface(device, 1)
+                    self.fast_ep_out = usb.util.find_descriptor(
+                        fast_interface, custom_match=lambda e:
+                            usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
+                    self.fast_ep_in = usb.util.find_descriptor(
+                        fast_interface, custom_match=lambda e:
+                            usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_IN)
+                    if self.fast_ep_out is None or self.fast_ep_in is None:
+                        self.fail('接口 1 端点不完整，回退接口 0')
+                        self.fast_ep_out = self.fast_ep_in = None
+                except (KeyError, IndexError, usb.core.USBError, NotImplementedError) as error:
+                    self.fail(f'接口 1 声明失败，回退接口 0: {error}')
             self.link_generation += 1
             fast_note = (f' fast=0x{self.fast_ep_out.bEndpointAddress:02x}'
                          f'/0x{self.fast_ep_in.bEndpointAddress:02x}'
@@ -311,9 +316,7 @@ class Bridge:
                     break
                 version, kind, stream, _flags, seq, _ts, payload = frame
                 buffer = buffer[proto.HEADER_BYTES + len(payload):]
-                if kind != proto.TYPE_PCM:
-                    continue
-                if stream not in (proto.STREAM_AUDIO, proto.STREAM_FAST):
+                if not proto.is_audio_frame(kind, stream, len(payload)):
                     continue
                 # 延迟打点：帧 ts_us（Jetson 打包时刻）→ 本机收到时刻
                 if os.environ.get('MOZART_TRACE'):
@@ -351,7 +354,8 @@ class Bridge:
             samples = memoryview(payload).cast('h')
             picked = samples[::16]
             rms = (sum(int(s) * int(s) for s in picked) / len(picked)) ** 0.5 / 32768
-            silence_limit = proto.FAST_SILENCE_FRAMES if DIRECT else proto.SILENCE_FRAMES
+            block_frames = chunk_size // (proto.CHANNELS * proto.SAMPLE_BYTES)
+            silence_limit = proto.silence_blocks(block_frames)
             if rms < proto.SILENCE_RMS:
                 silent += 1
                 if silent > silence_limit:
@@ -366,7 +370,8 @@ class Bridge:
             if endpoint is None:
                 self.dropped += 1
                 continue
-            stream_id = proto.STREAM_FAST if DIRECT else proto.STREAM_AUDIO
+            # 采集块固定 FAST_BYTES，标签与实际帧长一致。
+            stream_id = proto.STREAM_FAST
             # 快流且有专用端点时走接口 1；否则与主流量复用接口 0。
             if DIRECT and fast_endpoint is not None:
                 endpoint = fast_endpoint
@@ -390,7 +395,8 @@ class Bridge:
             self.sent += 1
 
     def fast_usb_to_alsa(self):
-        """接口 1 专用 IN 端点的接收泵（直连模式且端点存在时）。"""
+        """接口 1 专用 IN 端点的接收泵（直连模式且端点存在时）。
+        本仓库默认路径不启动该泵；需要 Jetson 侧同时读写接口 1 的进程。"""
         buffer = b''
         generation = -1
         while not self.stopping.is_set():
@@ -420,7 +426,7 @@ class Bridge:
                     break
                 version, kind, stream, _flags, seq, _ts, payload = frame
                 buffer = buffer[proto.HEADER_BYTES + len(payload):]
-                if kind != proto.TYPE_PCM or stream != proto.STREAM_FAST:
+                if not proto.is_audio_frame(kind, stream, len(payload)):
                     continue
                 if version != proto.VERSION:
                     continue
@@ -461,6 +467,8 @@ class Bridge:
         self.open_usb()
         targets = [self.supervisor, self.usb_to_alsa, self.alsa_to_usb, self.silencer, self.watchdog]
         if DIRECT:
+            print('直连模式：接口 1 需要 Jetson 侧同时读写该接口的进程；默认路径使用接口 0',
+                  flush=True)
             targets.append(self.fast_usb_to_alsa)
         for target in targets:
             threading.Thread(target=target, daemon=True).start()

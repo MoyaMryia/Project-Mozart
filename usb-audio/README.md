@@ -45,6 +45,18 @@ Tegra234 的 USB 控制器不支持 UAC2 等时端点，见 [usb-gadget/DECISION
 `snd-aloop` 按 substream 配对：播放 `dev 0 sub N` 对应采集 `dev 1 sub N`。
 一张卡的两个 substream 提供两个独立方向。
 
+## 端点与帧长
+
+设备声明两个 vendor 接口。
+
+| 接口 | 端点（高速） | 使用方 | 帧长 |
+| --- | --- | --- | --- |
+| 0 | OUT `0x01` / IN `0x82` | 默认路径、Windows 桥 | 128 样本或 20 ms |
+| 1 | OUT `0x03` / IN `0x84` | `mozart-pre --usb-endpoint`、主机直连模式 | 128 样本 |
+
+Jetson 的发送帧长由 `MOZART_FAST` 选择。Linux 主机按 128 样本块采集。
+直连模式要求 Jetson 侧运行 `mozart-pre --usb-endpoint`，由该进程持有 `ep3`/`ep4`。
+
 ## 协议
 
 固定 24 字节帧头，小端序。
@@ -62,11 +74,12 @@ Tegra234 的 USB 控制器不支持 UAC2 等时端点，见 [usb-gadget/DECISION
 | 20 | 4 | 负载长度 |
 
 类型：`PCM`、`CONTROL`、`TELEMETRY`。
-流 ID：`AUDIO`、`CONTROL`。
+流 ID：`AUDIO`、`CONTROL`、`FAST`。`FAST` 表示 128 样本帧，`AUDIO` 表示 20 ms 帧。
+接收方按帧头负载长度处理，两种音频帧长都接收，并拒绝其他长度。
 其余类型与流 ID 为预留值，接收方忽略并保持连接。
 单帧负载上限为 1 MiB。
 
-负载为 20 ms 的 48 kHz 立体声 16 位 PCM，3840 字节。
+20 ms 帧负载为 3840 字节，128 样本帧负载为 512 字节，均为 48 kHz 立体声 16 位 PCM。
 控制、字幕、WebUI 复用同一对端点，新增流只增加流 ID。
 
 ## 安装
@@ -138,7 +151,8 @@ python windows-bridge.py --capture           # 本机麦克风送入 Jetson
 python windows-bridge.py --play --capture    # 全双工
 ```
 
-该程序在 Linux 主机验证过录放与采集。Windows 真机验收状态见 [TODO.md](../TODO.md)。
+该程序只使用接口 0。接收方向接受两种帧长，发送方向固定 20 ms 帧。
+该程序在 Linux 主机验证过录放与采集。
 
 ## 离线模式
 
@@ -174,7 +188,11 @@ export MOZART_PLAYBACK_DEVICE=plughw:CARD=Loopback,DEV=0,SUBDEV=1
 | `MOZART_FFS` | FunctionFS 挂载点，默认 `/dev/ffs-mozart` |
 | `MOZART_UDC` | 写描述符后绑定的 UDC 名；留空只做本地声卡调试 |
 | `MOZART_MIC` / `MOZART_SPEAKER` | Jetson 侧采集与播放设备 |
+| `MOZART_FAST` | Jetson 发送档位：`0` 使用 20 ms 帧；默认使用 128 样本帧 |
+| `MOZART_DIRECT` | Linux 主机直连模式：`1` 使用物理设备并声明接口 1 |
+| `MOZART_DIRECT_MIC` / `MOZART_DIRECT_SPEAKER` | 直连模式的物理设备名 |
 | `MOZART_MIC_SINK` / `MOZART_APP_SOURCE` | 主机侧虚拟麦克风与虚拟扬声器设备 |
+| `MOZART_TRACE` | 打印帧序号与时间戳打点 |
 
 ## 验证
 
@@ -188,5 +206,11 @@ systemctl status mozart-usb-audio
 journalctl -u mozart-usb-audio -n 5 -o cat
 ```
 
-实测数据见 [reports/usb-audio-20261020/RESULTS.md](../reports/usb-audio-20261020/RESULTS.md)。
+实测数据与测量口径见 [usb-audio-20261020](../reports/usb-audio-20261020/RESULTS.md)。
+主机回路的定位与数值见[端到端延迟实测](../reports/e2e-latency-20261025/RESULTS.md)。
 计数器每次启动从零开始，日志每 2–5 秒输出一行。
+
+## 适用范围
+
+- 配置：Jetson Orin Nano Super 8GB；接口 0 与 1 的 vendor 描述符；48 kHz、16 位、双声道。
+- 样本：端点回环 3000 帧、受压 640 秒（20261020）；e2e 三组，period 64 两组、period 128 一组（20261025）。

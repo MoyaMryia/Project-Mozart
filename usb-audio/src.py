@@ -29,6 +29,12 @@ class AsyncSrc:
         lo, hi = 1.0 - self.ratio_max, 1.0 + self.ratio_max
         return min(max(desired, lo), hi)
 
+    def observe(self, payload: bytes) -> None:
+        """按收到的帧长更新水位目标，兼容 20 ms 与 128 样本帧。"""
+        frames = len(payload) // (self.channels * 2)
+        if frames > 0 and self.target != float(frames * TARGET_BLOCKS):
+            self.target = float(frames * TARGET_BLOCKS)
+
     def process(self, payload: bytes, ratio: float) -> bytes:
         """按 ratio 对交错 S16LE 帧序列插值，返回输出字节流。
 

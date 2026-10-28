@@ -9,6 +9,8 @@ Windows 准备：
   2. 用 Zadig 给 `1d6b:0105` 的接口 0 安装 WinUSB 驱动（一次即可）。
 
 Linux 用法相同，可直接用于测试。
+接收方向接受 20 ms 与 128 样本帧；发送方向固定 20 ms。
+音频走接口 0。
 
 示例：
   python windows-bridge.py --record rx.wav --seconds 30
@@ -92,8 +94,9 @@ class Sink:
 
 def receive(inp, sink, stopping, show_stats=True):
     buffer = b''
-    expected = None
+    expected = {}
     gaps = 0
+    rejected = 0
     while not stopping.is_set():
         try:
             buffer += bytes(inp.read(65536, timeout=300))
@@ -116,14 +119,19 @@ def receive(inp, sink, stopping, show_stats=True):
             if version != proto.VERSION:
                 print(f'未知协议版本 {version}', file=sys.stderr)
                 continue
-            if kind != proto.TYPE_PCM or stream != proto.STREAM_AUDIO:
+            if not proto.is_audio(kind, stream):
                 continue
-            if expected is not None and sequence != expected:
+            if not proto.is_audio_frame(kind, stream, len(payload)):
+                rejected += 1
+                if rejected == 1:
+                    print(f'帧长 {len(payload)} 不在 512/3840 之内，丢弃', file=sys.stderr)
+                continue
+            if stream in expected and sequence != expected[stream]:
                 gaps += 1
-            expected = sequence + 1
+            expected[stream] = sequence + 1
             sink.write(payload)
             if show_stats and sink.frames % 50 == 0:
-                print(f'已接收 {sink.frames} 帧，缺口 {gaps}', flush=True)
+                print(f'已接收 {sink.frames} 帧，缺口 {gaps}，丢弃 {rejected}', flush=True)
 
 
 def capture(out, stopping):

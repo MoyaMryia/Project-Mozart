@@ -24,9 +24,8 @@ from src import AsyncSrc, TARGET_BLOCKS
 
 MIC = os.environ.get('MOZART_MIC', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
 SPEAKER = os.environ.get('MOZART_SPEAKER', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
-# M2 低延迟：默认启用快流（128 样本周期）；置 0 回到 20 ms 兼容模式。
+# 帧长档位：1 发送 128 样本帧（2.67 ms），0 发送 20 ms 帧。
 FAST = os.environ.get('MOZART_FAST', '1') != '0'
-FAST_PERIOD_US = int(1e6 * proto.FAST_SAMPLES / proto.RATE)   # 2667 µs
 MNT = os.environ.get('MOZART_FFS', '/dev/ffs-mozart')
 UDC_FILE = '/sys/kernel/config/usb_gadget/mozart/UDC'
 
@@ -40,21 +39,21 @@ REPORT_SECONDS = 5.0
 
 
 def descriptors():
-    """接口 0：20 ms 兼容流 + 控制（守护进程自有 ep1/ep2）。
-    接口 1：128 样本快流专用端点（ep3/ep4，由 mozart-pre 直接持有，
-    见 --usb-endpoint）。端点地址按声明顺序分配：0x03 OUT / 0x84 IN。"""
+    """接口 0：20 ms 帧与控制（守护进程自有 ep1/ep2）。
+    接口 1：128 样本帧专用端点（ep3/ep4），由 mozart-pre --usb-endpoint 持有。
+    端点地址按声明顺序分配：0x03 OUT / 0x84 IN。"""
     head = struct.pack('<III', DESCS_MAGIC_V2, 0, HAS_FS | HAS_HS)
     counts = struct.pack('<II', 6, 6)
     iface0 = struct.pack('<BBBBBBBBB', 9, 4, 0, 0, 2, 0xff, 0, 0, 1)
-    out_fs = struct.pack('<BBBBHB', 7, 5, 0x01, 2, 64, 0)
-    in_fs = struct.pack('<BBBBHB', 7, 5, 0x82, 2, 64, 0)
+    out_fs = struct.pack('<BBBBHB', 7, 5, proto.EP_AUDIO_OUT, 2, 64, 0)
+    in_fs = struct.pack('<BBBBHB', 7, 5, proto.EP_AUDIO_IN, 2, 64, 0)
     iface1 = struct.pack('<BBBBBBBBB', 9, 4, 1, 0, 2, 0xff, 0, 0, 1)  # 与接口 0 共用字符串索引 1
-    fast_out_fs = struct.pack('<BBBBHB', 7, 5, 0x03, 2, 64, 0)
-    fast_in_fs = struct.pack('<BBBBHB', 7, 5, 0x84, 2, 64, 0)
-    out_hs = struct.pack('<BBBBHB', 7, 5, 0x01, 2, 512, 0)
-    in_hs = struct.pack('<BBBBHB', 7, 5, 0x82, 2, 512, 0)
-    fast_out_hs = struct.pack('<BBBBHB', 7, 5, 0x03, 2, 512, 0)
-    fast_in_hs = struct.pack('<BBBBHB', 7, 5, 0x84, 2, 512, 0)
+    fast_out_fs = struct.pack('<BBBBHB', 7, 5, proto.EP_FAST_OUT, 2, 64, 0)
+    fast_in_fs = struct.pack('<BBBBHB', 7, 5, proto.EP_FAST_IN, 2, 64, 0)
+    out_hs = struct.pack('<BBBBHB', 7, 5, proto.EP_AUDIO_OUT, 2, 512, 0)
+    in_hs = struct.pack('<BBBBHB', 7, 5, proto.EP_AUDIO_IN, 2, 512, 0)
+    fast_out_hs = struct.pack('<BBBBHB', 7, 5, proto.EP_FAST_OUT, 2, 512, 0)
+    fast_in_hs = struct.pack('<BBBBHB', 7, 5, proto.EP_FAST_IN, 2, 512, 0)
     fs_block = iface0 + out_fs + in_fs + iface1 + fast_out_fs + fast_in_fs
     hs_block = iface0 + out_hs + in_hs + iface1 + fast_out_hs + fast_in_hs
     body = counts + fs_block + hs_block
@@ -123,8 +122,8 @@ class Daemon:
                 arecord = ['arecord', '-D', MIC, '-f', 'S16_LE', '-r', str(proto.RATE),
                            '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
                 if FAST:
-                    arecord += ['--period-time', str(FAST_PERIOD_US),
-                                '--buffer-time', str(FAST_PERIOD_US * 6)]
+                    arecord += ['--period-time', str(proto.FAST_PERIOD_US),
+                                '--buffer-time', str(proto.FAST_PERIOD_US * 6)]
                 self.mic = self.spawn(arecord,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
                 time.sleep(0.4)
@@ -141,8 +140,8 @@ class Daemon:
             aplay = ['aplay', '-D', SPEAKER, '-f', 'S16_LE', '-r', str(proto.RATE),
                      '-c', str(proto.CHANNELS), '-t', 'raw', '-q']
             if FAST:
-                aplay += ['--period-time', str(FAST_PERIOD_US),
-                          '--buffer-time', str(FAST_PERIOD_US * 6)]
+                aplay += ['--period-time', str(proto.FAST_PERIOD_US),
+                          '--buffer-time', str(proto.FAST_PERIOD_US * 6)]
             self.speaker = self.spawn(aplay,
                 stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
             self.speaker_fd = self.speaker.stdin.fileno()
@@ -182,7 +181,7 @@ class Daemon:
                 setattr(self, name, -1)
 
     def write_speaker(self, payload):
-        self.drain_speaker_backlog(proto.FRAME_BYTES)
+        self.drain_speaker_backlog(len(payload))
         try:
             written = os.write(self.speaker_fd, payload)
         except BlockingIOError:
@@ -196,7 +195,7 @@ class Daemon:
         return True
 
 
-    # --- 过期帧排空（M2 延迟修复）---
+    # --- 过期帧排空 ---
     def pipe_backlog(self, fd):
         """FIONREAD 查询管道积压字节数；失败记录原因并返回 0。"""
         try:
@@ -274,7 +273,8 @@ class Daemon:
             samples = memoryview(payload).cast('h')
             picked = samples[::16]
             rms = (sum(int(s) * int(s) for s in picked) / len(picked)) ** 0.5 / 32768
-            silence_limit = proto.FAST_SILENCE_FRAMES if FAST else proto.SILENCE_FRAMES
+            block_frames = chunk_size // (proto.CHANNELS * proto.SAMPLE_BYTES)
+            silence_limit = proto.silence_blocks(block_frames)
             if rms < proto.SILENCE_RMS:
                 silent += 1
                 if silent > silence_limit:
@@ -328,15 +328,13 @@ class Daemon:
                     break
                 version, kind, stream, _flags, seq, _ts, payload = frame
                 self.pending = self.pending[proto.HEADER_BYTES + len(payload):]
-                if kind != proto.TYPE_PCM:
-                    continue
-                if stream not in (proto.STREAM_AUDIO, proto.STREAM_FAST):
+                if not proto.is_audio_frame(kind, stream, len(payload)):
                     continue
                 if version != proto.VERSION:
                     self.fail(f'未知协议版本 {version}')
                     continue
                 # 延迟打点：帧 ts_us（pre 打包时刻，jetson 时钟）→ USB 到达
-                if os.environ.get('MOZART_TRACE') and stream == proto.STREAM_AUDIO:
+                if os.environ.get('MOZART_TRACE'):
                     now_us = time.monotonic() * 1e6
                     print(f'[trace-j] seq={seq} age={(now_us - _ts)/1000:.1f}ms',
                           flush=True)
@@ -346,6 +344,7 @@ class Daemon:
                 self.expected_seq[stream] = seq + 1
                 self.frames_out += 1
                 with self.return_lock:
+                    self.return_src.observe(payload)
                     fill = self.pipe_backlog(self.speaker_fd) / (proto.CHANNELS * proto.SAMPLE_BYTES)
                     ratio = self.return_src.ratio(fill)
                     adapted = self.return_src.process(payload, ratio)

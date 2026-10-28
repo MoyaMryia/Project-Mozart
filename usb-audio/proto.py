@@ -10,13 +10,13 @@
     magic    u16   0x4D5A
     version  u8    1
     type     u8    0=PCM 1=CONTROL 2=TELEMETRY
-    stream   u8    逻辑流：0=主音频，1=控制，2.. 预留
+    stream   u8    逻辑流：0=20 ms 音频，1=控制，2=128 样本帧
     flags    u8    bit0=start bit1=end bit2=urgent，其余预留
     reserved u16   预留，必须为 0
     seq      u32   每 (type,stream) 独立单调递增
     ts_us    u64   发送时刻，单调时钟，微秒
     length   u32   负载字节数
-负载：48 kHz / 2 ch / S16，默认 20 ms = 3840 字节。
+负载：48 kHz / 2 ch / S16，20 ms = 3840 字节，128 样本 = 512 字节。
 
 控制帧负载：opcode u16 + args，见 CONTROL_*。
 """
@@ -31,9 +31,26 @@ TYPE_PCM = 0
 TYPE_CONTROL = 1
 TYPE_TELEMETRY = 2
 
-STREAM_AUDIO = 0     # 20 ms 帧（3840 B，M2 起仅兼容保留）
+STREAM_AUDIO = 0     # 20 ms 帧（3840 B）
 STREAM_CONTROL = 1
-STREAM_FAST = 2      # 128 样本帧（512 B，2.67 ms，M2 低延迟路径）
+STREAM_FAST = 2      # 128 样本帧（512 B，2.67 ms）
+AUDIO_STREAMS = (STREAM_AUDIO, STREAM_FAST)
+
+
+def is_audio(kind, stream):
+    """PCM 音频帧判定；流 ID 只标识发送方档位。"""
+    return kind == TYPE_PCM and stream in AUDIO_STREAMS
+
+
+def is_audio_frame(kind, stream, size):
+    """接收方入口校验：PCM 且负载为两种合法长度之一。"""
+    return is_audio(kind, stream) and size in AUDIO_FRAME_BYTES
+
+
+def silence_blocks(frames_per_block):
+    """3 秒静音对应的块数，按实际块长计算。"""
+    return int(SILENCE_SECONDS * RATE / frames_per_block)
+
 
 FLAG_START = 0x01
 FLAG_END = 0x02
@@ -46,12 +63,19 @@ FRAME_MS = 20
 FRAME_BYTES = RATE * FRAME_MS // 1000 * CHANNELS * SAMPLE_BYTES   # 3840
 FAST_SAMPLES = 128
 FAST_BYTES = FAST_SAMPLES * CHANNELS * SAMPLE_BYTES               # 512
-# 快流静音判定的帧数（同 3 秒口径）
-FAST_SILENCE_FRAMES = int(3000 * RATE // 1000 / FAST_SAMPLES)
+AUDIO_FRAME_BYTES = (FAST_BYTES, FRAME_BYTES)                     # 合法音频负载长度
+FAST_PERIOD_US = int(1e6 * FAST_SAMPLES / RATE)                   # 2666 µs
 MAX_PAYLOAD = 1 << 20          # 单帧负载上限，发送与接收共用
+
+# FunctionFS 端点地址：接口 0 承载音频与控制，接口 1 为 128 样本帧专用。
+EP_AUDIO_OUT = 0x01
+EP_AUDIO_IN = 0x82
+EP_FAST_OUT = 0x03
+EP_FAST_IN = 0x84
+
 # snd-aloop 的采集流在播放开始前会永久输出静音，超过该时长就重开采集。
 SILENCE_RMS = 1e-6
-SILENCE_FRAMES = 150           # 150 帧 = 3 秒
+SILENCE_SECONDS = 3.0
 
 # 控制操作码（预留：0x1000 以上给实验用途）
 CONTROL_HELLO = 0x0001        # 负载：version u8 + 能力位 u32

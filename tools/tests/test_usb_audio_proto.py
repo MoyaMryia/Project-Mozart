@@ -1,5 +1,6 @@
 """USB bulk 协议的自测：往返、边界与错误分支。"""
 import pathlib
+import re
 import struct
 import sys
 import unittest
@@ -63,7 +64,27 @@ class FastStreamTests(unittest.TestCase):
         self.assertEqual(proto.FAST_SAMPLES, 128)
         self.assertEqual(proto.FAST_BYTES, 512)
         self.assertEqual(proto.STREAM_FAST, 2)
-        self.assertEqual(proto.FAST_SILENCE_FRAMES * 1000 * 128 // 48000, 3000)
+        self.assertEqual(proto.silence_blocks(proto.FAST_SAMPLES) * proto.FAST_SAMPLES,
+                         3 * proto.RATE)
+        self.assertEqual(proto.silence_blocks(proto.RATE * proto.FRAME_MS // 1000)
+                         * (proto.RATE * proto.FRAME_MS // 1000), 3 * proto.RATE)
+
+    def test_audio_frame_lengths(self):
+        self.assertEqual(set(proto.AUDIO_FRAME_BYTES), {proto.FAST_BYTES, proto.FRAME_BYTES})
+        self.assertTrue(proto.is_audio_frame(proto.TYPE_PCM, proto.STREAM_FAST,
+                                             proto.FAST_BYTES))
+        self.assertTrue(proto.is_audio_frame(proto.TYPE_PCM, proto.STREAM_AUDIO,
+                                             proto.FRAME_BYTES))
+        self.assertFalse(proto.is_audio_frame(proto.TYPE_PCM, proto.STREAM_FAST, 4))
+
+    def test_c_client_shares_frame_constants(self):
+        source = (pathlib.Path(__file__).resolve().parents[2]
+                  / 'preprocessor/src/usb_link.c').read_text()
+        samples = re.search(r'#define UL_FAST_SAMPLES (\d+)', source)
+        self.assertIsNotNone(samples)
+        self.assertEqual(int(samples.group(1)), proto.FAST_SAMPLES)
+        self.assertIn('#define UL_FAST_BYTES (UL_FAST_SAMPLES * 2 * 2)', source)
+        self.assertEqual(proto.FAST_BYTES, proto.FAST_SAMPLES * proto.CHANNELS * proto.SAMPLE_BYTES)
 
     def test_fast_roundtrip(self):
         import proto

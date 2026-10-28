@@ -291,5 +291,85 @@ class PipeFeedbackTests(unittest.TestCase):
         ratio.assert_called_once_with(3 * proto.FAST_SAMPLES)
 
 
+class FrameSizeCompatTests(unittest.TestCase):
+    """接收方按帧长处理，兼容两种发送档位。"""
+
+    def test_audio_predicate_accepts_both_streams(self):
+        self.assertTrue(proto.is_audio(proto.TYPE_PCM, proto.STREAM_AUDIO))
+        self.assertTrue(proto.is_audio(proto.TYPE_PCM, proto.STREAM_FAST))
+        self.assertFalse(proto.is_audio(proto.TYPE_CONTROL, proto.STREAM_FAST))
+        self.assertFalse(proto.is_audio(proto.TYPE_PCM, proto.STREAM_CONTROL))
+
+    def test_watermark_target_follows_frame_size(self):
+        frame_20ms = proto.RATE * proto.FRAME_MS // 1000
+        src = host.AsyncSrc(channels=proto.CHANNELS,
+                            target_frames=proto.FAST_SAMPLES * host.TARGET_BLOCKS)
+        src.observe(b'\x00' * proto.FRAME_BYTES)
+        self.assertEqual(src.target, float(frame_20ms * host.TARGET_BLOCKS))
+        src.observe(b'\x00' * proto.FAST_BYTES)
+        self.assertEqual(src.target, float(proto.FAST_SAMPLES * host.TARGET_BLOCKS))
+        src.observe(b'')
+        self.assertEqual(src.target, float(proto.FAST_SAMPLES * host.TARGET_BLOCKS))
+
+    def test_descriptors_declare_both_interface_endpoints(self):
+        blob = jetson.descriptors()
+        for address in (proto.EP_AUDIO_OUT, proto.EP_AUDIO_IN,
+                        proto.EP_FAST_OUT, proto.EP_FAST_IN):
+            self.assertEqual(blob.count(bytes([7, 5, address, 2])), 2)
+
+    def test_stream_id_matches_frame_size(self):
+        bridge = host.Bridge()
+        bridge.capture = types.SimpleNamespace(
+            stdout=io.BytesIO(b'\x10\x00' * (proto.FAST_SAMPLES * proto.CHANNELS)))
+        frames = []
+
+        class Endpoint:
+            def write(self, frame, timeout=0):
+                frames.append(frame)
+                bridge.stopping.set()
+                return len(frame)
+
+        bridge.ep_out = Endpoint()
+        with patch.object(host, 'DIRECT', False), \
+                patch.object(bridge, 'drain_capture_backlog'):
+            bridge.alsa_to_usb()
+        version, kind, stream, _flags, _seq, _ts, payload = proto.decode(frames[0])
+        self.assertEqual(stream, proto.STREAM_FAST)
+        self.assertEqual(len(payload), proto.FAST_BYTES)
+
+    def test_host_receives_both_stream_ids(self):
+        bridge = host.Bridge()
+        frames = (
+            proto.encode(proto.TYPE_PCM, 0, 0, b'\x01' * proto.FAST_BYTES,
+                         stream=proto.STREAM_FAST)
+            + proto.encode(proto.TYPE_PCM, 1, 0, b'\x02' * proto.FRAME_BYTES,
+                           stream=proto.STREAM_AUDIO)
+        )
+
+        class Endpoint:
+            def __init__(self):
+                self.reads = [frames]
+
+            def read(self, _size, timeout=0):
+                bridge.stopping.set()
+                return self.reads.pop(0) if self.reads else b''
+
+        bridge.ep_in = Endpoint()
+        played = []
+        with patch.object(bridge, 'play_pcm', side_effect=played.append):
+            bridge.usb_to_alsa()
+        self.assertEqual([len(item) for item in played], [proto.FAST_BYTES, proto.FRAME_BYTES])
+
+    def test_audio_frame_with_invalid_length_is_skipped(self):
+        bridge = host.Bridge()
+        frame = proto.encode(proto.TYPE_PCM, 0, 0, b'\x01' * 4, stream=proto.STREAM_AUDIO)
+        bridge.ep_in = types.SimpleNamespace(read=lambda _size, timeout=0: (
+            bridge.stopping.set() or frame))
+        played = []
+        with patch.object(bridge, 'play_pcm', side_effect=played.append):
+            bridge.usb_to_alsa()
+        self.assertEqual(played, [])
+
+
 if __name__ == '__main__':
     unittest.main()
