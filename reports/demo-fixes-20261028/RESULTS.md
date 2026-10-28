@@ -29,8 +29,21 @@
 - `POST /api/speech/stop` 按任务隔离存储错误。一个任务写入失败时，继续取消其余任务，返回 `cancel_errors` 计数。
 - 清理旧任务时，结果文件删除失败保留任务记录，下次清理重试。该故障写入 `storage_warning`，不停止接收新任务。
 - 预设文件缺失时直接按空数组读取。删除冗余的 `status_error` 操作数。
+- `tools/export_generator_onnx.py` 提取 `load_inference_weights`。加载前拒绝同一模块的明文与归一化权重混用，加载后移除权重归一化。装有 PyTorch 的机器上，5 项检查点用例现在实际执行。
 
 同时补齐预设路由的成功与 404 状态码映射。依赖说明改为 `RawInputStream` 的 `finished_callback` 要求。
+
+## Jetson 实机复核
+
+- 配置：Jetson Orin Nano Super 8 GB，提交 `75154b6`，`~/Mozart/.venv`（Python 3.12），qiqi-zh，音高偏移 11，索引比例 0.5，nprobe 16。
+- 构建：`build-gpu` 的 50 个目标与 `build/usb-pre` 重新编译，无错误。
+- 测试：`unittest discover` 520 项全部通过。`test_http.py` 27/27、`test_control.py` 6/6、`state_*` 6 项通过。
+- 启动：`tools/run-realtime-voice.sh start`。后端 `rt_rvc`，字幕 `capturing`，翻译就绪。
+- 运行数据：音频包 5590/5590，`errors=0`，`late=0`，`send_errors=0`。
+- 延迟：`latency.avg_ms` 20.20，`max_ms` 22.69，样本 5598。
+- 播放欠载：启动期 20 次，之后不增长。
+- 识别：采集 5402 包，`finals=0`。本轮无人说话，未产生字幕和译文。
+- 依赖：`.venv` 补装 `pyusb==1.3.1`，供宿主机侧测试导入。
 
 ## 检查结果
 
@@ -73,7 +86,7 @@
 
 配置：main 分支本报告所在提交，父提交 `1194edc`；x86_64；Python 3.10；native Debug；ONNX 与 TensorRT 关闭。
 样本数及统计范围见“检查结果”。实时推理算法和模型资产保持原样。
-未验证项：Windows 驱动与声卡、Jetson USB、真实模型播报和整链演示。阻塞：Windows 真机未接入，Jetson 已关机。解除条件：连接设备后执行启动、双工录放、拔插恢复和持续运行彩排。
+未验证项：Windows 驱动与声卡、真实模型播报和整链彩排。阻塞：Windows 真机未接入，本轮无人对麦克风说话。解除条件：接入 Windows 主机并执行双工录放；在设备旁连续说话 10 分钟，核对中文字幕、英文译文和变声音频。
 
 延迟重构：结果文件名拼接仍分散在生产者和清理逻辑。阻塞：本轮以展示稳定性优先，改动跨 4 处调用。解除条件：单独提交集中定义并重跑本报告全部阶段。
 未验证项：结果文件删除持续失败时的历史上限。阻塞：删除失败会保留任务记录，历史条目可超过 `history_limit`。解除条件：在只读挂载的结果目录上运行长时任务并统计条目增长。
