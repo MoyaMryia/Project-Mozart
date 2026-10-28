@@ -308,6 +308,11 @@ if(BUILD_TESTS)
     )
     add_test(NAME test_streaming COMMAND test_streaming)
 
+    add_executable(test_audio_timing tests/test_audio_timing.cpp)
+    target_link_libraries(test_audio_timing PRIVATE mozart_rvc_runtime)
+    add_test(NAME audio_timing COMMAND test_audio_timing)
+    set_tests_properties(audio_timing PROPERTIES TIMEOUT 10)
+
     add_executable(test_feature_extractor tests/test_feature_extractor.cpp
         src/rvc/feature_extractor.cpp
         src/rvc/onnx_engine.cpp

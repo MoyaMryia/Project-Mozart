@@ -67,13 +67,14 @@ void StreamingRvc::handle_discontinuity()
     pushed_total_ = 0;
     next_window_start_ = 0;
     have_window_base_ = false;
-    window_voiced_ = false;
+    source_frames_.clear();
     // tail_/tail_valid_ 归推理线程所有：它检测到代数变化后自行作废
     ++reset_gen_;
     stats_.resets.fetch_add(1, std::memory_order_relaxed);
     {
         std::lock_guard<std::mutex> out_lk(out_mutex_);
         out_head_ = out_size_ = 0;
+        output_spans_.clear();
         output_started_ = false;
         startup_delay_remaining_ = cfg_.startup_delay_out;
     }
@@ -91,12 +92,13 @@ void StreamingRvc::reset_full_history_locked()
     owned_ = 0;
     next_window_start_ = 0;
     have_window_base_ = false;
-    window_voiced_ = false;
+    source_frames_.clear();
     std::fill(tail_.begin(), tail_.end(), 0.0f);
     tail_valid_ = false;
     {
         std::lock_guard<std::mutex> out_lk(out_mutex_);
         out_head_ = out_size_ = 0;
+        output_spans_.clear();
         output_started_ = false;
         startup_delay_remaining_ = cfg_.startup_delay_out;
     }
@@ -125,6 +127,8 @@ void StreamingRvc::push(const mozart_input_frame_t& frame)
     last_pts_ns_ = frame.meta.pts_ns;
     have_last_meta_ = true;
 
+    // 样本、元数据和累计位置在同一次取窗快照中发布。
+    std::lock_guard<std::mutex> schedule_lock(cv_mutex_);
     // ---- 入环 ----
     {
         std::lock_guard<std::mutex> lk(ring_mutex_);
@@ -139,9 +143,13 @@ void StreamingRvc::push(const mozart_input_frame_t& frame)
         }
     }
 
-    std::lock_guard<std::mutex> lk(cv_mutex_);
+    source_frames_.push_back({pushed_total_, frame.meta});
     pushed_total_ += MOZART_INPUT_SAMPLES;
-    if (frame.meta.vad_flag != 0) window_voiced_ = true;
+    const uint64_t oldest = pushed_total_ > ring_.size() ? pushed_total_ - ring_.size() : 0;
+    while (!source_frames_.empty()
+           && source_frames_.front().sample_start + MOZART_INPUT_SAMPLES <= oldest) {
+        source_frames_.pop_front();
+    }
     cv_.notify_one();
 }
 
@@ -181,6 +189,8 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
     uint64_t pushed_at_window = 0;
     uint64_t window_start = 0;
     uint64_t window_gen = 0;
+    int64_t output_start = 0;
+    std::vector<SourceFrame> sources;
 
     {
         std::unique_lock<std::mutex> lk(cv_mutex_);
@@ -227,14 +237,21 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         } else {
             read_last_window(analysis_samples_, window);
         }
-        voiced = window_voiced_;
-        window_voiced_ = false;
+        output_start = cfg_.full_history ? static_cast<int64_t>(window_start * 3)
+            : static_cast<int64_t>(pushed_total_ * 3)
+                - static_cast<int64_t>(cfg_.upstream_realtime ? out_block_ : cfg_.window_samples * 3);
+        for (const auto& source : source_frames_) {
+            const int64_t begin = static_cast<int64_t>(source.sample_start * 3);
+            if (begin + MOZART_OUTPUT_SAMPLES <= output_start) continue;
+            if (begin >= output_start + static_cast<int64_t>(out_block_)) break;
+            sources.push_back(source);
+            voiced = voiced || source.meta.vad_flag != 0;
+        }
         owned_ = pushed_total_;
         pushed_at_window = pushed_total_;
         have_window_base_ = true;
     }
 
-    // 重置后旧淡化尾作废：代数与推理块一起校验。
     if (tail_gen_ != window_gen) {
         tail_gen_ = window_gen;
         std::fill(tail_.begin(), tail_.end(), 0.0f);
@@ -249,7 +266,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         }
         std::fill(tail_.begin(), tail_.end(), 0.0f);
         tail_valid_ = false;
-        push_output_zeros(window_gen, emit_out_);
+        push_output_zeros(window_gen, sources, output_start);
         stats_.skipped_blocks.fetch_add(1, std::memory_order_relaxed);
         return true;
     }
@@ -277,7 +294,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         }
         std::fill(tail_.begin(), tail_.end(), 0.0f);
         tail_valid_ = false;
-        push_output_zeros(window_gen, emit_out_);
+        push_output_zeros(window_gen, sources, output_start);
         return true;
     }
     const auto t_pipeline_done = profile::Clock::now();
@@ -291,7 +308,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
                 converted.size(), output_start + out_block_);
             std::fill(tail_.begin(), tail_.end(), 0.0f);
             tail_valid_ = false;
-            push_output_zeros(window_gen, emit_out_);
+            push_output_zeros(window_gen, sources, output_start);
             return true;
         }
         converted = std::vector<float>(
@@ -306,7 +323,7 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
                      converted.size(), out_block_);
         std::fill(tail_.begin(), tail_.end(), 0.0f);
         tail_valid_ = false;
-        push_output_zeros(window_gen, emit_out_);
+        push_output_zeros(window_gen, sources, output_start);
         return true;
     }
 
@@ -326,8 +343,10 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
     const size_t cf = cfg_.crossfade_out;
     std::vector<float> emit;
     emit.resize(emit_out_);
+    std::vector<OutputSpan> overlap_metadata;
 
     if (cfg_.upstream_realtime) {
+        if (tail_valid_) overlap_metadata = output_metadata(tail_sources_, tail_output_start_, cf);
         size_t sola_offset = 0;
         if (tail_valid_) {
             double best_score = -std::numeric_limits<double>::infinity();
@@ -351,9 +370,10 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
             spdlog::warn("realtime SOLA: output too short after offset {}", sola_offset);
             std::fill(tail_.begin(), tail_.end(), 0.0f);
             tail_valid_ = false;
-            push_output_zeros(window_gen, emit_out_);
+            push_output_zeros(window_gen, sources, output_start);
             return true;
         }
+        output_start += static_cast<int64_t>(sola_offset);
         std::copy_n(
             converted.begin() + static_cast<std::ptrdiff_t>(sola_offset),
             emit_out_, emit.begin()
@@ -369,6 +389,8 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
             converted.begin() + static_cast<std::ptrdiff_t>(sola_offset + emit_out_),
             cf, tail_.begin()
         );
+        tail_sources_ = sources;
+        tail_output_start_ = output_start + static_cast<int64_t>(emit_out_);
         tail_valid_ = true;
     } else if (!tail_valid_) {
         // 首块或尾已作废：直接输出（下一个块起恢复淡化衔接）
@@ -389,7 +411,15 @@ bool StreamingRvc::try_process_one(RVCPipelineBase& pipeline)
         tail_valid_ = true;
     }
 
-    if (!push_output(emit.data(), emit.size(), window_gen)) return true;
+    auto metadata = overlap_metadata.empty()
+        ? output_metadata(sources, output_start, emit.size()) : std::move(overlap_metadata);
+    size_t prefix = 0;
+    for (const auto& span : metadata) prefix += span.samples;
+    if (prefix < emit.size()) {
+        const auto suffix = output_metadata(sources, output_start + static_cast<int64_t>(prefix), emit.size() - prefix);
+        metadata.insert(metadata.end(), suffix.begin(), suffix.end());
+    }
+    if (!push_output(emit.data(), emit.size(), window_gen, metadata)) return true;
     stats_.blocks.fetch_add(1, std::memory_order_relaxed);
     if (profile::enabled()) {
         const auto t_done = profile::Clock::now();
@@ -460,8 +490,9 @@ void StreamingRvc::inference_loop(RVCPipelineBase& pipeline,
                  stats_.resets.load());
 }
 
-size_t StreamingRvc::pop_output(float* dst, size_t n)
+size_t StreamingRvc::pop_output(float* dst, size_t n, mozart_frame_meta_t* source_meta)
 {
+    if (source_meta) *source_meta = {};
     if (n == 0) return 0;
     std::lock_guard<std::mutex> lk(out_mutex_);
     if (!output_started_) {
@@ -473,11 +504,19 @@ size_t StreamingRvc::pop_output(float* dst, size_t n)
         output_started_ = true;
     }
     const size_t got = std::min(n, out_size_);
+    if (got && source_meta) {
+        const auto& span = output_spans_.front();
+        *source_meta = span.meta;
+        if (source_meta->pts_ns) {
+            source_meta->pts_ns += span.consumed * 1000000000ull / MOZART_OUTPUT_SAMPLE_RATE;
+        }
+    }
     for (size_t i = 0; i < got; ++i) {
         dst[i] = out_ring_[out_head_];
         out_head_ = (out_head_ + 1) % kOutRingCapacity;
     }
     out_size_ -= got;
+    consume_output_meta(got);
     return got;
 }
 
@@ -487,27 +526,68 @@ size_t StreamingRvc::output_pending() const
     return out_size_;
 }
 
-bool StreamingRvc::push_output(const float* data, size_t n, uint64_t generation)
+void StreamingRvc::consume_output_meta(size_t n)
+{
+    while (n) {
+        auto& span = output_spans_.front();
+        const size_t take = std::min(n, span.samples);
+        span.samples -= take;
+        span.consumed += take;
+        n -= take;
+        if (!span.samples) output_spans_.pop_front();
+    }
+}
+
+std::vector<StreamingRvc::OutputSpan> StreamingRvc::output_metadata(
+    const std::vector<SourceFrame>& sources, int64_t output_start, size_t n)
+{
+    std::vector<OutputSpan> metadata;
+    const int64_t end = output_start + static_cast<int64_t>(n);
+    int64_t at = output_start;
+    for (const auto& source : sources) {
+        const int64_t begin = static_cast<int64_t>(source.sample_start * 3);
+        const int64_t stop = std::min(end, begin + MOZART_OUTPUT_SAMPLES);
+        if (stop <= at) continue;
+        if (begin >= end) break;
+        if (at < begin) {
+            metadata.push_back({static_cast<size_t>(begin - at), 0, {}});
+            at = begin;
+        }
+        auto meta = source.meta;
+        if (meta.pts_ns) meta.pts_ns += static_cast<uint64_t>(at - begin) * 1000000000ull / MOZART_OUTPUT_SAMPLE_RATE;
+        metadata.push_back({static_cast<size_t>(stop - at), 0, meta});
+        at = stop;
+    }
+    if (at < end) metadata.push_back({static_cast<size_t>(end - at), 0, {}});
+    return metadata;
+}
+
+bool StreamingRvc::push_output(const float* data, size_t n, uint64_t generation,
+                               const std::vector<OutputSpan>& metadata)
 {
     std::lock_guard<std::mutex> lk(out_mutex_);
-    // 重置先推进代数再清空输出；此锁把代数检查与写入放在同一事务中。
+    // reset 先推进代数再清空输出；此锁将代数检查与写入放在同一事务中。
     if (reset_gen_.load() != generation) return false;
-    for (size_t i = 0; i < n; ++i) {
-        if (out_size_ == kOutRingCapacity) {
-            out_head_ = (out_head_ + 1) % kOutRingCapacity;
-            --out_size_;
-            stats_.output_overruns.fetch_add(1, std::memory_order_relaxed);
-        }
-        out_ring_[(out_head_ + out_size_) % kOutRingCapacity] = data[i];
-        ++out_size_;
-    }
+    const size_t discard = out_size_ + n > kOutRingCapacity ? out_size_ + n - kOutRingCapacity : 0;
+    consume_output_meta(discard);
+    out_head_ = (out_head_ + discard) % kOutRingCapacity;
+    out_size_ -= discard;
+    stats_.output_overruns.fetch_add(discard, std::memory_order_relaxed);
+
+    output_spans_.insert(output_spans_.end(), metadata.begin(), metadata.end());
+    const size_t write_at = (out_head_ + out_size_) % kOutRingCapacity;
+    const size_t first = std::min(n, kOutRingCapacity - write_at);
+    std::copy_n(data, first, out_ring_.begin() + static_cast<std::ptrdiff_t>(write_at));
+    std::copy_n(data + first, n - first, out_ring_.begin());
+    out_size_ += n;
     return true;
 }
 
-void StreamingRvc::push_output_zeros(uint64_t generation, size_t n)
+void StreamingRvc::push_output_zeros(uint64_t generation, const std::vector<SourceFrame>& sources,
+                                     int64_t output_start)
 {
-    std::vector<float> zeros(n, 0.0f);
-    push_output(zeros.data(), n, generation);
+    std::vector<float> zeros(emit_out_, 0.0f);
+    push_output(zeros.data(), zeros.size(), generation, output_metadata(sources, output_start, zeros.size()));
 }
 
 } // namespace rvc

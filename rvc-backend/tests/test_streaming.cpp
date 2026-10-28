@@ -414,6 +414,31 @@ int main()
         CHECK(s.stats().resets.load() == 2, "large forward clock jump triggers reset");
     }
 
+
+    printf("test_quality_vad_uses_target_history\n");
+    for (const bool catch_up : {false, true}) {
+        StreamingRvc::Config cfg;
+        cfg.full_history = true;
+        cfg.right_context_samples = 32000;
+        cfg.guard_samples = 80;
+        StreamingRvc stream(cfg);
+        Upsample3Pipeline pipeline;
+        std::vector<float> input;
+        for (uint32_t i = 1; i <= 300; ++i) {
+            const bool speech = i >= 131 && i <= 180;
+            const auto frame = make_frame(i, speech, speech ? .25f : 0.f);
+            input.insert(input.end(), frame.pcm, frame.pcm + MOZART_INPUT_SAMPLES);
+            stream.push(frame);
+            if (!catch_up) while (stream.try_process_one(pipeline)) {}
+        }
+        while (stream.try_process_one(pipeline)) {}
+        const auto output = drain(stream);
+        CHECK(output.size() == 2 * 93120, "two historical output hops are preserved");
+        bool exact = output.size() == 2 * 93120;
+        for (size_t i = 0; i < output.size(); ++i) exact = exact && std::abs(output[i] - input[i / 3]) < 1e-6f;
+        CHECK(exact, "lookahead and backlog preserve the target speech samples");
+    }
+
     printf("test_reset_rejects_all_old_inference_outcomes\n");
     for (int outcome = 0; outcome < 3; ++outcome) {
         class BlockedPipeline : public Upsample3Pipeline {
@@ -453,6 +478,82 @@ int main()
         CHECK(stream.try_process_one(pipeline), "the new stream resumes after every old outcome");
         const auto output = drain(stream);
         CHECK(output.size() == 11520, "only the new output block is retained");
+    }
+
+    printf("test_output_metadata_tracks_samples_and_overruns\n");
+    {
+        StreamingRvc::Config cfg;
+        cfg.skip_silence = false;
+        StreamingRvc stream(cfg);
+        Upsample3Pipeline pipeline;
+        constexpr uint64_t base = 10000000000ull;
+        for (uint32_t i = 1; i <= 1200; ++i) {
+            stream.push(make_frame(i, 1, static_cast<float>(i), 1, base + i * 20000000ull));
+            while (stream.try_process_one(pipeline)) {}
+        }
+        CHECK(stream.stats().output_overruns.load() > 0, "the metadata test exercises output eviction");
+        float samples[480];
+        for (int i = 0; i < 4; ++i) {
+            mozart_frame_meta_t source{};
+            CHECK(stream.pop_output(samples, 480, &source) == 480, "partial output reads remain available");
+            CHECK(source.frame_idx == static_cast<uint32_t>(std::lround(samples[0])),
+                  "eviction and partial reads preserve source frame ownership");
+            CHECK(source.pts_ns >= base + source.frame_idx * 20000000ull
+                  && source.pts_ns < base + (source.frame_idx + 1) * 20000000ull,
+                  "source PTS stays within the owning capture frame");
+        }
+        stream.push(make_frame(4000, 1, .5f, 1, base + 4000 * 20000000ull));
+        mozart_frame_meta_t empty{};
+        empty.pts_ns = base;
+        CHECK(stream.pop_output(samples, 480, &empty) == 0 && empty.pts_ns == 0,
+              "reset clears queued source metadata");
+    }
+
+
+    printf("test_sola_overlap_preserves_previous_tail_pts\n");
+    {
+        constexpr size_t offset = 240;
+        class ShiftedPipeline : public Upsample3Pipeline {
+        public:
+            size_t calls = 0;
+            static float signal(int64_t sample) {
+                uint32_t value = static_cast<uint32_t>(sample) * 1664525u + 1013904223u;
+                value ^= value >> 13;
+                return static_cast<float>(value % 1000) / 1000.f;
+            }
+            std::vector<float> process_realtime(const std::vector<float>&, const RvcRealtimeRequest& request) override {
+                std::vector<float> output(request.output_samples);
+                for (size_t i = 0; i < output.size(); ++i) {
+                    output[i] = signal(static_cast<int64_t>(i) + (calls ? 11520 - 240 : 0));
+                }
+                ++calls;
+                return output;
+            }
+        } pipeline;
+        StreamingRvc::Config cfg;
+        cfg.window_samples = 3840;
+        cfg.crossfade_out = 2400;
+        cfg.upstream_realtime = true;
+        cfg.skip_silence = false;
+        StreamingRvc stream(cfg);
+        constexpr uint64_t base = 10000000000ull;
+        for (uint32_t i = 1; i <= 12; ++i) stream.push(make_frame(i, 1, .2f, 1, base + i * 20000000ull));
+        CHECK(stream.try_process_one(pipeline), "first SOLA block establishes its tail");
+        drain(stream);
+        for (uint32_t i = 13; i <= 24; ++i) stream.push(make_frame(i, 1, .2f, 1, base + i * 20000000ull));
+        CHECK(stream.try_process_one(pipeline), "shifted block completes SOLA alignment");
+        std::vector<float> overlap(cfg.crossfade_out);
+        mozart_frame_meta_t meta{};
+        CHECK(stream.pop_output(overlap.data(), overlap.size(), &meta) == overlap.size(), "overlap is available");
+        CHECK(std::abs(overlap.front() - ShiftedPipeline::signal(11520)) < 1e-6f,
+              "the overlap starts with the previous tail sample");
+        CHECK(meta.pts_ns == base + 200000000ull, "overlap PTS follows the previous tail");
+        float output[MOZART_OUTPUT_SAMPLES];
+        stream.pop_output(output, MOZART_OUTPUT_SAMPLES, &meta);
+        CHECK(std::abs(output[0] - ShiftedPipeline::signal(11520 + static_cast<int64_t>(cfg.crossfade_out))) < 1e-6f,
+              "SOLA selects the nonzero alignment offset");
+        CHECK(meta.pts_ns == base + 250000000ull + offset * 1000000000ull / MOZART_OUTPUT_SAMPLE_RATE,
+              "post-overlap PTS follows the shifted source");
     }
 
     if (g_fail) {
