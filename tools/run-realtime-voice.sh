@@ -12,6 +12,8 @@
 # 环境变量覆盖：CONFIG CAPTURE PLAYBACK MODEL PITCH INDEX_RATE INDEX_NPROBE
 #               API AUDIO_PORT RUN_DIR PYTHON CAPTIONS_DIR
 #               STT_MODEL FINAL_MODEL LLAMA_SERVER LLAMA_MODEL GLOSSARY CORRECTIONS
+#               SPEECH REFERENCE REFERENCE_NAME
+# SPEECH=1 同时启动译文播报。播报与变声共用一个混音 PCM，见 README。
 # API 默认 18181；字幕音频固定送往本机 18100；翻译使用本机 18200。
 set -euo pipefail
 
@@ -29,6 +31,9 @@ CORRECTIONS=${CORRECTIONS:-${MOZART_CORRECTIONS:-}}
 CONFIG=${CONFIG:-$ROOT/rvc-golden/qiqi-zh-run/backend-index.yaml}
 CAPTURE=${CAPTURE:-plughw:CARD=MIC,DEV=0}
 PLAYBACK=${PLAYBACK:-plughw:CARD=Device,DEV=0}
+SPEECH=${SPEECH:-0}
+REFERENCE=${REFERENCE:-}
+REFERENCE_NAME=${REFERENCE_NAME:-Reference voice}
 MODEL=${MODEL:-qiqi-zh}
 PITCH=${PITCH:-11}
 INDEX_RATE=${INDEX_RATE:-0.5}
@@ -91,6 +96,34 @@ if d['state'] in ('failed', 'stopped', 'completed'):
     print('字幕启动器已退出: ' + str(d.get('error', d['state'])), file=sys.stderr)
     sys.exit(2)
 sys.exit(0 if d['phase'] == sys.argv[3] else 1)
+PY
+        then
+            return 0
+        else
+            local result=$?
+            [ "$result" -eq 2 ] && return 1
+        fi
+        kill -0 "$pid" 2>/dev/null || return 1
+        sleep 0.2
+    done
+    return 1
+}
+
+wait_readiness() {
+    local path=$1 key=$2 pid=$3 deadline=$((SECONDS + READY_TIMEOUT))
+    while (( SECONDS < deadline )); do
+        if python3 - "$path" "$key" "$pid" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except (FileNotFoundError, json.JSONDecodeError):
+    sys.exit(1)
+if d.get('supervisor_pid') != int(sys.argv[3]):
+    sys.exit(1)
+if d.get('state') in ('failed', 'stopped'):
+    print('字幕启动器已退出: ' + str(d.get('error', d.get('state'))), file=sys.stderr)
+    sys.exit(2)
+sys.exit(0 if (d.get('readiness') or {}).get(sys.argv[2]) else 1)
 PY
         then
             return 0
@@ -213,6 +246,12 @@ command_start() {
 
     aplay -L 2>/dev/null | grep -qx "$PLAYBACK" \
         || fail "播放设备不存在: $PLAYBACK"
+    if [ "$SPEECH" != 0 ]; then
+        case "$PLAYBACK" in
+            hw:*|plughw:*) fail "播报需要混音 PCM，直接写硬件设备会被变声进程占用；设置 PLAYBACK=mozartout 这类 dmix 插头" ;;
+        esac
+        [ -z "$REFERENCE" ] || [ -f "$REFERENCE" ] || fail "参考音频不存在: $REFERENCE"
+    fi
     local api_port
     api_port=$(python3 - "$API" <<'PY'
 import sys
@@ -238,6 +277,11 @@ PY
     done
     printf '%s\n' "$captions_dir" >"$STACK_RUN_FILE"
     local extra=()
+    local mode_args=(--mode captions --no-playback)
+    if [ "$SPEECH" != 0 ]; then
+        mode_args=(--mode full --playback-device "$PLAYBACK")
+        [ -z "$REFERENCE" ] || extra+=(--reference "$REFERENCE" --reference-name "$REFERENCE_NAME")
+    fi
     [ -z "$FINAL_MODEL" ] || extra+=(--final-model "$FINAL_MODEL")
     [ -z "${GLOSSARY:-}" ] || extra+=(--glossary "$GLOSSARY")
     [ -z "${CORRECTIONS:-}" ] || extra+=(--corrections "$CORRECTIONS")
@@ -246,15 +290,19 @@ PY
     SUBTITLE_TARGET=127.0.0.1:18100
     echo "启动后端、字幕和翻译 $MODEL（配置 $CONFIG）"
     setsid "$PYTHON" "$ROOT/tools/run_translated_speech.py" \
-        --backend-config "$CONFIG" --api-port "$api_port" --mode captions \
-        --external-capture --no-playback --archive-utterances --run-dir "$captions_dir" \
+        --backend-config "$CONFIG" --api-port "$api_port" \
+        --external-capture --archive-utterances --run-dir "$captions_dir" \
         --stt-model "$STT_MODEL" --llama-server "$LLAMA_SERVER" --llama-model "$LLAMA_MODEL" \
-        "${extra[@]}" >"$captions_dir/supervisor.log" 2>&1 < /dev/null &
+        "${mode_args[@]}" "${extra[@]}" >"$captions_dir/supervisor.log" 2>&1 < /dev/null &
     local stack_pid=$!
     echo "$stack_pid" >"$STACK_PID_FILE"
     wait_http "$stack_pid" || { tail -20 "$captions_dir/supervisor.log" >&2; fail "后端在 ${READY_TIMEOUT}s 内未就绪"; }
     wait_stack "$captions_dir/stack-status.json" "$stack_pid" waiting_for_audio \
         || fail "字幕和翻译启动失败，查看 $captions_dir"
+    if [ "$SPEECH" != 0 ]; then
+        wait_readiness "$captions_dir/stack-status.json" speech_runtime "$stack_pid" \
+            || fail "播报运行时未就绪，查看 $captions_dir/supervisor.log"
+    fi
 
     api_request POST /api/mode/switch '{"mode":"idle"}'
     api_request POST /api/mode/switch "{\"mode\":\"rt_rvc\",\"model_id\":\"$MODEL\"}"

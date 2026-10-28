@@ -57,6 +57,27 @@ tools/run-realtime-voice.sh start
 ssh -N -L 18080:127.0.0.1:18181 jetson-net
 ```
 
+## 译文播报
+
+`SPEECH=1` 同时启动译文播报。播报和变声写同一个输出设备，所以该设备必须是混音 PCM。
+
+```bash
+cp usb-audio/asoundrc.mozartout ~/.asoundrc        # 首次使用
+PLAYBACK=mozartout SPEECH=1 \
+  REFERENCE=$HOME/models/reference/english.wav \
+  tools/run-realtime-voice.sh start
+```
+
+| 变量 | 作用 |
+| --- | --- |
+| `SPEECH` | `1` 启动播报；`0` 只做变声和字幕 |
+| `REFERENCE` | 启动时注册并选中的参考音频，长度 3–15 s |
+| `REFERENCE_NAME` | 参考音色的显示名 |
+
+`SPEECH=1` 且 `PLAYBACK` 为 `hw:` 或 `plughw:` 时，脚本在启动前拒绝运行并给出原因。
+启动返回前，脚本等待字幕状态文件的 `readiness.speech_runtime` 为真。
+播报失败时，语音服务状态返回 `worker_error`、`storage_warning` 和 `playback_worker_alive`。
+
 ## 日志与状态
 
 每次启动默认在 `~/mozart-archive/logs/realtime-日期时间-PID/` 保存字幕、分句音频和服务日志。
