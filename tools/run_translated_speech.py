@@ -21,6 +21,8 @@ import math
 from tempo_control import DEFAULT_TEMPO_MAX, validate_tempo_limits
 
 ROOT = Path(__file__).resolve().parents[1]
+# 语音服务端口只用这一处定义；字幕桥按同一地址提交播报。
+SPEECH_PORT = 18081
 STARTUP_TIMEOUT_SECONDS = 90
 AUDIO_TIMEOUT_SECONDS = 30
 POLL_SECONDS = .2
@@ -404,7 +406,7 @@ def main():
 
     try:
         save()
-        assert_ports_available([(args.api_port, socket.SOCK_STREAM), (18081, socket.SOCK_STREAM),
+        assert_ports_available([(args.api_port, socket.SOCK_STREAM), (SPEECH_PORT, socket.SOCK_STREAM),
                                 (18200, socket.SOCK_STREAM), (18100, socket.SOCK_DGRAM)])
         env = os.environ.copy()
         env['MOZART_SUBTITLES_JSONL'] = str(args.run_dir/'subtitles.jsonl')
@@ -420,6 +422,7 @@ def main():
         backend = launch('backend', [ROOT/'build-gpu/state/mozart_stated', args.backend_config.resolve()], env)
         ready(api_base+'/api/status', backend)
         speech_command = [sys.executable, ROOT/'tools/speech_service.py', '--model', args.model,
+            '--port', str(SPEECH_PORT),
             '--preload','--data-dir', args.data_dir, '--playback-device', args.playback_device,
             '--provider', args.tts_provider, '--precision', args.tts_precision,
             '--threads', args.tts_threads, '--delivery-policy', args.delivery_policy]
@@ -464,7 +467,7 @@ def main():
         if args.archive_utterances:
             bridge_command += ['--utterance-dir',args.run_dir/'utterances']
         if args.mode == 'full':
-            bridge_command += ['--speak']
+            bridge_command += ['--speak', '--speech-url', f'http://127.0.0.1:{SPEECH_PORT}']
         bridge = launch('captions', bridge_command, env)
         save(phase='preparing_captions')
         deadline = time.monotonic()+STARTUP_TIMEOUT_SECONDS
