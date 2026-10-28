@@ -156,18 +156,18 @@ class RealtimeVoiceRunnerTests(unittest.TestCase):
         self.write_executable(self.bin/'aplay', FAKE_ALSA.format(devices=playback))
         return config
 
-    def test_speech_rejects_direct_hardware_playback(self):
+    def test_output_must_be_voice_or_speech(self):
         config = self.prepare_start_dependencies(PLAYBACK)
 
-        result = self.run_start(SPEECH='1', PLAYBACK=PLAYBACK, CONFIG=str(config))
+        result = self.run_start(OUTPUT='both', PLAYBACK=PLAYBACK, CONFIG=str(config))
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('播报需要混音 PCM', result.stderr)
+        self.assertIn('OUTPUT 必须是 voice 或 speech', result.stderr)
 
-    def test_speech_accepts_a_mixing_device(self):
-        config = self.prepare_start_dependencies(MIXING)
+    def test_speech_requires_an_existing_reference(self):
+        config = self.prepare_start_dependencies(PLAYBACK)
 
-        result = self.run_start(SPEECH='1', PLAYBACK=MIXING, CONFIG=str(config),
+        result = self.run_start(OUTPUT='speech', PLAYBACK=PLAYBACK, CONFIG=str(config),
                                 REFERENCE=str(self.root/'missing.wav'))
 
         self.assertNotEqual(result.returncode, 0)

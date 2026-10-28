@@ -45,22 +45,21 @@
 - 识别：采集 5402 包，`finals=0`。本轮无人说话，未产生字幕和译文。
 - 依赖：`.venv` 补装 `pyusb==1.3.1`，供宿主机侧测试导入。
 
-## 译文播报接入
+## 输出开关与译文播报
 
-统一启动脚本新增 `SPEECH`、`REFERENCE`、`REFERENCE_NAME` 三个环境变量。
-`SPEECH=1` 时启动器以 `--mode full` 启动，并等待 `readiness.speech_runtime` 为真。
+统一启动脚本新增 `OUTPUT`、`REFERENCE`、`REFERENCE_NAME` 三个环境变量。
+`OUTPUT=voice`（默认）输出变声音频。`OUTPUT=speech` 输出译文播报。
+两种模式不同时输出：播报模式下后端保持 `idle`，预处理把变声音频写入 `null`，播放设备只由播报进程使用。
+因此不需要混音配置。其他 `OUTPUT` 值在启动前拒绝。
 
-变声和播报写同一个输出设备。设备侧使用 `usb-audio/asoundrc.mozartout` 定义的 dmix 插头 `mozartout`。
-`SPEECH=1` 且 `PLAYBACK` 为 `hw:` 或 `plughw:` 时，启动器在启动前拒绝运行。
-
-Jetson 实测（2026-10-28）：
+Jetson 实测（2026-10-28，`PLAYBACK=plughw:CARD=Device,DEV=0`）：
 
 | 项目 | 值 |
 | --- | --- |
-| 启动 | `PLAYBACK=mozartout SPEECH=1`，模式 `full`，`speech_runtime=true` |
-| 播报任务 | 1 个任务，`played_chunks=1/1`，播放 3.04 s，`error=None` |
-| 混音后变声 | `packets=3329/3329`、`errors=0`、欠载 20 次不增长 |
-| 混音后延迟 | 平均 20.22 ms，最大 25.80 ms（3337 个样本） |
+| `OUTPUT=voice` | 模式 `rt_rvc`，`packets=427/427`、`errors=0`，延迟平均 20.21 ms、最大 26.42 ms |
+| `OUTPUT=speech` | 模式 `full`，`speech_runtime=true`，预处理输出 `null` |
+| 播报任务 | 1 个任务，`played_chunks=1/1`，播放 2.08 s，`error=None` |
+| 切换 | `stop` 后以另一 `OUTPUT` 值 `start`，字幕与翻译在两种模式下都保持运行 |
 
 ## 检查结果
 
