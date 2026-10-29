@@ -448,6 +448,7 @@ class CaptionDispatcher:
             return
         if event.get('type') not in ('partial', 'final') or not event.get('text', '').strip():
             return
+        source_received_monotonic = time.monotonic()
         record = source_caption(event, event['seq'], self.session_id)
         key = record['utterance_id']
         with self.lock:
@@ -456,10 +457,12 @@ class CaptionDispatcher:
             self.update(key, record, create=True)
             if not record['final']:
                 return
+            deadline = source_received_monotonic + refinement_wait(event) if self.refine else None
             try:
                 item = {'event': {**event, 'text': record['zh']}, 'session_id': self.session_id,
                         'record': dict(self.latest[key]), 'queue_owner': self.queue_owner,
-                        'enqueued_monotonic': time.monotonic()}
+                        'enqueued_monotonic': time.monotonic(),
+                        'refinement_deadline_monotonic': deadline}
                 self.pending.put_nowait(item)
             except queue.Full:
                 self.update(key, {'translation_status': 'skipped',
@@ -482,8 +485,8 @@ class CaptionDispatcher:
         if self.worker_error is not None:
             raise RuntimeError(f'Translation worker failed: {self.worker_error}') from self.worker_error
 
-    def await_refinement(self, event, *, diagnostics=None):
-        """等待同一 seq 的复核终态，记录选择原因和实际等待时间。"""
+    def await_refinement(self, event, *, deadline, diagnostics=None):
+        """使用接收最终识别时确定的截止时间，等待同一 seq 的复核终态。"""
         raw = event['text'].strip()
         began = time.monotonic()
         if event.get('refinement_status') in ('disabled', 'failed', 'skipped'):
@@ -492,8 +495,9 @@ class CaptionDispatcher:
             result = {'refinement_status': 'completed', 'refined_text': event['refined_text'],
                       'refinement_numeric_audit': event.get('asr_numeric_audit'),
                       'refinement_polarity_audit': event.get('asr_polarity_audit')}
+        elif deadline is None:
+            result = {'refinement_status': 'recovered_unavailable'}
         else:
-            deadline = began + refinement_wait(event)
             with self.refined_ready:
                 while event['seq'] not in self.refined and not self.closing.is_set():
                     remaining = deadline - time.monotonic()
@@ -531,7 +535,9 @@ class CaptionDispatcher:
                 round((time.monotonic()-item['enqueued_monotonic'])*1000) if clock_current else None)}
             try:
                 if self.refine:
-                    translate_text = self.await_refinement(event, diagnostics=diagnostics)
+                    # 本实例入队时已写入截止时间；恢复项目使用独立路径。
+                    deadline = item['refinement_deadline_monotonic'] if clock_current else None
+                    translate_text = self.await_refinement(event, deadline=deadline, diagnostics=diagnostics)
                 else:
                     translate_text = event['text'].strip()
                     diagnostics.update(translation_source_reason='refinement_disabled',
