@@ -1,0 +1,126 @@
+{
+  "root": "/home/moyamryia/mozart-archive/logs/xasr-eval-e4c2180-20261029-211132",
+  "manual_samples": 75,
+  "confirmed_samples": 24,
+  "manifest_sha256": "e6eeb3e80db1bff2fd2c079fe10547eeef7705d7969074179294a963dffdc181",
+  "matched_paced_ids": [
+    "confirmed-0011",
+    "manual-0014",
+    "manual-0015",
+    "manual-0055"
+  ],
+  "models": {
+    "zipformer14m": {
+      "confirmed_samples": 24,
+      "rtf_with_tail": 0.11560306085876848,
+      "process_peak_rss_mib": 170.609375,
+      "empty_manual_ids": [
+        "manual-0001",
+        "manual-0003",
+        "manual-0009",
+        "manual-0012",
+        "manual-0018",
+        "manual-0021",
+        "manual-0034",
+        "manual-0035",
+        "manual-0037",
+        "manual-0040",
+        "manual-0042",
+        "manual-0049",
+        "manual-0054",
+        "manual-0056"
+      ],
+      "paced_max_feed_lateness_s": 0.01636132699946735,
+      "model_initialization_s": 1.7333850350005378,
+      "probe_sha256": "4ea54094f11ff033ca0aece72ea7485a84d6e35a1ab82c1940b69f106fdf6d8b",
+      "paced_first_output_wall_s": {
+        "confirmed-0011": 0.767542470999615,
+        "manual-0014": 0.7652558469999349,
+        "manual-0015": 1.4063408499987418,
+        "manual-0042": null,
+        "manual-0055": 1.4138630859997647
+      },
+      "matched_first_output_median_s": 1.0869416604991784,
+      "confirmed_edits": 150,
+      "confirmed_reference_characters": 548,
+      "confirmed_cer": 0.2737226277372263,
+      "replay_samples": 99,
+      "replay_audio_seconds": 292.48,
+      "replay_active_seconds": 33.811583239972606
+    },
+    "xasr-480ms": {
+      "confirmed_samples": 24,
+      "rtf_with_tail": 0.22574319898405795,
+      "process_peak_rss_mib": 373.48828125,
+      "empty_manual_ids": [
+        "manual-0018",
+        "manual-0021",
+        "manual-0025",
+        "manual-0035",
+        "manual-0039",
+        "manual-0040",
+        "manual-0042",
+        "manual-0049",
+        "manual-0054",
+        "manual-0074"
+      ],
+      "paced_max_feed_lateness_s": 0.08655539100080212,
+      "model_initialization_s": 3.702942690000782,
+      "probe_sha256": "4ea54094f11ff033ca0aece72ea7485a84d6e35a1ab82c1940b69f106fdf6d8b",
+      "paced_first_output_wall_s": {
+        "confirmed-0011": 1.2203396260010777,
+        "manual-0014": 1.2220786140005657,
+        "manual-0015": 1.7004543929997453,
+        "manual-0042": null,
+        "manual-0055": 1.2203957840010844
+      },
+      "matched_first_output_median_s": 1.221237199000825,
+      "confirmed_edits": 75,
+      "confirmed_reference_characters": 548,
+      "confirmed_cer": 0.13686131386861314,
+      "replay_samples": 99,
+      "replay_audio_seconds": 292.48,
+      "replay_active_seconds": 66.02537083885727
+    },
+    "xasr-960ms": {
+      "confirmed_samples": 24,
+      "rtf_with_tail": 0.14348795372716072,
+      "process_peak_rss_mib": 373.9296875,
+      "empty_manual_ids": [
+        "manual-0003",
+        "manual-0018",
+        "manual-0019",
+        "manual-0021",
+        "manual-0024",
+        "manual-0035",
+        "manual-0039",
+        "manual-0040",
+        "manual-0049",
+        "manual-0054"
+      ],
+      "paced_max_feed_lateness_s": 0.11451911799893466,
+      "model_initialization_s": 3.791857947000608,
+      "probe_sha256": "4ea54094f11ff033ca0aece72ea7485a84d6e35a1ab82c1940b69f106fdf6d8b",
+      "paced_first_output_wall_s": {
+        "confirmed-0011": 1.2485616020003363,
+        "manual-0014": 1.2369357340012357,
+        "manual-0015": 2.175188844999866,
+        "manual-0042": 1.2475920580000093,
+        "manual-0055": 1.248515203000352
+      },
+      "matched_first_output_median_s": 1.248538402500344,
+      "confirmed_edits": 65,
+      "confirmed_reference_characters": 548,
+      "confirmed_cer": 0.11861313868613138,
+      "replay_samples": 99,
+      "replay_audio_seconds": 292.48,
+      "replay_active_seconds": 41.96735670611997
+    }
+  },
+  "probe_source": {
+    "evaluated_remote_path": "/home/moyamryia/mozart-archive/logs/xasr-eval-e4c2180-20261029-211132/probe.py",
+    "evaluated_sha256": "4ea54094f11ff033ca0aece72ea7485a84d6e35a1ab82c1940b69f106fdf6d8b",
+    "maintained_repository_path": "reports/xasr-streaming-20261029/probe.py",
+    "maintained_sha256": "b32b20b0e997df97e55e59c81e803c2177bbc630f8d69afc5d95334b0d479b53"
+  }
+}
