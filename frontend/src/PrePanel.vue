@@ -26,14 +26,6 @@ const stateLabel = computed(() => {
   const state = props.status?.state?.state;
   return typeof state === 'string' ? state : 'unknown';
 });
-const frames = computed(() => {
-  const value = props.status?.state?.frames;
-  return typeof value === 'number' ? value : null;
-});
-const channels = computed(() => {
-  if (!props.status?.available) return 0;
-  return props.status.devices.capture.length + props.status.devices.playback.length;
-});
 const disabled = computed(() => props.busy || !props.status?.available);
 const unchanged = computed(() => !!props.status?.current
   && capture.value === props.status.current.capture
@@ -74,10 +66,7 @@ const apply = () => {
         {{ busy ? '正在切换…' : unchanged ? '已生效' : '应用设备' }}
       </button>
 
-      <div class="grid grid-cols-2 gap-2 mt-2.5 font-mono text-micro text-ink-3">
-        <span class="truncate" translate="no">{{ channels }} CHANNELS</span>
-        <span class="text-right truncate" translate="no">{{ frames === null ? '无状态' : `frames ${frames}` }}</span>
-      </div>
+
     </template>
   </div>
 </template>

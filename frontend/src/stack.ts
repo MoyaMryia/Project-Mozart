@@ -8,10 +8,6 @@ const phases: Record<string, string> = {
 };
 export const stackPhaseLabel = (status: StackStatus) => phases[status.phase ?? ''] ?? '正在处理';
 export const requiredOutputLabel = (requirements: StackRequirements) => requirements.playback ? '设备播放' : 'WAV 下载';
-export function voiceWaitingText(requirements: StackRequirements): string {
-  const language = requirements.language === 'en' ? '英文' : requirements.language;
-  return `请选择参考音色，将输出设为${language}和“${requiredOutputLabel(requirements)}”，然后启用翻译播报。完成后开始采集。`;
-}
 export function outputMatches(requirements: StackRequirements, language: string, playback: boolean): boolean {
   return language === requirements.language && playback === requirements.playback;
 }

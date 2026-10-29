@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { parse, compileScript, compileTemplate } from '@vue/compiler-sfc';
-import { createRenderer, createSSRApp } from 'vue';
+import { createRenderer, createSSRApp, watch } from 'vue';
 import ts from 'typescript';
 import { renderToString } from '@vue/server-renderer';
 
@@ -228,7 +228,7 @@ test('a recoverable preparation failure keeps its cause and permits an explicit 
   assert.deepEqual(posts, ['/api/speech/prepare']);
 });
 
-test('primary controls precede closed preview, upload and history disclosures', async t => {
+test('primary controls and preview precede two flat management and history disclosures', async t => {
   mockWindow(t);
   const previousFetch = globalThis.fetch;
   const status = { ...ready(), jobs: Array.from({ length: 9 }, (_, i) => ({
@@ -241,12 +241,17 @@ test('primary controls precede closed preview, upload and history disclosures', 
   await tick();
   const output = await html();
   const disclosures = [...output.matchAll(/<details\b[^>]*>/g)];
-  assert.equal(disclosures.length, 3);
+  assert.equal(disclosures.length, 2);
+  assert.match(output, /<details[^>]*aria-label="音色管理"/);
+  assert.match(output, /<details[^>]*aria-label="播报任务"/);
+  assert.doesNotMatch(output, /<details[^>]*aria-label="音色试听"/);
   for (const disclosure of disclosures) assert.doesNotMatch(disclosure[0], /\bopen\b/);
   const controls = output.slice(0, output.indexOf('<details'));
   assert.match(controls, /启用翻译播报/);
   assert.match(controls, /停止播报并清空队列/);
-  assert.doesNotMatch(controls, /试听文本|Task [0-9]/);
+  assert.match(controls, /speech-preview-text/);
+  assert.match(controls, /生成试听/);
+  assert.doesNotMatch(controls, /Task [0-9]/);
   assert.equal((output.match(/<audio\b/g) ?? []).length, 6);
 });
 
@@ -432,4 +437,114 @@ test('a reference file read failure remains queryable without uploading', async 
   assert.equal(bindings.error, 'Reference file unavailable');
   assert.equal(bindings.busy, false);
   assert.deepEqual(posts, []);
+});
+
+
+test('completed preview stays beside its button instead of inside history', async t => {
+  mockWindow(t);
+  const job = { id: 'preview', status: 'completed', text: 'Preview.', result_url: '/preview.wav' };
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path, init) => new Response(JSON.stringify(
+    init?.method === 'POST' ? job : { ...ready(), jobs: [job] }));
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings, html } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await bindings.synthesize();
+  const output = await html();
+  const visible = output.slice(0, output.indexOf('<details'));
+  assert.match(visible, /aria-label="试听结果"/);
+  assert.match(visible, /<audio[^>]*src="\/preview.wav"/);
+  assert.match(visible, /已完成/);
+  assert.equal(bindings.recentJobs.length, 0);
+});
+
+test('preview outside the recent job window is queried by its own ID', async t => {
+  mockWindow(t);
+  const calls: string[] = [];
+  const job = { id: 'preview', status: 'completed', result_url: '/preview.wav' };
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path, init) => {
+    calls.push(String(path));
+    return new Response(JSON.stringify(init?.method === 'POST' ? { ...job, status: 'queued' }
+      : path === '/api/speech/jobs/preview' ? job : ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await bindings.synthesize();
+  assert.ok(calls.includes('/api/speech/jobs/preview'));
+  assert.equal(bindings.previewJob.status, 'completed');
+  assert.equal(bindings.state.runtime_ready, true);
+});
+
+test('missing preview does not hide the available speech service', async t => {
+  mockWindow(t);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path, init) => {
+    if (path === '/api/speech/jobs/preview') return new Response(JSON.stringify({ error: 'Preview no longer available' }), { status: 404 });
+    return new Response(JSON.stringify(init?.method === 'POST' ? { id: 'preview', status: 'queued' } : ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings, html } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await bindings.synthesize();
+  assert.equal(bindings.state.runtime_ready, true);
+  assert.equal(bindings.unavailable, '');
+  assert.equal(bindings.previewError, 'Preview no longer available');
+  assert.match(await html(), /role="alert"[^>]*>Preview no longer available/);
+});
+
+test('a previous preview response cannot replace the newly submitted preview', async t => {
+  mockWindow(t);
+  const oldJob = { id: 'old', status: 'completed', result_url: '/old.wav' };
+  const newJob = { id: 'new', status: 'completed', result_url: '/new.wav' };
+  let holdOld = false, submitted = 0;
+  let finishOld!: (response: Response) => void;
+  let finishNew!: (response: Response) => void;
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path, init) => {
+    if (init?.method === 'POST') {
+      if (++submitted === 1) return new Response(JSON.stringify(oldJob));
+      return new Promise<Response>(resolve => { finishNew = resolve; });
+    }
+    if (path === '/api/speech/jobs/old') {
+      if (holdOld) return new Promise<Response>(resolve => { finishOld = resolve; });
+      return new Response(JSON.stringify(oldJob));
+    }
+    return new Response(JSON.stringify(path === '/api/speech/jobs/new' ? newJob : ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await bindings.synthesize();
+  holdOld = true;
+  const stalePoll = bindings.refresh(true);
+  await tick();
+  const wrongOwners: string[] = [];
+  const stopWatching = watch(() => bindings.previewJob?.id, id => {
+    if (bindings.previewId === 'new' && id === 'old') wrongOwners.push(id);
+  }, { flush: 'sync' });
+  t.after(stopWatching);
+  const current = bindings.synthesize();
+  await tick();
+  finishOld(new Response(JSON.stringify(oldJob)));
+  finishNew(new Response(JSON.stringify(newJob)));
+  await Promise.all([stalePoll, current]);
+  assert.deepEqual(wrongOwners, []);
+  assert.equal(bindings.previewJob.id, 'new');
+});
+
+test('voice management opens when the voice list is empty', async t => {
+  mockWindow(t);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ ...ready(), voices: [] }));
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, html } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  assert.match(await html(), /<details[^>]*aria-label="音色管理"[^>]*\bopen\b/);
 });

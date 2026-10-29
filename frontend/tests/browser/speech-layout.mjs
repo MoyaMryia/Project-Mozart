@@ -14,7 +14,8 @@ if (!binary) throw new Error('请用 MOZART_TEST_CHROMIUM 指定 Chromium 可执
 fs.accessSync(binary, fs.constants.X_OK);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const posts = [], held = [], exceptions = [];
-let speechOnly = false, holdPreview = false, runtimeReady = true;
+let speechOnly = false, holdPreview = false, runtimeReady = true, modelsFail = false;
+let mockPreview = null, mode = 'idle', fileAvailable = true;
 const session = { enabled: true, voice_id: 'first', language: 'en', playback: true };
 const caption = { utterance_id: 'mock:1', seq: 1, zh: '这是本地模拟的长句字幕，用于检查长句能否完整显示以及正文是否容易阅读。'.repeat(6), en: 'This is a local simulated translation for checking subtitle readability.', translation_status: 'completed', speech_submission_status: 'submitted', speech: 'mock-job', ts: '12:00:00' };
 const server = http.createServer(async (req, res) => {
@@ -25,8 +26,10 @@ const server = http.createServer(async (req, res) => {
   if (data) body = JSON.parse(data);
   if (req.method === 'POST') posts.push({ route, body });
   if (route === '/api/speech/jobs' && req.method === 'POST' && holdPreview) { held.push(res); return; }
+  if (route === '/api/speech/jobs' && req.method === 'POST') mockPreview = { id: 'mock-preview', text: body.text, status: 'completed', result_url: '/mock-preview.wav', duration_seconds: 2 };
   if (route === '/api/speech/session' && body) Object.assign(session, body);
   if (route === '/api/speech/stop') { session.enabled = false; runtimeReady = false; }
+  if (route === '/api/mode/switch' && body) mode = body.mode;
   if (route === '/api/subtitles') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
     res.write(`data: ${JSON.stringify(caption)}\n\n`);
@@ -35,17 +38,17 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   const routes = {
-    '/api/status': { mode: 'idle', pending_target_mode: null, queue: [], active_model_id: 'model', worker_running: false, last_error: '', capabilities: { rt_rvc: !speechOnly, file_rvc: !speechOnly }, file_queue_paused: false, model: { has_index: 'false' } },
+    '/api/status': { mode, pending_target_mode: null, queue: [], active_model_id: 'model', worker_running: false, last_error: '', capabilities: { rt_rvc: !speechOnly, file_rvc: !speechOnly && fileAvailable }, file_queue_paused: false, model: { has_index: 'false' } },
     '/api/stack/status': { managed: true, available: true, phase: 'running', state: 'running', readiness: { translation: true, speech_runtime: true, voice_session: true }, requirements: { voice_required: true, language: 'en', playback: true } },
     '/api/preprocessor': { available: true, current: { capture: 'capture-a', playback: 'output-a' }, devices: { capture: [{ id: 'capture-a', label: '麦克风 A' }, { id: 'capture-b', label: '麦克风 B' }], playback: [{ id: 'output-a', label: '扬声器 A' }] }, state: { state: 'running', frames: 1200 } },
     '/api/models': { models: [{ id: 'model', exists: true, current: true }] },
     '/api/parameters': { f0_method: 'rmvpe', pitch_shift: 0, index_rate: .75, filter_radius: 3, rms_mix_rate: .25, protect: .33 },
     '/api/presets': { presets: [] }, '/api/logs': { entries: [] }, '/api/glossary': { terms: { '原神': 'Genshin Impact' } },
-    '/api/speech/status': { engine: 'zipvoice', runtime_ready: runtimeReady, runtime_state: runtimeReady ? 'ready' : 'stopped', voices: [{ id: 'first', name: '音色 A', status: 'ready' }, { id: 'second', name: '音色 B', status: 'ready' }], jobs: Array.from({ length: 6 }, (_, i) => ({ id: 'job-'+i, text: 'A completed translated speech task.', status: 'completed', result_url: '/mock.wav', duration_seconds: 2, synthesis_seconds: .5 })), languages: ['en', 'zh'], queue_limit: 8, delivery_policy: 'coverage', pending_jobs: 0, playback_device: 'mock-device', session },
-    '/api/speech/session': {}, '/api/speech/jobs': { id: 'mock-preview' }, '/api/speech/stop': { stopped: true, stop_errors: 0 }
+    '/api/speech/status': { engine: 'zipvoice', runtime_ready: runtimeReady, runtime_state: runtimeReady ? 'ready' : 'stopped', voices: [{ id: 'first', name: '音色 A', status: 'ready' }, { id: 'second', name: '音色 B', status: 'ready' }], jobs: [...(mockPreview ? [mockPreview] : []), ...Array.from({ length: 6 }, (_, i) => ({ id: 'job-'+i, text: 'A completed translated speech task.', status: 'completed', result_url: '/mock.wav', duration_seconds: 2, synthesis_seconds: .5 }))], languages: ['en', 'zh'], queue_limit: 8, delivery_policy: 'coverage', pending_jobs: 0, playback_device: 'mock-device', session },
+    '/api/speech/session': {}, '/api/speech/jobs': mockPreview, '/api/speech/jobs/mock-preview': mockPreview, '/api/speech/stop': { stopped: true, stop_errors: 0 }
   };
   if (route.startsWith('/api/')) {
-    const fail = route === '/api/monitor';
+    const fail = route === '/api/monitor' || (modelsFail && route === '/api/models');
     res.writeHead(fail ? 503 : 200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(fail ? { error: 'Mock model list unavailable' } : routes[route] ?? {}));
   }
@@ -90,29 +93,59 @@ try {
   await evaluate(`(()=>{const s=document.querySelector('#reference-speech select'); const all=Array.from(document.querySelectorAll('#reference-speech select')); const voice=all.find(e=>Array.from(e.options).some(o=>o.value==='second'));voice.value='second';voice.dispatchEvent(new Event('change',{bubbles:true}));})()`); await sleep(80);
   evidence.changedSessionAction = await evaluate(`${buttons}.find(b=>b.textContent.includes('应用音色与输出'))?.textContent.trim()`);
   evidence.disableStillAvailableAfterDraftChange = await evaluate(`${buttons}.some(b=>b.textContent.trim()==='禁用翻译播报')`);
+  await evaluate(`${buttons}.find(b=>b.textContent.includes('生成试听')).click()`); await sleep(150);
+  evidence.inlinePreview = await evaluate(`(()=>{const e=document.querySelector('[aria-label="试听结果"] audio');const r=e.getBoundingClientRect();return {outsideDetails:!e.closest('details'),visible:r.top>=0&&r.bottom<=innerHeight&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===e}})()`);
+  evidence.flatLayout = await evaluate(`({nestedDisclosures:document.querySelectorAll('details details').length,modeToggles:document.querySelectorAll('[id^="toggle-"]').length,referenceLinks:document.querySelectorAll('a[href="#reference-speech"]').length,speechHeadings:document.querySelectorAll('#reference-speech h2').length,logSubheadings:document.querySelectorAll('#log-panel h2').length})`);
+  await capture('inline-preview');
+  const switchesBeforeSelection = posts.filter(post=>post.route==='/api/mode/switch').length;
+  await evaluate(`document.querySelector('button[data-mode="file_rvc"]').click()`); await sleep(50);
+  evidence.modeSelectionDoesNotStart = posts.filter(post=>post.route==='/api/mode/switch').length === switchesBeforeSelection;
+  await evaluate(`document.querySelector('[aria-label="启动 RVC 处理"]').click()`); await sleep(100);
+  evidence.startUsesSelectedMode = posts.some(post=>post.route==='/api/mode/switch'&&post.body.mode==='file_rvc');
+  await evaluate(`document.querySelector('button[data-mode="rt_rvc"]').click()`); await sleep(50);
   holdPreview = true;
-  await evaluate(`document.querySelector('details[aria-label="音色试听"]').open=true`);
   await evaluate(`${buttons}.find(b=>b.textContent.includes('生成试听')).click()`); await sleep(150);
   evidence.stopDisabledDuringPreview = await evaluate(`${buttons}.find(b=>b.textContent.includes('停止播报并清空队列')).disabled`);
   await capture('preview-busy-stop-disabled');
   await evaluate(`${buttons}.find(b=>b.textContent.includes('停止播报并清空队列')).click()`); await sleep(150);
   evidence.previewRequestAbortedByStop = held.length === 1 && held[0].destroyed;
   evidence.stopRequestSent = posts.some(post=>post.route==='/api/speech/stop');
-  speechOnly = true; holdPreview = false; runtimeReady = true; session.enabled = true;
+  speechOnly = true; holdPreview = false; runtimeReady = true; session.enabled = true; mode = 'idle';
   await call('Page.reload'); await sleep(1000);
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   evidence.mobile = await snapshot(); evidence.mobileControls = await visibleControls(); await capture('mobile-after');
+  evidence.speechOnlySidebarCount = await evaluate(`document.querySelectorAll('.left-sidebar').length`);
+  evidence.speechOnlyFileUploaderHidden = await evaluate(`document.querySelector('input[accept="audio/*"]').getBoundingClientRect().height===0`);
+  evidence.glossaryCount = await evaluate(`document.querySelectorAll('[aria-label="术语表"]').length`);
+  evidence.mobileConnectionVisible = await evaluate(`(()=>{const e=document.querySelector('[data-status="api"]');const r=e.getBoundingClientRect();return r.x>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;})()`);
   await evaluate(`(()=>{const d=document.querySelector('details[aria-label="播报任务"]');d.open=true;d.querySelectorAll('audio')[5].scrollIntoView({block:'end'});})()`);
   await sleep(250);
   evidence.controlsAfterHistoryScroll = await visibleControls();
 
+  await capture('history-controls');
+  speechOnly = false; fileAvailable = false;
+  await call('Page.reload'); await sleep(1000);
+  evidence.unsupportedModeDisabled = await evaluate(`(()=>{const e=document.querySelector('button[data-mode="file_rvc"]');e.click();return e.disabled&&e.getAttribute('aria-pressed')==='false';})()`);
+  speechOnly = true; modelsFail = true;
+  await call('Page.reload'); await sleep(1000);
+  evidence.globalErrorVisible = await evaluate(`Array.from(document.querySelectorAll('[role="alert"]')).some(e=>e.textContent.includes('Mock model list unavailable')&&e.getBoundingClientRect().height>0)`);
   evidence.exceptions = exceptions; evidence.posts = posts;
   assert.deepEqual(evidence.desktopControls, [
     {text:'禁用翻译播报',visible:true}, {text:'停止播报并清空队列',visible:true},
   ]);
   assert.deepEqual(evidence.mobileControls, evidence.desktopControls);
   assert.deepEqual(evidence.controlsAfterHistoryScroll, evidence.desktopControls);
-  assert.equal(evidence.closedDisclosures.length, 4);
+  assert.equal(evidence.closedDisclosures.length, 3);
+  assert.deepEqual(evidence.flatLayout, {nestedDisclosures:0,modeToggles:0,referenceLinks:0,speechHeadings:1,logSubheadings:0});
+  assert.deepEqual(evidence.inlinePreview, {outsideDetails:true,visible:true});
+  assert.equal(evidence.speechOnlySidebarCount, 0);
+  assert.equal(evidence.speechOnlyFileUploaderHidden, true);
+  assert.equal(evidence.glossaryCount, 1);
+  assert.equal(evidence.globalErrorVisible, true);
+  assert.equal(evidence.mobileConnectionVisible, true);
+  assert.equal(evidence.unsupportedModeDisabled, true);
+  assert.equal(evidence.modeSelectionDoesNotStart, true);
+  assert.equal(evidence.startUsesSelectedMode, true);
   assert.ok(evidence.closedDisclosures.every(item=>!item.open));
   assert.equal(evidence.desktop.log.hiddenContentHeight, 0);
   assert.equal(evidence.mobile.log.hiddenContentHeight, 0);
@@ -125,7 +158,6 @@ try {
   assert.equal(evidence.previewRequestAbortedByStop, true);
   assert.equal(evidence.stopRequestSent, true);
   assert.deepEqual(exceptions, []);
-  await capture('history-controls');
   fs.writeFileSync(path.join(out, 'evidence.json'), JSON.stringify(evidence, null, 2));
   console.log(JSON.stringify(evidence, null, 2));
 } finally {

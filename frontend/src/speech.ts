@@ -16,3 +16,11 @@ export function speechRuntimeLabel(status: SpeechRuntimeStatus): string {
   if (status.runtime_state === 'preparing') return '语音预热中';
   return '语音就绪状态未知';
 }
+
+const jobLabels: Record<string, string> = {
+  queued: '排队中', processing: '合成中', ready: '待播放', playing: '播放中',
+  completed: '已完成', failed: '失败', cancelled: '已取消', expired: '已过期',
+};
+export function speechJobLabel(job: { status: string; admission_pending?: boolean }): string {
+  return job.status === 'queued' && job.admission_pending ? '等待播报容量' : jobLabels[job.status] ?? job.status;
+}
