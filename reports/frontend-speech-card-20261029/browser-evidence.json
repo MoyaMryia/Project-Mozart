@@ -1,0 +1,135 @@
+{
+  "base": "http://127.0.0.1:43423",
+  "browser": "Chrome/151.0.7922.34",
+  "configuration": "Local mock API, Chromium, no model or audio services",
+  "desktop": {
+    "subtitle": {
+      "box": {
+        "x": 320,
+        "y": 575,
+        "width": 671,
+        "height": 215.59375,
+        "top": 575,
+        "right": 991,
+        "bottom": 790.59375,
+        "left": 320
+      },
+      "font": "16px",
+      "clipped": false
+    },
+    "log": {
+      "box": {
+        "x": 320,
+        "y": 802.59375,
+        "width": 671,
+        "height": 33,
+        "top": 802.59375,
+        "right": 991,
+        "bottom": 835.59375,
+        "left": 320
+      },
+      "hiddenContentHeight": 0
+    },
+    "horizontalOverflow": false
+  },
+  "desktopControls": [
+    {
+      "text": "禁用翻译播报",
+      "visible": true
+    },
+    {
+      "text": "停止播报并清空队列",
+      "visible": true
+    }
+  ],
+  "closedDisclosures": [
+    {
+      "label": "试听与音色管理",
+      "open": false
+    },
+    {
+      "label": "添加参考音色",
+      "open": false
+    },
+    {
+      "label": "最近播报任务（6）",
+      "open": false
+    },
+    {
+      "label": "系统日志",
+      "open": false
+    }
+  ],
+  "initialSessionAction": "禁用翻译播报",
+  "changedSessionAction": "应用音色与输出",
+  "disableStillAvailableAfterDraftChange": true,
+  "stopDisabledDuringPreview": false,
+  "previewRequestAbortedByStop": true,
+  "stopRequestSent": true,
+  "mobile": {
+    "subtitle": {
+      "box": {
+        "x": 12,
+        "y": 892,
+        "width": 366,
+        "height": 446.34375,
+        "top": 892,
+        "right": 378,
+        "bottom": 1338.34375,
+        "left": 12
+      },
+      "font": "16px",
+      "clipped": false
+    },
+    "log": {
+      "box": {
+        "x": 12,
+        "y": 1350.34375,
+        "width": 366,
+        "height": 33,
+        "top": 1350.34375,
+        "right": 378,
+        "bottom": 1383.34375,
+        "left": 12
+      },
+      "hiddenContentHeight": 0
+    },
+    "horizontalOverflow": false
+  },
+  "mobileControls": [
+    {
+      "text": "禁用翻译播报",
+      "visible": true
+    },
+    {
+      "text": "停止播报并清空队列",
+      "visible": true
+    }
+  ],
+  "controlsAfterHistoryScroll": [
+    {
+      "text": "禁用翻译播报",
+      "visible": true
+    },
+    {
+      "text": "停止播报并清空队列",
+      "visible": true
+    }
+  ],
+  "exceptions": [],
+  "posts": [
+    {
+      "route": "/api/speech/jobs",
+      "body": {
+        "text": "Hello. This is a preview of the selected reference voice.",
+        "language": "en",
+        "voice_id": "second",
+        "playback": true
+      }
+    },
+    {
+      "route": "/api/speech/stop",
+      "body": {}
+    }
+  ]
+}

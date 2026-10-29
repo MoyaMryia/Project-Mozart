@@ -496,7 +496,7 @@ onUnmounted(() => {
   </header>
 
   <!-- 三栏主布局 -->
-  <main id="main-content" :class="['flex-1 min-h-0 grid grid-cols-1 bg-app overflow-y-auto md:overflow-hidden', speechOnly ? 'md:grid-cols-[240px_1fr]' : 'md:grid-cols-[300px_1fr_340px]']">
+  <main id="main-content" :class="['flex-1 min-h-0 grid grid-cols-1 bg-app overflow-visible md:overflow-hidden', speechOnly ? 'md:grid-cols-[240px_1fr]' : 'md:grid-cols-[300px_1fr_340px]']">
 
     <!-- 左栏：全局控制、系统运行模式与导航 -->
     <section class="left-sidebar bg-panel border-r border-edge-soft overflow-visible md:overflow-hidden md:h-full" aria-label="System Navigation">
@@ -573,9 +573,9 @@ onUnmounted(() => {
     </section>
 
     <!-- 中栏：主操作面板 -->
-    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-y-auto md:gap-3 md:overflow-hidden md:h-full no-scrollbar">
+    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-visible md:overflow-y-auto md:h-full" aria-label="会话与播报">
 
-      <div class="min-h-0 md:flex-1 flex flex-col overflow-y-auto no-scrollbar">
+      <div class="shrink-0 flex flex-col">
 
       <StackPanel :status="stackStatus" :error="stackError" />
       <SpeechPanel id="reference-speech" :stack-status="stackStatus" />
@@ -637,8 +637,8 @@ onUnmounted(() => {
           <span :class="['text-micro font-mono font-bold', subtitleState === 'online' ? 'state-ok' : subtitleState === 'offline' ? 'state-err' : 'text-ink-4']">{{ subtitleState.toUpperCase() }}</span>
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <div class="text-xs font-bold text-ink leading-5 truncate">{{ latestCaptionText || '等待语音输入…' }}</div>
-          <div class="text-tiny text-ink-3 leading-4">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'failed' ? '译文未通过校验' : latestSubtitle?.translation_status === 'skipped' ? '未送出翻译' : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
+          <div class="text-base font-bold text-ink leading-relaxed whitespace-pre-wrap break-words">{{ latestCaptionText || '等待语音输入…' }}</div>
+          <div class="text-sm text-ink-2 leading-relaxed whitespace-pre-wrap break-words">{{ latestSubtitle?.en ? `${latestSubtitle.translation_status === 'failed' ? '待核对译文：' : ''}${latestSubtitle.en}` : latestSubtitle?.translation_status === 'failed' ? '译文未通过校验' : latestSubtitle?.translation_status === 'skipped' ? '未送出翻译' : latestSubtitle?.translation_status === 'recognizing' ? '识别中…' : latestSubtitle?.translation_status === 'pending' ? '翻译中…' : '' }}</div>
           <div v-if="latestTranslatedSubtitle && latestTranslatedSubtitle.utterance_id !== latestSubtitle?.utterance_id" class="text-tiny text-ink-3 leading-4" :title="latestTranslatedSubtitle.translation_error || latestTranslatedSubtitle.zh">{{ latestTranslatedSubtitle.translation_status === 'failed' ? '前文待核对译文：' : '前文译文：' }}{{ latestTranslatedSubtitle.en }}</div>
           <div v-if="latestRefinedCandidate" class="text-tiny text-ink-3 leading-4" :title="latestSourceNote">复核候选：{{ latestRefinedCandidate }}</div>
           <div v-if="latestOriginalCaption" class="text-tiny text-ink-3 leading-4">原始识别：{{ latestOriginalCaption }}</div>
@@ -653,7 +653,8 @@ onUnmounted(() => {
       </div>
 
       <!-- 主界面下方：终端式系统日志 -->
-      <div id="log-panel" class="console-log md:flex-1 md:min-h-0 overflow-hidden flex flex-col">
+      <details id="log-panel" class="console-log shrink-0">
+        <summary class="console-header cursor-pointer px-3 py-2 text-xs font-bold">系统日志</summary>
         <div class="console-header flex items-center justify-between gap-2 px-3 py-2 font-mono">
           <h2 class="text-tiny font-extrabold tracking-[0.16em] uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
           <div class="flex items-center gap-1 min-w-0">
@@ -669,7 +670,7 @@ onUnmounted(() => {
             <button type="button" class="console-action text-tiny px-1.5 py-1 rounded-sm shrink-0" @click="void appApi('/api/logs', { method: 'DELETE' }).then(refreshLogs).catch(showError)">清空日志</button>
           </div>
         </div>
-        <div class="flex-1 overflow-y-auto p-3 space-y-2 text-[12px] leading-5 font-mono" role="log" aria-live="polite" aria-label="System logs">
+        <div class="console-entries max-h-80 overflow-y-auto p-3 space-y-2 text-[12px] leading-5 font-mono" role="log" aria-live="polite" aria-label="System logs">
           <div v-for="(entry, index) in filteredLogs" :key="`${entry.timestamp}-${index}`" class="flex items-start gap-2 min-w-0 leading-4">
             <span class="text-emerald-400 shrink-0 font-bold">&gt;</span>
             <span class="text-gray-500 shrink-0 tabular-nums">{{ entry.timestamp }}</span>
@@ -677,7 +678,7 @@ onUnmounted(() => {
             <span class="text-gray-300 break-words min-w-0">{{ entry.message }}</span>
           </div>
         </div>
-      </div>
+      </details>
 
     </section>
 

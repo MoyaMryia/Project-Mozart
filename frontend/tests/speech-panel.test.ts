@@ -128,7 +128,7 @@ test('unprepared speech prepares once and polling unlocks the actual preview con
   t.after(() => app.unmount());
   await tick();
   assert.match(await html(), /准备／恢复语音/);
-  assert.match(await html(), /disabled[^>]*>Generate preview/);
+  assert.match(await html(), /disabled[^>]*>生成试听/);
   await bindings.prepare();
   assert.equal(bindings.preparationPending, true);
   assert.match(await html(), /disabled[^>]*>语音准备已排队/);
@@ -139,7 +139,7 @@ test('unprepared speech prepares once and polling unlocks the actual preview con
   await bindings.refresh(true);
   const output = await html();
   assert.match(output, /语音已就绪/);
-  assert.doesNotMatch(output, /disabled[^>]*>Generate preview/);
+  assert.doesNotMatch(output, /disabled[^>]*>生成试听/);
   assert.doesNotMatch(output, /准备／恢复语音/);
   assert.deepEqual(paths, ['/api/speech/prepare']);
 });
@@ -173,7 +173,7 @@ test('normal stop retains its reason and prepare restores preview without changi
   await bindings.prepare();
   status = { ...status, runtime_ready: true, runtime_state: 'ready' };
   await bindings.refresh(true);
-  assert.doesNotMatch(await html(), /disabled[^>]*>Generate preview/);
+  assert.doesNotMatch(await html(), /disabled[^>]*>生成试听/);
   await bindings.synthesize();
   assert.deepEqual(posts, [
     { path: '/api/speech/stop', body: {} },
@@ -226,4 +226,210 @@ test('a recoverable preparation failure keeps its cause and permits an explicit 
   await bindings.refresh(true);
   assert.match(await html(), /语音已就绪/);
   assert.deepEqual(posts, ['/api/speech/prepare']);
+});
+
+test('primary controls precede closed preview, upload and history disclosures', async t => {
+  mockWindow(t);
+  const previousFetch = globalThis.fetch;
+  const status = { ...ready(), jobs: Array.from({ length: 9 }, (_, i) => ({
+    id: `job-${i}`, text: `Task ${i}`, status: 'completed', result_url: `/audio/${i}`,
+  })) };
+  globalThis.fetch = async () => new Response(JSON.stringify(status));
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, html } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  const output = await html();
+  const disclosures = [...output.matchAll(/<details\b[^>]*>/g)];
+  assert.equal(disclosures.length, 3);
+  for (const disclosure of disclosures) assert.doesNotMatch(disclosure[0], /\bopen\b/);
+  const controls = output.slice(0, output.indexOf('<details'));
+  assert.match(controls, /启用翻译播报/);
+  assert.match(controls, /停止播报并清空队列/);
+  assert.doesNotMatch(controls, /试听文本|Task [0-9]/);
+  assert.equal((output.match(/<audio\b/g) ?? []).length, 6);
+});
+
+test('disabling speech remains separate from applying changed voice settings', async t => {
+  mockWindow(t);
+  let status = { ...ready(), session: { ...ready().session, enabled: true } };
+  const posts: unknown[] = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (_, init) => {
+    if (init?.method === 'POST') {
+      const body = JSON.parse(String(init.body));
+      posts.push(body);
+      status = { ...status, session: { ...status.session, ...body } };
+    }
+    return new Response(JSON.stringify(status));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings, html } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  bindings.selectedVoice = 'second';
+  bindings.language = 'zh';
+  assert.match(await html(), /禁用翻译播报/);
+  assert.match(await html(), /应用音色与输出/);
+  await bindings.session(false);
+  assert.deepEqual(posts, [{ enabled: false }]);
+  assert.equal(status.session.voice_id, 'first');
+});
+
+test('stop remains available and aborts an outstanding preview request', async t => {
+  mockWindow(t);
+  let previewSignal!: AbortSignal;
+  const posts: string[] = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path, init) => {
+    if (init?.method === 'POST') posts.push(String(path));
+    if (path === '/api/speech/jobs') return new Promise((_, reject) => {
+      previewSignal = init!.signal!;
+      previewSignal.addEventListener('abort', () => reject(previewSignal.reason), { once: true });
+    });
+    return new Response(JSON.stringify(path === '/api/speech/stop' ? { stop_errors: 0 } : ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings, html } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  const preview = bindings.synthesize();
+  assert.equal(bindings.busy, true);
+  const stopButton = (await html()).match(/<button\b[^>]*>停止播报并清空队列<\/button>/);
+  assert.ok(stopButton);
+  assert.doesNotMatch(stopButton[0], /\bdisabled\b/);
+  await bindings.stop();
+  await preview;
+  assert.equal(previewSignal.aborted, true);
+  assert.equal(bindings.busy, false);
+  assert.equal(bindings.error, '');
+  assert.deepEqual(posts, ['/api/speech/jobs', '/api/speech/stop']);
+});
+
+test('a late cancelled file read cannot release a newer action or upload a voice', async t => {
+  mockWindow(t);
+  const previousReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
+  let finishRead!: () => void;
+  class DelayedReader {
+    result = 'data:audio/wav;base64,AAAA';
+    onload!: () => void;
+    readAsDataURL() { finishRead = () => this.onload(); }
+  }
+  Object.defineProperty(globalThis, 'FileReader', { value: DelayedReader, configurable: true });
+  t.after(() => { if (previousReader) Object.defineProperty(globalThis, 'FileReader', previousReader); else delete (globalThis as any).FileReader; });
+  let finishPrepare!: () => void;
+  const posts: string[] = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path, init) => {
+    init?.signal?.throwIfAborted();
+    if (init?.method === 'POST') posts.push(String(path));
+    if (path === '/api/speech/prepare') return new Promise<Response>(resolve => {
+      finishPrepare = () => resolve(new Response('{}'));
+    });
+    return new Response(JSON.stringify(path === '/api/speech/stop' ? { stop_errors: 0 } : ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  bindings.reference = { name: 'voice.wav', size: 4 };
+  const upload = bindings.upload();
+  await bindings.stop();
+  const preparing = bindings.prepare();
+  finishRead();
+  await upload;
+  assert.equal(bindings.busy, true);
+  assert.deepEqual(posts, ['/api/speech/stop', '/api/speech/prepare']);
+  finishPrepare();
+  await preparing;
+  assert.equal(bindings.busy, false);
+});
+
+test('partial stop failure remains visible above collapsed settings', async t => {
+  mockWindow(t);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path) => new Response(JSON.stringify(
+    path === '/api/speech/stop' ? { stopped: true, stop_errors: 1 } : ready()));
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings, html } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await bindings.stop();
+  const output = await html();
+  assert.match(output.slice(0, output.indexOf('<details')), /停止操作发生错误/);
+});
+
+test('stop request failures keep their reason and permit a retry', async t => {
+  mockWindow(t);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path) => {
+    if (path === '/api/speech/stop') throw new TypeError('Failed to fetch');
+    return new Response(JSON.stringify(ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await bindings.stop();
+  assert.equal(bindings.error, 'Failed to fetch');
+  assert.equal(bindings.stopping, false);
+});
+
+test('unexpected stop errors propagate instead of becoming request warnings', async t => {
+  mockWindow(t);
+  const cause = new ReferenceError('Missing stop implementation');
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path) => {
+    if (path === '/api/speech/stop') throw cause;
+    return new Response(JSON.stringify(ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await assert.rejects(bindings.stop(), error => error === cause);
+  assert.equal(bindings.stopping, false);
+  assert.equal(bindings.error, '');
+});
+
+test('internal action errors propagate instead of becoming request warnings', async t => {
+  mockWindow(t);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify(ready()));
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  for (const cause of [new TypeError('Invalid internal state'), new DOMException('Unexpected DOM state', 'InvalidStateError')]) {
+    await assert.rejects(bindings.action(async () => { throw cause; }), error => error === cause);
+  }
+  assert.equal(bindings.busy, false);
+  assert.equal(bindings.error, '');
+});
+
+test('a reference file read failure remains queryable without uploading', async t => {
+  mockWindow(t);
+  const previousReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
+  class FailedReader {
+    error = new DOMException('Reference file unavailable', 'NotReadableError');
+    onerror!: () => void;
+    readAsDataURL() { this.onerror(); }
+  }
+  Object.defineProperty(globalThis, 'FileReader', { value: FailedReader, configurable: true });
+  t.after(() => { if (previousReader) Object.defineProperty(globalThis, 'FileReader', previousReader); else delete (globalThis as any).FileReader; });
+  const previousFetch = globalThis.fetch;
+  const posts: string[] = [];
+  globalThis.fetch = async (path, init) => {
+    if (init?.method === 'POST') posts.push(String(path));
+    return new Response(JSON.stringify(ready()));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  bindings.reference = { name: 'voice.wav', size: 4 };
+  await bindings.upload();
+  assert.equal(bindings.error, 'Reference file unavailable');
+  assert.equal(bindings.busy, false);
+  assert.deepEqual(posts, []);
 });

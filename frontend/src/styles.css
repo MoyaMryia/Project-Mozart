@@ -304,7 +304,7 @@ button, h2, h3, .section-title {
 
 /* ---------- 终端式日志 ---------- */
 .console-log {
-  flex: 0 0 50%;
+  flex: 0 0 auto;
   min-height: 0;
   border-top: 1px solid var(--console-edge);
   background: var(--console-bg);
@@ -355,17 +355,13 @@ button, h2, h3, .section-title {
 }
 
 /* ---------- 滚动条 ---------- */
-#log-panel::-webkit-scrollbar { height: 4px; width: 4px; }
-#log-panel::-webkit-scrollbar-track { background: transparent; }
-#log-panel::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 2px; }
+.console-entries::-webkit-scrollbar { height: 4px; width: 4px; }
+.console-entries::-webkit-scrollbar-track { background: transparent; }
+.console-entries::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 2px; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 button, a, input, select { touch-action: manipulation; }
-
-@media (max-width: 767px) {
-  .console-log { flex-basis: 320px; min-height: 320px; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

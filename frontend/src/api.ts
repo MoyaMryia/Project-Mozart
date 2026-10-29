@@ -1,4 +1,4 @@
-// api.ts — 后端 API 类型与请求封装（从原 vanilla 控制中心平移，逻辑不变）
+// api.ts — 后端 API 类型与请求错误分类。
 export type Mode = 'idle' | 'rt_rvc' | 'file_rvc' | 'rt_zero_shot' | 'file_zero_shot';
 export type ActiveMode = Exclude<Mode, 'idle'>;
 
@@ -128,12 +128,25 @@ export interface SubtitleEvent {
   ts: string;
 }
 
+export class ApiRequestError extends Error { override name = 'ApiRequestError'; }
+
 export const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(path, init);
-  const text = await response.text();
+  let response: Response;
+  let text: string;
+  try {
+    response = await fetch(path, init);
+    text = await response.text();
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    throw new ApiRequestError(error.message, { cause: error });
+  }
   let body: T & { error?: string };
   try { body = JSON.parse(text) as T & { error?: string }; }
-  catch { throw new Error(`Backend returned HTTP ${response.status}`); }
-  if (!response.ok) throw new Error(body.error || `Backend returned HTTP ${response.status}`);
+  catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    throw new ApiRequestError(`服务返回了无法解析的数据（HTTP ${response.status}）`, { cause: error });
+  }
+  if (!response.ok) throw new ApiRequestError(typeof body?.error === 'string' && body.error
+    ? body.error : `Backend returned HTTP ${response.status}`);
   return body;
 };
