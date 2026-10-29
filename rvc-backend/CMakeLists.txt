@@ -230,8 +230,12 @@ if(BUILD_TESTS)
     set_tests_properties(daemon_configuration PROPERTIES TIMEOUT 45)
     add_executable(http_fixture ../api/tests/http_fixture.cpp src/state/log_store.cpp)
     add_executable(control_fixture ../api/tests/control_fixture.cpp)
-    target_link_libraries(control_fixture PRIVATE mozart_api)
+    target_link_libraries(control_fixture PRIVATE mozart_api mozart_rvc_runtime)
     find_package(Python3 COMPONENTS Interpreter)
+    add_executable(test_control_protocol ../api/tests/test_control_protocol.cpp)
+    target_link_libraries(test_control_protocol PRIVATE mozart_api mozart_rvc_runtime)
+    add_test(NAME control_protocol COMMAND test_control_protocol)
+    set_tests_properties(control_protocol PROPERTIES TIMEOUT 20)
     add_test(NAME test_control COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/../api/tests/test_control.py)
     set_tests_properties(test_control PROPERTIES
