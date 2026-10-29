@@ -30,6 +30,7 @@ import wave
 import array
 import hashlib
 import threading
+import unicodedata
 
 import sherpa_onnx
 import glossary
@@ -39,6 +40,12 @@ from asr_refinement import UtteranceRefiner
 MZRT_MAGIC = 0x4D5A5254
 HEADER = struct.Struct("<IQIBBBB")  # magic, pts_ns, frame_idx, vad, energy, conf, segment
 FRAME_SAMPLES = 320
+
+
+def has_text_content(text):
+    """保留空白和 Unicode 标点以外的字符。"""
+    return any(not char.isspace() and not unicodedata.category(char).startswith('P')
+               for char in text)
 
 
 def build_recognizer(args):
@@ -107,6 +114,7 @@ def main():
     rejected = 0
     packets_at_report = 0
     finals = 0
+    punctuation_finals_skipped = 0
     last_report = time.monotonic()
     last_packet = 0.0
     last_audio_at = None
@@ -127,6 +135,7 @@ def main():
     def cut_final():
         """Emit the decoded utterance at recognizer endpoint or transport end."""
         nonlocal finals, cut_offset, last_partial, current_seg, utterance_pcm, utterance_start_pts
+        nonlocal punctuation_finals_skipped
         if stream is None:
             return
         while recognizer.is_ready(stream):
@@ -142,7 +151,11 @@ def main():
         utterance_start_pts = None
         cut_offset = len(text)
         last_partial = ""
-        if delta:
+        content_present = has_text_content(delta)
+        if delta and not content_present:
+            punctuation_finals_skipped += 1
+            print(f'[stt] skipped punctuation-only final: {delta!r}', file=sys.stderr, flush=True)
+        if content_present:
             finals += 1
             diagnostic = {'emitted_at':time.time(), 'audio_start_pts_ns':captured_start,
                           'audio_end_pts_ns':utterance_end_pts}
@@ -193,13 +206,13 @@ def main():
         if delta != last_partial and now-last_partial_emit >= .1:
             last_partial = delta
             last_partial_emit = now
-            if args.json:
-                if delta.strip():
+            if has_text_content(delta):
+                if args.json:
                     emit({'type': 'partial', 'seq': finals+1, 'text': delta,
                         'emitted_at': time.time(), 'audio_start_pts_ns': utterance_start_pts,
                         'audio_end_pts_ns': utterance_end_pts})
-            else:
-                print("\r[PART] " + delta, end="", flush=True)
+                else:
+                    print("\r[PART] " + delta, end="", flush=True)
 
     try:
         while True:
@@ -211,6 +224,7 @@ def main():
                 if status_path:
                     temporary = Path(status_path).with_suffix('.json.tmp')
                     temporary.write_text(json.dumps({'packets': packets, 'rejected': rejected,
+                                                      'punctuation_finals_skipped': punctuation_finals_skipped,
                                                       'last_audio_at': last_audio_at,
                                                       'instance_id': os.environ.get('MOZART_STACK_INSTANCE_ID')}))
                     temporary.replace(status_path)
