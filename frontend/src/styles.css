@@ -93,7 +93,6 @@ body {
 .border-edge { border-color: var(--edge); }
 .border-edge-soft { border-color: var(--edge-soft); }
 .border-strong { border-color: var(--ink); }
-.divider { background-color: var(--edge); }
 .hover-subtle:hover { background-color: var(--subtle); }
 .state-ok { color: var(--state-ok); }
 .state-err { color: var(--state-err); }
@@ -231,12 +230,6 @@ button, h2, h3, .section-title {
 /* ---------- 模式行 ---------- */
 .mode-row.is-selected { background: var(--subtle); border-color: var(--edge) !important; }
 .mode-row.is-selected .mode-name { color: var(--ink); font-weight: 700; }
-
-/* ---------- 自定义开关 ---------- */
-.toggle-checkbox:checked { right: 0; border-color: var(--ink); }
-.toggle-label { background: var(--toggle-track); transition: background-color 150ms ease-in-out; }
-.toggle-checkbox:checked + .toggle-label { background: var(--ink); }
-.toggle-checkbox:focus-visible + .toggle-label { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* ---------- 走带控制（运行/暂停/停止） ---------- */
 .transport-control {

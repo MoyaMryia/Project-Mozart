@@ -5,7 +5,7 @@ import { parse, compileScript } from '@vue/compiler-sfc';
 import { renderToString } from '@vue/server-renderer';
 import { createSSRApp } from 'vue';
 import ts from 'typescript';
-import { voiceWaitingText, outputMatches } from '../src/stack.ts';
+import { requiredOutputLabel, outputMatches } from '../src/stack.ts';
 import { speechRuntimeLabel } from '../src/speech.ts';
 import type { StackStatus } from '../src/api.ts';
 
@@ -24,20 +24,23 @@ const waiting: StackStatus = { managed: true, available: true, state: 'starting'
   updated_at: 1792468800, requirements: { language: 'en', playback: true, voice_required: true },
   readiness: { translation: true, speech_runtime: true, voice_session: false }, degraded: {} };
 
-test('the actual status panel explains voice selection and required playback', async () => {
+test('the actual status panel keeps phase, readiness and required output without a second heading', async () => {
   const component = await panel();
   const html = await renderToString(createSSRApp(component, { status: waiting, error: '' }));
   assert.match(html, /等待选择音色/);
-  assert.match(html, /请选择参考音色/);
+  assert.match(html, /英文/);
   assert.match(html, /设备播放/);
-  assert.match(html, /完成后开始采集/);
+  assert.match(html, /翻译就绪/);
+  assert.match(html, /语音就绪/);
+  assert.match(html, /音色未启用/);
+  assert.doesNotMatch(html, /<h2|请选择参考音色|完成后开始采集/);
   assert.match(html, /记录更新时间/);
   assert.doesNotMatch(html, /开始全部处理|全局启动/);
 });
 
 test('WAV requirements keep physical playback disabled instead of relaxing the gate', () => {
   const requirements = { language: 'en', playback: false, voice_required: true };
-  assert.match(voiceWaitingText(requirements), /WAV 下载/);
+  assert.match(requiredOutputLabel(requirements), /WAV 下载/);
   assert.equal(outputMatches(requirements, 'en', false), true);
   assert.equal(outputMatches(requirements, 'en', true), false);
   assert.equal(outputMatches(requirements, 'zh', false), false);

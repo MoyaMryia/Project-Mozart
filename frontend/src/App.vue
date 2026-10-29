@@ -138,8 +138,8 @@ const statVram = computed(() => {
     : 'UNAVAILABLE';
 });
 const gib = (bytes: number) => (bytes / 1024 ** 3).toFixed(1);
-const stateClass = (online: boolean | null) =>
-  `font-mono text-tiny font-bold ${online === true ? 'state-ok' : online === false ? 'state-err' : 'state-unknown'}`;
+const stateClass = (online: boolean) =>
+  `font-mono text-tiny font-bold ${online ? 'state-ok' : 'state-err'}`;
 
 // ---- 参数行（原 renderParameters 的声明式版本）----
 interface ParameterRow {
@@ -166,6 +166,10 @@ const parameterLabel = (key: keyof RvcParameters, value: string | number) => {
 // ---- API 动作 ----
 const statusPoll = createPoll(signal => appApi<Status>('/api/status', { signal }), value => {
   status.value = value; apiOnline.value = true;
+  if (value.capabilities[selectedMode.value] !== true) {
+    const available = MODES.find(mode => value.capabilities[mode] === true);
+    if (available) selectedMode.value = available;
+  }
 }, () => { apiOnline.value = false; });
 const stackPoll = createPoll(signal => appApi<StackStatus>('/api/stack/status', { signal }), value => {
   stackStatus.value = value; stackError.value = '';
@@ -364,20 +368,7 @@ const globalStop = async () => {
 };
 
 // ---- 模式选择（原 selectMode / toggle 逻辑）----
-const pickMode = (mode: ActiveMode) => {
-  if (status.value?.capabilities[mode] !== true) {
-    showError(new Error('此模式尚未实现'));
-    return;
-  }
-  selectedMode.value = mode;
-};
-// 开关直接驱动后端：打开=切换到该模式，关闭=回 idle。
-// 勾选态由后端 status 派生（见 isModeOn），本地不再另立状态。
-const onToggle = (mode: ActiveMode, checked: boolean | null) => {
-  if (switching.value) return;
-  selectedMode.value = mode;
-  void (checked ? switchMode(mode) : switchMode('idle'));
-};
+const pickMode = (mode: ActiveMode) => { selectedMode.value = mode; };
 
 // ---- 实时快捷控制（静音 / 干声直通，仅 RT_RVC 运行时可用）----
 const realtimeAvailable = computed(() =>
@@ -449,8 +440,12 @@ onUnmounted(() => {
   <header class="app-header flex flex-wrap md:flex-nowrap items-center gap-3 px-4 md:px-8 py-3.5 border-b border-edge-soft bg-surface shrink-0">
     <h1 class="text-lg font-extrabold tracking-tight text-ink" translate="no">MOZART</h1>
 
-    <!-- 全局硬件状态：桌面端右对齐，移动端独占一行并可横向查看 -->
-    <div class="order-3 md:order-none w-full md:w-auto md:ml-auto min-w-0 flex items-center justify-start md:justify-end gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Global hardware status">
+    <div class="order-3 md:order-none w-full md:w-auto md:ml-auto min-w-0 flex flex-wrap md:flex-nowrap items-center gap-2" role="group" aria-label="连接与资源">
+      <div data-status="api" class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><path d="M6 6h.01M6 18h.01M10 6h8m-8 12h8"/></svg>
+        <span class="hw-label">API</span>
+        <span :class="stateClass(apiOnline)">{{ apiOnline ? '在线' : '离线' }}</span>
+      </div>
       <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
         <span class="hw-label">CPU</span>
@@ -461,30 +456,10 @@ onUnmounted(() => {
         <span class="hw-label">RAM</span>
         <strong class="font-mono text-xs text-ink tabular-nums" v-html="statCache"></strong>
       </div>
-      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
+      <div class="hardware-stat hidden md:flex items-center gap-2 shrink-0 px-3 py-1">
         <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M9 1v3m6-3v3M9 20v3m6-3v3M20 9h3m-3 6h3M1 9h3m-3 6h3"/></svg>
         <span class="hw-label">GPU</span>
         <strong class="font-mono text-xs text-ink tabular-nums">{{ statVram }}</strong>
-      </div>
-      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 10v3m4-7v11m4-14v18m4-13v7m4-10v13m4-8v3"/></svg>
-        <span class="hw-label">PIPEWIRE</span>
-        <span :class="stateClass(monitor?.pipewire.available ?? null)">{{ monitor?.pipewire.available === undefined ? 'UNKNOWN' : monitor.pipewire.available ? 'AVAILABLE' : 'OFFLINE' }}</span>
-      </div>
-      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 12h2l2-6 4 12 3-8 2 4h5"/></svg>
-        <span class="hw-label">VAD</span>
-        <span :class="stateClass(monitor?.vad.available ? true : monitor?.vad.available === undefined ? null : false)">{{ monitor?.vad.available ? `${monitor.vad.voiced_percent.toFixed(0)}% VOICED` : monitor?.vad.available === undefined ? 'N/A' : 'NO STREAM' }}</span>
-      </div>
-      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7z"/></svg>
-        <span class="hw-label">CUDA</span>
-        <span :class="stateClass(monitor?.cuda.available ?? null)">{{ monitor?.cuda.available === undefined ? 'UNKNOWN' : monitor.cuda.available ? 'AVAILABLE' : 'UNAVAILABLE' }}</span>
-      </div>
-      <div class="hardware-stat flex items-center gap-2 shrink-0 px-3 py-1">
-        <svg class="hardware-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><path d="M6 6h.01M6 18h.01M10 6h8m-8 12h8"/></svg>
-        <span class="hw-label">API</span>
-        <span :class="stateClass(apiOnline)">{{ apiOnline ? 'ONLINE' : 'OFFLINE' }}</span>
       </div>
     </div>
 
@@ -495,14 +470,16 @@ onUnmounted(() => {
     </button>
   </header>
 
-  <!-- 三栏主布局 -->
-  <main id="main-content" :class="['flex-1 min-h-0 grid grid-cols-1 bg-app overflow-visible md:overflow-hidden', speechOnly ? 'md:grid-cols-[240px_1fr]' : 'md:grid-cols-[300px_1fr_340px]']">
+  <div v-if="toastMessage" class="fixed bottom-4 right-4 z-50 max-w-sm mx-4 banner-warn text-xs p-3 shadow-lg" role="alert" aria-atomic="true">{{ toastMessage }}</div>
+
+  <!-- 主布局 -->
+  <main id="main-content" :class="['flex-1 min-h-0 grid grid-cols-1 bg-app overflow-visible md:overflow-hidden', speechOnly ? 'md:grid-cols-1' : 'md:grid-cols-[200px_1fr_340px]']">
 
     <!-- 左栏：全局控制、系统运行模式与导航 -->
-    <section class="left-sidebar bg-panel border-r border-edge-soft overflow-visible md:overflow-hidden md:h-full" aria-label="System Navigation">
+    <section v-if="!speechOnly" class="left-sidebar bg-panel border-r border-edge-soft overflow-visible md:overflow-hidden md:h-full" aria-label="RVC 控制">
       <div class="sidebar-controls space-y-4 p-4 md:px-5 md:py-3 md:overflow-y-auto">
         <!-- RVC 运行控制 -->
-        <div v-if="!speechOnly" class="relative">
+        <div class="relative">
           <div class="flex items-center gap-2 min-h-[24px] mb-2" aria-live="polite">
             <div class="relative w-5 h-5 flex items-center justify-center" aria-hidden="true">
               <svg :class="['system-state-icon', status?.mode !== 'idle' ? 'state-ok' : 'hidden']" aria-hidden="true" fill="currentColor" viewBox="0 0 48 48"><path d="M24 2a22 22 0 1 0 0 44 22 22 0 0 0 0-44Z"/><path fill="#fff" d="m20 15 14 9-14 9V15Z"/></svg>
@@ -523,40 +500,21 @@ onUnmounted(() => {
               <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6V6Z"/></svg>
             </button>
           </div>
-          <div :class="['absolute top-full left-0 right-0 z-20 mt-2 transition-transform transition-opacity duration-200 banner-warn text-xs p-3 shadow-lg flex items-start gap-2.5 pointer-events-none', toastMessage ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0']" role="alert" aria-atomic="true">
-            <svg class="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4m0 4h.01"/></svg>
-            <div class="min-w-0 leading-relaxed"><span class="mr-1 font-mono font-bold text-micro opacity-80">WARN</span><span>{{ toastMessage }}</span></div>
-          </div>
+
         </div>
 
         <!-- 系统模式列表 -->
-        <div v-if="!speechOnly">
-          <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase mb-3 section-title" data-i18n="systemModesTitle">RVC 模式</h2>
-          <div class="space-y-2" role="group" aria-label="System modes">
-            <div v-for="mode in MODES" :key="mode" :class="['mode-row w-full rounded-md transition-colors duration-150 hover-subtle border border-transparent group flex items-stretch overflow-hidden', selectedMode === mode && 'is-selected']" :data-mode="mode">
-              <button type="button" class="flex-1 p-3.5 min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset ring-ink" :data-mode="mode" :aria-pressed="selectedMode === mode" @click="pickMode(mode)">
-                <span class="mode-name block font-mono text-sm text-ink-2" translate="no">{{ mode.toUpperCase() }}</span>
-              </button>
-              <div class="w-px divider"></div>
-              <div class="w-14 flex items-center justify-center p-2 shrink-0">
-                <div class="relative inline-block w-9 h-5 align-middle select-none">
-                  <input type="checkbox" :id="`toggle-${mode}`" :checked="isModeOn(mode)" :disabled="switching || status?.capabilities[mode] !== true" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-surface border-2 border-edge appearance-none cursor-pointer transition-[left,right,border-color] duration-150 ease-in-out top-0.5 left-0.5 checked:left-auto checked:right-0.5" :aria-label="`Toggle ${mode.toUpperCase()}`" @change="onToggle(mode, ($event.target as HTMLInputElement).checked)">
-                  <label :for="`toggle-${mode}`" class="toggle-label block overflow-hidden h-5 rounded-full cursor-pointer"></label>
-                </div>
-              </div>
-            </div>
+        <div>
+          <div class="space-y-2" role="group" aria-label="RVC 模式">
+            <button v-for="mode in MODES" :key="mode" type="button"
+              :class="['mode-row w-full rounded-md p-3.5 text-left flex items-center justify-between gap-2 border border-transparent hover-subtle focus-visible:ring-2 ring-ink', selectedMode === mode && 'is-selected']"
+              :data-mode="mode" :aria-pressed="selectedMode === mode"
+              :disabled="switching || status?.capabilities[mode] !== true" @click="pickMode(mode)">
+              <span class="mode-name text-sm text-ink-2">{{ mode === 'rt_rvc' ? '实时变声' : '文件变声' }}</span>
+              <span v-if="isModeOn(mode)" class="chip chip-ok">运行中</span>
+            </button>
           </div>
-          <p v-if="speechOnly" class="mt-3 text-xs text-ink-3">翻译播报配置 · RVC 已关闭以释放内存</p>
-          <a href="#reference-speech" class="block mt-3 text-xs font-bold text-ink underline">管理参考音色与翻译播报</a>
         </div>
-
-        <div v-else class="space-y-3">
-          <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase section-title">翻译与参考音色</h2>
-          <p class="text-xs text-ink-2 leading-5">在右侧选择参考音色，生成语音预览，或启用翻译播报。</p>
-          <a href="#reference-speech" class="block text-xs font-bold text-ink underline">管理参考音色与翻译播报</a>
-        </div>
-
-        <GlossaryPanel />
 
         <!-- 挂起切换状态槽 -->
         <div :class="['banner-warn flex items-start gap-2.5 p-3.5', !status?.pending_target_mode && 'hidden']" aria-live="polite">
@@ -573,7 +531,7 @@ onUnmounted(() => {
     </section>
 
     <!-- 中栏：主操作面板 -->
-    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-visible md:overflow-y-auto md:h-full" aria-label="会话与播报">
+    <section class="px-3 py-3 md:px-5 md:py-4 w-full flex flex-col flex-1 min-h-0 gap-3 overflow-visible md:overflow-y-auto md:h-full" :class="{ 'max-w-5xl mx-auto': speechOnly }" aria-label="会话与播报">
 
       <div class="shrink-0 flex flex-col">
 
@@ -581,8 +539,7 @@ onUnmounted(() => {
       <SpeechPanel id="reference-speech" :stack-status="stackStatus" />
 
       <!-- FILE 模式：音频文件上传 -->
-      <div :class="['mb-6', !isFileMode(selectedMode) && 'hidden']">
-        <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase mb-3 section-title" data-i18n="uploadTitle">上传音频文件</h2>
+      <div :class="['mb-6', (!status?.capabilities.file_rvc || !isFileMode(selectedMode)) && 'hidden']">
         <label class="dropzone relative p-8 flex flex-col items-center justify-center cursor-pointer">
           <input type="file" accept="audio/*" aria-label="Upload Audio File" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" :key="uploadInputValue" @change="uploadFile = ($event.target as HTMLInputElement).files?.[0] ?? null; uploadFileName = uploadFile?.name ?? ''; uploadInputValue = ($event.target as HTMLInputElement).value">
           <svg class="w-8 h-8 text-ink-4 mb-3" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
@@ -599,8 +556,7 @@ onUnmounted(() => {
       </div>
 
       <!-- FILE 模式：处理任务与进度 -->
-      <div :class="['mb-6', !isFileMode(selectedMode) && 'hidden']" aria-live="polite">
-        <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase mb-3 section-title" data-i18n="processingTitle">Audio Processing</h2>
+      <div :class="['mb-6', (!status?.capabilities.file_rvc || !isFileMode(selectedMode)) && 'hidden']" aria-live="polite">
         <div class="space-y-4">
           <div class="flex justify-between items-center min-w-0 gap-3">
             <span class="font-mono text-2xl font-bold text-ink tabular-nums shrink-0">{{ activeJob?.progress ?? 0 }}%</span>
@@ -613,7 +569,6 @@ onUnmounted(() => {
 
           <div class="flex justify-between items-center text-xs">
             <span class="chip chip-subtle text-tiny">{{ taskBadgeText }}</span>
-            <span class="font-mono text-ink-4 tabular-nums text-tiny">0:00 / 0:00</span>
           </div>
 
           <div class="flex gap-3 pt-2">
@@ -656,7 +611,6 @@ onUnmounted(() => {
       <details id="log-panel" class="console-log shrink-0">
         <summary class="console-header cursor-pointer px-3 py-2 text-xs font-bold">系统日志</summary>
         <div class="console-header flex items-center justify-between gap-2 px-3 py-2 font-mono">
-          <h2 class="text-tiny font-extrabold tracking-[0.16em] uppercase section-title shrink-0" data-i18n="logsTitle">系统日志</h2>
           <div class="flex items-center gap-1 min-w-0">
             <select v-model="logFilter" class="terminal-select min-w-0 text-tiny border-0 px-1.5 py-1 focus:outline-none" autocomplete="off" aria-label="Filter logs by mode">
               <option value="all" data-i18n="logFilterAll">全部模式</option>
@@ -680,6 +634,7 @@ onUnmounted(() => {
         </div>
       </details>
 
+      <GlossaryPanel class="card p-4 shrink-0" />
     </section>
 
     <!-- 右栏：参数设置与硬件状态 -->
@@ -690,7 +645,7 @@ onUnmounted(() => {
       <!-- 参数设置（按模式切换） -->
       <div class="card p-3">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase section-title" data-i18n="paramsTitle">Parameters</h2>
+          <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase section-title" data-i18n="paramsTitle">变声参数</h2>
           <span class="text-micro font-mono font-bold text-ink-2 bg-surface border border-edge rounded-sm px-2 py-1" translate="no">{{ selectedMode.toUpperCase() }}</span>
         </div>
         <div class="border-y border-edge py-2.5 mb-3">
@@ -705,11 +660,6 @@ onUnmounted(() => {
             </button>
             <button type="button" class="btn btn-accent btn-sm" @click="savePreset">保存预设</button>
             <button type="button" class="btn btn-danger btn-sm" :disabled="!selectedPresetId" @click="deletePreset">删除预设</button>
-          </div>
-          <div class="grid grid-cols-3 gap-2 mt-2.5 font-mono text-micro text-ink-3">
-            <span class="truncate" translate="no">RVC · RMVPE</span>
-            <span class="text-center">{{ parameterRows.length }} CONTROLS</span>
-            <span class="text-right truncate">{{ selectedPresetId ? 'PRESET' : 'DEFAULT' }}</span>
           </div>
         </div>
         <div class="space-y-3">
@@ -728,11 +678,7 @@ onUnmounted(() => {
 
       <!-- 当前模式的单一音色选择，不保留队列 -->
       <div class="card p-3">
-        <div class="flex items-center justify-between gap-3 mb-2">
-          <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase section-title" data-i18n="speakerTitle">声音角色选择</h2>
-          <span class="text-micro font-mono font-bold text-ink-2 bg-surface border border-edge rounded-sm px-2 py-1" translate="no">{{ selectedMode.toUpperCase() }}</span>
-        </div>
-        <label for="speaker-select" class="block text-micro font-bold tracking-wide text-ink-3 mb-2">当前音色</label>
+        <label for="speaker-select" class="block text-xs font-bold text-ink mb-2">变声音色</label>
         <select id="speaker-select" v-model="selectedModel" name="speaker-selection" class="field w-full min-w-0 text-xs px-3 py-2" autocomplete="off" aria-label="选择当前音色" :disabled="!models.length">
           <option v-if="!models.length" value="" selected disabled>{{ models.length === 0 && status === null ? '正在加载模型...' : '未找到可用模型' }}</option>
           <option v-for="model in models" :key="model.id" :value="model.id">{{ model.id }}</option>

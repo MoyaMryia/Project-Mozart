@@ -68,7 +68,6 @@ onMounted(load);
 <template>
   <section class="space-y-2" aria-label="术语表">
     <h2 class="text-xs font-extrabold tracking-wider text-ink uppercase section-title">术语表</h2>
-    <p class="text-xs text-ink-3">源文出现这些词时写入翻译提示。例如 网赌 → online gambling。</p>
 
     <div v-for="(entry, index) in entries" :key="entry.term" class="flex gap-2 items-center text-xs">
       <span class="font-mono text-ink w-20 shrink-0">{{ entry.term }}</span>
@@ -78,7 +77,7 @@ onMounted(load);
 
     <div class="flex gap-2 items-center text-xs">
       <input v-model="term" class="field w-20 shrink-0 px-2 py-1 text-xs" maxlength="8" placeholder="词条">
-      <input v-model="meaning" class="field flex-1 min-w-0 px-2 py-1 text-xs" maxlength="60" placeholder="English meaning">
+      <input v-model="meaning" class="field flex-1 min-w-0 px-2 py-1 text-xs" maxlength="60" placeholder="英文译法">
       <button class="btn btn-outline btn-md shrink-0" :disabled="busy || !term.trim() || !meaning.trim()" @click="add">添加</button>
     </div>
 
