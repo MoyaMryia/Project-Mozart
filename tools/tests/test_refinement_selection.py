@@ -380,26 +380,99 @@ class RefinementDeliveryTests(unittest.TestCase):
 
 
 class OfflineTranslationOracleTests(unittest.TestCase):
-    def test_recorded_outputs_pass_and_original_errors_fail(self):
+    def setUp(self):
         root = Path(__file__).resolve().parents[2] / 'rvc-golden/asr-selection-20261028'
         spec = importlib.util.spec_from_file_location('asr_offline_probe', root / 'probe.py')
-        probe = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(probe)
-        rows = json.loads((root / 'results.json').read_text())['records']
-        self.assertTrue(all(probe.regression_checks(rows).values()))
+        self.probe = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.probe)
+        self.rows = json.loads((root / 'results.json').read_text())['records']
+
+    def test_original_checks_hold_and_record_9_semantics_fail(self):
+        checks = self.probe.regression_checks(self.rows)
+        for name in ('all_candidates_completed', 'record_8', 'record_16', 'record_17',
+                     'record_39', 'record_41', 'record_42', 'record_43'):
+            with self.subTest(name=name):
+                self.assertTrue(checks[name])
+        for seq in (8, 16, 17, 39, 41, 42, 43):
+            with self.subTest(seq=seq):
+                self.assertTrue(checks['semantic_record_' + str(seq)])
+        self.assertFalse(checks['semantic_record_9'])
+        self.assertFalse(all(checks.values()))
+
+    def test_original_errors_still_fail_the_keyword_checks(self):
         for seq in (8, 16, 17, 39, 41, 42):
             with self.subTest(seq=seq):
-                changed = copy.deepcopy(rows)
+                changed = copy.deepcopy(self.rows)
                 row = next(row for row in changed if row['seq'] == seq)
                 row['candidate'] = dict(row['baseline'])
-                self.assertFalse(probe.regression_checks(changed)['record_' + str(seq)])
-        changed = copy.deepcopy(rows)
+                self.assertFalse(self.probe.regression_checks(changed)['record_' + str(seq)])
+        changed = copy.deepcopy(self.rows)
         row = next(row for row in changed if row['seq'] == 43)
         row['candidate']['en'] = 'Unfortunately, the State refused our terms.'
-        self.assertFalse(probe.regression_checks(changed)['record_43'])
-        changed = copy.deepcopy(rows)
+        self.assertFalse(self.probe.regression_checks(changed)['record_43'])
+        changed = copy.deepcopy(self.rows)
         changed[0]['candidate']['status'] = 'failed'
-        self.assertFalse(probe.regression_checks(changed)['all_candidates_completed'])
+        self.assertFalse(self.probe.regression_checks(changed)['all_candidates_completed'])
+
+    def test_semantic_counterexamples_fail_while_the_keyword_survives(self):
+        # 关键词仍然命中时，语义断言必须单独拒绝改义译文。
+        for seq, english in [(8, 'Genshin Impact is a movie.'),
+                             (8, 'Genshin Impact is not a game.'),
+                             (41, 'The government is powerless against this.'),
+                             (42, "Unfortunately, we rejected the United Kingdom's terms."),
+                             (43, 'Unfortunately, the United Kingdom approved our terms.')]:
+            with self.subTest(seq=seq):
+                changed = copy.deepcopy(self.rows)
+                row = next(row for row in changed if row['seq'] == seq)
+                row['candidate']['en'] = english
+                checks = self.probe.regression_checks(changed)
+                self.assertTrue(checks['record_' + str(seq)])
+                self.assertFalse(checks['semantic_record_' + str(seq)])
+
+    def test_semantic_counterexamples_fail_for_swapped_and_replaced_objects(self):
+        for seq, english in [(16, 'Middle Eastern English.'),
+                             (39, 'You are stunned brother.'),
+                             (39, 'I am stunned by your brother.'),
+                             (42, 'Sincere regret that the State refused our terms.')]:
+            with self.subTest(seq=seq):
+                changed = copy.deepcopy(self.rows)
+                row = next(row for row in changed if row['seq'] == seq)
+                row['candidate']['en'] = english
+                self.assertFalse(self.probe.regression_checks(changed)['semantic_record_' + str(seq)])
+
+    def test_correct_text_without_terminal_punctuation_passes_semantics(self):
+        for seq, english in [(8, 'Genshin Impact is a game'),
+                             (41, 'We are powerless against this'),
+                             (42, 'Sincere regret that the United Kingdom refused our terms')]:
+            with self.subTest(seq=seq):
+                changed = copy.deepcopy(self.rows)
+                row = next(row for row in changed if row['seq'] == seq)
+                row['candidate']['en'] = english
+                checks = self.probe.regression_checks(changed)
+                self.assertTrue(checks['record_' + str(seq)])
+                self.assertTrue(checks['semantic_record_' + str(seq)])
+
+    def test_reserved_cases_are_checked_when_supplied_to_the_probe(self):
+        contract = self.probe.semantic_contract()
+        reserved = {case.id: {'status': 'completed', 'en': case.reference_en}
+                    for case in contract.cases if case.seq is None}
+        checks = self.probe.regression_checks(self.rows, contract, reserved)
+        self.assertTrue(all(checks['semantic_' + key] for key in reserved))
+        key = 'reserved_printer_quantity'
+        reserved[key]['en'] = 'We bought four printers.'
+        self.assertFalse(self.probe.regression_checks(self.rows, contract, reserved)['semantic_' + key])
+        del reserved[key]
+        self.assertFalse(self.probe.regression_checks(self.rows, contract, reserved)['semantic_' + key])
+
+    def test_completed_fragment_fails_the_semantic_check(self):
+        for english in ('We shall do what we must do.', 'We shall do what we must do'):
+            with self.subTest(english=english):
+                changed = copy.deepcopy(self.rows)
+                row = next(row for row in changed if row['seq'] == 9)
+                row['candidate']['en'] = english
+                checks = self.probe.regression_checks(changed)
+                self.assertFalse(checks['semantic_record_9'])
+                self.assertFalse(all(checks.values()))
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ import homophones
 import json
 from pathlib import Path
 import signal
+import sqlite3
 import subprocess
 import sys
 import time
@@ -21,6 +22,8 @@ import threading
 import queue
 from durable_jobs import DiskFifo
 from collections import OrderedDict
+from copy import deepcopy
+from speech_outbox import SpeechOutbox, REQUEST_TIMEOUT_SECONDS
 from translation_checks import repeated_source_terms
 from speech_duration import source_duration
 from translation_checks import missing_numbers, required_numbers, repeated_numbers, added_large_numbers, values_changed_to_item_counts, changed_loan_repayment, normalize_translation_quantities, MONTH_PATTERN, source_role_constraints, changed_explicit_roles, added_negation
@@ -321,6 +324,14 @@ def source_caption(event, seq, session_id):
     return record
 
 
+def speech_request(event, record, source_text):
+    return {'text': record['en'], 'source_text': source_text,
+            'source_duration_seconds': source_duration(event),
+            'source_emitted_at': event.get('emitted_at'),
+            'delivery_created_at': record['translated_at'],
+            'utterance_id': record['utterance_id']}
+
+
 def caption_updates(event, seq, session_id, llama_url, speech_url=None, translate_text=None):
     """Publish source text, then translation, then the speech request result.
 
@@ -364,11 +375,8 @@ def caption_updates(event, seq, session_id, llama_url, speech_url=None, translat
 
     if speech_url and record['translation_status'] == 'completed':
         try:
-            result = request_json(speech_url+'/api/speech/events', {
-                'text': record['en'], 'source_text': source_text,
-                'source_duration_seconds': source_duration(event),
-                'source_emitted_at': event.get('emitted_at'),
-                'utterance_id': record['utterance_id']}, timeout=3)
+            result = request_json(speech_url+'/api/speech/events',
+                                  speech_request(event, record, source_text), timeout=REQUEST_TIMEOUT_SECONDS)
             record['speech'] = result.get('id', result.get('skipped', ''))
         except (OSError, ValueError) as error:
             record['speech_error'] = str(error)
@@ -380,7 +388,7 @@ class CaptionDispatcher:
     """Publish source captions while one worker processes queued translations."""
 
     def __init__(self, publish, session_id, llama_url, speech_url=None, pending_limit=4,
-                 spool_path=None, refine=False):
+                 spool_path=None, refine=False, speech_spool_path=None):
         self.publish, self.session_id = publish, session_id
         self.llama_url, self.speech_url = llama_url, speech_url
         self.durable = spool_path is not None
@@ -394,6 +402,13 @@ class CaptionDispatcher:
         self.refined = {}
         self.queue_owner = uuid.uuid4().hex
         self.refined_ready = threading.Condition(self.lock)
+        self.outbox = None
+        if speech_url:
+            if speech_spool_path is None and spool_path is not None:
+                speech_spool_path = spool_path.with_name(spool_path.stem+'-speech.sqlite3')
+            self.outbox = SpeechOutbox(speech_spool_path,
+                lambda body: request_json(speech_url+'/api/speech/events', body, timeout=REQUEST_TIMEOUT_SECONDS),
+                self.speech_update)
         self.worker = threading.Thread(target=self.run, daemon=True)
         self.worker.start()
 
@@ -410,6 +425,30 @@ class CaptionDispatcher:
             if self.durable:
                 self.pending.save_record(key, record)
             self.publish(dict(record))
+
+    def speech_update(self, context, changes):
+        with self.lock:
+            if self.aborted:
+                return False
+            key = context['key']
+            if key not in self.latest:
+                self.latest[key] = deepcopy(context['record'])
+            self.update(key, changes, create=True)
+            context['record'] = deepcopy(self.latest[key])
+            return True
+
+    def enqueue_speech(self, event, record, source_text, context):
+        with self.lock:
+            if self.aborted:
+                return
+            body = speech_request(event, record, source_text)
+            try:
+                changes = self.outbox.enqueue(body, context)
+            except (OSError, sqlite3.Error, ValueError) as error:
+                self.speech_update(context, {'speech_submission_status': 'failed', 'speech_error': str(error)})
+                raise RuntimeError(f'Speech delivery enqueue failed: {error}') from error
+            if self.speech_update(context, changes):
+                self.outbox.acknowledge(body['utterance_id'], changes, context)
 
     def accept(self, event):
         if self.closing.is_set():
@@ -473,7 +512,17 @@ class CaptionDispatcher:
 
     def run(self):
         try:
-            self.process_pending()
+            if self.outbox is not None:
+                self.outbox.start()
+            try:
+                self.process_pending()
+            except Exception:
+                if self.outbox is not None:
+                    self.outbox.abort()
+                raise
+            finally:
+                if self.outbox is not None:
+                    self.outbox.close()
         except Exception as error:
             self.worker_error = error
             raise
@@ -484,6 +533,8 @@ class CaptionDispatcher:
     def raise_worker_error(self):
         if self.worker_error is not None:
             raise RuntimeError(f'Translation worker failed: {self.worker_error}') from self.worker_error
+        if self.outbox is not None:
+            self.outbox.raise_worker_error()
 
     def await_refinement(self, event, *, deadline, diagnostics=None):
         """使用接收最终识别时确定的截止时间，等待同一 seq 的复核终态。"""
@@ -534,6 +585,13 @@ class CaptionDispatcher:
             diagnostics = {'translation_queue_wait_ms': (
                 round((time.monotonic()-item['enqueued_monotonic'])*1000) if clock_current else None)}
             try:
+                if self.outbox is not None:
+                    restored = self.outbox.lookup(key)
+                    if restored is not None:
+                        context, changes = restored
+                        if self.speech_update(context, changes):
+                            self.outbox.acknowledge(key, changes, context)
+                        continue
                 if self.refine:
                     # 本实例入队时已写入截止时间；恢复项目使用独立路径。
                     deadline = item['refinement_deadline_monotonic'] if clock_current else None
@@ -544,8 +602,7 @@ class CaptionDispatcher:
                                        translation_source_text=translate_text, translation_refinement_wait_ms=0)
                 updates = caption_updates({**event, **diagnostics, '_translation_clock_current': clock_current},
                                           event['seq'], session_id,
-                                          self.llama_url, self.speech_url,
-                                          translate_text=translate_text)
+                                          self.llama_url, translate_text=translate_text)
                 next(updates)
                 for record in updates:
                     if self.aborted:
@@ -555,6 +612,9 @@ class CaptionDispatcher:
                                ('en', 'translate_ms', 'translated_at')}
                     changes.update(diagnostics)
                     self.update(key, changes)
+                    if self.outbox is not None and record['translation_status'] == 'completed':
+                        context = {'key': key, 'record': deepcopy(self.latest[key])}
+                        self.enqueue_speech(event, record, translate_text, context)
             except (OSError, ValueError) as error:
                 self.update(key, {'translation_status': 'failed', 'translation_error': str(error)})
             except Exception:
@@ -580,6 +640,8 @@ class CaptionDispatcher:
                         self.update(key, {'translation_status': 'skipped',
                             'translation_error': 'Translation stopped at the shutdown deadline'})
                 self.aborted = True
+                if self.outbox is not None:
+                    self.outbox.abort()
         self.raise_worker_error()
         return not self.worker.is_alive()
 
@@ -650,6 +712,7 @@ def main():
             dispatcher = dispatcher_type(publish, session_id, args.llama_url,
                 args.speech_url if args.speak else None,
                 spool_path=(args.queue_dir/queue_name) if args.delivery_policy == 'coverage' else None,
+                speech_spool_path=args.queue_dir/(Path(queue_name).stem+'-speech.sqlite3'),
                 **dispatcher_options)
             try:
                 for line in stt.stdout:

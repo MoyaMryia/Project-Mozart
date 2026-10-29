@@ -58,6 +58,18 @@ export function captionTiming(caption: SubtitleEvent | null): CaptionTiming | nu
   return { label, title: segments.join('\n') };
 }
 
+export function captionSpeechStatus(caption: SubtitleEvent | null): string {
+  switch (caption?.speech_submission_status) {
+    case 'queued': return '播报请求已排队';
+    case 'sending': return '正在投递播报请求';
+    case 'retrying': return `播报投递重试中，已尝试 ${caption.speech_submission_attempts ?? 0} 次`;
+    case 'submitted': return '语音服务已受理';
+    case 'skipped': return '播报请求已跳过';
+    case 'failed': return '播报投递失败';
+    default: return '';
+  }
+}
+
 export function latestTranslation(events: SubtitleEvent[]): SubtitleEvent | null {
   for (let i = events.length-1; i >= 0; i--) {
     if (events[i].en) return events[i];

@@ -384,6 +384,38 @@ It contains continuous input, automatic drafts, and a review page.
 Automatic drafts are not human-confirmed references.
 The [source review report](../reports/sentence-context-20261007/RESULTS.md) gives the confirmed scope.
 
+### Independent speech delivery
+
+Whole-utterance and stable-clause workers store accepted translations in a separate speech outbox.
+A delivery worker submits these requests in FIFO order. Translation does not wait for the HTTP response.
+The CLI stores this outbox beside its translation queue, including when the realtime delivery policy is selected.
+The `SpeechOutbox` constants in [speech_outbox.py](speech_outbox.py) define the delivery policy.
+
+Each HTTP request has a 3-second timeout. Transient failures allow three total attempts with a 1-second retry delay.
+HTTP 408, HTTP 429, server errors, and transport errors permit retries.
+Other HTTP errors and invalid admission responses fail the delivery explicitly.
+
+The outbox retains the original `utterance_id` across retries and restarts.
+The speech service keeps a persistent admission ledger before it returns an accepted job.
+Pruning a job archives its admission snapshot. A duplicate then returns the original ID with `archived: true` and `result_available: false`.
+That response does not create another synthesis task.
+Storage errors stop admission and remain queryable through speech status.
+
+Admission snapshots remain stored for the lifetime of the service data directory.
+Outbox snapshots remain stored for the lifetime of the queue directory.
+When replacing these directories, archive both together after stopping the services.
+
+Bridge requests include `delivery_created_at` and the available source emission timestamp.
+Explicit stop updates `last_stop_at` and reports storage errors. The service rejects delayed requests whose source or delivery timestamp predates that stop.
+The original source timestamp takes precedence over the delivery creation timestamp.
+A successful stop-state write preserves this cutoff across session activation and service restart.
+
+If stop reports a storage error, repair storage. Repeat the stop request before restarting the service.
+
+Caption delivery fields are documented in the [state API](../state/API.md#captions-parameters-and-speech).
+Offline semantic regression uses explicit reference facts and reserved cases.
+Its scope and the known rejected historical output are in the [local regression report](../reports/speech-delivery-semantics-20261028/RESULTS.md).
+
 ## API
 
 | Request | Contract |
