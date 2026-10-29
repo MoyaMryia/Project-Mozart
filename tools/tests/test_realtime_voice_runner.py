@@ -173,6 +173,55 @@ class RealtimeVoiceRunnerTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('参考音频不存在', result.stderr)
 
+    def test_speech_early_audio_requires_a_boolean_switch(self):
+        config = self.prepare_start_dependencies(PLAYBACK)
+        result = self.run_start(OUTPUT='speech', CONFIG=str(config), SPEECH_EARLY_AUDIO='yes')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('SPEECH_EARLY_AUDIO 必须是 0 或 1', result.stderr)
+
+    def captured_speech_start(self, **settings):
+        config = self.prepare_start_dependencies(PLAYBACK)
+        argv_file = self.root/'stack-argv.json'
+        fake_python = self.root/'fake-python'
+        self.write_executable(fake_python, '''#!/usr/bin/env python3
+import json, os, sys
+from pathlib import Path
+Path(os.environ['FAKE_STACK_ARGV']).write_text(json.dumps(sys.argv[1:]))
+sys.exit(9)
+''')
+        self.write_executable(self.bin/'curl', '#!/bin/sh\nexit 1\n')
+        result = self.run_start(OUTPUT='speech', CONFIG=str(config), PYTHON=str(fake_python),
+                                FAKE_STACK_ARGV=str(argv_file), **settings)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('未就绪', result.stderr)
+        return json.loads(argv_file.read_text())
+
+    def test_speech_forwards_early_audio_and_runtime_path_without_splitting(self):
+        runtime_path = self.root/'runtime package'/'python'
+        runtime_path.mkdir(parents=True)
+        runtime = str(runtime_path)
+        argv = self.captured_speech_start(SPEECH_EARLY_AUDIO='1', TTS_PYTHONPATH=runtime)
+        self.assertIn('--early-audio', argv)
+        self.assertEqual(argv[argv.index('--tts-pythonpath')+1], runtime)
+
+    def test_speech_missing_runtime_directory_fails_before_start(self):
+        config = self.prepare_start_dependencies(PLAYBACK)
+        result = self.run_start(OUTPUT='speech', CONFIG=str(config),
+                                TTS_PYTHONPATH=str(self.root/'missing-runtime'))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('TTS_PYTHONPATH 目录不存在', result.stderr)
+
+    def test_speech_runtime_relative_directory_is_resolved_once(self):
+        runtime = self.root/'runtime package'/'python'
+        runtime.mkdir(parents=True)
+        argv = self.captured_speech_start(TTS_PYTHONPATH=os.path.relpath(runtime))
+        self.assertEqual(argv[argv.index('--tts-pythonpath')+1], str(runtime))
+
+    def test_speech_default_retains_complete_piece_output(self):
+        argv = self.captured_speech_start()
+        self.assertNotIn('--early-audio', argv)
+        self.assertNotIn('--tts-pythonpath', argv)
+
     def test_environment_target_overrides_saved_target(self):
         self.seed_devices()
 

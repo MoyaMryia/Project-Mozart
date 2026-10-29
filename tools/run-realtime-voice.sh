@@ -12,7 +12,7 @@
 # 环境变量覆盖：CONFIG CAPTURE PLAYBACK MODEL PITCH INDEX_RATE INDEX_NPROBE
 #               API AUDIO_PORT RUN_DIR PYTHON CAPTIONS_DIR
 #               STT_MODEL FINAL_MODEL LLAMA_SERVER LLAMA_MODEL GLOSSARY CORRECTIONS
-#               OUTPUT REFERENCE REFERENCE_NAME
+#               OUTPUT REFERENCE REFERENCE_NAME SPEECH_EARLY_AUDIO TTS_PYTHONPATH
 # OUTPUT=voice 输出变声音频；OUTPUT=speech 输出译文播报。两者不同时输出。
 # API 默认 18181；字幕音频固定送往本机 18100；翻译使用本机 18200。
 set -euo pipefail
@@ -34,6 +34,8 @@ PLAYBACK=${PLAYBACK:-plughw:CARD=Device,DEV=0}
 OUTPUT=${OUTPUT:-voice}
 REFERENCE=${REFERENCE:-}
 REFERENCE_NAME=${REFERENCE_NAME:-Reference voice}
+SPEECH_EARLY_AUDIO=${SPEECH_EARLY_AUDIO:-0}
+TTS_PYTHONPATH=${TTS_PYTHONPATH:-}
 MODEL=${MODEL:-qiqi-zh}
 PITCH=${PITCH:-11}
 INDEX_RATE=${INDEX_RATE:-0.5}
@@ -252,6 +254,14 @@ command_start() {
     esac
     if [ "$OUTPUT" = speech ]; then
         [ -z "$REFERENCE" ] || [ -f "$REFERENCE" ] || fail "参考音频不存在: $REFERENCE"
+        case "$SPEECH_EARLY_AUDIO" in
+            0|1) ;;
+            *) fail "SPEECH_EARLY_AUDIO 必须是 0 或 1: $SPEECH_EARLY_AUDIO" ;;
+        esac
+        if [ -n "$TTS_PYTHONPATH" ]; then
+            [ -d "$TTS_PYTHONPATH" ] || fail "TTS_PYTHONPATH 目录不存在: $TTS_PYTHONPATH"
+            TTS_PYTHONPATH=$(cd -- "$TTS_PYTHONPATH" && pwd)
+        fi
     fi
     local api_port
     api_port=$(python3 - "$API" <<'PY'
@@ -282,6 +292,8 @@ PY
     if [ "$OUTPUT" = speech ]; then
         mode_args=(--mode full --playback-device "$PLAYBACK")
         [ -z "$REFERENCE" ] || extra+=(--reference "$REFERENCE" --reference-name "$REFERENCE_NAME")
+        [ "$SPEECH_EARLY_AUDIO" = 0 ] || extra+=(--early-audio)
+        [ -z "$TTS_PYTHONPATH" ] || extra+=(--tts-pythonpath "$TTS_PYTHONPATH")
     fi
     [ -z "$FINAL_MODEL" ] || extra+=(--final-model "$FINAL_MODEL")
     [ -z "${GLOSSARY:-}" ] || extra+=(--glossary "$GLOSSARY")
