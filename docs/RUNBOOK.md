@@ -47,6 +47,7 @@ OUTPUT=speech REFERENCE=/path/to/reference.wav tools/run-realtime-voice.sh start
 ```
 
 两种输出均运行字幕与翻译。输出选择与准备条件见[输出开关](../tools/REALTIME_VOICE.md#输出开关)。
+需要同时保留变声和播报时，用 `OUTPUT=both` 启动，并在控制台底部切换。切换规则见[控制台输出切换](../tools/REALTIME_VOICE.md#控制台输出切换)。
 需要提前输出音频时，按[提前输出说明](../tools/REALTIME_VOICE.md#提前输出音频)指定独立运行时。
 
 查询和切换设备：

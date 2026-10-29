@@ -21,9 +21,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import proto
 from pcm import read_block
 from src import AsyncSrc, TARGET_BLOCKS
+from status import StatusWriter
 
 MIC = os.environ.get('MOZART_MIC', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
 SPEAKER = os.environ.get('MOZART_SPEAKER', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
+STATUS_FILE = os.environ.get('MOZART_STATUS_FILE', proto.STATUS_FILE)
 # 帧长档位：1 发送 128 样本帧（2.67 ms），0 发送 20 ms 帧。
 FAST = os.environ.get('MOZART_FAST', '1') != '0'
 MNT = os.environ.get('MOZART_FFS', '/dev/ffs-mozart')
@@ -94,6 +96,7 @@ class Daemon:
         self.backlog_error = False
         self.started = 0.0
         self.pending = b''
+        self.status = StatusWriter(STATUS_FILE)
 
     # --- 子进程 ---
     def spawn(self, argv, **kwargs):
@@ -379,7 +382,22 @@ class Daemon:
             if time.monotonic() - self.last_frame_at > 3.0:
                 self.request_restart('发送停止，重启服务')
 
+    def status_snapshot(self):
+        """控制面查询桥是否在用与是否丢帧。"""
+        return {
+            'role': 'jetson',
+            'active': self.active.is_set() and not self.stopping.is_set(),
+            'sent': self.frames_in,
+            'received': self.frames_out,
+            'dropped': self.dropped,
+            'gaps': self.gaps,
+            'errors': self.errors,
+            'last_error': self.last_error,
+            'updated_at': time.time(),
+        }
+
     def report(self):
+        self.status.write(self.status_snapshot())
         level = 20 * math.log10(max(self.last_rms, 1e-9))
         suffix = f' 最近错误 {self.last_error}' if self.last_error else ''
         print(f'发 {self.frames_in} 收 {self.frames_out} 丢 {self.dropped} 缺口 {self.gaps} '

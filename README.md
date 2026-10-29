@@ -49,6 +49,7 @@ tools/run-realtime-voice.sh stop
 ```
 
 默认输出变声，字幕与翻译同时运行。设置 `OUTPUT=speech` 可选择译文播报。
+设置 `OUTPUT=both` 时变声与播报服务同时运行，由控制台切换当前输出。
 输出选择、参考音色、提前输出音频与日志见[实时入口](tools/REALTIME_VOICE.md)。
 部署与本地开发联调步骤见[运行手册](docs/RUNBOOK.md)。
 

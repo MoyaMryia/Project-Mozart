@@ -62,7 +62,28 @@ export interface RvcParameters {
 
 export interface Preset { id: string; name: string; parameters: RvcParameters; }
 
-export interface PreDevice { id: string; card?: number; label: string; }
+/** USB 桥状态：由 usb-audio 守护进程写入，控制面读后透传。 */
+export interface BridgeStatus {
+  active: boolean;
+  role?: string;
+  sent?: number;
+  received?: number;
+  dropped?: number;
+  gaps?: number;
+  errors?: number;
+  last_error?: string;
+  age_seconds?: number;
+  /** 桥不可用的原因；由设备清单脚本给出。 */
+  reason?: string;
+}
+
+export interface PreDevice {
+  id: string;
+  card?: number;
+  label: string;
+  /** local=本机声卡，usb=USB 协议对；缺省按 local 处理。 */
+  group?: 'local' | 'usb';
+}
 export interface PreProcessorState {
   state?: string;
   mode?: string;
@@ -72,7 +93,7 @@ export interface PreProcessorState {
 }
 export interface PreProcessorStatus {
   available: boolean;
-  devices: { capture: PreDevice[]; playback: PreDevice[] };
+  devices: { capture: PreDevice[]; playback: PreDevice[]; bridge?: BridgeStatus };
   current: { capture?: string; playback?: string };
   state?: PreProcessorState;
   error?: string;
@@ -128,7 +149,11 @@ export interface SubtitleEvent {
   ts: string;
 }
 
-export class ApiRequestError extends Error { override name = 'ApiRequestError'; }
+export class ApiRequestError extends Error {
+  override name = 'ApiRequestError';
+  /** HTTP 状态码；网络失败或正文无法解析时为 0。 */
+  status = 0;
+}
 
 export const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
   let response: Response;
@@ -146,7 +171,11 @@ export const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
     if (!(error instanceof SyntaxError)) throw error;
     throw new ApiRequestError(`服务返回了无法解析的数据（HTTP ${response.status}）`, { cause: error });
   }
-  if (!response.ok) throw new ApiRequestError(typeof body?.error === 'string' && body.error
-    ? body.error : `Backend returned HTTP ${response.status}`);
+  if (!response.ok) {
+    const failure = new ApiRequestError(typeof body?.error === 'string' && body.error
+      ? body.error : `Backend returned HTTP ${response.status}`);
+    failure.status = response.status;
+    throw failure;
+  }
   return body;
 };

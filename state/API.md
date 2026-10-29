@@ -78,6 +78,18 @@ Preprocessor updates require both device IDs:
 {"capture":"plughw:CARD=MIC,DEV=0","playback":"plughw:CARD=Device,DEV=0"}
 ```
 
+The device list from the restart script offers `null` as a playback device.
+The `null` playback keeps the preprocessor running without opening a speaker.
+The reference speech service then owns the playback device.
+
+Each device carries `id`, `label`, and `group`. `group` is `local` for an ALSA card
+and `usb` for the USB bridge pair. The pair is listed only when the machine exposes
+the matching loopback devices.
+`devices.bridge` reports `active`, `role`, `sent`, `received`, `dropped`, `gaps`,
+`errors`, `last_error`, `age_seconds`, and `reason` when the bridge is down.
+While `mozart-usb-audio` is not running, the restart script refuses a bridge device.\
+That failure returns HTTP 502 with the script message in `error`.
+
 Invalid device selections receive HTTP 422. Restart failures receive HTTP 502.
 In realtime mode, the controller rebuilds the UDP session after a successful device restart.
 The `session` response field reports `restarted` or `unchanged`.

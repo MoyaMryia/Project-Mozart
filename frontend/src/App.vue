@@ -7,6 +7,7 @@ import PrePanel from './PrePanel.vue';
 import SpeechPanel from './SpeechPanel.vue';
 import StackPanel from './StackPanel.vue';
 import { createPoll } from './poll';
+import { OutputPathError, selectOutput, type OutputActions, type OutputPath, type SpeechSnapshot } from './output-path';
 import { runtimeStages } from './runtime';
 import {
   captionSourceNote, captionSpeechStatus, captionText, captionTiming, latestTranslation, originalCaptionText,
@@ -378,20 +379,113 @@ const pickMode = (mode: ActiveMode) => { selectedMode.value = mode; };
 // ---- 实时快捷控制（静音 / 干声直通，仅 RT_RVC 运行时可用）----
 const realtimeAvailable = computed(() =>
   !!status.value && status.value.mode === 'rt_rvc' && (status.value.realtime?.available ?? false));
-const micMuted = computed(() => status.value?.realtime?.mic_muted ?? false);
 const bypassOn = computed(() => status.value?.realtime?.bypass ?? false);
-const setRouting = async (patch: Record<string, boolean>) => {
-  try {
+
+// ---- 输出路径：变声 / 翻译播报 / 直出（一次只允许一路占用播放设备）----
+// 译文播报的输出语言固定为英文；服务端只支持 en 与 zh。
+const SPEECH_LANGUAGE = 'en';
+interface SpeechStatusBody {
+  session?: { enabled: boolean; voice_id: string };
+  runtime_ready?: boolean;
+  control_generation?: number;
+  voices?: { id: string }[];
+}
+const speechSession = ref<{ enabled: boolean; voice_id: string; playback: boolean } | null>(null);
+const speechServiceAvailable = ref(false);
+const speechPoll = createPoll(signal => appApi<{ enabled: boolean; voice_id: string; playback: boolean }>('/api/speech/session', { signal }),
+  value => { speechSession.value = value; speechServiceAvailable.value = true; },
+  () => { speechSession.value = null; speechServiceAvailable.value = false; });
+const refreshSpeech = () => speechPoll.run();
+const speechAvailable = computed(() => speechServiceAvailable.value);
+const outputPath = computed<OutputPath>(() => speechSession.value?.enabled && speechSession.value.playback
+  ? 'speech' : bypassOn.value ? 'direct' : 'voice');
+const outputBusy = ref(false);
+const outputPlayback = computed(() => {
+  const devices = preStatus.value?.devices.playback ?? [];
+  const current = preStatus.value?.current?.playback ?? '';
+  if (current && current !== 'null') return current;
+  return devices.find(device => device.id !== 'null')?.id ?? '';
+});
+const outputActions = (generation: number): OutputActions => ({
+  setPlayback: async playback => {
+    const capture = preStatus.value?.current?.capture;
+    if (!capture) throw new OutputPathError('读取当前采集设备失败，先刷新设备面板');
+    await appApi('/api/preprocessor', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ capture, playback }),
+    });
+  },
+  // 播报进程启动时固定播放设备；面板切换输出时要把它指向同一设备。
+  setSpeechPlayback: async device => {
+    await appApi('/api/speech/playback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device }),
+    });
+  },
+  setRouting: async patch => {
     await appApi('/api/realtime/routing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     });
-    await refreshStatus(true);
-  } catch (error) { showError(error); }
+  },
+  stopSpeech: async () => {
+    await appApi('/api/speech/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expected_control_generation: generation }),
+    });
+  },
+  prepareSpeech: async () => {
+    await appApi('/api/speech/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expected_control_generation: generation }),
+    });
+  },
+  enableSpeech: async voiceId => {
+    await appApi('/api/speech/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: true, voice_id: voiceId, language: SPEECH_LANGUAGE, playback: true, expected_control_generation: generation }),
+    });
+  },
+});
+const loadSpeechSnapshot = async () => {
+  try {
+    const body = await appApi<SpeechStatusBody>('/api/speech/status');
+    return {
+      generation: body.control_generation,
+      snapshot: {
+        sessionEnabled: body.session?.enabled === true,
+        runtimeReady: body.runtime_ready === true,
+        voiceId: body.session?.voice_id || body.voices?.[0]?.id || '',
+      } satisfies SpeechSnapshot,
+    };
+  } catch (error) {
+    // 只有“播报服务未启动”能当成没有会话；其他失败必须上报，
+    // 否则可能在没有停止播放进程时重启预处理，争用同一个播放设备。
+    if (error instanceof ApiRequestError && error.status === 503) {
+      return { generation: undefined, snapshot: null };
+    }
+    throw error;
+  }
 };
-const toggleMicMute = () => void setRouting({ mic_muted: !micMuted.value });
-const toggleBypass = () => void setRouting({ bypass: !bypassOn.value });
+const runOutput = async (path: OutputPath) => {
+  // 已在该路径时不重启预处理，避免无谓的音频断点。
+  if (outputBusy.value || outputPath.value === path) return;
+  outputBusy.value = true;
+  try {
+    const { generation, snapshot } = await loadSpeechSnapshot();
+    await selectOutput(path, snapshot, outputActions(generation ?? 0), outputPlayback.value);
+    await refreshStatus(true);
+    // 轮询可能在途中，切换后必须重新读一次。
+    await Promise.all([prePoll.run(true), speechPoll.run(true)]);
+  } catch (error) { showError(error); }
+  finally { outputBusy.value = false; }
+};
 
 // ---- 字幕 SSE ----
 let stopSubtitles: (() => void) | undefined;
@@ -414,6 +508,7 @@ onMounted(() => {
   void refreshStatus();
   void stackPoll.run();
   void refreshPre();
+  void refreshSpeech();
   void refreshModels();
   void refreshLogs();
   void refreshParameters();
@@ -423,6 +518,7 @@ onMounted(() => {
   timers.push(window.setInterval(() => void refreshStatus(), 1000));
   timers.push(window.setInterval(() => void stackPoll.run(), 1000));
   timers.push(window.setInterval(() => void refreshPre(), 5000));
+  timers.push(window.setInterval(() => void refreshSpeech(), 5000));
   timers.push(window.setInterval(() => void refreshLogs(), 1500));
   timers.push(window.setInterval(() => void refreshMonitor().catch(() => undefined), 2000));
 });
@@ -430,7 +526,7 @@ onUnmounted(() => {
   timers.forEach(clearInterval);
   clearTimeout(toastTimer);
   clearTimeout(parameterSyncTimer);
-  statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop(); prePoll.stop();
+  statusPoll.stop(); stackPoll.stop(); logsPoll.stop(); monitorPoll.stop(); prePoll.stop(); speechPoll.stop();
   lifecycle.abort();
   stopSubtitles?.();
 });
@@ -736,19 +832,25 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <!-- 实时音频快捷控制固定在整个右栏底部 -->
-      <div :class="['grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-edge', isFileMode(selectedMode) && 'hidden']">
-        <button type="button" :class="['routing-btn', micMuted && 'is-on']" :aria-pressed="micMuted" :disabled="!realtimeAvailable || switching" :title="realtimeAvailable ? '变声输出静音，不影响采集' : '仅在 RT_RVC 运行时可用'" @click.prevent="toggleMicMute">
-          <svg :class="['routing-icon absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', !micMuted && 'routing-icon--ok']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+      <!-- 实时音频快捷控制固定在整个右栏底部：一次只允许一路占用播放设备。 -->
+      <div :class="['grid grid-cols-3 gap-2 mt-auto pt-4 border-t border-edge', isFileMode(selectedMode) && 'hidden']">
+        <button type="button" :class="['routing-btn', outputPath === 'voice' && 'is-on']" :aria-pressed="outputPath === 'voice'" :disabled="!realtimeAvailable || outputBusy || !outputPlayback" :title="realtimeAvailable ? '输出 RVC 变声，字幕与翻译继续运行' : '仅在 RT_RVC 运行时可用'" @click.prevent="void runOutput('voice')">
+          <svg :class="['routing-icon absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 shrink-0', outputPath === 'voice' && 'routing-icon--ok']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4Zm-6 9H4v1a8 8 0 0 0 7 7.94V22H8v2h8v-2h-3v-2.06A8 8 0 0 0 20 12v-1h-2v1a6 6 0 0 1-12 0v-1Z"/>
           </svg>
-          <span class="w-full pl-8 text-left" data-i18n="btnMute">{{ micMuted ? '恢复变声输出' : '静音变声输出' }}</span>
+          <span class="w-full pl-7 text-left" data-i18n="btnStartVoice">启动变声</span>
         </button>
-        <button type="button" :class="['routing-btn', bypassOn && 'is-on']" :aria-pressed="bypassOn" :disabled="!realtimeAvailable || switching" :title="realtimeAvailable ? '输出原始人声（不推理）' : '仅在 RT_RVC 运行时可用'" @click.prevent="toggleBypass">
-          <svg :class="['routing-icon absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 shrink-0', bypassOn && 'routing-icon--ok']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+        <button type="button" :class="['routing-btn', outputPath === 'speech' && 'is-on']" :aria-pressed="outputPath === 'speech'" :disabled="!speechAvailable || outputBusy || !outputPlayback" :title="speechAvailable ? '输出译文播报，变声暂停' : '播报服务未启动：先用 OUTPUT=both 启动链路'" @click.prevent="void runOutput('speech')">
+          <svg :class="['routing-icon absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 shrink-0', outputPath === 'speech' && 'routing-icon--ok']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm3 6v2h10V9H7Zm0 4v2h6v-2H7Z"/>
+          </svg>
+          <span class="w-full pl-7 text-left" data-i18n="btnStartSpeech">启动翻译</span>
+        </button>
+        <button type="button" :class="['routing-btn', outputPath === 'direct' && 'is-on']" :aria-pressed="outputPath === 'direct'" :disabled="!realtimeAvailable || outputBusy || !outputPlayback" :title="realtimeAvailable ? '输出原始人声（不推理）' : '仅在 RT_RVC 运行时可用'" @click.prevent="void runOutput('direct')">
+          <svg :class="['routing-icon absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 shrink-0', outputPath === 'direct' && 'routing-icon--ok']" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="m13.6 2-8.2 10.5a1 1 0 0 0 .8 1.6h4.5l-.7 7.9a1 1 0 0 0 1.8.6L19 11.5a1 1 0 0 0-.8-1.6h-4.5L14.6 3a1 1 0 0 0-1-1Z"/>
           </svg>
-          <span class="w-full pl-8 text-left" data-i18n="btnBypass">旁路直通</span>
+          <span class="w-full pl-7 text-left" data-i18n="btnDirect">直出</span>
         </button>
       </div>
 

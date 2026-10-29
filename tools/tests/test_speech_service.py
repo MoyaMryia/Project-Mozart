@@ -1,9 +1,12 @@
+import io
 import json
+import os
 import sqlite3
 from pathlib import Path
 import sys
 import tempfile
 import time
+import types
 import unittest
 from unittest.mock import patch
 import wave
@@ -23,6 +26,59 @@ for line in sys.stdin:
   w.setnchannels(1);w.setsampwidth(2);w.setframerate(24000);w.writeframes(b'\\0\\0'*int(duration*24000))
  print(json.dumps({'duration_seconds':duration,'sample_rate':24000}),flush=True)
 '''
+
+
+class PlaybackDeviceTests(unittest.TestCase):
+    def make_service(self):
+        directory = tempfile.TemporaryDirectory(prefix='speech-device-')
+        self.addCleanup(directory.cleanup)
+        worker = Path(directory.name)/'worker.py'
+        worker.write_text(FAKE)
+        return SpeechService(directory.name, [sys.executable, str(worker)], timeout=.5)
+
+    def test_device_switch_is_applied_and_reported(self):
+        service = self.make_service()
+        bridge = 'plughw:CARD=Loopback,DEV=0,SUBDEV=1'
+        self.assertEqual(service.route('GET', '/api/speech/status', {})['playback_device'], 'default')
+        self.assertEqual(service.route('POST', '/api/speech/playback', {'device': bridge}),
+                         {'device': bridge, 'previous': 'default', 'changed': True})
+        self.assertEqual(service.route('GET', '/api/speech/status', {})['playback_device'], bridge)
+
+    def test_repeated_device_switch_reports_no_change(self):
+        service = self.make_service()
+        service.route('POST', '/api/speech/playback', {'device': 'null'})
+        self.assertFalse(service.route('POST', '/api/speech/playback', {'device': 'null'})['changed'])
+
+    def test_closed_playback_pipe_fails_the_job_instead_of_the_worker(self):
+        service = self.make_service()
+        reader, writer = os.pipe()
+        self.addCleanup(os.close, reader)
+        stdin = os.fdopen(writer, 'wb', 0)
+        stdin.close()
+        service.player = types.SimpleNamespace(stdin=stdin, poll=lambda: 1, error=None)
+        with self.assertRaises(RuntimeError) as caught:
+            service.feed_player(memoryview(b'\0\0'))
+        message = str(caught.exception)
+        self.assertIn('播放中断', message)
+        self.assertIn('ValueError', message)
+        self.assertIn('播放进程退出码 1', message)
+
+    def test_playback_failure_quotes_the_last_aplay_error(self):
+        service = self.make_service()
+        (service.root/'playback.log').write_text(
+            'underrun!!! (at least 2062.373 ms long)\n'
+            'aplay: main:834: audio open error: Device or resource busy\n')
+        service.player = types.SimpleNamespace(
+            stdin=io.BytesIO(), poll=lambda: 1, error=RuntimeError('管道已关闭'))
+        detail = service.playback_failure(ValueError('I/O operation on closed file'))
+        self.assertIn('管道已关闭', detail)
+        self.assertIn('Device or resource busy', detail)
+
+    def test_unsupported_device_is_rejected(self):
+        service = self.make_service()
+        for device in ('', None, 5, 'plughw;CARD=x', 'a b', 'x'*129):
+            with self.assertRaises(ApiError):
+                service.route('POST', '/api/speech/playback', {'device': device})
 
 
 class SpeechTests(unittest.TestCase):

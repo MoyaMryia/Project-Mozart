@@ -3,10 +3,12 @@ import contextlib
 import errno
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import struct
 import sys
+import tempfile
 import types
 import unittest
 from unittest.mock import Mock, patch
@@ -15,6 +17,12 @@ USB_ROOT = Path(__file__).resolve().parents[2] / 'usb-audio'
 sys.path.insert(0, str(USB_ROOT))
 from pcm import read_block
 import proto
+import status
+
+
+# 状态文件默认写 /run，测试改用临时目录，避免权限错误污染输出。
+os.environ['MOZART_STATUS_FILE'] = str(
+    Path(tempfile.mkdtemp(prefix='mozart-status-'))/'status.json')
 
 
 def load_daemon(name):
@@ -528,6 +536,61 @@ class FrameSizeCompatTests(unittest.TestCase):
         with patch.object(bridge, 'play_pcm', side_effect=played.append):
             bridge.usb_to_alsa()
         self.assertEqual(played, [])
+
+
+class StatusWriterTests(unittest.TestCase):
+    def test_write_replaces_the_file_and_leaves_no_temporary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'nested'/'status.json'
+            writer = status.StatusWriter(path)
+            self.assertTrue(writer.write({'active': True}))
+            self.assertEqual(json.loads(path.read_text()), {'active': True})
+            self.assertEqual(list(path.parent.glob('*.tmp')), [])
+
+    def test_write_failure_is_reported_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            writer = status.StatusWriter(Path(directory)/'status.json')
+            with patch.object(Path, 'write_text', side_effect=OSError('磁盘满')), \
+                    contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertFalse(writer.write({'active': True}))
+                self.assertFalse(writer.write({'active': True}))
+            self.assertEqual(out.getvalue().count('状态文件写入失败'), 1)
+
+
+class StatusSnapshotTests(unittest.TestCase):
+    def write_and_read(self, daemon):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'status.json'
+            daemon.status = status.StatusWriter(path)
+            daemon.report()
+            return json.loads(path.read_text())
+
+    def test_host_snapshot_carries_counters_and_link_state(self):
+        bridge = host.Bridge()
+        bridge.sent, bridge.received, bridge.dropped = 3, 7, 1
+        bridge.last_error = '播放积压排空（丢弃最旧帧）'
+        with contextlib.redirect_stdout(io.StringIO()):
+            snapshot = self.write_and_read(bridge)
+        self.assertEqual((snapshot['role'], snapshot['active']), ('host', False))
+        self.assertEqual((snapshot['sent'], snapshot['received'], snapshot['dropped']),
+                         (3, 7, 1))
+        self.assertEqual(snapshot['last_error'], '播放积压排空（丢弃最旧帧）')
+        self.assertIsInstance(snapshot['updated_at'], float)
+        bridge.device = object()
+        self.assertTrue(bridge.status_snapshot()['active'])
+        bridge.stopping.set()
+        self.assertFalse(bridge.status_snapshot()['active'])
+
+    def test_jetson_snapshot_follows_the_link_and_stop_state(self):
+        daemon = jetson.Daemon()
+        self.assertFalse(daemon.status_snapshot()['active'])
+        daemon.active.set()
+        with contextlib.redirect_stdout(io.StringIO()):
+            snapshot = self.write_and_read(daemon)
+        self.assertEqual(snapshot['role'], 'jetson')
+        self.assertTrue(snapshot['active'])
+        daemon.stopping.set()
+        self.assertFalse(daemon.status_snapshot()['active'])
 
 
 if __name__ == '__main__':
