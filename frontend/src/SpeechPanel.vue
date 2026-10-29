@@ -11,7 +11,7 @@ const lifecycle = new AbortController();
 const speechApi = <T,>(path: string, init?: RequestInit) => api<T>(path, { ...init, signal: init?.signal ?? lifecycle.signal });
 interface Voice { id: string; name: string; status: string; duration_seconds: number; identity_approved: boolean }
 interface SpeechJob { id: string; text: string; status: string; result_url: string; error?: string; duration_seconds?: number; synthesis_seconds?: number; chunk_count?: number; played_chunks?: number; admission_pending?: boolean }
-interface SpeechStatus extends SpeechRuntimeStatus { storage_warning?: string | null; engine: string; voices: Voice[]; jobs: SpeechJob[]; languages: string[]; queue_limit: number; delivery_policy?: string; pending_jobs?: number; live_audio_budget_seconds?: number; playback_device: string; session: { enabled: boolean; voice_id: string; language: string; playback: boolean } }
+interface SpeechStatus extends SpeechRuntimeStatus { control_generation?: number; storage_warning?: string | null; engine: string; voices: Voice[]; jobs: SpeechJob[]; languages: string[]; queue_limit: number; delivery_policy?: string; pending_jobs?: number; live_audio_budget_seconds?: number; playback_device: string; session: { enabled: boolean; voice_id: string; language: string; playback: boolean } }
 const state = ref<SpeechStatus | null>(null);
 const unavailable = ref('');
 const error = ref('');
@@ -45,6 +45,9 @@ let initialized = false;
 const selectedSessionActive = computed(() => !!state.value?.session.enabled && state.value.session.voice_id === selectedVoice.value && state.value.session.language === language.value && state.value.session.playback === playback.value);
 const sessionVoiceName = computed(() => state.value?.voices.find(v => v.id === state.value?.session.voice_id)?.name ?? '');
 const jsonPost = (body: unknown) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const controlPost = (body: Record<string, unknown>) => jsonPost({
+  ...body, expected_control_generation: state.value?.control_generation,
+});
 const speechPoll = createPoll(async signal => {
   const value = await speechApi<SpeechStatus>('/api/speech/status', { signal });
   const id = previewId.value;
@@ -104,11 +107,11 @@ async function upload() {
   });
 }
 const synthesize = () => action(async signal => {
-  const job = await speechApi<SpeechJob>('/api/speech/jobs', { ...jsonPost({ text: text.value, language: language.value, voice_id: selectedVoice.value, playback: playback.value }), signal });
+  const job = await speechApi<SpeechJob>('/api/speech/jobs', { ...controlPost({ text: text.value, language: language.value, voice_id: selectedVoice.value, playback: playback.value }), signal });
   if (!signal.aborted) { previewId.value = job.id; previewJob.value = job; previewError.value = ''; }
 });
-const session = (enabled: boolean) => action(signal => speechApi('/api/speech/session', { ...jsonPost(enabled ? { enabled, voice_id: selectedVoice.value, language: language.value, playback: playback.value } : { enabled }), signal }));
-const prepare = () => action(signal => speechApi('/api/speech/prepare', { ...jsonPost({}), signal }));
+const session = (enabled: boolean) => action(signal => speechApi('/api/speech/session', { ...controlPost(enabled ? { enabled, voice_id: selectedVoice.value, language: language.value, playback: playback.value } : { enabled }), signal }));
+const prepare = () => action(signal => speechApi('/api/speech/prepare', { ...controlPost({}), signal }));
 async function stop() {
   if (stopping.value) return;
   stopping.value = true; error.value = '';

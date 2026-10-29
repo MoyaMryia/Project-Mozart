@@ -15,7 +15,7 @@ fs.accessSync(binary, fs.constants.X_OK);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const posts = [], held = [], exceptions = [];
 let speechOnly = false, holdPreview = false, runtimeReady = true, modelsFail = false;
-let mockPreview = null, mode = 'idle', fileAvailable = true;
+let mockPreview = null, mode = 'idle', fileAvailable = true, controlGeneration = 0, stopFailure = '';
 const session = { enabled: true, voice_id: 'first', language: 'en', playback: true };
 const caption = { utterance_id: 'mock:1', seq: 1, zh: '这是本地模拟的长句字幕，用于检查长句能否完整显示以及正文是否容易阅读。'.repeat(6), en: 'This is a local simulated translation for checking subtitle readability.', translation_status: 'completed', speech_submission_status: 'submitted', speech: 'mock-job', ts: '12:00:00' };
 const server = http.createServer(async (req, res) => {
@@ -25,10 +25,13 @@ const server = http.createServer(async (req, res) => {
   for await (const part of req) data += part;
   if (data) body = JSON.parse(data);
   if (req.method === 'POST') posts.push({ route, body });
+  if (route === '/api/speech/stop' && stopFailure === 'http') {
+    res.writeHead(503, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ error: 'Mock speech stop unavailable' }));
+  }
   if (route === '/api/speech/jobs' && req.method === 'POST' && holdPreview) { held.push(res); return; }
   if (route === '/api/speech/jobs' && req.method === 'POST') mockPreview = { id: 'mock-preview', text: body.text, status: 'completed', result_url: '/mock-preview.wav', duration_seconds: 2 };
   if (route === '/api/speech/session' && body) Object.assign(session, body);
-  if (route === '/api/speech/stop') { session.enabled = false; runtimeReady = false; }
+  if (route === '/api/speech/stop') { session.enabled = false; runtimeReady = false; controlGeneration++; }
   if (route === '/api/mode/switch' && body) mode = body.mode;
   if (route === '/api/subtitles') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
@@ -44,8 +47,8 @@ const server = http.createServer(async (req, res) => {
     '/api/models': { models: [{ id: 'model', exists: true, current: true }] },
     '/api/parameters': { f0_method: 'rmvpe', pitch_shift: 0, index_rate: .75, filter_radius: 3, rms_mix_rate: .25, protect: .33 },
     '/api/presets': { presets: [] }, '/api/logs': { entries: [] }, '/api/glossary': { terms: { '原神': 'Genshin Impact' } },
-    '/api/speech/status': { engine: 'zipvoice', runtime_ready: runtimeReady, runtime_state: runtimeReady ? 'ready' : 'stopped', voices: [{ id: 'first', name: '音色 A', status: 'ready' }, { id: 'second', name: '音色 B', status: 'ready' }], jobs: [...(mockPreview ? [mockPreview] : []), ...Array.from({ length: 6 }, (_, i) => ({ id: 'job-'+i, text: 'A completed translated speech task.', status: 'completed', result_url: '/mock.wav', duration_seconds: 2, synthesis_seconds: .5 }))], languages: ['en', 'zh'], queue_limit: 8, delivery_policy: 'coverage', pending_jobs: 0, playback_device: 'mock-device', session },
-    '/api/speech/session': {}, '/api/speech/jobs': mockPreview, '/api/speech/jobs/mock-preview': mockPreview, '/api/speech/stop': { stopped: true, stop_errors: 0 }
+    '/api/speech/status': { control_generation: controlGeneration, engine: 'zipvoice', runtime_ready: runtimeReady, runtime_state: runtimeReady ? 'ready' : 'stopped', voices: [{ id: 'first', name: '音色 A', status: 'ready' }, { id: 'second', name: '音色 B', status: 'ready' }], jobs: [...(mockPreview ? [mockPreview] : []), ...Array.from({ length: 6 }, (_, i) => ({ id: 'job-'+i, text: 'A completed translated speech task.', status: 'completed', result_url: '/mock.wav', duration_seconds: 2, synthesis_seconds: .5 }))], languages: ['en', 'zh'], queue_limit: 8, delivery_policy: 'coverage', pending_jobs: 0, playback_device: 'mock-device', session },
+    '/api/speech/session': {}, '/api/speech/jobs': mockPreview, '/api/speech/jobs/mock-preview': mockPreview, '/api/speech/stop': { stopped: true, stop_errors: stopFailure === 'partial' ? 1 : 0 }
   };
   if (route.startsWith('/api/')) {
     const fail = route === '/api/monitor' || (modelsFail && route === '/api/models');
@@ -89,6 +92,10 @@ try {
   const evidence = { base, browser: (await call('Browser.getVersion')).product, configuration: 'Local mock API, Chromium, no model or audio services', desktop: await snapshot(), desktopControls: await visibleControls() };
   await capture('desktop-after');
   evidence.closedDisclosures = await evaluate(`Array.from(document.querySelectorAll('#reference-speech details,#log-panel')).map(e=>({label:e.querySelector('summary').textContent.trim(),open:e.open}))`);
+  await evaluate(`(()=>{const e=document.querySelector('#pre-capture');e.value='capture-b';e.dispatchEvent(new Event('change',{bubbles:true}));})()`); await sleep(80);
+  evidence.deviceDraftBeforePoll = await evaluate(`document.querySelector('#pre-capture').value`);
+  await sleep(5100);
+  evidence.deviceDraftAfterPoll = await evaluate(`document.querySelector('#pre-capture').value`);
   evidence.initialSessionAction = await evaluate(`${buttons}.find(b=>b.textContent.includes('禁用翻译播报'))?.textContent.trim()`);
   await evaluate(`(()=>{const s=document.querySelector('#reference-speech select'); const all=Array.from(document.querySelectorAll('#reference-speech select')); const voice=all.find(e=>Array.from(e.options).some(o=>o.value==='second'));voice.value='second';voice.dispatchEvent(new Event('change',{bubbles:true}));})()`); await sleep(80);
   evidence.changedSessionAction = await evaluate(`${buttons}.find(b=>b.textContent.includes('应用音色与输出'))?.textContent.trim()`);
@@ -126,7 +133,13 @@ try {
   speechOnly = false; fileAvailable = false;
   await call('Page.reload'); await sleep(1000);
   evidence.unsupportedModeDisabled = await evaluate(`(()=>{const e=document.querySelector('button[data-mode="file_rvc"]');e.click();return e.disabled&&e.getAttribute('aria-pressed')==='false';})()`);
-  speechOnly = true; modelsFail = true;
+  stopFailure = 'http';
+  await evaluate(`document.querySelector('[aria-label="停止 RVC 和语音播报"]').click()`); await sleep(150);
+  evidence.globalStopHttpFailureVisible = await evaluate(`document.body.innerText.includes('播报停止请求失败：Mock speech stop unavailable')`);
+  stopFailure = 'partial';
+  await evaluate(`document.querySelector('[aria-label="停止 RVC 和语音播报"]').click()`); await sleep(150);
+  evidence.globalStopPartialFailureVisible = await evaluate(`document.body.innerText.includes('播报停止操作部分失败')`);
+  stopFailure = ''; speechOnly = true; modelsFail = true;
   await call('Page.reload'); await sleep(1000);
   evidence.globalErrorVisible = await evaluate(`Array.from(document.querySelectorAll('[role="alert"]')).some(e=>e.textContent.includes('Mock model list unavailable')&&e.getBoundingClientRect().height>0)`);
   evidence.exceptions = exceptions; evidence.posts = posts;
@@ -142,6 +155,10 @@ try {
   assert.equal(evidence.speechOnlyFileUploaderHidden, true);
   assert.equal(evidence.glossaryCount, 1);
   assert.equal(evidence.globalErrorVisible, true);
+  assert.equal(evidence.globalStopHttpFailureVisible, true);
+  assert.equal(evidence.globalStopPartialFailureVisible, true);
+  assert.equal(evidence.deviceDraftBeforePoll, 'capture-b');
+  assert.equal(evidence.deviceDraftAfterPoll, 'capture-b');
   assert.equal(evidence.mobileConnectionVisible, true);
   assert.equal(evidence.unsupportedModeDisabled, true);
   assert.equal(evidence.modeSelectionDoesNotStart, true);

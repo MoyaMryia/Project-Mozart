@@ -15,7 +15,7 @@ import {
 import { subscribeSubtitles, type SubtitleState } from './subtitle-stream';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
-  api, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
+  api, ApiRequestError, type ActiveMode, type BackendLogEntry, type Job, type ModelList,
   type Mode, type MonitorSnapshot, type PreProcessorStatus, type Preset, type RvcParameters, type Status,
   type SubtitleEvent, type StackStatus,
 } from './api';
@@ -363,8 +363,13 @@ const globalRun = async () => {
 };
 const globalStop = async () => {
   await switchMode('idle');
-  try { await appApi('/api/speech/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); }
-  catch { /* An absent speech service does not prevent stopping RVC. */ }
+  try {
+    const result = await appApi<{ stop_errors: number }>('/api/speech/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    if (result.stop_errors) showError(new Error('播报停止操作部分失败，请检查语音状态。'));
+  } catch (error) {
+    if (!(error instanceof ApiRequestError)) throw error;
+    showError(new Error(`播报停止请求失败：${error.message}`));
+  }
 };
 
 // ---- 模式选择（原 selectMode / toggle 逻辑）----

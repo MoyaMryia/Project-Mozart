@@ -1,0 +1,194 @@
+{
+  "base": "http://127.0.0.1:45345",
+  "browser": "Chrome/151.0.7922.34",
+  "configuration": "Local mock API, Chromium, no model or audio services",
+  "desktop": {
+    "subtitle": {
+      "box": {
+        "x": 220,
+        "y": 553,
+        "width": 771,
+        "height": 215.59375,
+        "top": 553,
+        "right": 991,
+        "bottom": 768.59375,
+        "left": 220
+      },
+      "font": "16px",
+      "clipped": false
+    },
+    "log": {
+      "box": {
+        "x": 220,
+        "y": 780.59375,
+        "width": 771,
+        "height": 33,
+        "top": 780.59375,
+        "right": 991,
+        "bottom": 813.59375,
+        "left": 220
+      },
+      "hiddenContentHeight": 0
+    },
+    "horizontalOverflow": false
+  },
+  "desktopControls": [
+    {
+      "text": "禁用翻译播报",
+      "visible": true
+    },
+    {
+      "text": "停止播报并清空队列",
+      "visible": true
+    }
+  ],
+  "closedDisclosures": [
+    {
+      "label": "音色管理",
+      "open": false
+    },
+    {
+      "label": "最近任务（6）",
+      "open": false
+    },
+    {
+      "label": "系统日志",
+      "open": false
+    }
+  ],
+  "deviceDraftBeforePoll": "capture-b",
+  "deviceDraftAfterPoll": "capture-b",
+  "initialSessionAction": "禁用翻译播报",
+  "changedSessionAction": "应用音色与输出",
+  "disableStillAvailableAfterDraftChange": true,
+  "inlinePreview": {
+    "outsideDetails": true,
+    "visible": true
+  },
+  "flatLayout": {
+    "nestedDisclosures": 0,
+    "modeToggles": 0,
+    "referenceLinks": 0,
+    "speechHeadings": 1,
+    "logSubheadings": 0
+  },
+  "modeSelectionDoesNotStart": true,
+  "startUsesSelectedMode": true,
+  "stopDisabledDuringPreview": false,
+  "previewRequestAbortedByStop": true,
+  "stopRequestSent": true,
+  "mobile": {
+    "subtitle": {
+      "box": {
+        "x": 12,
+        "y": 586,
+        "width": 366,
+        "height": 446.34375,
+        "top": 586,
+        "right": 378,
+        "bottom": 1032.34375,
+        "left": 12
+      },
+      "font": "16px",
+      "clipped": false
+    },
+    "log": {
+      "box": {
+        "x": 12,
+        "y": 1044.34375,
+        "width": 366,
+        "height": 33,
+        "top": 1044.34375,
+        "right": 378,
+        "bottom": 1077.34375,
+        "left": 12
+      },
+      "hiddenContentHeight": 0
+    },
+    "horizontalOverflow": false
+  },
+  "mobileControls": [
+    {
+      "text": "禁用翻译播报",
+      "visible": true
+    },
+    {
+      "text": "停止播报并清空队列",
+      "visible": true
+    }
+  ],
+  "speechOnlySidebarCount": 0,
+  "speechOnlyFileUploaderHidden": true,
+  "glossaryCount": 1,
+  "mobileConnectionVisible": true,
+  "controlsAfterHistoryScroll": [
+    {
+      "text": "禁用翻译播报",
+      "visible": true
+    },
+    {
+      "text": "停止播报并清空队列",
+      "visible": true
+    }
+  ],
+  "unsupportedModeDisabled": true,
+  "globalStopHttpFailureVisible": true,
+  "globalStopPartialFailureVisible": true,
+  "globalErrorVisible": true,
+  "exceptions": [],
+  "posts": [
+    {
+      "route": "/api/speech/jobs",
+      "body": {
+        "text": "Hello. This is a preview of the selected reference voice.",
+        "language": "en",
+        "voice_id": "second",
+        "playback": true,
+        "expected_control_generation": 0
+      }
+    },
+    {
+      "route": "/api/mode/switch",
+      "body": {
+        "mode": "file_rvc",
+        "model_id": "model"
+      }
+    },
+    {
+      "route": "/api/speech/jobs",
+      "body": {
+        "text": "Hello. This is a preview of the selected reference voice.",
+        "language": "en",
+        "voice_id": "second",
+        "playback": true,
+        "expected_control_generation": 0
+      }
+    },
+    {
+      "route": "/api/speech/stop",
+      "body": {}
+    },
+    {
+      "route": "/api/mode/switch",
+      "body": {
+        "mode": "idle",
+        "model_id": ""
+      }
+    },
+    {
+      "route": "/api/speech/stop",
+      "body": {}
+    },
+    {
+      "route": "/api/mode/switch",
+      "body": {
+        "mode": "idle",
+        "model_id": ""
+      }
+    },
+    {
+      "route": "/api/speech/stop",
+      "body": {}
+    }
+  ]
+}

@@ -85,6 +85,10 @@ class SpeechService:
         if (isinstance(self.last_stop_at, bool) or not isinstance(self.last_stop_at, (int, float))
                 or not 0 <= self.last_stop_at <= time.time()+TIMESTAMP_SKEW_SECONDS):
             raise ValueError(f'Invalid speech stop timestamp: {self.stop_path}')
+        self.control_generation = stop_state.get('control_generation', 0)
+        if (isinstance(self.control_generation, bool) or not isinstance(self.control_generation, int)
+                or self.control_generation < 0):
+            raise ValueError(f'Invalid speech control generation: {self.stop_path}')
         self.discard_warning = None
         self.voices = {p.stem: json.loads(p.read_text()) for p in (self.root/'voices').glob('*.json')}
         self.jobs, self.pending, self.keys = OrderedDict(), deque(), OrderedDict()
@@ -157,7 +161,7 @@ class SpeechService:
                 'buffered_audio_seconds': self.buffered_audio_seconds(),
                 'deferred_jobs': 0 if coverage else sum(j.get('admission_pending', False) and j['status'] not in TERMINAL for j in self.jobs.values()),
                 'session': dict(self.session), 'queue_limit': self.queue_limit,
-                'last_stop_at': self.last_stop_at,
+                'last_stop_at': self.last_stop_at, 'control_generation': self.control_generation,
                 'playback_device': self.device, 'playback_queue_limit_seconds': self.playback_limit_seconds,
                 'playback_tempo_policy': self.playback_tempo,
                 'playback_tempo_max': self.tempo_controller.maximum,
@@ -1269,6 +1273,13 @@ class SpeechService:
     def route(self, method, path, body):
         parts = urlsplit(path).path.strip('/').split('/')
         with self.lock:
+            if (method == 'POST' and len(parts) == 3 and parts[:2] == ['api', 'speech']
+                    and parts[2] in ('session', 'prepare', 'jobs') and 'expected_control_generation' in body):
+                expected = body['expected_control_generation']
+                if isinstance(expected, bool) or not isinstance(expected, int):
+                    raise ApiError(400, 'Expected speech control generation must be an integer')
+                if expected != self.control_generation:
+                    raise ApiError(409, 'Speech was stopped; refresh its status before retrying this control request')
             if parts == ['api', 'speech', 'status'] and method == 'GET':
                 return self.status()
             if parts == ['api', 'speech', 'prepare'] and method == 'POST':
@@ -1302,8 +1313,10 @@ class SpeechService:
                 self.tempo_controller.previous.clear()
                 stop_errors = 0
                 self.last_stop_at = time.time()
+                self.control_generation += 1
                 try:
-                    atomic_json(self.stop_path, {'last_stop_at': self.last_stop_at})
+                    atomic_json(self.stop_path, {'last_stop_at': self.last_stop_at,
+                                                'control_generation': self.control_generation})
                 except OSError as error:
                     self.note_storage_failure(error)
                     stop_errors += 1

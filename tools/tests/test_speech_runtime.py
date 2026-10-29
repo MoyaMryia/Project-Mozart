@@ -65,6 +65,80 @@ class SpeechRuntimeTests(unittest.TestCase):
         status = self.until(lambda status: status['runtime_ready'])
         return response, status
 
+    def test_stopped_generation_rejects_late_controls_and_new_generation_recovers(self):
+        for policy in ('realtime', 'coverage'):
+            with self.subTest(policy=policy):
+                self.replace_worker(delivery_policy=policy)
+                old = self.service.status()['control_generation']
+                self.service.route('POST', '/api/speech/stop', {})
+                for endpoint, body in (
+                        ('session', {'enabled': True, 'voice_id': 'test'}),
+                        ('prepare', {}), ('jobs', {'text': 'Hello.', 'voice_id': 'test'})):
+                    with self.subTest(endpoint=endpoint):
+                        with self.assertRaises(ApiError) as rejected:
+                            self.service.route('POST', '/api/speech/'+endpoint,
+                                               {**body, 'expected_control_generation': old})
+                        self.assertEqual(rejected.exception.code, 409)
+                status = self.service.status()
+                self.assertFalse(status['runtime_ready'])
+                self.assertFalse(status['session']['enabled'])
+                self.assertEqual(status['unfinished_jobs'], 0)
+                self.assertIsNone(self.service.child)
+                generation = status['control_generation']
+                self.service.route('POST', '/api/speech/prepare', {'expected_control_generation': generation})
+                self.until(lambda status: status['runtime_ready'])
+                self.service.route('POST', '/api/speech/session', {'enabled': True, 'voice_id': 'test',
+                    'expected_control_generation': generation})
+                job = self.service.route('POST', '/api/speech/jobs', {'text': 'Hello.', 'voice_id': 'test',
+                    'expected_control_generation': generation})
+                self.assertEqual(self.wait(job['id'])['status'], 'completed')
+
+    def test_stop_generation_persists_across_service_restart(self):
+        self.service.route('POST', '/api/speech/stop', {})
+        generation = self.service.control_generation
+        self.replace_worker()
+        self.assertEqual(self.service.status()['control_generation'], generation)
+        with self.assertRaises(ApiError) as rejected:
+            self.service.route('POST', '/api/speech/prepare', {'expected_control_generation': generation-1})
+        self.assertEqual(rejected.exception.code, 409)
+
+    def test_stop_generation_changes_when_wall_clock_does_not(self):
+        with patch('speech_service.time.time', return_value=time.time()):
+            self.service.route('POST', '/api/speech/stop', {})
+            first = self.service.control_generation
+            self.service.route('POST', '/api/speech/stop', {})
+        self.assertEqual(self.service.control_generation, first+1)
+        with self.assertRaises(ApiError) as rejected:
+            self.service.route('POST', '/api/speech/prepare', {'expected_control_generation': first})
+        self.assertEqual(rejected.exception.code, 409)
+
+    def test_malformed_control_generation_is_rejected_at_route_entry(self):
+        for value in (None, True, '0', .5, float('nan'), [], {}):
+            with self.subTest(value=value):
+                with self.assertRaises(ApiError) as rejected:
+                    self.service.route('POST', '/api/speech/prepare', {'expected_control_generation': value})
+                self.assertEqual(rejected.exception.code, 400)
+        self.assertIsNone(self.service.child)
+
+    def test_invalid_persisted_control_generation_stops_initialization(self):
+        self.service.close()
+        for value in (None, True, -1, .5, '0'):
+            with self.subTest(value=value):
+                atomic_json(self.service.stop_path, {'last_stop_at': 0, 'control_generation': value})
+                candidate = None
+                try:
+                    with self.assertRaisesRegex(ValueError, 'Invalid speech control generation'):
+                        candidate = SpeechService(self.temp.name, self.service.command)
+                finally:
+                    if candidate is not None:
+                        candidate.close()
+
+    def test_legacy_stop_state_initializes_generation_zero(self):
+        self.service.close()
+        atomic_json(self.service.stop_path, {'last_stop_at': 0})
+        self.replace_worker()
+        self.assertEqual(self.service.status()['control_generation'], 0)
+
     def test_prepare_is_serial_idempotent_and_creates_no_speech(self):
         starts = self.replace_worker(RUNTIME.replace("print('runtime diagnostic before ready')",
                                                      "time.sleep(.1)"))

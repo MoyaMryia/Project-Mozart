@@ -13,13 +13,16 @@ const emit = defineEmits<{ apply: [payload: { capture: string; playback: string 
 
 const capture = ref('');
 const playback = ref('');
+let baselineCapture = '', baselinePlayback = '';
 
 watch(() => props.status, (value) => {
   if (!value) return;
-  if (value.current?.capture) capture.value = value.current.capture;
-  else if (!capture.value && value.devices.capture.length) capture.value = value.devices.capture[0].id;
-  if (value.current?.playback) playback.value = value.current.playback;
-  else if (!playback.value && value.devices.playback.length) playback.value = value.devices.playback[0].id;
+  const nextCapture = value.current?.capture || value.devices.capture[0]?.id || '';
+  const nextPlayback = value.current?.playback || value.devices.playback[0]?.id || '';
+  if (capture.value === baselineCapture) capture.value = nextCapture;
+  if (playback.value === baselinePlayback) playback.value = nextPlayback;
+  baselineCapture = nextCapture;
+  baselinePlayback = nextPlayback;
 }, { immediate: true, deep: true });
 
 const stateLabel = computed(() => {
