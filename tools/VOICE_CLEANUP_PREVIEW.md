@@ -1,5 +1,7 @@
 # 本机人声清理试听
 
+本工具用于离线试听，不修改正在运行的实时链路。实时接线状态见[DSP 计划](../docs/FAST_VOICE_DSP_PLAN.md)。
+
 本工具分析已确认的原始录音，并输出保守版和较强版。
 复用现有高通与加权重叠相加（WOLA）降噪。保守版增加低通、动态低频衰减和能量软门。
 较强版增加低能量代理谱估计和受限频谱增益。
@@ -12,8 +14,8 @@
 
 ```bash
 python3 tools/voice_cleanup_preview.py \
-  "$HOME/Projects/RVC-official/test-input/original-sample-first-30s.wav" \
-  "$HOME/Projects/RVC-official/output/voice-cleanup-repeat"
+  "/path/to/input.wav" \
+  "/path/to/new-cleanup-output"
 ```
 
 依赖与编译方法复用 [voice_dsp_preview.py](voice_dsp_preview.py)。

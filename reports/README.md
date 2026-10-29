@@ -4,13 +4,24 @@
 当前说明见 [README](../README.md)、[DESIGN](../DESIGN.md)、[TODO](../TODO.md) 和 [API](../state/API.md)。
 
 可复用 RVC 输入、输出、张量与验证标准放在 [rvc-golden](../rvc-golden/README.md)。
-历史测量、日志与人工确认原文保持原样；本轮仅增加归档提示。
+历史测量、日志与人工确认原文保持原样。索引按报告日期列出验证主题。
 编写约定见 [docs/WRITING.md](../docs/WRITING.md)。
 
 | 日期 | 报告 | 内容 |
 | --- | --- | --- |
+| 2026-10-29 | [control-races-20261029/RESULTS.md](control-races-20261029/RESULTS.md) | 设备草稿、停止控制代次与旧请求拒绝的本地回归 |
+| 2026-10-29 | [frontend-simplification-20261029/RESULTS.md](frontend-simplification-20261029/RESULTS.md) | 控制台层级、就地试听与错误显示的浏览器检查 |
+| 2026-10-29 | [frontend-speech-card-20261029/RESULTS.md](frontend-speech-card-20261029/RESULTS.md) | 播报卡片与启停交互 |
+| 2026-10-29 | [speech-latency-20261029/RESULTS.md](speech-latency-20261029/RESULTS.md) | 保存时间线重算、提前输出入口与故障收尾 |
+| 2026-10-28 | [speech-delivery-semantics-20261028/RESULTS.md](speech-delivery-semantics-20261028/RESULTS.md) | 独立投递、持久去重及固定样本语义反例 |
+| 2026-10-28 | [refinement-deadline-20261028/RESULTS.md](refinement-deadline-20261028/RESULTS.md) | 复核窗口从最终识别接收时起算的调度回归 |
+| 2026-10-28 | [asr-selection-20261028/RESULTS.md](asr-selection-20261028/RESULTS.md) | 复核选择、字幕源文本与固定翻译对照 |
+| 2026-10-28 | [dual-live-20261028/RESULTS.md](dual-live-20261028/RESULTS.md) | 单采集双发、字幕连接与状态文件的板端验证 |
+| 2026-10-28 | [demo-fixes-20261028/RESULTS.md](demo-fixes-20261028/RESULTS.md) | USB、播报和文件变声故障处理回归 |
+| 2026-10-27 | [voice-cleanup-20261027/RESULTS.md](voice-cleanup-20261027/RESULTS.md) | 离线人声清理原型与电平匹配试听 |
+| 2026-10-27 | [subtitle-20261027/RESULTS.md](subtitle-20261027/RESULTS.md) | 字幕显示、补发历史和术语表接入 |
 | 2026-10-25 | [loop-latency-20261025/RESULTS.md](loop-latency-20261025/RESULTS.md) | 主机回路延迟排查；管道积压根因坐实与有界排空修复，SRC 落地后稳态不漂移 |
-| 2026-10-25 | [e2e-latency-20261025/RESULTS.md](e2e-latency-20261025/RESULTS.md) | 端到端延迟达标：Jetson 实机双电缆脉冲实测，period 64 产品口径 8.2 ms 零抖动 |
+| 2026-10-25 | [e2e-latency-20261025/RESULTS.md](e2e-latency-20261025/RESULTS.md) | Jetson 双电缆脉冲测量；period 64 产品路径估算 8.2 ms，声学终验条件见报告 |
 | 2026-10-25 | [m5-dtln-20261025/RESULTS.md](m5-dtln-20261025/RESULTS.md) | dtln AI 分支：ONNX 链验证门限全过、C 集成双端对拍 1e-8 级 |
 | 2026-10-25 | [m4-control-plane-20261025/RESULTS.md](m4-control-plane-20261025/RESULTS.md) | 控制面迁移第一步：二进制消息契约与 Unix 数据报服务并存 |
 | 2026-10-25 | [m3-endpoints-20261025/RESULTS.md](m3-endpoints-20261025/RESULTS.md) | 快流专用端点：描述符双接口、预处理器直占 ep3/ep4，内核验证 |

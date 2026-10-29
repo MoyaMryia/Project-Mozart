@@ -9,18 +9,35 @@
 RVC 使用 C++17 与 ONNX Runtime/TensorRT；预处理使用 C11；字幕与参考音色播报使用 Python/sherpa-onnx。
 模型导出和 Golden 参考使用独立 PyTorch 环境。
 
-```text
-mozart-pre (ALSA / WAV)
-  -> UDP input -> mozart_stated
-                   -> RealtimeRvcWorker -> AudioWorker -> RVC -> UDP output
-                   -> FileRvcWorker -> FFmpeg -> RVC -> WAV
-  -> UDP copy -> STT -> translator -> subtitle JSONL -> HTTP SSE
-                                 -> speech service -> ALSA
+```mermaid
+flowchart TB
+    INPUT[麦克风 / WAV] --> PRE[mozart-pre：采集与预处理]
+    PRE -->|同一份输入| RVC[mozart_stated：实时 RVC]
+    PRE -->|同一份输入| ASR[Zipformer / 可选 SenseVoice]
+    RVC -->|输出回包| PRE
+    PRE -->|变声或直出| PLAY[ALSA 播放设备]
+    ASR --> BRIDGE[字幕桥接：原文与翻译调度]
+    BRIDGE <--> QWEN[llama-server：Qwen 翻译]
+    BRIDGE --> JSONL[字幕 JSONL]
+    BRIDGE --> OUTBOX[独立播报投递队列]
+    OUTBOX --> TTS[PocketTTS：合成与播放]
+    REF[参考音频] --> TTS
+    TTS --> PLAY
+    JSONL --> API[原生 HTTP API]
+    UI[Vue 控制台] -->|控制请求| API
+    API -->|SSE 字幕| UI
+    API -->|播报代理| TTS
+    API --> FILE[文件队列：FFmpeg → RVC → WAV]
 ```
+
+图中变声与播报是可选输出。统一实时入口每次启动选择其中一路，字幕和翻译在两种输出下均运行。
+实时 RVC 与文件 RVC 由模式控制器互斥管理。USB 桥连接电脑与 ALSA 设备层，独立于推理进程运行。
 
 RVC 后端入口为 `state/src/main.cpp`。`StateManagerDaemon` 读取配置并创建 `ModeController`、管线和 HTTP 服务。
 `ModeController` 管理生命周期、模式和队列，不处理 PCM 样本。
-字幕与播报使用 `tools/run_translated_speech.py` 监督子进程；原生守护进程代理播报 API。
+日常入口 `tools/run-realtime-voice.sh` 管理预处理与字幕启动器。
+`tools/run_translated_speech.py` 监督原生后端、识别、翻译、字幕桥接与可选播报子进程。
+原生守护进程代理播报 API。统一实时入口与独立后端的端口见[运行手册](docs/RUNBOOK.md#组件与端口)。
 
 | 组件 | 当前职责与限制 |
 | --- | --- |
@@ -95,17 +112,17 @@ SPSC 环使用预分配存储、原子索引和分离缓存行。push/pop 不动
 ```
 
 protect 在 Generator 前混合特征，主要作用于无声带振动帧，不混合最终波形与原声。
-当前 `.index` 预加载已停用，因此索引混合通常不参与推理。
+模型目录存在同名 `.index` 时会尝试加载；加载成功且 `index_rate > 0` 时执行索引混合。
 `rms_mix_rate` 控制后续包络混合；它与 protect 是不同操作。
 
 RVC v2 使用末层 768 维 HuBERT 特征。RMVPE 输入布局为 `[batch, mel_bin, time]`。
 特征提取实现包括 radix-2 FFT、HTK mel 滤波器和 Slaney 归一化；正确性由捕获张量对比验证。
-F0 方法仅实现 `rmvpe`。API 拒绝 `harvest` / `pm`；旧配置在初始化时改为 `rmvpe` 并记录警告。
+F0 方法仅支持 `rmvpe`。HTTP 参数入口与配置入口均拒绝其他方法。
 
 静态 legacy Generator 常用 `T=200`，部分 Golden 对齐资产使用其他固定长度。
 代码另有 full-length 和动态输入分支，资产可用性必须按具体输入契约验证。
 动态轴声明必须通过多个序列长度推理，不能只看文件名。
-长文件可能进入整段特征提取与整段 Generator；当前没有解码时长或峰值内存硬上限。
+文件工作线程限制解码时长，数值见[文件接口](state/API.md#file-routes)。动态资产可进入整段推理，实际内存需求取决于输入长度和引擎。
 
 ### 低延迟实时路径
 
@@ -132,6 +149,8 @@ split-only 模型缺少完整实时资产时不视为部署成功，也不能用
 ### 模型与运行时
 
 普通目录为 `models/<id>/{<id>.onnx, config.json}`，可包含同名 `.engine` 和 `.index`。
+索引加载使用原生 `IndexSearch` 读取支持的 FAISS IVF Flat 格式。
+`index_rate=0` 跳过检索；已加载索引仍占用内存。`model.has_index` 报告加载状态。
 split 资产使用 `<id>-front` 与 `<id>-decoder` 文件名。
 `config.json` 提供采样率、特征维度、说话人 ID 和 F0 标志。
 检查点版本、F0 支持、说话人数和特征维度仍需在导出前核对。
@@ -168,11 +187,12 @@ CUDA EP 需要 CUDA 版 ONNX Runtime 和 `USE_CUDA_EP=ON`。
 
 文件队列默认深度为 50，计算 `queued`、`processing` 和 `cancelling` 任务。
 终态任务不占队列容量，但仍留在内存历史中，直到清理或进程退出。
-文件请求上限见 API 文档。解码输入最长 300 s，超限任务失败，不发布截短结果。
+文件请求与解码时长上限见[文件接口](state/API.md#file-routes)。超限任务失败，不发布截短结果。
 
-FFmpeg 使用直接参数调用，不经过 shell。每次解码或编码最长 120 s。
-取消或超时时，工作线程终止并回收 FFmpeg 子进程。RVC 推理仍接收整段音频，当前调用不可中断。
-`cancelling` 仍持有工作单元和管线；退出可能等待其结束。
+FFmpeg 使用直接参数调用，不经过 shell。取消或超时时，工作线程终止并回收 FFmpeg 子进程。
+RVC 在特征提取、索引混合、合成阶段之间及分块循环中检查取消标志。
+正在执行的单次模型调用返回后，后续检查点才响应取消。
+`cancelling` 仍持有工作单元和管线；退出等待工作线程结束。时长与超时数值见[文件接口](state/API.md#file-routes)。
 
 输出先写 `.part`，成功后重命名。缓存超过高水位时，任务结束清理向 80% 目标执行。
 上传先写 `.upload`，入队时在控制器锁内重命名。缓存清理保护上传及未完成任务的文件。
@@ -182,7 +202,7 @@ FFmpeg 使用直接参数调用，不经过 shell。每次解码或编码最长 
 
 当前接口以 [state/API.md](state/API.md) 为准。默认 HTTP 端口为 18080。
 `/api/health` 只返回存活状态；模型和队列信息位于 `/api/status`。
-字幕 SSE 读取外部 JSONL，并在文件替换或截断后重开；不提供历史事件重放。
+字幕 SSE 读取外部 JSONL，并在文件替换或截断后重开。每次连接先补发最近记录，再发送增量；补发数量见[字幕接口](state/API.md#captions-parameters-and-speech)。
 参考播报请求代理到本机端口 18081，服务缺失时返回 503。
 
 HTTP 最多同时处理 16 个连接，其中最多 8 个为 SSE。每个连接占一个受管理的线程。
@@ -201,6 +221,11 @@ SSE 每秒发送心跳；停止服务时中断活动连接。详见 [本轮修�
 | `rvc.f0_method`、`pitch_shift`、`index_rate`、`filter_radius`、`rms_mix_rate`、`protect` | 推理参数 |
 | `network.audio.*`、`network.control.*` | 监听地址、端口与帧设置 |
 | `storage.*` | FFmpeg、文件路径降噪、队列容量、缓存和预设文件 |
+| `preprocessor.*` | 设备控制脚本、状态文件、设备文件与调用超时 |
+
+HTTP 的设备接口通过 `PreControl` 查询预处理状态，并调用启动脚本的 `pre-restart` 切换设备。
+配置 `network.control.socket` 后，守护进程额外启动 Unix 数据报控制服务。
+该服务与 HTTP 并存，实现 `PING`、`STATUS`、`MODE_SET`；消息定义见 `IO/include/mozart/ctlmsg.h`。
 
 帧的固定格式由编译期契约决定。运行时配置不能任意改变帧结构。
 完整默认值见 [`rvc-backend/config.yaml`](rvc-backend/config.yaml)。
@@ -215,12 +240,41 @@ Qwen 默认使用 0.8B 模型；其他翻译模型仍需完整的质量和内存
 用词频判断真词，命中记录写入审计字段。字幕显示纠正后的写法，识别原文单独保留。
 逐段变速上限为 1.50 倍，控制器按积压选择比例。
 
-桥接进程收到 final 后先发布原文，再发布译文，最后发布可选的播报提交结果。
-三个阶段使用同一 `utterance_id` 与递增的 `revision`；前端更新原行并忽略旧版本。
-ASR 读取、翻译和播报提交仍在同一循环串行执行，尚未完成有界异步解耦。
+### 字幕与翻译线程
 
-参考 PocketTTS 合成翻译文本，不属于 Zero-Shot VC 模式。
-服务保存参考配置和结果，逐片段生成完整 WAV，同时使用一个 ALSA 播放单元。
+`subtitle_bridge.py` 的主线程读取识别事件，立即发布原文字幕。
+`CaptionDispatcher` 将最终识别结果入队，由独立工作线程按顺序选择译文源并执行翻译。
+默认 `coverage` 策略将等待翻译的任务保存在磁盘队列中；`realtime` 策略使用有界内存队列。
+队列容量与满队列行为见[参考播报契约](tools/REFERENCE_SPEECH.md#translation-and-asr-limits)。
+
+复核截止时间从主线程接收最终识别结果时起算，原文处理和排队时间均计入等待窗口。
+翻译线程根据复核状态与审核结果选择原文或复核文本，并将选择结果写入字幕字段。
+字幕更新使用同一 `utterance_id` 与递增的 `revision`；前端更新原行并忽略旧版本。
+
+### 独立播报投递
+
+翻译线程先发布译文，再将通过检查的播报请求交给 `SpeechOutbox`。
+投递线程通过 HTTP 请求播报服务；等待响应期间，翻译线程继续处理后续任务。
+播报队列使用 SQLite 保存请求、字幕快照、投递状态和尝试次数。
+服务端以 `utterance_id` 查询持久受理账本，对重复请求返回原任务。
+投递状态通过 `speech_submission_status` 单独更新，重试和恢复规则见[独立播报投递](tools/REFERENCE_SPEECH.md#independent-speech-delivery)。
+
+```mermaid
+flowchart LR
+    ASR[识别事件] --> MAIN[主线程：发布原文]
+    MAIN --> QUEUE[翻译队列]
+    QUEUE --> TRANSLATE[翻译线程：复核选择与翻译]
+    TRANSLATE --> CAPTION[发布译文]
+    TRANSLATE --> OUTBOX[独立播报投递队列]
+    OUTBOX --> SPEECH[播报服务：受理与去重]
+```
+
+### 合成与播放
+
+PocketTTS 根据参考音频合成翻译文本。服务保存音色配置、任务和合成结果。
+默认路径等待完整文本片段生成后播放；启用 `--early-audio` 时，合成子进程在片段完成前输出音频块。
+提前输出路径按任务顺序向同一个 ALSA 播放进程写入音频块，并保存完整合成 WAV。
+该路径使用独立运行时，启动参数与运行时校验见[提前输出说明](tools/REFERENCE_SPEECH.md#early-audio-output)。
 音频预算、截止时间、延迟文本队列和取消行为见 [参考播报契约](tools/REFERENCE_SPEECH.md)。
 持续快速输入仍可能产生拒绝或到期句子；这些句子应计入未播报覆盖，不能计作成功吞吐。
 

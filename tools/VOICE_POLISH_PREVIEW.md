@@ -1,5 +1,7 @@
 # 本机人声音色美化试听
 
+本工具用于离线试听，不修改正在运行的实时链路。实时接线状态见[DSP 计划](../docs/FAST_VOICE_DSP_PLAN.md)。
+
 本工具用 C 算子调整同一段人声的音色。
 处理链包含低中频整理、清晰度提升、空气感提升和可选短反射。
 各档输出匹配到输入的原活跃帧均方根（RMS）电平，便于直接比较音色。
@@ -14,8 +16,8 @@
 
 ```bash
 python3 tools/voice_polish_preview.py \
-  "$HOME/Projects/RVC-official/test-input/original-sample-first-30s.wav" \
-  "$HOME/Projects/RVC-official/output/voice-polish-repeat"
+  "/path/to/input.wav" \
+  "/path/to/new-polish-output"
 ```
 
 需要 48 kHz 源时，从 `test-audio.mp4` 提取前 30 s：
@@ -23,7 +25,7 @@ python3 tools/voice_polish_preview.py \
 ```bash
 ffmpeg -v error -y -i test-audio.mp4 -t 30 -ac 1 -ar 48000 \
   -c:a pcm_s16le \
-  "$HOME/Projects/RVC-official/test-input/test-audio-first-30s-48k.wav"
+  "/path/to/input-48k.wav"
 ```
 
 C 算子在 `tools/voice_polish.c` 中构造系数。

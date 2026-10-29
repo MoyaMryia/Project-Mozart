@@ -67,6 +67,20 @@ It cannot perform ordinary file conversion.
 | `POST /api/realtime/routing` | Accepts `mic_muted` and `bypass` Boolean fields. |
 | `GET /api/models` | Lists discovered models. |
 | `POST /api/models/{id}/activate` | Requests a model change through the controller. |
+| `GET /api/stack/status` | Reads the supervisor status file selected by `MOZART_STACK_STATUS_JSON`. |
+| `GET /api/preprocessor` | Returns audio devices, current selections, and preprocessor state. |
+| `PUT /api/preprocessor` | Requires both `capture` and `playback` device IDs and invokes the configured restart script. |
+| `GET /api/glossary` / `PUT /api/glossary` | Reads or replaces the term list selected by `MOZART_GLOSSARY`. |
+
+Preprocessor updates require both device IDs:
+
+```json
+{"capture":"plughw:CARD=MIC,DEV=0","playback":"plughw:CARD=Device,DEV=0"}
+```
+
+Invalid device selections receive HTTP 422. Restart failures receive HTTP 502.
+In realtime mode, the controller rebuilds the UDP session after a successful device restart.
+The `session` response field reports `restarted` or `unchanged`.
 
 The controller keeps the routing settings after mode changes.
 The controller accepts them even when no realtime worker is active.
@@ -107,7 +121,8 @@ The worker passes arguments directly to FFmpeg without a shell.
 
 Active cancellation changes the state to `cancelling`.
 The worker terminates and reaps FFmpeg when cancellation or its deadline occurs.
-An active full RVC inference call still finishes before cancellation takes effect.
+RVC checks cancellation between feature extraction, retrieval, and synthesis stages, and between inference windows.
+An active model call returns before the next cancellation check.
 The `cancelling` state continues to own the worker and pipeline.
 Daemon shutdown can also wait for these operations.
 
@@ -133,7 +148,7 @@ Terminal history has no independent count limit.
 Subtitles use `MOZART_SUBTITLES_JSONL`, with default path `/tmp/opencode/subtitles.jsonl`.
 The reader reopens the file after replacement or truncation.
 It waits for incomplete JSONL lines to finish.
-The first connection starts at the file end; it does not replay earlier captions.
+Each connection sends the most recent 200 nonempty JSONL records, then sends new records from the saved file position.
 Each SSE connection uses a thread. The server accepts at most eight SSE connections.
 A heartbeat occurs every second. The reader closes disconnected clients when a send fails.
 
@@ -152,7 +167,7 @@ Treat a missing revision as `0` for older producers.
 The bridge increases the revision for each update. Stage numbers are not fixed revision values.
 Count utterances by ID, not by JSONL line count.
 The `final` field marks the final ASR text. Translation and speech finish after it.
-One background worker processes translation and speech requests in order.
+One background worker translates queued utterances in order. A separate worker submits speech requests.
 The default coverage policy stores waiting final utterances in a disk queue.
 It keeps only recent caption records in memory.
 With `--delivery-policy realtime`, the queue holds four waiting final utterances and one active utterance.
@@ -206,6 +221,9 @@ The `text_part_results` field keeps complete synthesis results for each text pie
 Physical playback timestamps describe pipe delivery. Null playback timestamps use the audio duration.
 A missing speech service returns HTTP 503.
 Speech status includes `last_stop_at`, the persisted cutoff for delayed bridge requests after explicit stop.
+It also includes `control_generation`, which increases after each explicit stop.
+Session, preparation, and preview requests can send `expected_control_generation`; stale values receive HTTP 409.
+The [speech API](../tools/REFERENCE_SPEECH.md#api) defines the request fields and compatibility behavior.
 Archived duplicate admissions retain the original job ID and return `archived: true` with `result_available: false`.
 The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes, disk queues, and delivery policies.
 
