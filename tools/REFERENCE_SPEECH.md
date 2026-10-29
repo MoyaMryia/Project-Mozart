@@ -12,6 +12,9 @@ The [writing rules](../docs/WRITING.md) define the project terms.
 
 ## Start the system
 
+For the combined microphone entry, use the [realtime launcher](REALTIME_VOICE.md).
+Its output selection and API port differ from this standalone supervisor procedure.
+
 The native build, Python environment, and installed ASR, translator, and TTS assets are necessary for this procedure.
 The [deployment guide](../frontend/DEPLOYMENT.md) gives the native build procedure.
 The supervisor uses `build-gpu/state/mozart_stated`.

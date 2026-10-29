@@ -4,12 +4,6 @@
   {
    "path": "DESIGN.md",
    "rule": "hedge-in-body",
-   "text": "ASR 读取、翻译和播报提交仍在同一循环串行执行，尚未完成有界异步解耦。",
-   "count": 1
-  },
-  {
-   "path": "DESIGN.md",
-   "rule": "hedge-in-body",
    "text": "Qwen 默认使用 0.8B 模型；其他翻译模型仍需完整的质量和内存验证。",
    "count": 1
   },
@@ -64,12 +58,6 @@
   {
    "path": "README.md",
    "rule": "hedge-in-body",
-   "text": "| 文件 RVC | 上传、串行队列、取消请求、结果下载 | 输入最长 300 s；FFmpeg 可取消；整段推理仍需等待返回 |",
-   "count": 1
-  },
-  {
-   "path": "README.md",
-   "rule": "hedge-in-body",
    "text": "切换模型后，管理器回收多余的闲置对象。该数量限制不是整个进程的内存上限。",
    "count": 1
   },
@@ -83,54 +71,6 @@
    "path": "README.md",
    "rule": "hedge-in-body",
    "text": "是滚动历史上下文，不是额外等待时间。",
-   "count": 1
-  },
-  {
-   "path": "TARGET.md",
-   "rule": "hedge-in-body",
-   "text": "| 翻译字幕 | ASR 转写后本地翻译 | 已接通；语义准确性和跨句上下文仍需验证 |",
-   "count": 1
-  },
-  {
-   "path": "docs/REALTIME_LATENCY.md",
-   "rule": "hedge-in-body",
-   "text": "- 使用持续 PCM 播放器，减少每片段启动  的开销；该开销尚未独立测量，不能声称可节省数秒。",
-   "count": 1
-  },
-  {
-   "path": "docs/REALTIME_LATENCY.md",
-   "rule": "hedge-in-body",
-   "text": "0.39 s 是当前路径可重叠的已观察时间窗口，不是保证收益或整个引擎的理论上限。",
-   "count": 1
-  },
-  {
-   "path": "docs/REALTIME_LATENCY.md",
-   "rule": "hedge-in-body",
-   "text": "SSE 当前每 200 ms 检查文件。事件通知或较短的等待可进一步减少发布延迟，但不是十秒级播报等待的主要来源。",
-   "count": 1
-  },
-  {
-   "path": "docs/REALTIME_LATENCY.md",
-   "rule": "hedge-in-body",
-   "text": "以上改法可以使原文不再等待这段处理；不能据此保证完整字幕显示延迟减少相同数值。",
-   "count": 1
-  },
-  {
-   "path": "docs/REALTIME_LATENCY.md",
-   "rule": "hedge-in-body",
-   "text": "未完成同一输入的 Golden、ONNX 和后端对照前，保留已验证模型与默认配置；先增加分段计时。",
-   "count": 1
-  },
-  {
-   "path": "docs/REALTIME_LATENCY.md",
-   "rule": "hedge-in-body",
-   "text": "本方案暂缓文件变声性能优化。下文区分代码确认、历史实测与待验证改法。",
-   "count": 1
-  },
-  {
-   "path": "docs/REALTIME_LATENCY.md",
-   "rule": "hedge-in-body",
-   "text": "若前方仍有待播音频，提前得到回调也可能不改变实际首播时刻。",
    "count": 1
   },
   {
@@ -269,12 +209,6 @@
    "path": "frontend/DEPLOYMENT.md",
    "rule": "hedge-in-body",
    "text": "Such a build does not prove that real model inference is available.",
-   "count": 1
-  },
-  {
-   "path": "frontend/DEPLOYMENT.zh-CN.md",
-   "rule": "hedge-in-body",
-   "text": "取消请求可以终止 FFmpeg。正在执行的整段 RVC 推理仍需等待返回。",
    "count": 1
   },
   {
@@ -2255,12 +2189,6 @@
    "path": "state/API.md",
    "rule": "hedge-in-body",
    "text": "They do not prove neural quality, GPU latency, or physical audio correctness.",
-   "count": 1
-  },
-  {
-   "path": "state/README.md",
-   "rule": "hedge-in-body",
-   "text": "仍需处理 HTTP 请求超时、文件处理资源上限、取消时延和有界模型缓存。",
    "count": 1
   },
   {

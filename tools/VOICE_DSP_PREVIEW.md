@@ -1,13 +1,15 @@
 # 本机人声 DSP 试听
 
+本工具用于离线试听，不修改正在运行的实时链路。实时接线状态见[DSP 计划](../docs/FAST_VOICE_DSP_PLAN.md)。
+
 ## 使用
 
 在仓库根目录执行以下命令。使用新的输出目录。
 
 ```bash
 python3 tools/voice_dsp_preview.py \
-  "$HOME/Projects/RVC-official/test-input/original-sample-first-30s.wav" \
-  "$HOME/Projects/RVC-official/output/local-voice-dsp-preview-repeat"
+  "/path/to/input.wav" \
+  "/path/to/new-dsp-output"
 ```
 
 程序依赖 C 编译器、NumPy、SciPy、FFmpeg 和 espeak-ng。

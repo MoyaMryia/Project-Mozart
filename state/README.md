@@ -8,7 +8,7 @@
 从仓库根目录执行：
 
 ```bash
-cmake -S . -B build-gpu -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build-gpu -DCMAKE_BUILD_TYPE=Release -DUSE_ONNX=ON
 cmake --build build-gpu -j4
 ./build-gpu/state/mozart_stated rvc-backend/config.yaml
 ```
@@ -45,8 +45,7 @@ HTTP API -> StateManagerDaemon -> ModeController
 文件任务忙时，切出文件模式的请求写入一个待切换槽；当前任务结束后执行。
 同模式重复请求和模型切换的忙碌处理见 API 文档。
 
-`IDLE` 保留已加载引擎。仓库中没有模型置换、`cudaDeviceReset` 回收流程，
-也没有按模式分配 CUDA 流的代码。
+`IDLE` 保留已加载引擎。模型管理器在切换后回收多余的闲置缓存，规则见[系统设计](../DESIGN.md#模型与运行时)。
 
 RVC 的 UDP 工作线程不直接占用麦克风。物理采集和播放由外部 `mozart-pre` 使用 ALSA 完成。
 切换守护进程模式不会停止外部采集进程。`IO/PipeWireStream` 仍是占位实现。
@@ -70,17 +69,18 @@ UDP 在元数据前增加 4 字节 MZRT 魔数。输入包为 1300 字节；输�
 文件队列默认允许 50 个未完成任务。终态历史不占该容量；内存中的历史任务尚无单独数量上限。
 队列消费并发度为 1。暂停队列不会中断当前任务。
 
-取消活动任务后，状态先变为 `cancelling`。当前 FFmpeg 子进程和整段 RVC 推理没有可中断接口，
-任务需要等到后续取消检查点。关闭守护进程也可能等待这些操作结束。
+取消活动任务后，状态先变为 `cancelling`。工作线程终止并回收 FFmpeg 子进程。
+RVC 在阶段边界和分块循环中响应取消，单次模型调用返回后进入后续检查点。
+队列、文件大小、解码时长和超时规则见[文件接口](API.md#file-routes)。
 
 临时文件位于 `storage.temp_dir`。任务结束后，缓存超过高水位时向其 80% 清理。
 排队、处理和取消中的任务文件受到保护；该目标不是硬磁盘配额。
 任务队列保存在内存中，重启后不恢复排队任务。
 
-## 验证与缺口
+## 验证
 
 主机回归覆盖队列容量、取消状态、模式互斥和缓存保护。
 测试命令见 [API.md](API.md#regression-tests)。这些测试不验证模型音质、GPU 性能或物理设备。
 
-仍需处理 HTTP 请求超时、文件处理资源上限、取消时延和有界模型缓存。
-证据及验收条件见 [2026-10-08 审计](../reports/repository-audit-20261008/RESULTS.md)。
+HTTP 已设置连接数与请求截止时间，见[HTTP 限制](API.md#current-http-limits)。
+剩余工作与解除条件统一记录在[任务清单](../TODO.md)。

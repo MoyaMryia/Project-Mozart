@@ -188,6 +188,17 @@ export MOZART_PLAYBACK_DEVICE=plughw:CARD=Loopback,DEV=0,SUBDEV=1
 
 命令行参数 `--mic-device` 与 `--playback-device` 的优先级更高。
 
+统一实时入口使用 `CAPTURE` 和 `PLAYBACK`，与上述 Python 参数分别配置：
+
+```bash
+CAPTURE=plughw:CARD=Loopback,DEV=1,SUBDEV=0 \
+PLAYBACK=plughw:CARD=Loopback,DEV=0,SUBDEV=1 \
+  tools/run-realtime-voice.sh start
+```
+
+该入口默认使用 `mozart-pre` 的 ALSA 路径，USB 桥在两端独立运行。
+直接持有额外快流端点属于另一种设备接线方式，接口分配见本页“架构”。
+
 ## 环境变量
 
 | 变量 | 作用 |

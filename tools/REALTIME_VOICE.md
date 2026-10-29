@@ -1,5 +1,11 @@
 # 实时变声、字幕与翻译
 
+## 构建前提
+
+入口读取 `build-gpu/state/mozart_stated` 与 `build/usb-pre/mozart-pre`。
+更新原生源码后重建对应目录，命令见[运行手册](../docs/RUNBOOK.md#构建与配置)。
+配置中的模型与脚本路径应指向当前部署目录。
+
 ## 启动和停止
 
 在 Jetson 仓库目录执行命令。

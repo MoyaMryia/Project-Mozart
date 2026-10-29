@@ -3,6 +3,8 @@
 The backend entry point is `mozart_stated`.
 The frontend sends API requests through the Vite proxy.
 The file worker uses FFmpeg and the RVC pipeline.
+This procedure uses the standalone backend port.
+The [runbook](../docs/RUNBOOK.md) covers the combined realtime entry and frontend access through SSH forwarding.
 
 The [Chinese version](DEPLOYMENT.zh-CN.md) contains the same procedures.
 The [writing rules](../docs/WRITING.md) define the project terms.
@@ -67,8 +69,9 @@ rvc-backend/models/<model_id>/
 ```
 
 The `.engine` file is optional.
-If that file loads satisfactoryly, the backend uses TensorRT before ONNX Runtime.
-The backend does not load retrieval indexes for production inference.
+If that file loads successfully, the backend uses TensorRT before ONNX Runtime.
+The loader attempts to load an adjacent index with the model ID and the `.index` suffix.
+The [system design](../DESIGN.md#模型与运行时) defines supported formats, retrieval settings, and memory behavior.
 
 Set the asset paths in `rvc-backend/config.yaml`:
 
@@ -102,7 +105,6 @@ From the repository root, start the daemon:
 
 The initial mode is `IDLE`.
 The factory sorts model IDs and selects the first model that loads.
-The factory loads the first model, in ID order, that loads successfully.
 
 In a different terminal, read the service state:
 
@@ -169,8 +171,8 @@ curl 'http://127.0.0.1:18080/api/file/result?job_id=<job_id>' -o output.wav
 ```
 
 An active cancellation request waits for the next available cancellation point.
-Cancellation terminates FFmpeg. An active full RVC inference call must finish first.
-The input limit is 300 seconds. Each FFmpeg operation has a 120-second deadline.
+Cancellation terminates FFmpeg. RVC checks cancellation between stages and inference windows.
+An active model call returns before the next cancellation check.
 The [API document](../state/API.md) gives the queue and storage limits.
 
 ## Use the low-latency profile

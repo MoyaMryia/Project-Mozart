@@ -3,6 +3,7 @@
 后端入口为 `mozart_stated`。前端通过 Vite 代理访问 API。
 文件工作线程使用 FFmpeg 解码，再执行 RVC 推理。
 对应英文说明见 [DEPLOYMENT.md](DEPLOYMENT.md)。
+本文使用独立后端默认端口。组合实时入口与跨机器前端联调见[运行手册](../docs/RUNBOOK.md)。
 
 ## 前置条件
 
@@ -60,7 +61,7 @@ rvc-backend/models/<model_id>/
 ```
 
 `.engine` 可选。同名引擎加载成功时，后端优先使用 TensorRT。
-生产不加载检索索引；`model.has_index` 为 `false`。
+同名 `.index` 存在时尝试加载。格式、检索开关与内存行为见[系统设计](../DESIGN.md#模型与运行时)。
 
 在 `rvc-backend/config.yaml` 设置资产路径：
 
@@ -154,8 +155,7 @@ curl 'http://127.0.0.1:18080/api/file/status?job_id=<job_id>'
 curl 'http://127.0.0.1:18080/api/file/result?job_id=<job_id>' -o output.wav
 ```
 
-取消请求可以终止 FFmpeg。正在执行的整段 RVC 推理仍需等待返回。
-输入最长 300 s。每次 FFmpeg 解码或编码最长 120 s。
+取消请求可以终止 FFmpeg。RVC 在阶段边界和分块循环中响应取消，单次模型调用返回后进入后续检查点。
 队列与存储约束见 [API 文档](../state/API.md)。
 
 ## 使用低延迟配置

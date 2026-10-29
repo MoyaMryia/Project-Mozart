@@ -9,8 +9,8 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 
 | 功能 | 已实现行为 | 验证范围与限制 |
 | --- | --- | --- |
-| 实时 RVC | ALSA 预处理客户端与 UDP 后端 | `qiqi-zh-realtime` 已通过 400 ms 启动预算下的 120 s 组合检查 |
-| 文件 RVC | 上传、串行队列、取消请求、结果下载 | 输入最长 300 s；FFmpeg 可取消；整段推理仍需等待返回 |
+| 实时 RVC | 单次采集同时发送变声与识别 | 日常组合配置的板端证据见[双发报告](reports/dual-live-20261028/RESULTS.md) |
+| 文件 RVC | 上传、串行队列、取消请求、结果下载 | 资源上限与取消检查点见[API](state/API.md#file-routes) |
 | 翻译字幕 | Zipformer 转写、可选 SenseVoice 校正、Qwen 翻译、SSE 字幕 | 已接通；人称、领域词和跨句语义仍有错误 |
 | 参考音色播报 | PocketTTS 逐片段合成、播放、预览和下载 | 已接通；数量检查覆盖数额，语义与声线由听测确认 |
 | PipeWire 设备接口 | 占位实现 | 当前物理音频使用 `mozart-pre` 的 ALSA 路径 |
@@ -21,10 +21,14 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 首帧输入至首帧输出的早期实测为 `320 ms`，稳态推理块中位 `88 ms`、p95 `93 ms`。
 数字对应固定输入与固定模型，其他配置需要重新测量。证据见 [Golden 参考](rvc-golden/README.md)。
 
-近期实测：
+近期实现与验证：
 
 | 主题 | 结论 | 报告 |
 | --- | --- | --- |
+| 单采集双发 | 同一输入送入变声与字幕识别 | [双发验证](reports/dual-live-20261028/RESULTS.md) |
+| 复核与投递 | 复核计时、独立投递和恢复的本地回归 | [复核报告](reports/refinement-deadline-20261028/RESULTS.md)、[投递报告](reports/speech-delivery-semantics-20261028/RESULTS.md) |
+| 播报入口 | 提前输出参数与等待任务故障收尾 | [播报调查](reports/speech-latency-20261029/RESULTS.md) |
+| 控制台 | 设备草稿、停止控制与就地试听 | [控制修复](reports/control-races-20261029/RESULTS.md)、[页面验证](reports/frontend-simplification-20261029/RESULTS.md) |
 | 效率优化 | GPU 张量直连、特征并行、按需加载 | [效率验证](reports/efficiency-20261014/RESULTS.md) |
 | 逐功能延迟 | 变声、识别、翻译、字幕、播报的计时 | [逐功能延迟](reports/feature-latency-20261014/RESULTS.md) |
 | 播放积压 | 待播量峰值 47.6 s → 23.2 s | [播放积压](reports/backlog-fix-20261019/RESULTS.md) |
@@ -33,6 +37,20 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 | USB 音频桥 | 全双工，30 分钟受压无丢帧 | [USB 报告](reports/usb-audio-20261020/RESULTS.md) |
 
 时长控制见[译文时长参考](docs/TRANSLATION_DURATION.md)与[灵活变速说明](docs/FLEXIBLE_TEMPO.md)。
+
+## 日常实时入口
+
+在已完成构建、模型与声卡配置的 Jetson 上执行：
+
+```bash
+tools/run-realtime-voice.sh start
+tools/run-realtime-voice.sh status
+tools/run-realtime-voice.sh stop
+```
+
+默认输出变声，字幕与翻译同时运行。设置 `OUTPUT=speech` 可选择译文播报。
+输出选择、参考音色、提前输出音频与日志见[实时入口](tools/REALTIME_VOICE.md)。
+部署与本地开发联调步骤见[运行手册](docs/RUNBOOK.md)。
 
 ## 数据流
 
@@ -45,7 +63,7 @@ RVC 使用 C/C++ 与 ONNX Runtime 或 TensorRT；字幕和参考播报使用独�
 
 `mozart_stated` 管理 RVC 模式和文件队列。
 `tools/run_translated_speech.py` 管理字幕与参考播报所需的子进程，包含原生后端。
-实时 RVC 和文件 RVC 互斥；字幕与参考播报可独立运行。组件共存的内存预算需要按具体配置实测。
+实时 RVC 和文件 RVC 互斥。日常入口选择变声或译文播报作为播放输出，字幕和翻译在两种输出下均运行。
 
 ## 目录
 
@@ -97,8 +115,11 @@ npm --prefix frontend run dev
 
 术语表启用后额外需要两项，未配置术语表时不加载：
 
+先检查所用 Python 环境，再安装缺少的依赖：
+
 ```bash
-pip install pypinyin jieba
+.venv/bin/python -c 'import pypinyin, jieba'
+uv pip install --python .venv/bin/python pypinyin jieba
 ```
 
 `pypinyin` 生成同音索引，`jieba` 提供词频，用于区分真词与识别错字。
@@ -138,7 +159,7 @@ storage:
 同名 `.engine` 存在且加载成功时，后端使用 TensorRT；加载失败时回退 ONNX Runtime，原因记入 `*_fallback_reason`。
 ONNX CUDA EP 在 `-DUSE_CUDA_EP=ON` 且 ONNX Runtime 提供 CUDA EP 时附加。
 `/api/status` 的 `model.*_backend` 报告实际后端。
-生产不预加载 `.index`。索引未加载时 `index_rate` 不参与计算，`model.has_index` 为 `false`。
+模型加载时会尝试读取同名 `.index`。加载规则与内存行为见[模型与运行时](DESIGN.md#模型与运行时)。
 
 先查询状态，再显式选择目标模型：
 
@@ -158,6 +179,8 @@ curl -X POST http://127.0.0.1:18080/api/file/convert \
 `/api/health` 只报告进程存活，不验证模型、GPU、音质或麦克风。
 
 ## 低延迟实时配置
+
+本节说明独立 RVC 资产。日常组合入口使用的配置、模型与端口以[实时入口](tools/REALTIME_VOICE.md#默认配置)为准。
 
 当前已验证模型为 `qiqi-zh-realtime`。它使用额外的固定形状资产：
 
