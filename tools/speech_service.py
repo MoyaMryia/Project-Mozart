@@ -27,11 +27,14 @@ import uuid
 import wave
 from speech_chunks import estimated_audio_seconds, split_speech_text
 from durable_jobs import DiskJobs, DiskPending
+from speech_admissions import AdmissionLedger
 from tempo_player import TempoPlayer, tempo_library
 from speech_duration import DurationEstimator, DEFAULT_PROFILE
 from tempo_control import DEFAULT_TEMPO_MAX, TempoController
 
 TERMINAL = {'completed', 'failed', 'cancelled', 'expired'}
+TIMESTAMP_SKEW_SECONDS = 5
+STORAGE_FAILURE_MESSAGE = 'Speech task storage failed; inspect the service log'
 
 
 class WorkerError(RuntimeError):
@@ -76,6 +79,12 @@ class SpeechService:
         self.delivery_policy = delivery_policy
         self.storage_warning = None
         self.storage_failed = False
+        self.stop_path = self.root/'speech-stop.json'
+        stop_state = json.loads(self.stop_path.read_text()) if self.stop_path.exists() else {'last_stop_at': 0.0}
+        self.last_stop_at = stop_state.get('last_stop_at') if isinstance(stop_state, dict) else None
+        if (isinstance(self.last_stop_at, bool) or not isinstance(self.last_stop_at, (int, float))
+                or not 0 <= self.last_stop_at <= time.time()+TIMESTAMP_SKEW_SECONDS):
+            raise ValueError(f'Invalid speech stop timestamp: {self.stop_path}')
         self.discard_warning = None
         self.voices = {p.stem: json.loads(p.read_text()) for p in (self.root/'voices').glob('*.json')}
         self.jobs, self.pending, self.keys = OrderedDict(), deque(), OrderedDict()
@@ -83,6 +92,7 @@ class SpeechService:
             self.jobs = DiskJobs(self.root/'speech-jobs.sqlite3', history_limit,
                 pinned=lambda: {getattr(self, 'active', None), getattr(self, 'active_play', None)}-{None})
             self.pending = DiskPending(self.jobs)
+        self.admissions = AdmissionLedger(self.root/'speech-admissions.sqlite3')
         self.play_pending = deque()
         self.playback_limit_seconds = 12
         self.live_audio_budget_seconds = 24
@@ -147,6 +157,7 @@ class SpeechService:
                 'buffered_audio_seconds': self.buffered_audio_seconds(),
                 'deferred_jobs': 0 if coverage else sum(j.get('admission_pending', False) and j['status'] not in TERMINAL for j in self.jobs.values()),
                 'session': dict(self.session), 'queue_limit': self.queue_limit,
+                'last_stop_at': self.last_stop_at,
                 'playback_device': self.device, 'playback_queue_limit_seconds': self.playback_limit_seconds,
                 'playback_tempo_policy': self.playback_tempo,
                 'playback_tempo_max': self.tempo_controller.maximum,
@@ -262,9 +273,28 @@ class SpeechService:
             self.storage_failed = True
             self.lock.notify_all()
 
+    def storage_rejection(self, error, jobs=()):
+        """存储失败后停止接收任务，并返回接口错误。"""
+        self.note_storage_failure(error)
+        self.fatal_error(error, 'submit', jobs)
+        return ApiError(507, STORAGE_FAILURE_MESSAGE)
+
     def owned_job(self, job_id):
         """Read a resident job. Do not reload records evicted from the disk cache."""
         return self.jobs.cache.get(job_id) if self.delivery_policy == 'coverage' else self.jobs.get(job_id)
+
+    def admitted_utterance(self, utterance):
+        """按话语标识返回现存任务，缺少任务时返回 None。"""
+        if not utterance:
+            return None
+        if self.delivery_policy == 'coverage':
+            job_id = self.jobs.find_utterance(utterance)
+        else:
+            job_id = self.keys.get(utterance)
+            if job_id is None:
+                job_id = next((job['id'] for job in reversed(self.jobs.values())
+                               if job.get('utterance_id') == utterance), None)
+        return self.jobs[job_id] if job_id is not None and job_id in self.jobs else None
 
     def fatal_error(self, error, component, jobs=()):
         """Stop the service in memory. Fail the owned jobs and keep one reason."""
@@ -386,7 +416,9 @@ class SpeechService:
         language = body.get('language', 'en')
         degraded = body.get('speech_degraded', False)
         timing = {}
-        for name, maximum in [('source_duration_seconds', 300), ('source_emitted_at', time.time()+5)]:
+        timestamp_max = time.time()+TIMESTAMP_SKEW_SECONDS
+        for name, maximum in [('source_duration_seconds', 300), ('source_emitted_at', timestamp_max),
+                              ('delivery_created_at', timestamp_max)]:
             value = body.get(name)
             if value is not None:
                 if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 < value <= maximum or not math.isfinite(value):
@@ -408,18 +440,30 @@ class SpeechService:
             key = str(body.get('utterance_id', ''))
             if len(key) > 128:
                 raise ApiError(400, 'Utterance ID exceeds 128 characters')
-            existing = self.jobs.find_utterance(key) if key and self.delivery_policy == 'coverage' else self.keys.get(key)
-            if existing and existing in self.jobs:
-                return dict(self.jobs[existing])
+            live = body.get('live', False)
+            playback = body.get('playback', False)
+            if not isinstance(live, bool) or not isinstance(playback, bool):
+                raise ApiError(400, 'live and playback must be booleans')
+            origin = timing.get('source_emitted_at', timing.get('delivery_created_at'))
+            if live and origin is not None and origin <= self.last_stop_at:
+                raise ApiError(409, 'Speech delivery predates the last explicit stop')
+            try:
+                existing = self.admitted_utterance(key)
+                archived = self.admissions.find(key) if key and existing is None else None
+            except (OSError, sqlite3.Error) as error:
+                raise self.storage_rejection(error) from error
+            if existing is not None:
+                return dict(existing)
+            if archived:
+                snapshot = dict(archived['job'])
+                snapshot.update(archived=True, result_available=False)
+                snapshot.pop('result_url', None)
+                return snapshot
             voice = self.voices.get(body.get('voice_id'))
             if voice is None:
                 raise ApiError(404, 'Reference voice not found')
             if voice['engine'] != self.engine:
                 raise ApiError(422, 'Reference profile belongs to a different engine')
-            live = body.get('live', False)
-            playback = body.get('playback', False)
-            if not isinstance(live, bool) or not isinstance(playback, bool):
-                raise ApiError(400, 'live and playback must be booleans')
             texts = split_speech_text(text, language) if live or playback else [text]
             estimate = sum(estimated_audio_seconds(piece, language) for piece in texts)
             prediction = None
@@ -467,11 +511,13 @@ class SpeechService:
             try:
                 self.jobs[job_id] = job
                 self.save_job(job)
+                if key:
+                    self.admissions.record(job)
                 self.pending.append(job_id)
             except (OSError, sqlite3.Error) as error:
                 self.note_storage_failure(error)
                 self.fatal_error(error, 'submit', [job])
-                raise ApiError(507, 'Speech task storage failed; inspect the service log') from error
+                raise ApiError(507, STORAGE_FAILURE_MESSAGE) from error
             if key and self.delivery_policy != 'coverage':
                 self.keys[key] = job_id
                 while len(self.keys) > 256:
@@ -515,11 +561,22 @@ class SpeechService:
         for job_id in candidates:
             if not coverage and len(self.jobs) <= self.history_limit:
                 break
-            if self.jobs[job_id]['status'] in TERMINAL and job_id not in {getattr(self, 'active', None), getattr(self, 'active_play', None)}:
+            job = self.jobs[job_id]
+            if job['status'] in TERMINAL and job_id not in {getattr(self, 'active', None), getattr(self, 'active_play', None)}:
+                if job.get('utterance_id'):
+                    try:
+                        self.admissions.archive(job)
+                    except (OSError, sqlite3.Error) as error:
+                        self.note_storage_failure(error)
+                        return
                 # 文件删不掉时保留任务记录，下次清理重试。
                 if not self.discard_results(job_id):
                     continue
                 del self.jobs[job_id]
+                if not coverage:
+                    for key, value in list(self.keys.items()):
+                        if value == job_id:
+                            del self.keys[key]
 
     def discard_results(self, job_id):
         """删除任务的结果文件。删除失败时记录原因并返回 False。"""
@@ -552,7 +609,7 @@ class SpeechService:
                             self.note_storage_failure(error)
                             self.fatal_error(error, 'cancel', [job])
                             if not self.closed:
-                                raise ApiError(507, 'Speech task storage failed; inspect the service log') from error
+                                raise ApiError(507, STORAGE_FAILURE_MESSAGE) from error
                 else:
                     self.pending = deque(i for i in self.pending if i != job_id)
                 self.play_pending = deque(p for p in self.play_pending if p['job_id'] != job_id)
@@ -1202,6 +1259,10 @@ class SpeechService:
                         self.jobs.close()
                     except sqlite3.Error as error:
                         self.note_storage_failure(error)
+                try:
+                    self.admissions.close()
+                except sqlite3.Error as error:
+                    self.note_storage_failure(error)
         if self.child:
             self.child.stdin.close()
             self.child.stdout.close()
@@ -1241,6 +1302,12 @@ class SpeechService:
                 self.session['enabled'] = False
                 self.tempo_controller.previous.clear()
                 stop_errors = 0
+                self.last_stop_at = time.time()
+                try:
+                    atomic_json(self.stop_path, {'last_stop_at': self.last_stop_at})
+                except OSError as error:
+                    self.note_storage_failure(error)
+                    stop_errors += 1
                 try:
                     keys = self.jobs.ids("status NOT IN ('completed','failed','cancelled','expired')") if self.delivery_policy == 'coverage' else list(self.jobs)
                 except sqlite3.Error as error:

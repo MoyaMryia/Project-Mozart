@@ -1,0 +1,543 @@
+{
+  "version": 1,
+  "notes": "离线语义契约的固定样本。record_* 的序号对应 rvc-golden/asr-selection-20261028/results.json 的输入记录。来源中文和来源事实按该记录的输入中文做显式参考标注；参考译文是显式参考标注，不取自模型输出。reserved_* 是独立保留样本，不进入生产词表。每条样本标注来源中文、参考译文、主体/关系/对象、数量、否定和完整性元数据。facts 用 require/forbid 规则断言这些事实，并包含该样本的结构性结尾或残句谓词。本契约不使用句末标点判定完整性。record_9 是已知残句输入，现有输出和任何补全句都必须失败。",
+  "facts": {
+    "genshin_is_game": {
+      "kind": "require",
+      "patterns": ["\\bgenshin impact\\b[^.!?]{0,24}\\bis\\b[^.!?]{0,24}\\b(?:a|one)\\s+(?:video\\s+)?game\\b"]
+    },
+    "no_genshin_negation": {
+      "kind": "forbid",
+      "patterns": [
+        "\\b(?:is|are|was|were)\\s+(?:not|n't)\\b",
+        "\\b(?:isn't|aren't|wasn't|weren't)\\b"
+      ]
+    },
+    "no_film_reading": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:movie|film|series|novel|book|song|anime|painting)\\b"]
+    },
+    "ends_game": {
+      "kind": "require",
+      "patterns": ["\\bgame\\s*[.!?]?\\s*$"]
+    },
+    "pair_chinese_english": {
+      "kind": "require",
+      "patterns": [
+        "\\bchinese\\b[^.!?]{0,12}\\band\\b[^.!?]{0,12}\\benglish\\b",
+        "\\benglish\\b[^.!?]{0,12}\\band\\b[^.!?]{0,12}\\bchinese\\b"
+      ]
+    },
+    "no_middle_east_reading": {
+      "kind": "forbid",
+      "patterns": ["\\bmiddle[\\s-]?east(?:ern)?\\b"]
+    },
+    "no_other_language": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:japanese|korean|french|german|spanish|russian|arabic|hindi)\\b"]
+    },
+    "ends_language_pair": {
+      "kind": "require",
+      "patterns": ["\\b(?:chinese|english)\\s*[.!?]?\\s*$"]
+    },
+    "numb_brother_state": {
+      "kind": "require",
+      "patterns": ["\\bi(?:'m|\\s+am)\\b[^.!?]{0,24}\\b(?:stunned|numb|speechless|shocked|dumbfounded|floored)\\b"]
+    },
+    "address_brother": {
+      "kind": "require",
+      "patterns": ["\\b(?:brother|bro|dude|mate|man)\\b"]
+    },
+    "no_brother_agent": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:by|at|with)\\s+(?:your|my|his|her|their|the|our)\\s+(?:brother|bro)\\b"]
+    },
+    "no_body_part": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:my|his|her|their)\\s+(?:hands?|legs?|feet|arms?|face)\\b"]
+    },
+    "no_death_claim": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:dead|died|dying|death)\\b"]
+    },
+    "ends_brother": {
+      "kind": "require",
+      "patterns": ["\\b(?:brother|bro)\\s*[.!?]?\\s*$"]
+    },
+    "we_powerless": {
+      "kind": "require",
+      "patterns": ["\\bwe\\b[^.!?]{0,24}\\b(?:powerless|helpless|have\\s+no\\s+control|are\\s+unable)\\b"]
+    },
+    "reference_this": {
+      "kind": "require",
+      "patterns": ["\\b(?:this|it|that)\\b"]
+    },
+    "no_positive_capability": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:powerful|capable)\\b"]
+    },
+    "no_invented_deed": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:refus(?:e|ed|es|ing)|blam(?:e|ed|es|ing)|fight|fought)\\b"]
+    },
+    "ends_this": {
+      "kind": "require",
+      "patterns": ["\\bthis\\s*[.!?]?\\s*$"]
+    },
+    "regret_marker": {
+      "kind": "require",
+      "patterns": ["\\b(?:unfortunately|regrettably|sadly|regret|to\\s+our\\s+regret)\\b"]
+    },
+    "uk_subject": {
+      "kind": "require",
+      "patterns": ["\\b(?:united\\s+kingdom|uk|britain|british)\\b"]
+    },
+    "uk_refuses_terms": {
+      "kind": "require",
+      "patterns": ["\\b(?:the\\s+)?(?:united\\s+kingdom|uk|britain|british)\\b[^.!?]{0,24}\\b(?:refus(?:e|ed|es|ing)|reject(?:ed|s|ing)?|declin(?:e|ed|es|ing)?|turn(?:ed)?\\s+down)\\b"]
+    },
+    "our_terms": {
+      "kind": "require",
+      "patterns": ["\\bour\\s+terms?\\b"]
+    },
+    "refused_terms": {
+      "kind": "require",
+      "patterns": ["\\b(?:refus(?:e|ed|es|ing)|reject(?:ed|s|ing)?|declin(?:e|ed|es|ing)?|turn(?:ed)?\\s+down)\\b[^.!?]{0,30}\\bterms?\\b"]
+    },
+    "no_wrong_state": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:state|states|america|united\\s+states|france|germany|russia|china|japan)\\b"]
+    },
+    "no_accepted_terms": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:accept(?:ed|s|ing)?|approv(?:e|ed|es|ing)|agree(?:d|s|ing)?)\\b"]
+    },
+    "ends_terms": {
+      "kind": "require",
+      "patterns": ["\\bterms?\\s*[.!?]?\\s*$"]
+    },
+    "what_fronted": {
+      "kind": "require",
+      "patterns": ["^\\s*what\\b"]
+    },
+    "first_person_we": {
+      "kind": "require",
+      "patterns": ["\\bwe\\b"]
+    },
+    "verb_do": {
+      "kind": "require",
+      "patterns": ["\\b(?:do|does|did|doing|done)\\b"]
+    },
+    "open_copula_ending": {
+      "kind": "require",
+      "patterns": [
+        "\\b(?:is|are|was|were)\\s*(?:\\.{2,}|…|[:：])\\s*$",
+        "\\b(?:is|are|was|were)\\s*[,，]\\s*$",
+        "\\b(?:is|are|was|were)\\s*$"
+      ]
+    },
+    "meeting_postponed": {
+      "kind": "require",
+      "patterns": ["\\b(?:the\\s+)?meeting\\b[^.!?]{0,30}\\b(?:postponed|delayed|pushed\\s+back|put\\s+off|rescheduled)\\b"]
+    },
+    "postponed_to_friday": {
+      "kind": "require",
+      "patterns": ["\\b(?:to|until|till|for)\\s+(?:this\\s+)?friday\\b"]
+    },
+    "no_other_weekday": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:monday|tuesday|wednesday|thursday|saturday|sunday)\\b"]
+    },
+    "ends_friday": {
+      "kind": "require",
+      "patterns": ["\\bfriday\\s*[.!?]?\\s*$"]
+    },
+    "negated_approval": {
+      "kind": "require",
+      "patterns": ["\\b(?:did\\s+not|didn't|have\\s+not|haven't|has\\s+not|refused\\s+to|declined\\s+to|failed\\s+to|never)\\b"]
+    },
+    "they_approve_budget": {
+      "kind": "require",
+      "patterns": ["\\bthey\\b[^.!?]{0,30}\\b(?:approve|approved|pass|passed|authorize|authorized|authorise|authorised)\\b[^.!?]{0,30}\\bbudget\\b"]
+    },
+    "no_plain_approval": {
+      "kind": "forbid",
+      "patterns": ["\\bthey\\s+(?:approved|authorized|authorised|passed)\\b"]
+    },
+    "ends_budget": {
+      "kind": "require",
+      "patterns": ["\\bbudget\\s*[.!?]?\\s*$"]
+    },
+    "bought_printers": {
+      "kind": "require",
+      "patterns": ["\\bwe\\b[^.!?]{0,20}\\b(?:bought|purchased|ordered|got)\\b[^.!?]{0,20}\\bprinters?\\b"]
+    },
+    "three_printers": {
+      "kind": "require",
+      "patterns": ["\\b(?:three|3)\\b[^.!?]{0,12}\\bprinters?\\b"]
+    },
+    "no_other_printer_count": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:(?!3\\b)\\d+|one|two|four|five|six|seven|eight|nine|ten)\\s+(?:new\\s+)?printers?\\b"]
+    },
+    "ends_printers": {
+      "kind": "require",
+      "patterns": ["\\bprinters?\\s*[.!?]?\\s*$"]
+    },
+    "report_filed": {
+      "kind": "require",
+      "patterns": [
+        "\\b(?:the\\s+)?report\\b[^.!?]{0,30}\\b(?:submitted|filed|handed\\s+in|delivered|turned\\s+in)\\b",
+        "\\b(?:submitted|filed|handed\\s+in|delivered|turned\\s+in)\\b[^.!?]{0,20}\\b(?:the\\s+)?report\\b"
+      ]
+    },
+    "time_yesterday": {
+      "kind": "require",
+      "patterns": ["\\byesterday\\b"]
+    },
+    "ends_yesterday": {
+      "kind": "require",
+      "patterns": ["\\byesterday\\s*[.!?]?\\s*$"]
+    },
+    "plan_cannot": {
+      "kind": "require",
+      "patterns": ["\\b(?:this|the)\\s+plan\\b[^.!?]{0,24}\\b(?:cannot|can't|can\\s+not|will\\s+not|won't|does\\s+not|doesn't|is\\s+unable\\s+to)\\b"]
+    },
+    "reduce_cost": {
+      "kind": "require",
+      "patterns": ["\\b(?:reduce|lower|cut|decrease|bring\\s+down)\\b[^.!?]{0,20}\\b(?:the\\s+)?(?:cost|costs|spending|expenses?)\\b"]
+    },
+    "no_cost_increase": {
+      "kind": "forbid",
+      "patterns": ["\\b(?:increase|raise|add)\\b[^.!?]{0,20}\\b(?:the\\s+)?(?:cost|costs)\\b"]
+    },
+    "ends_cost": {
+      "kind": "require",
+      "patterns": ["\\b(?:costs?|spending|expenses?)\\s*[.!?]?\\s*$"]
+    },
+    "if_weather_tomorrow": {
+      "kind": "require",
+      "patterns": ["\\bif\\b[^.!?]{0,30}\\bweather\\b[^.!?]{0,20}\\btomorrow\\b"]
+    },
+    "open_condition_ending": {
+      "kind": "require",
+      "patterns": ["\\btomorrow\\s*(?:[,，]\\s*)?(?:\\.{2,}|…|[:：])?\\s*$"]
+    },
+    "no_condition_main_clause": {
+      "kind": "forbid",
+      "patterns": [
+        "\\btomorrow\\b\\s*[,，]\\s*[a-z]",
+        "\\btomorrow\\b\\s+(?:we|you|they|he|she|it|i|the|this|that)\\b"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "record_8",
+      "seq": 8,
+      "source_zh": "原神是一款游戏",
+      "reference_en": "Genshin Impact is a game.",
+      "annotations": {
+        "subject": "原神，游戏专名",
+        "relation": "是一款：系表关系",
+        "object": "游戏，不是影片或其他载体",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "完整主谓句"
+      },
+      "completeness": "complete",
+      "facts": ["genshin_is_game", "no_genshin_negation", "no_film_reading", "ends_game"],
+      "accept": ["Genshin Impact is one game.", "Genshin Impact is a video game.", "Genshin Impact is a game"],
+      "reject": [
+        {"en": "Genshin Impact is a movie.", "fails": ["genshin_is_game", "no_film_reading", "ends_game"]},
+        {"en": "A game is Genshin Impact.", "fails": ["genshin_is_game", "ends_game"]},
+        {"en": "Genshin Impact is not a game.", "fails": ["no_genshin_negation"]},
+        {"en": "Genshin Impact isn't a game.", "fails": ["genshin_is_game", "no_genshin_negation"]}
+      ]
+    },
+    {
+      "id": "record_16",
+      "seq": 16,
+      "source_zh": "中英文",
+      "reference_en": "Chinese and English.",
+      "annotations": {
+        "subject": "中英文，两个并列语言名",
+        "relation": "并列关系，由 and 连接",
+        "object": "中文与英文两种语言",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "完整短语"
+      },
+      "completeness": "complete",
+      "facts": ["pair_chinese_english", "no_middle_east_reading", "no_other_language", "ends_language_pair"],
+      "accept": ["English and Chinese.", "Chinese and English", "English and Chinese"],
+      "reject": [
+        {"en": "Middle Eastern English.", "fails": ["pair_chinese_english", "no_middle_east_reading"]},
+        {"en": "Chinese and Japanese.", "fails": ["pair_chinese_english", "no_other_language", "ends_language_pair"]}
+      ]
+    },
+    {
+      "id": "record_17",
+      "seq": 17,
+      "source_zh": "中英文",
+      "reference_en": "Chinese and English.",
+      "annotations": {
+        "subject": "中英文，两个并列语言名",
+        "relation": "并列关系，由 and 连接",
+        "object": "中文与英文两种语言",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "完整短语"
+      },
+      "completeness": "complete",
+      "facts": ["pair_chinese_english", "no_middle_east_reading", "no_other_language", "ends_language_pair"],
+      "accept": ["English and Chinese.", "Chinese and English", "English and Chinese"],
+      "reject": [
+        {"en": "Middle Eastern English.", "fails": ["pair_chinese_english", "no_middle_east_reading"]},
+        {"en": "Chinese and Korean.", "fails": ["pair_chinese_english", "no_other_language", "ends_language_pair"]}
+      ]
+    },
+    {
+      "id": "record_39",
+      "seq": 39,
+      "source_zh": "我麻了兄弟",
+      "reference_en": "I am stunned brother.",
+      "annotations": {
+        "subject": "我，第一人称说话人",
+        "relation": "麻了：说话人自述的状态",
+        "object": "兄弟，称呼对方，不是被说的第三人",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "完整口语句"
+      },
+      "completeness": "complete",
+      "facts": ["numb_brother_state", "address_brother", "no_brother_agent", "no_body_part", "no_death_claim", "ends_brother"],
+      "accept": ["I'm speechless, brother.", "I am stunned, bro.", "I am stunned brother", "I'm speechless, brother"],
+      "reject": [
+        {"en": "You are stunned, brother.", "fails": ["numb_brother_state"]},
+        {"en": "I am stunned brother, his hands are numb.", "fails": ["no_body_part", "ends_brother"]},
+        {"en": "I am dead, brother.", "fails": ["numb_brother_state", "no_death_claim"]},
+        {"en": "I am stunned by your brother.", "fails": ["no_brother_agent"]},
+        {"en": "I'm shocked at your brother.", "fails": ["no_brother_agent"]}
+      ]
+    },
+    {
+      "id": "record_41",
+      "seq": 41,
+      "source_zh": "我们对此无能为力",
+      "reference_en": "We are powerless against this.",
+      "annotations": {
+        "subject": "我们，第一人称复数",
+        "relation": "无能为力：缺少能力，不是拒绝或反对",
+        "object": "对此，指眼前这件事",
+        "quantity": "无数量",
+        "negation": "能力缺失，不是拒绝",
+        "completeness": "完整主谓句"
+      },
+      "completeness": "complete",
+      "facts": ["we_powerless", "reference_this", "no_positive_capability", "no_invented_deed", "ends_this"],
+      "accept": ["We are helpless against this.", "We have no control over this.", "We are powerless against this"],
+      "reject": [
+        {"en": "The government is powerless against this.", "fails": ["we_powerless"]},
+        {"en": "We are powerful against this.", "fails": ["we_powerless", "no_positive_capability"]},
+        {"en": "This is powerless against us.", "fails": ["we_powerless", "ends_this"]}
+      ]
+    },
+    {
+      "id": "record_42",
+      "seq": 42,
+      "source_zh": "非常遗憾的是英国拒绝了我们的条款",
+      "reference_en": "Sincere regret that the United Kingdom refused our terms.",
+      "annotations": {
+        "subject": "英国，国家主体",
+        "relation": "拒绝了：拒绝我们的条款",
+        "object": "我们的条款",
+        "quantity": "无数量",
+        "negation": "拒绝，含否定态度",
+        "completeness": "完整主从句"
+      },
+      "completeness": "complete",
+      "facts": ["regret_marker", "uk_subject", "uk_refuses_terms", "our_terms", "refused_terms", "no_wrong_state", "no_accepted_terms", "ends_terms"],
+      "accept": ["Unfortunately, the United Kingdom refused our terms.", "Sadly, the UK rejected our terms.", "Unfortunately, the United Kingdom refused our terms"],
+      "reject": [
+        {"en": "Unfortunately, the State refused our terms.", "fails": ["uk_subject", "uk_refuses_terms", "no_wrong_state"]},
+        {"en": "Unfortunately, the United Kingdom accepted our terms.", "fails": ["uk_refuses_terms", "refused_terms", "no_accepted_terms"]},
+        {"en": "Unfortunately, the United Kingdom refused our proposal.", "fails": ["our_terms", "refused_terms", "ends_terms"]},
+        {"en": "Unfortunately, we rejected the United Kingdom's terms.", "fails": ["uk_refuses_terms", "our_terms"]}
+      ]
+    },
+    {
+      "id": "record_43",
+      "seq": 43,
+      "source_zh": "非常遗憾的是英国拒绝了我们的条款",
+      "reference_en": "Unfortunately, the United Kingdom refused our terms.",
+      "annotations": {
+        "subject": "英国，国家主体",
+        "relation": "拒绝了：拒绝我们的条款",
+        "object": "我们的条款",
+        "quantity": "无数量",
+        "negation": "拒绝，含否定态度",
+        "completeness": "完整主从句"
+      },
+      "completeness": "complete",
+      "facts": ["regret_marker", "uk_subject", "uk_refuses_terms", "our_terms", "refused_terms", "no_wrong_state", "no_accepted_terms", "ends_terms"],
+      "accept": ["Regrettably, the United Kingdom rejected our terms.", "To our regret, Britain turned down our terms.", "Unfortunately, the United Kingdom refused our terms"],
+      "reject": [
+        {"en": "Regrettably, the United Kingdom rejected the terms.", "fails": ["our_terms"]},
+        {"en": "Unfortunately, the State refused our terms.", "fails": ["uk_subject", "uk_refuses_terms", "no_wrong_state"]},
+        {"en": "Unfortunately, the United Kingdom approved our terms.", "fails": ["uk_refuses_terms", "refused_terms", "no_accepted_terms"]},
+        {"en": "Unfortunately, the United Kingdom refused our proposal.", "fails": ["our_terms", "refused_terms", "ends_terms"]},
+        {"en": "Unfortunately, we rejected the United Kingdom's terms.", "fails": ["uk_refuses_terms", "our_terms"]}
+      ]
+    },
+    {
+      "id": "record_9",
+      "seq": 9,
+      "source_zh": "而我们要做的是",
+      "reference_en": "What we are to do is",
+      "annotations": {
+        "subject": "我们，第一人称复数",
+        "relation": "要做的是：引出待补足的内容",
+        "object": "内容缺省，说话在「是」处中断",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "残句，后面缺内容"
+      },
+      "completeness": "incomplete",
+      "facts": ["what_fronted", "first_person_we", "verb_do", "open_copula_ending"],
+      "accept": ["What we are to do is ...", "What we are to do is:", "What we are to do is"],
+      "reject": [
+        {"en": "We shall do what we must do.", "fails": ["what_fronted", "open_copula_ending"]},
+        {"en": "We shall do what we must do", "fails": ["what_fronted", "open_copula_ending"]},
+        {"en": "We must finish the report.", "fails": ["what_fronted", "verb_do", "open_copula_ending"]},
+        {"en": "What we must do is finish the report...", "fails": ["open_copula_ending"]}
+      ]
+    },
+    {
+      "id": "reserved_meeting_delay",
+      "source_zh": "会议推迟到周五",
+      "reference_en": "The meeting was postponed to Friday.",
+      "annotations": {
+        "subject": "会议",
+        "relation": "推迟，时间改到周五",
+        "object": "周五，日期不变",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "完整主谓句"
+      },
+      "completeness": "complete",
+      "facts": ["meeting_postponed", "postponed_to_friday", "no_other_weekday", "ends_friday"],
+      "accept": ["The meeting has been delayed until Friday.", "The meeting was put off until Friday.", "The meeting was postponed to Friday"],
+      "reject": [
+        {"en": "The meeting was postponed to Monday.", "fails": ["postponed_to_friday", "no_other_weekday", "ends_friday"]},
+        {"en": "Friday postponed the meeting.", "fails": ["meeting_postponed", "postponed_to_friday", "ends_friday"]},
+        {"en": "The meeting was cancelled on Friday.", "fails": ["meeting_postponed", "postponed_to_friday"]}
+      ]
+    },
+    {
+      "id": "reserved_budget_negation",
+      "source_zh": "他们没有批准预算",
+      "reference_en": "They did not approve the budget.",
+      "annotations": {
+        "subject": "他们，第三人称复数",
+        "relation": "没有批准：否定动作",
+        "object": "预算",
+        "quantity": "无数量",
+        "negation": "有否定词，动作没有发生",
+        "completeness": "完整主谓句"
+      },
+      "completeness": "complete",
+      "facts": ["negated_approval", "they_approve_budget", "no_plain_approval", "ends_budget"],
+      "accept": ["They didn't approve the budget.", "They refused to approve the budget.", "They never approved the budget.", "They did not approve the budget"],
+      "reject": [
+        {"en": "They approved the budget.", "fails": ["negated_approval", "no_plain_approval"]},
+        {"en": "The budget did not approve them.", "fails": ["they_approve_budget", "ends_budget"]},
+        {"en": "We did not approve the budget.", "fails": ["they_approve_budget"]}
+      ]
+    },
+    {
+      "id": "reserved_printer_quantity",
+      "source_zh": "我们买了三台打印机",
+      "reference_en": "We bought three printers.",
+      "annotations": {
+        "subject": "我们",
+        "relation": "买了",
+        "object": "打印机",
+        "quantity": "三台，数量为 3",
+        "negation": "无否定",
+        "completeness": "完整主谓句"
+      },
+      "completeness": "complete",
+      "facts": ["bought_printers", "three_printers", "no_other_printer_count", "ends_printers"],
+      "accept": ["We purchased 3 printers.", "We bought three printers"],
+      "reject": [
+        {"en": "We bought four printers.", "fails": ["three_printers", "no_other_printer_count"]},
+        {"en": "We bought three chairs.", "fails": ["bought_printers", "three_printers", "ends_printers"]},
+        {"en": "We did not buy three printers.", "fails": ["bought_printers"]}
+      ]
+    },
+    {
+      "id": "reserved_report_time",
+      "source_zh": "报告昨天已经提交了",
+      "reference_en": "The report was submitted yesterday.",
+      "annotations": {
+        "subject": "报告",
+        "relation": "提交了，动作已完成",
+        "object": "报告本身",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "完整主谓句"
+      },
+      "completeness": "complete",
+      "facts": ["report_filed", "time_yesterday", "ends_yesterday"],
+      "accept": ["The report was filed yesterday.", "They submitted the report yesterday.", "The report was submitted yesterday"],
+      "reject": [
+        {"en": "The report was submitted today.", "fails": ["time_yesterday", "ends_yesterday"]},
+        {"en": "The report was rejected yesterday.", "fails": ["report_filed"]}
+      ]
+    },
+    {
+      "id": "reserved_plan_cost",
+      "source_zh": "这个方案不能降低成本",
+      "reference_en": "This plan cannot reduce the cost.",
+      "annotations": {
+        "subject": "这个方案",
+        "relation": "不能降低：能力缺失",
+        "object": "成本",
+        "quantity": "无数量",
+        "negation": "有否定词，降低成本不会发生",
+        "completeness": "完整主谓句"
+      },
+      "completeness": "complete",
+      "facts": ["plan_cannot", "reduce_cost", "no_cost_increase", "ends_cost"],
+      "accept": ["The plan cannot bring down expenses.", "This plan can't cut the cost.", "This plan cannot reduce the cost"],
+      "reject": [
+        {"en": "This plan can reduce the cost.", "fails": ["plan_cannot"]},
+        {"en": "This plan cannot increase the cost.", "fails": ["reduce_cost", "no_cost_increase"]}
+      ]
+    },
+    {
+      "id": "reserved_open_condition",
+      "source_zh": "如果明天天气好的话",
+      "reference_en": "If the weather is good tomorrow ...",
+      "annotations": {
+        "subject": "明天天气",
+        "relation": "如果：条件从属句",
+        "object": "天气好，结论部分缺失",
+        "quantity": "无数量",
+        "negation": "无否定",
+        "completeness": "残句，结论未说出"
+      },
+      "completeness": "incomplete",
+      "facts": ["if_weather_tomorrow", "open_condition_ending", "no_condition_main_clause"],
+      "accept": ["If the weather is good tomorrow, ...", "If the weather is good tomorrow:", "If the weather is good tomorrow"],
+      "reject": [
+        {"en": "If the weather is good tomorrow, we will go out.", "fails": ["open_condition_ending", "no_condition_main_clause"]},
+        {"en": "If the weather is good tomorrow, we will go out", "fails": ["open_condition_ending", "no_condition_main_clause"]},
+        {"en": "The weather is good tomorrow.", "fails": ["if_weather_tomorrow", "open_condition_ending"]},
+        {"en": "The weather is good tomorrow", "fails": ["if_weather_tomorrow"]},
+        {"en": "If the weather is good tomorrow we will go out tomorrow", "fails": ["no_condition_main_clause"]}
+      ]
+    }
+  ]
+}

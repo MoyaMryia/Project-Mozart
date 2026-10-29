@@ -2357,7 +2357,7 @@
    "path": "tools/stable_clauses.py",
    "rule": "broad-except",
    "text": "except Exception as error:",
-   "count": 2
+   "count": 1
   },
   {
    "path": "tools/stable_clauses.py",

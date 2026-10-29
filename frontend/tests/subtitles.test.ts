@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { SubtitleEvent } from '../src/api.ts';
 import {
-  captionSourceNote, captionText, captionTiming, latestTranslation, originalCaptionText,
+  captionSourceNote, captionSpeechStatus, captionText, captionTiming, latestTranslation, originalCaptionText,
   refinedCandidate, upsertSubtitle,
 } from '../src/subtitles.ts';
 
@@ -132,6 +132,21 @@ test('a late refinement does not replace the translation source', () => {
   assert.equal(events.length, 1);
   assert.equal(captionText(events[0]), '你好。');
   assert.equal(refinedCandidate(events[0]), '你好呀。');
+});
+
+test('speech admission status remains independent of completed translation', () => {
+  const caption: SubtitleEvent = {...source('speech'), en: 'Hello.', translation_status: 'completed',
+    speech_submission_status: 'retrying', speech_submission_attempts: 2, speech_error: 'Timeout'};
+  assert.equal(captionSpeechStatus(caption), '播报投递重试中，已尝试 2 次');
+  assert.equal(caption.en, 'Hello.');
+  assert.equal(caption.translation_status, 'completed');
+  assert.equal(captionSpeechStatus({...caption, speech_submission_status: 'submitted'}), '语音服务已受理');
+  assert.equal(captionSpeechStatus({...caption, speech_submission_status: 'failed'}), '播报投递失败');
+  assert.equal(captionSpeechStatus({...caption, speech_submission_status: 'skipped'}), '播报请求已跳过');
+  assert.equal(captionSpeechStatus({...caption, speech_submission_status: 'queued'}), '播报请求已排队');
+  assert.equal(captionSpeechStatus({...caption, speech_submission_status: 'sending'}), '正在投递播报请求');
+  assert.equal(captionSpeechStatus(source('legacy')), '');
+  assert.equal(captionSpeechStatus(null), '');
 });
 
 test('legacy events fall back to the translation request timing', () => {

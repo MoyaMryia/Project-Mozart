@@ -119,6 +119,10 @@ export interface SubtitleEvent {
   translation_error?: string;
   speech_degraded?: boolean;
   speech_error?: string;
+  speech_submission_status?: 'queued' | 'sending' | 'retrying' | 'submitted' | 'skipped' | 'failed';
+  speech_submission_attempts?: number;
+  speech_last_error?: string;
+  speech_retry_at?: number | null;
   source_revision_warning?: string;
   boundary_classifier_warning?: string;
   ts: string;

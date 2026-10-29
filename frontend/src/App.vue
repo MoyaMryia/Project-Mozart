@@ -9,7 +9,7 @@ import StackPanel from './StackPanel.vue';
 import { createPoll } from './poll';
 import { runtimeStages } from './runtime';
 import {
-  captionSourceNote, captionText, captionTiming, latestTranslation, originalCaptionText,
+  captionSourceNote, captionSpeechStatus, captionText, captionTiming, latestTranslation, originalCaptionText,
   refinedCandidate, upsertSubtitle,
 } from './subtitles';
 import { subscribeSubtitles, type SubtitleState } from './subtitle-stream';
@@ -119,6 +119,7 @@ const latestOriginalCaption = computed(() => originalCaptionText(latestSubtitle.
 const latestRefinedCandidate = computed(() => refinedCandidate(latestSubtitle.value));
 const latestSourceNote = computed(() => captionSourceNote(latestSubtitle.value));
 const latestCaptionTiming = computed(() => captionTiming(latestSubtitle.value));
+const latestSpeechDelivery = computed(() => captionSpeechStatus(latestSubtitle.value));
 const latestTranslatedSubtitle = computed(() => latestTranslation(subtitleEvents.value));
 
 const statUnit = (text: string) => `<span class="stat-unit">${text}</span>`;
@@ -643,6 +644,7 @@ onUnmounted(() => {
           <div v-if="latestOriginalCaption" class="text-tiny text-ink-3 leading-4">原始识别：{{ latestOriginalCaption }}</div>
           <p v-if="latestSubtitle?.speech_degraded" class="text-tiny state-warn leading-4" role="status">译文检查未通过，已尝试播报。</p>
           <p v-if="latestSubtitle?.translation_error" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.translation_error }}</p>
+          <p v-if="latestSpeechDelivery" class="text-tiny text-ink-3 leading-4" role="status">{{ latestSpeechDelivery }}</p>
           <p v-if="latestSubtitle?.speech_error" class="text-tiny state-warn leading-4" role="status">播报失败：{{ latestSubtitle.speech_error }}</p>
           <p v-if="latestSubtitle?.source_revision_warning" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.source_revision_warning }}</p>
           <p v-if="latestSubtitle?.boundary_classifier_warning" class="text-tiny state-warn leading-4" role="status">{{ latestSubtitle.boundary_classifier_warning }}</p>

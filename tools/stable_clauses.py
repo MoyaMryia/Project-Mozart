@@ -9,6 +9,7 @@ import time
 
 from asr_checks import boundary_fragment_audit
 from subtitle_bridge import CaptionDispatcher, caption_updates, source_caption
+from speech_outbox import SUBMISSION_PRIORITY
 
 
 BOUNDARY = re.compile(r'[，。！？；,!?;]|然后|但是|不过|反正|接着|完了')
@@ -94,6 +95,30 @@ class StableClauseDispatcher(CaptionDispatcher):
                 self.latest.popitem(last=False)
             self.publish({k: deepcopy(v) for k, v in record.items() if not k.startswith('_')})
 
+    def restore_record(self, key, index, snapshot):
+        record = self.record(key)
+        if record is None or index >= len(record.get('translation_segments', [])):
+            recovered = deepcopy(snapshot)
+            for position, part in enumerate((record or {}).get('translation_segments', [])):
+                recovered['translation_segments'][position].update(part)
+            self.update(key, recovered, create=True)
+            record = self.record(key)
+        if index >= len(record['translation_segments']):
+            raise RuntimeError('Stored clause metadata is incomplete')
+        return record
+
+    def speech_update(self, context, changes):
+        with self.lock:
+            if self.aborted:
+                return False
+            key, index = context['key'], context['index']
+            record = self.restore_record(key, index, context['record'])
+            record['translation_segments'][index].update(changes)
+            self.summary(record)
+            self.update(key, record, create=True)
+            context['record'] = deepcopy(self.latest[key])
+            return True
+
     @staticmethod
     def summary(record):
         parts = record.get('translation_segments', [])
@@ -114,8 +139,14 @@ class StableClauseDispatcher(CaptionDispatcher):
         if jobs:
             record['speech'] = jobs[-1]
         speech_errors = [p['speech_error'] for p in parts if p.get('speech_error')]
-        if speech_errors:
-            record['speech_error'] = '; '.join(dict.fromkeys(speech_errors))
+        record['speech_error'] = '; '.join(dict.fromkeys(speech_errors))
+        states = {p.get('speech_submission_status') for p in parts}
+        for state in SUBMISSION_PRIORITY:
+            if state in states:
+                record['speech_submission_status'] = state
+                break
+        if any(p.get('speech_submission_status') for p in parts):
+            record['speech_submission_attempts'] = sum(p.get('speech_submission_attempts', 0) for p in parts)
         record['speech_degraded'] = any(p.get('speech_degraded', False) for p in parts)
 
     def accept(self, event, _classified=None):
@@ -230,23 +261,22 @@ class StableClauseDispatcher(CaptionDispatcher):
             event, session_id = item['event'], item['session_id']
             key, index = event['clause_parent_id'], event['clause_index']
             try:
+                if self.outbox is not None:
+                    speech_key = f'{session_id}:{event["seq"]}'
+                    restored = self.outbox.lookup(speech_key)
+                    if restored is not None:
+                        context, changes = restored
+                        if self.speech_update(context, changes):
+                            self.outbox.acknowledge(speech_key, changes, context)
+                        continue
                 with self.lock:
-                    record = self.record(key)
-                    if record is None or index >= len(record.get('translation_segments', [])):
-                        # Recover the source snapshot if storage stopped between two writes.
-                        recovered = deepcopy(item['record'])
-                        for position, part in enumerate((record or {}).get('translation_segments', [])):
-                            recovered['translation_segments'][position].update(part)
-                        self.update(key, recovered, create=True)
-                        record = self.record(key)
+                    record = self.restore_record(key, index, item['record'])
                     parts = record['translation_segments']
-                    if index >= len(parts):
-                        raise RuntimeError('Stored clause metadata is incomplete')
                     previous = [p for p in parts[:index] if p.get('en') and p.get('translation_status') == 'completed']
                 context = [{'source': p['source_text'][:256], 'translation': p['en'][:512]} for p in previous[-2:]]
                 event['translation_context'] = context
                 event['_translation_clock_current'] = item.get('queue_owner') == self.queue_owner
-                updates = caption_updates(event, event['seq'], session_id, self.llama_url, self.speech_url)
+                updates = caption_updates(event, event['seq'], session_id, self.llama_url)
                 next(updates)
                 for result in updates:
                     with self.lock:
@@ -258,13 +288,19 @@ class StableClauseDispatcher(CaptionDispatcher):
                             or k in ('en', 'translate_ms', 'translated_at')})
                         self.summary(record)
                         self.update(key, record)
-            except Exception as error:
+                        if self.outbox is not None and result['translation_status'] == 'completed':
+                            context = {'key': key, 'index': index, 'record': deepcopy(self.latest[key])}
+                            self.enqueue_speech(event, result, event['text'], context)
+            except (OSError, ValueError) as error:
                 with self.lock:
                     record = self.record(key)
                     if record and index < len(record.get('translation_segments', [])):
                         record['translation_segments'][index].update(translation_status='failed', translation_error=str(error))
                         self.summary(record)
                         self.update(key, record)
+            except Exception:
+                self.aborted = True
+                raise
             finally:
                 if self.durable:
                     self.pending.task_done(retain=self.aborted)

@@ -168,7 +168,17 @@ A late refinement does not replace the source of an existing translation.
 If a newer partial caption arrives, the frontend keeps the most recent available translation in a separate, labeled line.
 If translation checks fail, `en` contains the last available candidate and `translation_status` stays `failed`.
 The frontend labels this candidate and keeps it visible when a newer partial caption arrives.
-The bridge submits speech only when `translation_status` is `completed`.
+
+The bridge enqueues speech only when `translation_status` is `completed`.
+A separate worker submits speech requests. A slow speech response does not block the next translation.
+The `speech_submission_status` field is `queued`, `sending`, `retrying`, `submitted`, `skipped`, or `failed`.
+The `speech_submission_attempts` field counts HTTP attempts. Stable-clause parents sum their segment attempts.
+The `speech_last_error` field retains the latest delivery error after recovery.
+
+The `speech_retry_at` field contains the next retry time or `null`.
+The `speech` field contains an admitted job ID. Admission is separate from synthesis and playback completion.
+Delivery failures leave `translation_status` and the translated text unchanged.
+
 A rejected candidate remains visible and receives `speech_skipped_reason`.
 The record keeps `translation_error`, `translation_audit`, and any `speech_error`.
 Without a candidate, `en` stays empty. The source text and error remain available.
@@ -184,7 +194,7 @@ The `translation_attempts` field counts translation audit rounds, including loca
 The `translation_after_asr_ms` field measures final ASR emission to translation completion using wall-clock timestamps.
 After disk recovery, this field is `null` in both whole-utterance and stable-clause modes.
 Stable-clause segments report translation timing without whole-utterance source selection or refinement-wait fields.
-With the coverage policy, normal shutdown waits for queued translations.
+With the coverage policy, normal shutdown waits for queued translations and speech deliveries.
 An interrupted process can resume stored requests with their original utterance IDs.
 With the realtime policy, shutdown allows 20 seconds. Remaining translations then receive an explicit skipped status.
 
@@ -195,6 +205,8 @@ The `chunk_count` grows until `generation_done` becomes true. The `text_chunk_co
 The `text_part_results` field keeps complete synthesis results for each text piece.
 Physical playback timestamps describe pipe delivery. Null playback timestamps use the audio duration.
 A missing speech service returns HTTP 503.
+Speech status includes `last_stop_at`, the persisted cutoff for delayed bridge requests after explicit stop.
+Archived duplicate admissions retain the original job ID and return `archived: true` with `result_available: false`.
 The [speech contract](../tools/REFERENCE_SPEECH.md) gives its routes, disk queues, and delivery policies.
 
 ## Current HTTP limits

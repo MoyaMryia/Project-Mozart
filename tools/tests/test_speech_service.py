@@ -27,7 +27,7 @@ for line in sys.stdin:
 
 class SpeechTests(unittest.TestCase):
     def test_invalid_source_timing_is_rejected_before_admission(self):
-        for field in ['source_duration_seconds', 'source_emitted_at']:
+        for field in ['source_duration_seconds', 'source_emitted_at', 'delivery_created_at']:
             for value in [float('nan'), float('inf'), -1, True, '2', 10**400]:
                 with self.subTest(field=field, value=value), self.assertRaises(ApiError) as error:
                     self.submit(**{field: value})
@@ -114,6 +114,94 @@ class SpeechTests(unittest.TestCase):
     def test_deduplicate_before_queue_admission(self):
         first=self.submit(utterance_id='event:1')
         self.assertEqual(first['id'],self.submit(utterance_id='event:1')['id'])
+    def test_outbox_retries_lost_response_without_creating_a_second_job(self):
+        from subtitle_bridge import CaptionDispatcher
+        self.service.route('POST', '/api/speech/session', {'enabled': True, 'voice_id': 'test'})
+        accepted, rows = [], []
+        def request(url, payload, **kwargs):
+            result = self.service.route('POST', '/api/speech/events', payload)
+            accepted.append(result['id'])
+            if len(accepted) == 1:
+                raise TimeoutError('Admission succeeded but response was lost')
+            return result
+        with patch('subtitle_bridge.translate_recognized_event', return_value=('Hello.', .1)), \
+                patch('subtitle_bridge.request_json', side_effect=request), \
+                patch('speech_outbox.RETRY_DELAY_SECONDS', 0):
+            dispatcher = CaptionDispatcher(rows.append, 'session', 'translator', 'speech',
+                spool_path=Path(self.temp.name)/'captions.sqlite3')
+            dispatcher.accept({'type': 'final', 'seq': 1, 'text': '你好', 'emitted_at': time.time()})
+            self.assertTrue(dispatcher.close())
+        self.assertEqual(len(accepted), 2)
+        self.assertEqual(accepted[0], accepted[1])
+        self.assertEqual(len([j for j in self.service.jobs.values() if j['utterance_id'] == 'session:1']), 1)
+        self.assertEqual(rows[-1]['speech_submission_status'], 'submitted')
+
+    def test_stop_rejects_delayed_delivery_after_session_is_enabled_again(self):
+        before_stop = time.time()-1
+        self.service.route('POST', '/api/speech/stop', {})
+        self.service.route('POST', '/api/speech/session', {'enabled': True, 'voice_id': 'test'})
+        for timing in ({'source_emitted_at': before_stop}, {'delivery_created_at': before_stop}):
+            with self.subTest(timing=timing), self.assertRaises(ApiError) as error:
+                self.service.route('POST', '/api/speech/events', {
+                    'text': 'Delayed.', 'utterance_id': 'old-source', **timing})
+            self.assertEqual(error.exception.code, 409)
+        job = self.service.route('POST', '/api/speech/events', {
+            'text': 'New source.', 'utterance_id': 'new-source', 'source_emitted_at': time.time()})
+        self.assertEqual(job['status'], 'queued')
+        self.assertEqual(self.service.status()['last_stop_at'], self.service.last_stop_at)
+
+    def test_stop_cutoff_precedes_existing_and_archived_deduplication(self):
+        emitted = time.time()
+        job = self.submit(live=True, utterance_id='stop-before-dedup', source_emitted_at=emitted)
+        self.service.route('POST', '/api/speech/stop', {})
+        self.service.route('POST', '/api/speech/session', {'enabled': True, 'voice_id': 'test'})
+        request = {'text': 'Hello world.', 'utterance_id': 'stop-before-dedup',
+                   'source_emitted_at': emitted, 'delivery_created_at': time.time()}
+        with self.assertRaises(ApiError) as error:
+            self.service.route('POST', '/api/speech/events', request)
+        self.assertEqual(error.exception.code, 409)
+        self.service.history_limit = 0
+        deadline = time.monotonic()+3
+        while job['id'] in self.service.jobs and time.monotonic() < deadline:
+            self.service.prune()
+            time.sleep(.01)
+        self.assertNotIn(job['id'], self.service.jobs)
+        with self.assertRaises(ApiError) as error:
+            self.service.route('POST', '/api/speech/events', request)
+        self.assertEqual(error.exception.code, 409)
+
+    def test_stop_cutoff_survives_service_restart(self):
+        before_stop = time.time()-1
+        voice = dict(self.service.voices['test'])
+        self.service.route('POST', '/api/speech/stop', {})
+        stopped_at, command = self.service.last_stop_at, self.service.command
+        self.service.close()
+        self.service = SpeechService(self.temp.name, command)
+        self.service.voices['test'] = voice
+        self.service.route('POST', '/api/speech/session', {'enabled': True, 'voice_id': 'test'})
+        self.assertEqual(self.service.last_stop_at, stopped_at)
+        with self.assertRaises(ApiError) as error:
+            self.service.route('POST', '/api/speech/events', {
+                'text': 'Delayed.', 'source_emitted_at': before_stop})
+        self.assertEqual(error.exception.code, 409)
+
+    def test_invalid_saved_stop_timestamp_fails_before_workers_start(self):
+        path = Path(self.temp.name)/'speech-stop.json'
+        for value in (True, None, 'yesterday', -1, float('nan'), float('inf'), 10**400, time.time()+60):
+            with self.subTest(value=str(value)[:30]):
+                path.write_text(json.dumps({'last_stop_at': value}))
+                with self.assertRaisesRegex(ValueError, 'Invalid speech stop timestamp'):
+                    SpeechService(self.temp.name, self.service.command)
+
+    def test_stop_timestamp_storage_failure_is_queryable(self):
+        with patch('speech_service.atomic_json', side_effect=OSError('Disk full')):
+            result = self.service.route('POST', '/api/speech/stop', {})
+        self.assertGreaterEqual(result['stop_errors'], 1)
+        status = self.service.status()
+        self.assertTrue(status['storage_failed'])
+        self.assertIn('Disk full', status['storage_warning'])
+        self.assertFalse(status['session']['enabled'])
+
     def test_bounded_queue_and_cancel_pending(self):
         first=self.submit('slow')
         other=[self.submit('slow') for _ in range(3)]
