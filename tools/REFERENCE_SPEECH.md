@@ -424,6 +424,7 @@ Its scope and the known rejected historical output are in the [local regression 
 | `POST /api/voices` | Accepts `{name,audio_base64,language,transcript}` with base64 WAV bytes. |
 | `GET /api/voices` | Lists stored reference profiles and SHA-256 revisions. |
 | `DELETE /api/voices/{id}` | Refuses deletion while an unfinished job uses the reference. |
+| `POST /api/speech/prepare` | Prepares or restores speech without creating a job. |
 | `POST /api/speech/jobs` | Accepts `{text,language,voice_id,playback?,utterance_id?,live?}` and queues a job. |
 | `GET /api/speech/jobs/{id}` | Returns the logical job state. |
 | `GET /api/speech/jobs/{id}/result` | Returns only a completed WAV. |
@@ -435,6 +436,15 @@ Its scope and the known rejected historical output are in the [local regression 
 The stop response contains `stop_errors` with the number of failed task writes or queue reads.
 The stop request still invalidates the runtime and releases processes when that count is not zero.
 The `storage_warning` field carries the reason.
+
+The status returns `control_generation`, a nonnegative integer.
+Each explicit stop increments this value and saves it with the stop timestamp.
+`POST /api/speech/session`, `POST /api/speech/prepare`, and `POST /api/speech/jobs` accept optional `expected_control_generation`.
+Capture the current generation when creating a control request.
+Send that value as `expected_control_generation`.
+An older generation returns HTTP 409 before changing the session, preparing the model, or admitting a preview.
+An invalid generation type returns HTTP 400.
+Requests without this field use the existing control protocol.
 
 Speech jobs and events also accept optional `source_duration_seconds` and `source_emitted_at` fields.
 Use seconds for both fields. Use Unix time for `source_emitted_at`.

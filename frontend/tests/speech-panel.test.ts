@@ -38,7 +38,7 @@ function mount(component: any, props: any) {
     render: () => component.templateRender({}, [], props, bindings),
   })) };
 }
-const ready = () => ({ engine: 'pocket', runtime_ready: true, runtime_state: 'ready',
+const ready = () => ({ control_generation: 0, engine: 'pocket', runtime_ready: true, runtime_state: 'ready',
   voices: [{ id: 'first', name: 'First' }, { id: 'second', name: 'Second' }], jobs: [], languages: ['en', 'zh'],
   session: { enabled: false, voice_id: 'first', language: 'en', playback: false }, playback_device: 'hardware' });
 const tick = () => new Promise(resolve => setImmediate(resolve));
@@ -81,7 +81,7 @@ test('real speech form preserves drafts during polling and applies output only o
   assert.equal(bindings.name, 'Keep this voice name');
   assert.equal(posts.length, 0);
   await bindings.session(true);
-  assert.deepEqual(posts, [{ enabled: true, voice_id: 'second', language: 'en', playback: true }]);
+  assert.deepEqual(posts, [{ enabled: true, voice_id: 'second', language: 'en', playback: true, expected_control_generation: 0 }]);
 });
 
 test('unmount aborts a pending speech status request', async t => {
@@ -118,7 +118,7 @@ test('unprepared speech prepares once and polling unlocks the actual preview con
     if (init?.method === 'POST') {
       paths.push(String(path));
       assert.equal(path, '/api/speech/prepare');
-      assert.deepEqual(JSON.parse(String(init.body)), {});
+      assert.deepEqual(JSON.parse(String(init.body)), { expected_control_generation: 0 });
       status = { ...status, runtime_state: 'queued' };
     }
     return new Response(JSON.stringify(status));
@@ -152,7 +152,7 @@ test('normal stop retains its reason and prepare restores preview without changi
   globalThis.fetch = async (path, init) => {
     if (init?.method === 'POST') {
       posts.push({ path: String(path), body: JSON.parse(String(init.body)) });
-      if (path === '/api/speech/stop') status = { ...status, runtime_ready: false, runtime_state: 'stopped', runtime_error: 'Speech stopped' };
+      if (path === '/api/speech/stop') status = { ...status, control_generation: status.control_generation+1, runtime_ready: false, runtime_state: 'stopped', runtime_error: 'Speech stopped' };
       else if (path === '/api/speech/prepare') status = { ...status, runtime_state: 'preparing', runtime_error: null };
       else assert.equal(path, '/api/speech/jobs');
     }
@@ -177,8 +177,8 @@ test('normal stop retains its reason and prepare restores preview without changi
   await bindings.synthesize();
   assert.deepEqual(posts, [
     { path: '/api/speech/stop', body: {} },
-    { path: '/api/speech/prepare', body: {} },
-    { path: '/api/speech/jobs', body: { text: 'Keep this preview after stopping', language: 'en', voice_id: 'second', playback: false } },
+    { path: '/api/speech/prepare', body: { expected_control_generation: 1 } },
+    { path: '/api/speech/jobs', body: { text: 'Keep this preview after stopping', language: 'en', voice_id: 'second', playback: false, expected_control_generation: 1 } },
   ]);
 });
 
@@ -277,7 +277,7 @@ test('disabling speech remains separate from applying changed voice settings', a
   assert.match(await html(), /禁用翻译播报/);
   assert.match(await html(), /应用音色与输出/);
   await bindings.session(false);
-  assert.deepEqual(posts, [{ enabled: false }]);
+  assert.deepEqual(posts, [{ enabled: false, expected_control_generation: 0 }]);
   assert.equal(status.session.voice_id, 'first');
 });
 
@@ -536,6 +536,60 @@ test('a previous preview response cannot replace the newly submitted preview', a
   await Promise.all([stalePoll, current]);
   assert.deepEqual(wrongOwners, []);
   assert.equal(bindings.previewJob.id, 'new');
+});
+
+test('cancelled preview keeps its old generation while recovery uses the new generation', async t => {
+  mockWindow(t);
+  let status = ready();
+  let finishAdmission!: () => void;
+  let admitted = 0;
+  const posts: { path: string; body: any }[] = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (path, init) => {
+    if (init?.method === 'POST') {
+      const body = JSON.parse(String(init.body));
+      posts.push({ path: String(path), body });
+      if (path === '/api/speech/jobs') return new Promise<Response>(resolve => {
+        finishAdmission = () => {
+          if (body.expected_control_generation === status.control_generation) admitted++;
+          resolve(new Response(JSON.stringify({ error: 'Speech was stopped' }), { status: 409 }));
+        };
+      });
+      if (path === '/api/speech/stop') status = { ...status, control_generation: status.control_generation+1,
+        runtime_ready: false, runtime_state: 'stopped' };
+    }
+    return new Response(JSON.stringify(status));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  const preview = bindings.synthesize();
+  await bindings.stop();
+  finishAdmission(); await preview;
+  assert.equal(admitted, 0);
+  assert.equal(posts[0].body.expected_control_generation, 0);
+  assert.equal(bindings.previewId, '');
+  assert.equal(bindings.state.control_generation, 1);
+  await bindings.prepare();
+  assert.equal(posts.at(-1)!.body.expected_control_generation, 1);
+});
+
+test('legacy status without a generation preserves the existing request contract', async t => {
+  mockWindow(t);
+  const status: any = ready(); delete status.control_generation;
+  const previousFetch = globalThis.fetch;
+  let body: unknown;
+  globalThis.fetch = async (_, init) => {
+    if (init?.method === 'POST') body = JSON.parse(String(init.body));
+    return new Response(JSON.stringify(status));
+  };
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const { app, bindings } = mount(await component(), {});
+  t.after(() => app.unmount());
+  await tick();
+  await bindings.session(false);
+  assert.deepEqual(body, { enabled: false });
 });
 
 test('voice management opens when the voice list is empty', async t => {
