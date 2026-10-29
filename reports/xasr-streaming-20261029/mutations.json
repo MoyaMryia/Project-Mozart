@@ -1,0 +1,60 @@
+[
+  {
+    "mutation": "pcm_scale",
+    "exit": 1,
+    "failures": [
+      "FAIL: test_pcm_normalization (test_probe.ProbeTests)"
+    ],
+    "replacement": {
+      "old": "/ 32768.0",
+      "new": "/ 256.0"
+    },
+    "probe_sha256": "b32b20b0e997df97e55e59c81e803c2177bbc630f8d69afc5d95334b0d479b53",
+    "tests_sha256": "7cd83f37096ef071beb0f7d5f86a60a9f5ea904008c5737ab5813c7ca355111c",
+    "command": "python3 -m unittest discover -s <temporary-copy> -v"
+  },
+  {
+    "mutation": "tail_removed",
+    "exit": 1,
+    "failures": [
+      "FAIL: test_frame_order_partial_frame_and_final_drain (test_probe.ProbeTests)",
+      "FAIL: test_rtf_counts_work_and_excludes_tail_from_denominator (test_probe.ProbeTests)"
+    ],
+    "replacement": {
+      "old": "TAIL_SECONDS = 2.0",
+      "new": "TAIL_SECONDS = 0.0"
+    },
+    "probe_sha256": "b32b20b0e997df97e55e59c81e803c2177bbc630f8d69afc5d95334b0d479b53",
+    "tests_sha256": "7cd83f37096ef071beb0f7d5f86a60a9f5ea904008c5737ab5813c7ca355111c",
+    "command": "python3 -m unittest discover -s <temporary-copy> -v"
+  },
+  {
+    "mutation": "constant_rtf",
+    "exit": 1,
+    "failures": [
+      "FAIL: test_frame_order_partial_frame_and_final_drain (test_probe.ProbeTests)",
+      "FAIL: test_rtf_counts_work_and_excludes_tail_from_denominator (test_probe.ProbeTests)"
+    ],
+    "replacement": {
+      "old": "rtf_with_tail=active_seconds / source_seconds",
+      "new": "rtf_with_tail=1.0"
+    },
+    "probe_sha256": "b32b20b0e997df97e55e59c81e803c2177bbc630f8d69afc5d95334b0d479b53",
+    "tests_sha256": "7cd83f37096ef071beb0f7d5f86a60a9f5ea904008c5737ab5813c7ca355111c",
+    "command": "python3 -m unittest discover -s <temporary-copy> -v"
+  },
+  {
+    "mutation": "fabricated_zero_cer",
+    "exit": 1,
+    "failures": [
+      "FAIL: test_main_records_provenance_reference_state_and_completion (test_probe.ProbeTests)"
+    ],
+    "replacement": {
+      "old": "character_edits=edit_distance(reference, normalize(result['text']))",
+      "new": "character_edits=0"
+    },
+    "probe_sha256": "b32b20b0e997df97e55e59c81e803c2177bbc630f8d69afc5d95334b0d479b53",
+    "tests_sha256": "7cd83f37096ef071beb0f7d5f86a60a9f5ea904008c5737ab5813c7ca355111c",
+    "command": "python3 -m unittest discover -s <temporary-copy> -v"
+  }
+]
