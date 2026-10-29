@@ -76,6 +76,8 @@ OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
 | `OUTPUT` | `voice` 或 `speech`；其他值在启动前拒绝 |
 | `REFERENCE` | 播报模式注册并选中的参考音频，长度 3–15 s |
 | `REFERENCE_NAME` | 参考音色的显示名 |
+| `SPEECH_EARLY_AUDIO` | 默认 `0`；设为 `1` 时启用提前输出音频 |
+| `TTS_PYTHONPATH` | 播报进程使用的独立 Python 运行时目录 |
 
 `OUTPUT=speech` 时，播放设备只由播报进程使用，因此不需要混音配置。
 启动返回前，脚本等待字幕状态文件的 `readiness.speech_runtime` 为真。
@@ -84,6 +86,23 @@ OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
 在页面停止播报只停止语音会话，字幕和翻译继续。状态文件把语音记为 `degraded.speech`，`voice_session` 变为假。
 重新启用会话并准备后，就绪状态恢复。采集开始后，语音运行时不可用只记入 `degraded.speech`，不结束链路。
 语音进程退出或报告内部错误仍按失败处理。
+
+## 提前输出音频
+
+脚本默认等待完整片段生成。使用已安装的提前输出运行时后，显式启用该路径。
+构建与运行时校验见[提前输出说明](REFERENCE_SPEECH.md#early-audio-output)。
+
+```bash
+OUTPUT=speech SPEECH_EARLY_AUDIO=1 \
+TTS_PYTHONPATH=/absolute/path/to/early-audio-runtime/python \
+REFERENCE=$HOME/models/reference/english.wav \
+  tools/run-realtime-voice.sh start
+```
+
+服务就绪后，查看 `/api/speech/status` 中的 `runtime.audio_stream_protocol`。
+值为 `1` 表示当前运行时启用了提前输出协议。
+脚本在启动入口检查指定目录，并将目录转换为绝对路径。
+本次本地检查与延迟归因见[调查报告](../reports/speech-latency-20261029/RESULTS.md)。
 
 ## 日志与状态
 

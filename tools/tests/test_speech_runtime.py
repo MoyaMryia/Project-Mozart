@@ -324,6 +324,30 @@ class SpeechRuntimeTests(unittest.TestCase):
         self.assertFalse(failed['runtime_ready'])
 
 
+    def test_fatal_error_fails_job_already_dequeued_for_admission(self):
+        waiting = threading.Event()
+        def backlog(*args, **kwargs):
+            if threading.current_thread() is self.service.worker:
+                waiting.set()
+            return 24
+        with patch.object(self.service, 'audio_backlog_seconds', side_effect=backlog):
+            job = self.submit('Hello world.', live=True, playback=True)
+            self.assertTrue(waiting.wait(2), 'Worker never reached admission waiting')
+            with self.service.lock:
+                self.assertFalse(self.service.pending)
+                self.assertIsNone(getattr(self.service, 'active', None))
+                self.service.fatal_error(AssertionError('Admission bookkeeping defect'), 'submit')
+            self.service.worker.join(timeout=2)
+        status = self.service.status()
+        self.assertFalse(self.service.worker.is_alive())
+        self.assertEqual(self.wait(job['id'])['status'], 'failed')
+        self.assertEqual(status['unfinished_jobs'], 0)
+        self.assertEqual(status['deferred_jobs'], 0)
+        self.assertIn('Admission bookkeeping defect', self.service.jobs[job['id']]['error'])
+        with self.assertRaises(ApiError) as rejected:
+            self.submit()
+        self.assertEqual(rejected.exception.code, 503)
+
     def test_marked_reject_keeps_child_and_next_job_uses_same_runtime(self):
         source = RUNTIME.replace(" j=json.loads(line)", " j=json.loads(line)\n"
             " if j['text']=='reject': print(json.dumps({'error':'known duration limit','rejected':True}),flush=True); continue")

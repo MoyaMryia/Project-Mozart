@@ -319,13 +319,12 @@ class SpeechService:
                 if job is not None:
                     failed.setdefault(job['id'], job)
             self.play_pending = deque()
-            # realtime 的等待队列在内存中，就地失败。coverage 的磁盘等待队列
-            # 保留 pending 状态，供重启后恢复，不整体读入内存。
+            # realtime 的非终态任务全部归当前服务所有，包括已出队的受理等待项。
+            # coverage 的磁盘等待队列保留 pending 状态，供重启后恢复。
             if self.delivery_policy != 'coverage':
-                for job_id in self.pending:
-                    job = self.owned_job(job_id)
-                    if job is not None:
-                        failed.setdefault(job_id, job)
+                for job in self.jobs.values():
+                    if job['status'] not in TERMINAL:
+                        failed.setdefault(job['id'], job)
                 self.pending.clear()
             self.active_play = self.active_play_piece = None
             self.player_job_id = None

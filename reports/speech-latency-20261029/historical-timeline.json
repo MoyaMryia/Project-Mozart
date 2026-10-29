@@ -1,0 +1,171 @@
+{
+  "method": "Offline wall-clock recalculation; percentile rule: analyze.py summary().",
+  "analysis_script_sha256": "ebec203ff5c3a853b7c33e17432e8e36b052dd855f66ed0161a7fbd4495693c6",
+  "delivery_timing_basis": {
+    "matching_caption_translation": 174
+  },
+  "source_root": "rvc-golden/soak-20261019/full",
+  "source_sha256": {
+    "jobs.json": "a2589540fedc7f4f376b14956596e1ae50057c2a9e8732b349cfa5d3943fefd3",
+    "protocol.json": "2d6ce1d8ae9b08d309c86de485b6ca9832926ac41822356bb8700d1d0f25ba5d",
+    "runtime/subtitles.jsonl": "cfb5f2fb0552a948cb4f26b1e4bd168883eab38cfb723353a039d286707f0c0c",
+    "exit-status.json": "77614482b422b2e92cf43cfbe368040157f061f52cba2d83a0d49e35eb24a1cf"
+  },
+  "requested_source_seconds": 4185.837574,
+  "speech_command": [
+    "/home/moyamryia/mozart-efficiency-20261014/candidate/.venv/bin/python",
+    "/home/moyamryia/mozart-efficiency-20261014/candidate/tools/speech_service.py",
+    "--model",
+    "/home/moyamryia/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-pocket-tts-int8-2026-01-26",
+    "--preload",
+    "--data-dir",
+    "/home/moyamryia/mozart-full-soak-20261019/full/service-data",
+    "--playback-device",
+    "null",
+    "--provider",
+    "cpu",
+    "--precision",
+    "int8",
+    "--threads",
+    "2",
+    "--delivery-policy",
+    "coverage",
+    "--playback-tempo",
+    "flexible",
+    "--playback-tempo-max",
+    "1.15",
+    "--capture-playback",
+    "--early-audio",
+    "--audio-chunk-frames",
+    "3"
+  ],
+  "caption_command": [
+    "/home/moyamryia/mozart-efficiency-20261014/candidate/.venv/bin/python",
+    "/home/moyamryia/mozart-efficiency-20261014/candidate/tools/subtitle_bridge.py",
+    "--stt-model",
+    "/home/moyamryia/models/sherpa-onnx/zipformer-zh-14M",
+    "--jsonl",
+    "/home/moyamryia/mozart-full-soak-20261019/full/runtime/subtitles.jsonl",
+    "--speak",
+    "--delivery-policy",
+    "coverage",
+    "--queue-dir",
+    "/home/moyamryia/mozart-full-soak-20261019/full/service-data/captions",
+    "--boundary-model",
+    "/home/moyamryia/mozart-efficiency-20261014/reference/nnsplit-zh.onnx",
+    "--utterance-dir",
+    "/home/moyamryia/mozart-full-soak-20261019/full/runtime/utterances"
+  ],
+  "caption_rows": 2086,
+  "final_parents": 114,
+  "jobs": 174,
+  "archival_exit": {
+    "status": "failed",
+    "exit_code": 1,
+    "failure": "Output frame sequence gap or duplicate",
+    "forced_cleanup": [],
+    "elapsed_seconds": 541.4852635849966,
+    "source_seconds": 4185.837574,
+    "relay": {
+      "sent": 26854,
+      "received": 26849,
+      "duplicate": 0,
+      "bad": 0,
+      "out_of_order": 0,
+      "last_index": 26849,
+      "error": "Output frame sequence gap or duplicate"
+    },
+    "job_states": {
+      "completed": 160,
+      "failed": 1,
+      "playing": 1,
+      "ready": 3,
+      "queued": 9
+    },
+    "archived_completed": 160,
+    "minimum_available_GiB": 3.1319046020507812,
+    "maximum_backlog_seconds": 48.075331800651334,
+    "swap_used_bytes": {
+      "count": 246,
+      "median": 284688384.0,
+      "min": 282591232,
+      "p95": 284688384.0,
+      "percentile_method": "linear",
+      "max": 284688384
+    },
+    "remaining_pids_before_cleanup": []
+  },
+  "job_states": {
+    "completed": 160,
+    "failed": 1,
+    "playing": 1,
+    "ready": 3,
+    "queued": 9
+  },
+  "worst_job_timeline": {
+    "id": "3971c933d6ba41678832e705bb8cf882",
+    "utterance_id": "1d3ad71d975b49f1ba84cca45642ab64:103/part/0",
+    "queue_ms": 27912.080764770508,
+    "processing_to_audio_ms": 231.97126388549805,
+    "audio_to_playback_ms": 7654.966831207275,
+    "total_ms": 35799.01885986328
+  },
+  "metrics": {
+    "delivery_queue_and_http": {
+      "count": 174,
+      "missing": 0,
+      "median_ms": 3.813624382019043,
+      "p95_ms": 7.518768310546875,
+      "max_ms": 35.204410552978516
+    },
+    "speech_queue": {
+      "count": 165,
+      "missing": 9,
+      "median_ms": 9836.073875427246,
+      "p95_ms": 25497.95699119568,
+      "max_ms": 27912.080764770508
+    },
+    "processing_to_first_audio": {
+      "count": 165,
+      "missing": 9,
+      "median_ms": 283.34498405456543,
+      "p95_ms": 1939.2530918121338,
+      "max_ms": 2737.2100353240967
+    },
+    "audio_ready_to_playback": {
+      "count": 162,
+      "missing": 12,
+      "median_ms": 6505.725979804993,
+      "p95_ms": 7696.0289478302,
+      "max_ms": 8214.955568313599
+    },
+    "speech_admission_to_playback": {
+      "count": 162,
+      "missing": 12,
+      "median_ms": 16298.059582710266,
+      "p95_ms": 32578.728914260864,
+      "max_ms": 35799.01885986328
+    },
+    "final_asr_to_first_playback": {
+      "count": 106,
+      "missing": 8,
+      "median_ms": 14302.950024604797,
+      "p95_ms": 32909.60097312927,
+      "max_ms": 36109.95697975159
+    },
+    "first_partial_to_final": {
+      "count": 114,
+      "missing": 0,
+      "median_ms": 3528.131127357483,
+      "p95_ms": 10260.82444190979,
+      "max_ms": 11859.360933303833
+    },
+    "translation_request_with_checks": {
+      "count": 175,
+      "missing": 0,
+      "median_ms": 510,
+      "p95_ms": 1049,
+      "max_ms": 1976
+    }
+  }
+}
