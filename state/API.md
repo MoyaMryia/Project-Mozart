@@ -177,7 +177,8 @@ The whole-utterance dispatcher includes those issues in `translation_source_audi
 An issue sets `speech_skipped_reason: asr_refinement_uncertainty` and prevents translation and speech.
 In whole-utterance mode, `translation_queue_wait_ms` measures enqueue to dequeue within one dispatcher instance.
 After disk recovery, this field is `null` because the saved monotonic clock belongs to another dispatcher.
-The `translation_refinement_wait_ms` field measures refinement waiting and source selection.
+The `translation_refinement_wait_ms` field measures refinement waiting and source selection after dequeue.
+The refinement window also includes source formatting and queue time; see [selection rules](../tools/REFERENCE_SPEECH.md#recognition-uncertainty).
 The `translate_ms` field measures translation and its checks, including retries.
 The `translation_attempts` field counts translation audit rounds, including local term repair.
 The `translation_after_asr_ms` field measures final ASR emission to translation completion using wall-clock timestamps.

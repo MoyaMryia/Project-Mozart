@@ -162,7 +162,7 @@ class RefinementDeliveryTests(unittest.TestCase):
         try:
             audit = {}
             text = dispatcher.await_refinement({'seq': 1, 'text': '你好',
-                'refined_text': '完全不同的候选', 'refinement_status': 'failed'}, diagnostics=audit)
+                'refined_text': '完全不同的候选', 'refinement_status': 'failed'}, deadline=None, diagnostics=audit)
         finally:
             self.assertTrue(dispatcher.close(3))
         self.assertEqual(text, '你好')

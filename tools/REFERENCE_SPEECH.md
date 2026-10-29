@@ -326,7 +326,14 @@ These checks do not prove semantic accuracy.
 ### Recognition uncertainty
 
 Optional SenseVoice refinement runs in one background worker.
-The whole-utterance dispatcher waits for refinement within a duration-based window.
+The whole-utterance dispatcher starts its duration-based refinement window when it receives final ASR text.
+Source formatting and translation queue time consume that window. Dequeue does not restart the window.
+
+An available refinement remains eligible after the deadline and still passes the existing source checks.
+The queue payload accepts inline refinement fields. Recovery applies the existing source checks to those fields.
+Otherwise, it uses the online source immediately and records `refinement_recovered_unavailable`.
+Recovered items do not use the live session's refinement cache.
+
 Failed or skipped refinement wakes the translation worker immediately.
 Configuration errors during refinement produce queryable error fields. Internal selection errors stop the worker and propagate to the bridge.
 Two utterances can wait behind the active refinement task.
