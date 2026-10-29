@@ -158,6 +158,33 @@ USB 或声卡故障时，程序记录原因并以状态码 1 停止双工会话�
 断线后，重新连接设备并重启程序。
 当前离线回归见[展示前修复回归](../reports/demo-fixes-20261028/RESULTS.md)。
 
+## 主机试听
+
+不经过 `snd-aloop` 时，用 [usb-to-speaker.py](usb-to-speaker.py) 把 bulk IN 的音频播到本机扬声器。
+该脚本读取接口 0，按本页“协议”解帧，把 PCM 交给 `aplay`。依赖 `pyusb`。
+
+```bash
+sudo systemctl stop mozart-usb-audio
+python3 usb-to-speaker.py --seconds 20
+sudo systemctl start mozart-usb-audio
+```
+
+`--device` 选择播放设备，默认 `default`。脚本每 2 秒输出收帧数、缺口、丢弃数与电平。
+`--seconds` 省略时一直播放，按 Ctrl-C 结束。USB 或播放故障时以状态码 1 退出。
+
+主机守护进程运行时，也可以用管道从虚拟麦克风试听同一条音频：
+
+```bash
+arecord -D plughw:CARD=Loopback,DEV=1,SUBDEV=0 -f S16_LE -r 48000 -c 2 -t raw -q -d 20 \
+  | aplay -f S16_LE -r 48000 -c 2 -t raw -q
+```
+
+同一个接口只能有一路读取方。两路同时读取时音频被分到两个进程，播放出现断续。
+因此直连 USB 前停止 `mozart-usb-audio`。
+脚本按 systemd 单元状态检查占用，`active` 与重启窗口内都拒绝启动。
+手工启动 `host-daemon.py` 时先停止该进程。
+USB 设备节点默认属于 `root`。非 root 运行需要为 `1d6b:0105` 增加 udev 规则，或直接加 `sudo`。
+
 ## 离线模式
 
 两个守护进程在 USB 未连接时保持虚拟声卡可用。
@@ -199,6 +226,15 @@ PLAYBACK=plughw:CARD=Loopback,DEV=0,SUBDEV=1 \
 该入口默认使用 `mozart-pre` 的 ALSA 路径，USB 桥在两端独立运行。
 直接持有额外快流端点属于另一种设备接线方式，接口分配见本页“架构”。
 
+控制面板的“音频通路”列出同一对设备，归在 `USB 协议` 分组。
+选中后 `pre-restart` 按上述标识切换预处理。
+列出前会检查本机是否存在对应的基础设备，没有 snd-aloop 时不出现在清单里。
+每台机器的守护进程向本机 `/run/mozart-usb-audio/status.json` 写入快照。
+脚本用 `MOZART_STATUS_FILE` 读取该文件，用 `BRIDGE_STALE_SECONDS` 设定刷新窗口。
+桥不可用时脚本拒绝这对设备，错误写进 HTTP 响应；面板下方同时显示同一原因。
+守护进程写文件失败时，原因在服务日志，面板显示读取失败的原因。
+分组与状态字段见 [API](../state/API.md#service-and-control-routes) 与 [实时入口](../tools/REALTIME_VOICE.md#usb-协议输入与输出)。
+
 ## 环境变量
 
 | 变量 | 作用 |
@@ -211,6 +247,7 @@ PLAYBACK=plughw:CARD=Loopback,DEV=0,SUBDEV=1 \
 | `MOZART_DIRECT_MIC` / `MOZART_DIRECT_SPEAKER` | 直连模式的物理设备名 |
 | `MOZART_MIC_SINK` / `MOZART_APP_SOURCE` | 主机侧虚拟麦克风与虚拟扬声器设备 |
 | `MOZART_TRACE` | 打印帧序号与时间戳打点 |
+| `MOZART_STATUS_FILE` | 状态文件路径，默认 `/run/mozart-usb-audio/status.json`；控制面读同一路径 |
 
 ## 验证
 
@@ -232,3 +269,4 @@ journalctl -u mozart-usb-audio -n 5 -o cat
 
 - 配置：Jetson Orin Nano Super 8GB；接口 0 与 1 的 vendor 描述符；48 kHz、16 位、双声道。
 - 样本：端点回环 3000 帧、受压 640 秒（20261020）；e2e 三组，period 64 两组、period 128 一组（20261025）。
+- 主机试听：`usb-to-speaker.py` 只做过单元回归，未在本节样本内试听；阻塞：主机设备节点属于 `root`，且需停止 `mozart-usb-audio`；解除条件：加 udev 规则后在主机上试听并补记延迟。

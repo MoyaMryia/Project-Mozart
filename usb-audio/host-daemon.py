@@ -23,10 +23,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import proto
 from pcm import read_block
 from src import AsyncSrc, TARGET_BLOCKS
+from status import StatusWriter
 
-VID, PID = 0x1d6b, 0x0105
+VID, PID = proto.VID, proto.PID
 MIC_SINK = os.environ.get('MOZART_MIC_SINK', 'plughw:CARD=Loopback,DEV=0,SUBDEV=0')
 APP_SOURCE = os.environ.get('MOZART_APP_SOURCE', 'plughw:CARD=Loopback,DEV=1,SUBDEV=1')
+STATUS_FILE = os.environ.get('MOZART_STATUS_FILE', proto.STATUS_FILE)
 # 直连模式：MOZART_DIRECT=1 时使用物理设备，并优先使用接口 1 的 128 样本帧端点。
 DIRECT = os.environ.get('MOZART_DIRECT', '0') == '1'
 DIRECT_MIC = os.environ.get('MOZART_DIRECT_MIC', 'default')
@@ -59,6 +61,7 @@ class Bridge:
         self.last_error = ''
         self.backlog_error = False
         self.exit_code = 0
+        self.status = StatusWriter(STATUS_FILE)
 
     # --- 记录 ---
     def fail(self, reason):
@@ -473,7 +476,22 @@ class Bridge:
     def stop(self, *_):
         self.stopping.set()
 
+    def status_snapshot(self):
+        """控制面查询桥是否在用与是否丢帧。"""
+        return {
+            'role': 'host',
+            'active': self.device is not None and not self.stopping.is_set(),
+            'sent': self.sent,
+            'received': self.received,
+            'dropped': self.dropped,
+            'gaps': self.gaps,
+            'errors': self.errors,
+            'last_error': self.last_error,
+            'updated_at': time.time(),
+        }
+
     def report(self):
+        self.status.write(self.status_snapshot())
         suffix = f' 最近错误 {self.last_error}' if self.last_error else ''
         print(f'发 {self.sent} 收 {self.received} 丢 {self.dropped} 缺口 {self.gaps} '
               f'错 {self.errors}{suffix}',

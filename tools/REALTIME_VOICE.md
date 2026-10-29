@@ -51,6 +51,36 @@ tools/run-realtime-voice.sh stop
 设置 `GLOSSARY` 和 `CORRECTIONS` 可指定术语表与纠错表。
 脚本也读取 `MOZART_GLOSSARY` 和 `MOZART_CORRECTIONS`。
 
+## USB 协议输入与输出
+
+`devices` 与 `pre-restart` 在设备清单末尾提供 USB 协议对。
+选这对设备时，预处理通过 `usb-audio` 桥采集与播放，主机侧提供麦克风与扬声器。
+
+| 方向 | 设备名 | 默认标识 |
+| --- | --- | --- |
+| 输入 | 管线麦克风（取主机音频） | `plughw:CARD=Loopback,DEV=1,SUBDEV=0` |
+| 输出 | 管线扬声器（送主机播放） | `plughw:CARD=Loopback,DEV=0,SUBDEV=1` |
+
+两个标识由 `BRIDGE_CAPTURE` 与 `BRIDGE_PLAYBACK` 覆盖。
+比较设备身份时忽略可选的 `SUBDEV`，所以 `plughw:CARD=Loopback,DEV=1` 与带 `SUBDEV=0` 的写法同等处理。
+清单不列出原始 Loopback 设备，直选会接错 substream。
+本机没有 snd-aloop 时，协议对不出现在清单里。
+
+桥必须在运行。脚本读取 `MOZART_STATUS_FILE`（默认 `/run/mozart-usb-audio/status.json`），
+要求 `active` 为真且文件在 `BRIDGE_STALE_SECONDS`（默认 15 秒）内刷新。
+任一方向选了协议对而桥不可用时，脚本以状态码 1 退出，打印原因（例如 `USB 链路未就绪` 或 `桥状态超过刷新窗口`）。
+HTTP 接口把这句原因放在 502 响应的 `error` 字段里。
+控制面板下方显示同一份原因，桥可用时改为收帧数与丢帧数。
+
+```bash
+CAPTURE=plughw:CARD=Loopback,DEV=1,SUBDEV=0 \
+PLAYBACK=plughw:CARD=Loopback,DEV=0,SUBDEV=1 \
+  tools/run-realtime-voice.sh start
+```
+
+`OUTPUT=speech` 时播报进程持有同一个 `PLAYBACK`，播报同样经过协议。
+桥的部署与验证步骤见 [usb-audio/README.md](../usb-audio/README.md)。
+
 ```bash
 GLOSSARY="$PWD/rvc-golden/subtitle-20261027/glossary.json" \
 CORRECTIONS="$PWD/rvc-golden/subtitle-20261027/corrections.json" \
@@ -71,6 +101,7 @@ ssh -N -L 18080:127.0.0.1:18181 jetson-net
 | --- | --- |
 | `voice`（默认） | 变声音频；不启动播报 |
 | `speech` | 译文播报；后端保持 `idle`，预处理把变声音频写入 `null` |
+| `both` | 变声和播报服务同时运行；由控制台切换当前输出 |
 
 ```bash
 OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
@@ -79,7 +110,7 @@ OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
 
 | 变量 | 作用 |
 | --- | --- |
-| `OUTPUT` | `voice` 或 `speech`；其他值在启动前拒绝 |
+| `OUTPUT` | `voice`、`speech` 或 `both`；其他值在启动前拒绝 |
 | `REFERENCE` | 播报模式注册并选中的参考音频，长度 3–15 s |
 | `REFERENCE_NAME` | 参考音色的显示名 |
 | `SPEECH_EARLY_AUDIO` | 默认 `0`；设为 `1` 时启用提前输出音频 |
@@ -87,7 +118,28 @@ OUTPUT=speech REFERENCE=$HOME/models/reference/english.wav \
 
 `OUTPUT=speech` 时，播放设备只由播报进程使用，因此不需要混音配置。
 启动返回前，脚本等待字幕状态文件的 `readiness.speech_runtime` 为真。
-切换模式需要执行 `stop` 再 `start`。字幕和翻译在两种模式下都保持运行。
+`OUTPUT=voice` 与 `OUTPUT=speech` 之间切换需要执行 `stop` 再 `start`。字幕和翻译在三种模式下都保持运行。
+
+## 控制台输出切换
+
+`OUTPUT=both` 启动后，控制台底部提供三个按钮：启动变声、启动翻译、直出。
+同一时刻只允许一个进程打开播放设备，按钮按顺序切换：
+
+1. 切到译文播报：预处理输出改为 `null`，把同一设备写给播报进程，再启用播报会话。
+2. 切到变声或直出：先停止播报并释放播放设备，再把预处理输出改回播放设备，最后设置路由。
+
+播报进程在启动时固定播放设备（`--playback-device`）。控制台用
+`POST /api/speech/playback {"device":"..."}` 把面板选中的设备改给它。
+不重定向时，播报只会留在启动时的设备上，或者与预处理争用同一个 substream。
+已在播的片段在原设备上播完，后续片段使用新设备。
+换设备后要重新启动链路时，用同一个 `PLAYBACK` 启动实时入口。
+
+切到变声或直出会清空 `mic_muted`，并用 `bypass` 区分两路。
+会话关闭期间，字幕的播报请求记为 `skipped`，不记为失败。
+带 `REFERENCE` 启动 `both` 时，预处理从 `null` 开始，默认输出为播报。
+不带 `REFERENCE` 时，启动会停止播报会话，默认输出为变声。
+两种情况下，从 `both` 启动到首次切换之间，状态文件把 `degraded.speech` 记为会话不可用。
+该记录来自启动时的输出选择，不影响字幕与翻译。
 
 在页面停止播报只停止语音会话，字幕和翻译继续。状态文件把语音记为 `degraded.speech`，`voice_session` 变为假。
 重新启用会话并准备后，就绪状态恢复。采集开始后，语音运行时不可用只记入 `degraded.speech`，不结束链路。

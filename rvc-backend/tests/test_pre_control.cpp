@@ -45,6 +45,9 @@ void test_device_id_syntax()
     CHECK(rvc::PreControl::valid_device_id("hw:0,0"));
     CHECK(rvc::PreControl::valid_device_id("default"));
     CHECK(rvc::PreControl::valid_device_id("plughw:CARD=APE,DEV=17"));
+    // USB 协议对的标识带 SUBDEV，与设备清单一致。
+    CHECK(rvc::PreControl::valid_device_id("plughw:CARD=Loopback,DEV=1,SUBDEV=0"));
+    CHECK(rvc::PreControl::valid_device_id("plughw:CARD=Loopback,DEV=0,SUBDEV=1"));
 
     CHECK(!rvc::PreControl::valid_device_id(""));
     CHECK(!rvc::PreControl::valid_device_id("plughw:CARD=MIC,DEV=0; rm -rf /"));
@@ -85,8 +88,10 @@ void test_restart_with_fake_script()
 {
     const std::string path = write_script(
         "if [ \"$1\" = \"devices\" ]; then\n"
-        "  echo '{\"capture\":[{\"id\":\"plughw:CARD=MIC,DEV=0\"}],"
-        "\"playback\":[{\"id\":\"plughw:CARD=Device,DEV=0\"}]}'\n"
+        "  echo '{\"capture\":[{\"id\":\"plughw:CARD=MIC,DEV=0\",\"group\":\"local\"},"
+        "{\"id\":\"plughw:CARD=Loopback,DEV=1,SUBDEV=0\",\"group\":\"usb\"}],"
+        "\"playback\":[{\"id\":\"plughw:CARD=Device,DEV=0\",\"group\":\"local\"}],"
+        "\"bridge\":{\"active\":true,\"received\":12}}'\n"
         "  exit 0\n"
         "fi\n"
         "if [ \"$1\" = \"pre-restart\" ]; then\n"
@@ -106,7 +111,10 @@ void test_restart_with_fake_script()
     const auto status = control.status();
     CHECK(status.value("available", false) == true);
     CHECK(status["devices"]["capture"].is_array());
-    CHECK(status["devices"]["capture"].size() == 1);
+    CHECK(status["devices"]["capture"].size() == 2);
+    // 控制面按 devices.bridge 显示桥状态，服务器只做透传。
+    CHECK(status["devices"]["bridge"].value("active", false) == true);
+    CHECK(status["devices"]["capture"][1].value("group", "") == "usb");
 
     const auto missing = control.set_devices("plughw:CARD=NOPE,DEV=0", "plughw:CARD=Device,DEV=0");
     CHECK(missing.value("status", "") == "invalid");

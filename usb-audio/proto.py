@@ -27,6 +27,13 @@ VERSION = 1
 HEADER = struct.Struct('<HBBBBH IQI')
 HEADER_BYTES = HEADER.size          # 24
 
+# 设备标识：主机按 VID/PID 查找 gadget。
+VID = 0x1d6b
+PID = 0x0105
+
+# 桥状态文件：守护进程每轮写入，控制面据此判定桥是否在用。
+STATUS_FILE = '/run/mozart-usb-audio/status.json'
+
 TYPE_PCM = 0
 TYPE_CONTROL = 1
 TYPE_TELEMETRY = 2

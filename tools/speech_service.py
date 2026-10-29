@@ -414,6 +414,16 @@ class SpeechService:
             del self.voices[voice_id]
             return {'deleted': voice_id}
 
+    def set_playback_device(self, body):
+        """切换播报设备。已在播的片段在原设备上播完，后续片段用新设备。"""
+        device = body.get('device')
+        if not isinstance(device, str) or not device or len(device) > 128:
+            raise ApiError(400, 'Playback device must be a non-empty string')
+        if any(not (char.isalnum() or char in ':,=_-./') for char in device):
+            raise ApiError(400, 'Playback device contains unsupported characters')
+        previous, self.device = self.device, device
+        return {'device': device, 'previous': previous, 'changed': previous != device}
+
     def submit(self, body):
         text = str(body.get('text', '')).strip()
         language = body.get('language', 'en')
@@ -1001,6 +1011,53 @@ class SpeechService:
         voice['status'] = 'preview_available'
         atomic_json(self.root/'voices'/f"{voice['id']}.json", voice)
 
+    def playback_failure(self, error):
+        """拼接播放中断的原因：管道错误、播放进程退出码、过滤器错误与日志最后一行。"""
+        detail = f'{type(error).__name__}: {error}'
+        player = self.player
+        if player is not None:
+            code = player.poll()
+            if code is not None:
+                detail += f'；播放进程退出码 {code}'
+            message = getattr(player, 'error', None)
+            if message:
+                detail += f'；{message}'
+        line = self.playback_log_tail()
+        return f'{detail}；{line}' if line else detail
+
+    def playback_log_tail(self):
+        """播放日志最后一行。aplay 把设备错误写在这里，例如设备被占用。"""
+        try:
+            with (self.root/'playback.log').open('rb') as log:
+                log.seek(0, os.SEEK_END)
+                log.seek(max(0, log.tell()-4096))
+                text = log.read().decode(errors='replace')
+        except OSError:
+            return ''
+        for line in reversed(text.splitlines()):
+            if line.strip():
+                return line.strip()[:200]
+        return ''
+
+    def feed_player(self, pcm):
+        """写入一块 PCM，返回剩余字节。播放进程已退出时抛 RuntimeError。"""
+        try:
+            writable = select.select([], [self.player.stdin], [], .1)[1]
+            if not writable:
+                return pcm
+            count = os.write(self.player.stdin.fileno(), pcm)
+            return pcm[count:]
+        except BlockingIOError:
+            return pcm
+        except (OSError, ValueError) as error:
+            # 播放进程退出或管道已关闭：本任务失败，播放线程继续服务后续请求。
+            # 进程仍在运行且管道未关闭时写不进去，属于播放组件故障，向上报错。
+            player = self.player
+            if (player is not None and player.poll() is None
+                    and not getattr(player.stdin, 'closed', False)):
+                raise
+            raise RuntimeError(f'播放中断: {self.playback_failure(error)}') from error
+
     def play_stream(self, job, first, log):
         with self.lock:
             if self.closed or job['status'] in TERMINAL:
@@ -1050,15 +1107,10 @@ class SpeechService:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Early audio playback pipe timed out')
                     try:
-                        writable = select.select([], [self.player.stdin], [], .1)[1]
-                        if writable:
-                            count = os.write(self.player.stdin.fileno(), pcm)
-                            pcm = pcm[count:]
-                    except BlockingIOError:
-                        pass
-                    except (OSError, ValueError):
-                        # 取消或标记拒绝已经关闭播放管道。只在任务确实结束时收尾，
-                        # 其他管道错误仍然让播放组件致命失败。
+                        pcm = self.feed_player(pcm)
+                    except RuntimeError:
+                        # 取消或标记拒绝已经关闭播放管道：任务结束后正常收尾。
+                        # 其余情况只让本任务失败，播放线程继续服务后续请求。
                         with self.lock:
                             if self.closed or job['status'] in TERMINAL:
                                 return
@@ -1304,6 +1356,8 @@ class SpeechService:
                         raise ApiError(404, 'Select a reference voice first')
                     self.session = candidate
                     return dict(self.session)
+            if parts == ['api', 'speech', 'playback'] and method == 'POST':
+                return self.set_playback_device(body)
             if parts == ['api', 'speech', 'events'] and method == 'POST':
                 if not self.session['enabled']:
                     return {'skipped': 'speech session disabled'}

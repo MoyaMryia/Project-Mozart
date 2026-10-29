@@ -13,7 +13,9 @@
 #               API AUDIO_PORT RUN_DIR PYTHON CAPTIONS_DIR
 #               STT_MODEL FINAL_MODEL LLAMA_SERVER LLAMA_MODEL GLOSSARY CORRECTIONS
 #               OUTPUT REFERENCE REFERENCE_NAME SPEECH_EARLY_AUDIO TTS_PYTHONPATH
-# OUTPUT=voice 输出变声音频；OUTPUT=speech 输出译文播报。两者不同时输出。
+#               BRIDGE_CAPTURE BRIDGE_PLAYBACK MOZART_STATUS_FILE BRIDGE_STALE_SECONDS
+# OUTPUT=voice 输出变声音频；OUTPUT=speech 输出译文播报；OUTPUT=both 两者服务都运行，
+# 由 stdout 控制台切换当前输出。
 # API 默认 18181；字幕音频固定送往本机 18100；翻译使用本机 18200。
 set -euo pipefail
 
@@ -43,6 +45,12 @@ INDEX_NPROBE=${INDEX_NPROBE:-16}
 API=${API:-http://127.0.0.1:18181}
 AUDIO_PORT=${AUDIO_PORT:-18101}
 RUN_DIR=${RUN_DIR:-/tmp/mozart-realtime}
+# USB 协议对：预处理把采集与播放交给 snd-aloop 桥，主机侧提供麦克风与扬声器。
+# 标识与 snd-aloop 的 substream 配对一一对应，两端相同。状态文件由守护进程写入。
+BRIDGE_CAPTURE=${BRIDGE_CAPTURE:-plughw:CARD=Loopback,DEV=1,SUBDEV=0}
+BRIDGE_PLAYBACK=${BRIDGE_PLAYBACK:-plughw:CARD=Loopback,DEV=0,SUBDEV=1}
+BRIDGE_STATUS=${MOZART_STATUS_FILE:-/run/mozart-usb-audio/status.json}
+BRIDGE_STALE_SECONDS=${BRIDGE_STALE_SECONDS:-15}
 
 STACK_PID_FILE="$RUN_DIR/stack.pid"
 STACK_RUN_FILE="$RUN_DIR/stack-run-dir"
@@ -54,6 +62,39 @@ READY_TIMEOUT=${READY_TIMEOUT:-90}
 STOP_TIMEOUT=${STOP_TIMEOUT:-90}
 
 fail() { echo "错误: $*" >&2; exit 1; }
+
+# 比较设备身份时去掉可选的 SUBDEV：plughw:CARD=Loopback,DEV=1 与 SUBDEV=0 指同一通路。
+device_key() { printf '%s' "${1%%,SUBDEV=*}"; }
+
+# 设备存在性检查。-L 清单不含 SUBDEV，比较前剥掉后缀。
+require_device() {
+    local command=$1 name=$2 device=$3 listing
+    listing=$("$command" -L 2>/dev/null) || fail "无法列出 $command 设备"
+    [ -n "$listing" ] || fail "无法列出 $command 设备: $command -L 没有输出"
+    grep -Fqx -- "$(device_key "$device")" <<<"$listing" \
+        || fail "$name不存在: $device（$command -l 查看）"
+}
+
+# 输入或输出落在协议对的同一通路上时，桥必须在运行：设备始终可打开，没有桥就是静音。
+uses_bridge() {
+    [ "$(device_key "$CAPTURE")" = "$(device_key "$BRIDGE_CAPTURE")" ] \
+        || [ "$(device_key "$PLAYBACK")" = "$(device_key "$BRIDGE_PLAYBACK")" ]
+}
+
+# 桥状态规则由 command_devices 的 bridge 字段定义。这里只报告原因，不复判。
+require_bridge() {
+    uses_bridge || return 0
+    local devices problem
+    devices=$(command_devices) || fail "设备清单读取失败"
+    problem=$(printf '%s' "$devices" | python3 -c '
+import json, sys
+bridge = json.load(sys.stdin).get("bridge") or {}
+if bridge.get("active") is not True:
+    print(bridge.get("reason") or bridge.get("last_error") or "桥未就绪")
+')
+    [ -z "$problem" ] && return 0
+    fail "USB 桥不可用: $problem（sudo systemctl start mozart-usb-audio）"
+}
 
 api_request() {
     local method=$1 path=$2 payload=$3
@@ -243,16 +284,15 @@ command_start() {
     [ -x "$PRE_BIN" ] || fail "缺少预处理二进制 $PRE_BIN（先构建 build/usb-pre）"
     [ -f "$CONFIG" ] || fail "缺少配置 $CONFIG"
     [ -x "$PYTHON" ] || fail "缺少 Python 环境 $PYTHON（设置 PYTHON 或安装 .venv）"
-    arecord -L 2>/dev/null | grep -qx "$CAPTURE" \
-        || fail "采集设备不存在: $CAPTURE（arecord -l 查看）"
-
-    aplay -L 2>/dev/null | grep -qx "$PLAYBACK" \
-        || fail "播放设备不存在: $PLAYBACK"
+    require_device arecord 采集设备 "$CAPTURE"
+    require_device aplay 播放设备 "$PLAYBACK"
+    require_bridge
     case "$OUTPUT" in
-        voice|speech) ;;
-        *) fail "OUTPUT 必须是 voice 或 speech: $OUTPUT" ;;
+        voice|speech|both) ;;
+        *) fail "OUTPUT 必须是 voice、speech 或 both: $OUTPUT" ;;
     esac
-    if [ "$OUTPUT" = speech ]; then
+    # 播报服务的检查对 speech 和 both 都适用。
+    if [ "$OUTPUT" != voice ]; then
         [ -z "$REFERENCE" ] || [ -f "$REFERENCE" ] || fail "参考音频不存在: $REFERENCE"
         case "$SPEECH_EARLY_AUDIO" in
             0|1) ;;
@@ -287,14 +327,21 @@ PY
         [ ! -f "$RUN_DIR/$file" ] || cp -p "$RUN_DIR/$file" "$captions_dir/previous-runtime/"
     done
     printf '%s\n' "$captions_dir" >"$STACK_RUN_FILE"
+    # 生效输出设备只在启动时推导一次；pre-restart 用控制面传入的值。
+    PRE_PLAYBACK=$PLAYBACK
+    if [ "$OUTPUT" = speech ] || { [ "$OUTPUT" = both ] && [ -n "$REFERENCE" ]; }; then
+        PRE_PLAYBACK=null
+    fi
     local extra=()
     local mode_args=(--mode captions --no-playback)
-    if [ "$OUTPUT" = speech ]; then
+    if [ "$OUTPUT" != voice ]; then
         mode_args=(--mode full --playback-device "$PLAYBACK")
         [ -z "$REFERENCE" ] || extra+=(--reference "$REFERENCE" --reference-name "$REFERENCE_NAME")
         [ "$SPEECH_EARLY_AUDIO" = 0 ] || extra+=(--early-audio)
         [ -z "$TTS_PYTHONPATH" ] || extra+=(--tts-pythonpath "$TTS_PYTHONPATH")
     fi
+    # both：播报未启用时也要开始采集，差异记入 degraded。
+    [ "$OUTPUT" != both ] || mode_args+=(--allow-degraded)
     [ -z "$FINAL_MODEL" ] || extra+=(--final-model "$FINAL_MODEL")
     [ -z "${GLOSSARY:-}" ] || extra+=(--glossary "$GLOSSARY")
     [ -z "${CORRECTIONS:-}" ] || extra+=(--corrections "$CORRECTIONS")
@@ -315,16 +362,27 @@ PY
     if [ "$OUTPUT" = speech ]; then
         wait_readiness "$captions_dir/stack-status.json" speech_runtime "$stack_pid" \
             || fail "播报运行时未就绪，查看 $captions_dir/supervisor.log"
+    elif [ "$OUTPUT" = both ]; then
+        # both 允许播报先不可用：这里只警告，链路存活由后面的 capturing 判定。
+        wait_readiness "$captions_dir/stack-status.json" speech_runtime "$stack_pid" \
+            || echo "警告: 播报运行时未就绪，翻译播报按钮暂不可用，查看 $captions_dir" >&2
     fi
 
     api_request POST /api/mode/switch '{"mode":"idle"}'
-    if [ "$OUTPUT" = voice ]; then
+    if [ "$OUTPUT" != speech ]; then
         api_request POST /api/mode/switch "{\"mode\":\"rt_rvc\",\"model_id\":\"$MODEL\"}"
         api_request PUT /api/parameters "{\"pitch_shift\":$PITCH,\"index_rate\":$INDEX_RATE,\"index_nprobe\":$INDEX_NPROBE}"
 
         local has_index
         has_index=$(curl -sf --max-time 3 "$API/api/status" | python3 -c "import json,sys;print(json.load(sys.stdin)['model'].get('has_index','false'))")
         [ "$has_index" = "true" ] || fail "模型 $MODEL 未加载索引，检查 $CONFIG 与模型目录"
+    fi
+    # both 且未指定参考音色：预处理占用播放设备，用 stop 关闭会话并杀掉残留播放进程。
+    # 播报服务暂不可用时只警告；采集仍应开始。
+    if [ "$OUTPUT" = both ] && [ -z "$REFERENCE" ]; then
+        curl -fsS --max-time 15 -X POST "$API/api/speech/stop" \
+            -H 'Content-Type: application/json' -d '{}' >/dev/null \
+            || echo "警告: 未能关闭播报会话，变声仍可试听，查看 $captions_dir" >&2
     fi
 
     start_pre
@@ -337,10 +395,10 @@ PY
     echo "链路已启动。说话试听；停止用 tools/run-realtime-voice.sh stop"
 }
 
-# 用当前 CAPTURE/PLAYBACK 起预处理，并把设备写进 pre-devices.json 供控制面读取。
+# 用当前 CAPTURE/PRE_PLAYBACK 起预处理，并把生效设备写进 pre-devices.json 供控制面读取。
+# PRE_PLAYBACK 是实际输出设备：启动时按 OUTPUT 推导，pre-restart 时由传入参数决定。
 start_pre() {
-    local pre_playback=$PLAYBACK
-    [ "$OUTPUT" = voice ] || pre_playback=null
+    local pre_playback=$PRE_PLAYBACK
     echo "启动预处理 $CAPTURE -> $AUDIO_PORT -> $pre_playback"
     if [ -f "$PRE_STATUS" ]; then
         mv "$PRE_STATUS" "$PRE_STATUS.previous"
@@ -362,7 +420,7 @@ start_pre() {
 }
 
 write_pre_devices() {
-    python3 - "$CAPTURE" "$PLAYBACK" "${SUBTITLE_TARGET:-}" "$PRE_DEVICES" <<'PY'
+    python3 - "$CAPTURE" "$PRE_PLAYBACK" "${SUBTITLE_TARGET:-}" "$PRE_DEVICES" <<'PY'
 import json, sys
 from pathlib import Path
 path = Path(sys.argv[4])
@@ -372,30 +430,84 @@ temporary.replace(path)
 PY
 }
 
-# 列出 ALSA 采集与播放设备。输出一行 JSON，供控制面渲染下拉框。
+# 列出采集与播放设备。输出一行 JSON，供控制面渲染下拉框。
+# 末尾追加 USB 协议对与桥状态；协议对标识只在上文定义一次。
 command_devices() {
-    python3 - <<'PY'
-import json, re, subprocess
+    python3 - "$BRIDGE_CAPTURE" "$BRIDGE_PLAYBACK" "$BRIDGE_STATUS" "$BRIDGE_STALE_SECONDS" <<'PY'
+import json, re, subprocess, sys, time
 
 LINE = re.compile(r'^card (\d+): (\S+) \[(.*?)\], device (\d+): (.*?) \[(.*?)\]')
+bridge_capture, bridge_playback, status_file, stale = sys.argv[1:5]
+STALE_SECONDS = float(stale)
+
 
 def collect(command):
-    output = subprocess.run(command, capture_output=True, text=True).stdout
-    items = []
-    for line in output.splitlines():
+    """返回 (可见设备, 全部设备标识)。隐藏的原生 Loopback 仍用于协议对的存在性检查。"""
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.exit(f'设备清单读取失败: {" ".join(command)} 返回 {result.returncode}')
+    items, present = [], set()
+    for line in result.stdout.splitlines():
         match = LINE.match(line)
         if not match:
             continue
         card, short, long_name, device, _, pcm = match.groups()
+        identifier = f'plughw:CARD={short},DEV={device}'
+        present.add(identifier)
+        if short == 'Loopback':
+            # 原生 Loopback 设备由 USB 协议对代替；直选会接错 substream。
+            continue
         items.append({
-            'id': f'plughw:CARD={short},DEV={device}',
+            'id': identifier,
             'card': int(card),
             'label': f'{long_name} / {pcm}' if pcm else long_name,
+            'group': 'local',
         })
-    return items
+    return items, present
 
-print(json.dumps({'capture': collect(['arecord', '-l']),
-                  'playback': collect(['aplay', '-l'])}))
+
+def with_bridge(items, present, bridge_id, label):
+    """本机存在对应基础设备时才列出协议项，否则控制面会选中打不开的设备。"""
+    if bridge_id.split(',SUBDEV=')[0] not in present:
+        return items
+    return items + [{'id': bridge_id, 'label': label, 'group': 'usb'}]
+
+
+def bridge_state():
+    try:
+        data = json.load(open(status_file))
+    except (OSError, json.JSONDecodeError) as error:
+        return {'active': False, 'reason': f'读取桥状态失败: {error}'}
+    if not isinstance(data, dict):
+        return {'active': False, 'reason': '桥状态格式不正确'}
+    updated = data.get('updated_at')
+    if not isinstance(updated, (int, float)) or time.time() - updated > STALE_SECONDS:
+        return {'active': False, 'reason': '桥状态超过刷新窗口',
+                'last_error': data.get('last_error', '')}
+    state = {'active': data.get('active') is True,
+             'role': data.get('role', ''),
+             'sent': data.get('sent', 0), 'received': data.get('received', 0),
+             'dropped': data.get('dropped', 0), 'gaps': data.get('gaps', 0),
+             'errors': data.get('errors', 0),
+             'last_error': data.get('last_error', ''),
+             'age_seconds': round(time.time() - updated, 1)}
+    if not state['active']:
+        state['reason'] = state['last_error'] or 'USB 链路未就绪'
+    return state
+
+
+capture, capture_present = collect(['arecord', '-l'])
+playback, playback_present = collect(['aplay', '-l'])
+# 预处理支持 null 输出；控制面按这份清单校验设备标识。
+playback = playback + [{'id': 'null', 'label': '空输出（不播出声）', 'group': 'local'}]
+
+print(json.dumps({
+    'capture': with_bridge(capture, capture_present, bridge_capture,
+                           'USB 协议 / 管线麦克风（取主机音频）'),
+    'playback': with_bridge(playback, playback_present, bridge_playback,
+                            'USB 协议 / 管线扬声器（送主机播放）'),
+    'bridge': bridge_state(),
+}))
 PY
 }
 
@@ -417,14 +529,15 @@ PY
         esac
     done
     [ -x "$PRE_BIN" ] || fail "缺少预处理二进制 $PRE_BIN（先构建 build/usb-pre）"
-    arecord -L 2>/dev/null | grep -qx "$CAPTURE" \
-        || fail "采集设备不存在: $CAPTURE"
-    aplay -L 2>/dev/null | grep -qx "$PLAYBACK" \
-        || fail "播放设备不存在: $PLAYBACK"
+    require_device arecord 采集设备 "$CAPTURE"
+    require_device aplay 播放设备 "$PLAYBACK"
+    require_bridge
     mkdir -p "$RUN_DIR"
     stop_pidfile "$PRE_PID_FILE" "预处理" "$PRE_BIN"
+    # 控制面传的设备优先：不再按 OUTPUT 覆盖，否则变声/直出按钮静默失效。
+    PRE_PLAYBACK=$PLAYBACK
     start_pre
-    printf '{"status":"active","capture":"%s","playback":"%s"}\n' "$CAPTURE" "$PLAYBACK"
+    printf '{"status":"active","capture":"%s","playback":"%s"}\n' "$CAPTURE" "$PRE_PLAYBACK"
 }
 
 command_status() {

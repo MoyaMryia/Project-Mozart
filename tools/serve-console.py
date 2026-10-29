@@ -13,15 +13,20 @@ from urllib.parse import urlsplit
 
 PROXY_PREFIXES = ('/api/', '/health', '/status', '/models')
 
+# 上游默认地址只定义这一处；--api 省略端口时沿用它。
+DEFAULT_UPSTREAM = ('127.0.0.1', 18080)
+
 
 def is_proxy(path):
     return any(path == prefix.rstrip('/') or path.startswith(prefix) for prefix in PROXY_PREFIXES)
 
 
 class Handler(BaseHTTPRequestHandler):
+    # 响应用 HTTP/1.0：未声明长度的正文以连接关闭定界。
+    protocol_version = 'HTTP/1.0'
     server_version = 'MozartConsole/1.0'
     dist = pathlib.Path('frontend/dist')
-    upstream = ('127.0.0.1', 18080)
+    upstream = DEFAULT_UPSTREAM
 
     def log_message(self, fmt, *args):
         sys.stderr.write('%s %s\n' % (self.address_string(), fmt % args))
@@ -76,12 +81,13 @@ class Handler(BaseHTTPRequestHandler):
 
     # --- 转发 ---
     def proxy(self, method):
-        length = int(self.headers.get('Content-Length') or 0)
-        body = self.rfile.read(length) if length else None
+        request_length = int(self.headers.get('Content-Length') or 0)
+        body = self.rfile.read(request_length) if request_length else None
         connection = http.client.HTTPConnection(*self.upstream, timeout=600)
         headers = {key: value for key, value in self.headers.items()
                    if key.lower() not in ('host', 'connection', 'accept-encoding')}
         headers['Accept-Encoding'] = 'identity'
+        headers_sent = False
         try:
             connection.request(method, self.path, body=body, headers=headers)
             response = connection.getresponse()
@@ -91,20 +97,33 @@ class Handler(BaseHTTPRequestHandler):
                 if key.lower() in ('transfer-encoding', 'connection', 'content-length'):
                     continue
                 self.send_header(key, value)
-            if not streaming:
-                self.send_header('Content-Length', str(response.length or 0))
+            # 上游未声明长度时不能写 Content-Length: 0，否则正文被截断。
+            # 此时声明 close，浏览器以连接关闭作为正文结束。
+            if streaming or response.length is None:
+                self.send_header('Connection', 'close')
+            else:
+                self.send_header('Content-Length', str(response.length))
             self.end_headers()
+            headers_sent = True
+            # 流式不能用缓冲读：它会攒满块长度才返回，字幕事件因此成批到达。
+            read = response.read1 if streaming else response.read
+            chunk_size = 4096 if streaming else 65536
             while True:
-                chunk = response.read(4096 if streaming else 65536)
+                chunk = read(chunk_size)
                 if not chunk:
                     break
                 self.wfile.write(chunk)
                 if streaming:
                     self.wfile.flush()
         except (OSError, http.client.HTTPException) as error:
-            # send_error 只能写 ASCII；原因写日志，响应体保持简短。
-            self.log_message('upstream failed: %s', error)
-            self.send_error(502, 'upstream unreachable')
+            if headers_sent:
+                # 状态行和响应头已发出，不能再写错误响应，否则正文被污染。
+                self.log_message('transfer aborted after headers: %s', error)
+                self.close_connection = True
+            else:
+                # send_error 只能写 ASCII；原因写日志，响应体保持简短。
+                self.log_message('upstream failed: %s', error)
+                self.send_error(502, 'upstream unreachable')
         finally:
             connection.close()
 
@@ -114,12 +133,13 @@ def main():
     parser.add_argument('--port', type=int, default=8080)
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--dist', type=pathlib.Path, default=pathlib.Path('frontend/dist'))
-    parser.add_argument('--api', default='127.0.0.1:18080', help='上游 API，host:port')
+    parser.add_argument('--api', default='%s:%d' % DEFAULT_UPSTREAM,
+                        help='上游 API，host:port')
     arguments = parser.parse_args()
 
     Handler.dist = arguments.dist
     host, _, port = arguments.api.partition(':')
-    Handler.upstream = (host, int(port or 18080))
+    Handler.upstream = (host, int(port or DEFAULT_UPSTREAM[1]))
     if not (Handler.dist/'index.html').is_file():
         raise SystemExit(f'缺少构建产物：{Handler.dist}/index.html，先运行 npm --prefix frontend run build')
 
