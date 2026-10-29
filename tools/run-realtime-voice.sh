@@ -27,7 +27,8 @@ STT_MODEL=${STT_MODEL:-$HOME/models/sherpa-onnx/zipformer-zh-14M}
 FINAL_MODEL=${FINAL_MODEL-$HOME/models/sherpa-onnx/clone-test-downloads/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17}
 LLAMA_SERVER=${LLAMA_SERVER:-$HOME/mozart-archive/qwen35/llama.cpp/build-cuda-bin/llama-server}
 LLAMA_MODEL=${LLAMA_MODEL:-$HOME/mozart-archive/qwen35/gguf/qwen35-0.8b-text-Q4_K_M.gguf}
-GLOSSARY=${GLOSSARY:-${MOZART_GLOSSARY:-}}
+# 术语表默认写到 state/glossary.json，供控制台读写；设 GLOSSARY= 关闭。
+GLOSSARY=${GLOSSARY-${MOZART_GLOSSARY-$ROOT/state/glossary.json}}
 CORRECTIONS=${CORRECTIONS:-${MOZART_CORRECTIONS:-}}
 
 CONFIG=${CONFIG:-$ROOT/rvc-golden/qiqi-zh-run/backend-index.yaml}

@@ -50,6 +50,8 @@ tools/run-realtime-voice.sh stop
 设置 `FINAL_MODEL=` 可关闭 SenseVoice 复核，仅使用流式识别。
 设置 `GLOSSARY` 和 `CORRECTIONS` 可指定术语表与纠错表。
 脚本也读取 `MOZART_GLOSSARY` 和 `MOZART_CORRECTIONS`。
+术语表默认使用 `state/glossary.json`；文件不存在时按空词表启动，首次保存创建该文件。
+设置 `GLOSSARY=` 可关闭术语表，控制台保存返回配置错误。
 
 ## USB 协议输入与输出
 
