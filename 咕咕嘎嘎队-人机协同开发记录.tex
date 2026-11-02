@@ -1,0 +1,437 @@
+\documentclass[11pt,a4paper]{ctexart}
+
+\usepackage[a4paper,top=2.6cm,bottom=2.6cm,left=2.5cm,right=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\usepackage{newunicodechar}
+\newunicodechar{⌊}{$\lfloor$}
+\newunicodechar{⌋}{$\rfloor$}
+
+\setCJKmainfont{Noto Serif CJK SC}
+\setCJKsansfont{Noto Sans CJK SC}
+\setCJKmonofont{Noto Sans Mono CJK SC}
+\setmainfont{Noto Serif}
+\setsansfont{Noto Sans}
+\setmonofont{Noto Sans Mono}
+
+\linespread{1.22}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{2em}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\p}[1]{\path{#1}}
+\urlstyle{same}
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\/\do\-\do\.\do\_\do\:}
+\makeatother
+\setlength{\emergencystretch}{2.5em}
+
+\ctexset{
+  section = {format = \Large\bfseries, beforeskip = 1.4em, afterskip = 0.8em},
+  subsection = {format = \large\bfseries, beforeskip = 1.1em, afterskip = 0.5em},
+}
+
+\pagestyle{plain}
+
+\title{\bfseries 人机协同开发记录\\[0.4em]
+  \large Project-Mozart：面向 NVIDIA Jetson Orin Nano Super 8\,GB 的端侧实时语音处理系统}
+\author{咕咕嘎嘎队}
+\date{2026 年 10 月 30 日}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{3.2cm}
+{\sffamily\large 咕咕嘎嘎队}\\[2.2cm]
+{\bfseries\Huge 人机协同开发记录}\\[0.9cm]
+{\large Project-Mozart}\\[0.35cm]
+{\large 面向 NVIDIA Jetson Orin Nano Super 8\,GB 的端侧实时语音处理系统}\\[2.4cm]
+\begin{tabular}{@{}rl@{}}
+代码基线 & \code{main} · HEAD \code{7e935e2} · 主干 327 次提交 \\
+代码仓库 & \url{https://github.com/MoyaMryia/Project-Mozart} \\
+开发周期 & 2026-07-11 $\rightarrow$ 2026-11-02，共 114 天 \\
+报告范围 & 研发脉络、技术决策、协同方法、实机验收 \\
+版本日期 & 2026-11-02\\
+\end{tabular}
+\vfill
+{\small 报告中全部数字、提交号与路径均标注依据。}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section*{摘要}
+\addcontentsline{toc}{section}{摘要}
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.25em]
+  \item 系统在单块 8\,GB 显存的 Jetson Orin Nano 上实现实时变声、双语字幕、参考音色播报与文件转换，全程不依赖云端推理。
+  \item 114 天内累计主干提交 327 次，涉及 5 类工具生态、8 个提交者标识、57 个实验报告目录与 33 个金标准验证目录（11\,GB）。
+  \item 协同模式为「生成、审查、审批」三权分离：代码由主线程生成，逻辑由独立只读代理复核，破坏性命令由自动化安全网审批。
+  \item 质量方法为金标准数值闭环：C++ 算子改动须经与 PyTorch 参考管线的逐样本残差比对，差值收敛后才合入。
+  \item 关键实测：冷启动首帧 320\,ms，稳态块处理中位 88\,ms（P95 93\,ms）；2026-10-29 局域网验收中，声卡交付中位时延由 2715\,ms 降至 1857\,ms。
+  \item 报告的出处写在对应段落。
+\end{itemize}
+
+\section{项目概况}
+
+\subsection{系统边界}
+
+Mozart 面向「一台 Jetson 加一副耳机」的现场演示形态。
+麦克风输入经预处理降噪与降采样后，同时进入变声链路与识别链路；识别结果经翻译后以 SSE 推送至浏览器，并可由参考音色合成播报。
+电脑与板卡之间使用 USB 全双工音频桥替代 3.5\,mm 模拟回路，消除播报与识别的自环。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}lY@{}}
+\toprule
+功能路径 & 实现 \\
+\midrule
+实时变声 & C/C++ 预处理（RNNoise、WOLA）经 UDP 送入 RVC 后端，ONNX Runtime 或 TensorRT 推理 \\
+翻译字幕 & Zipformer 转写、可选 SenseVoice 复核、Qwen3.5-0.8B 翻译、SSE 推送 \\
+参考音色播报 & PocketTTS 逐片段合成，持久投递队列，支持提前输出音频 \\
+文件转换 & 上传、串行队列、取消检查点、结果下载 \\
+音频直出 & 独立 direct 路由，与 RVC 分别计时 \\
+USB 音频桥 & 双端 \code{snd-aloop} 加 FunctionFS bulk，全双工 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{工程体量}
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}lYl@{}}
+\toprule
+指标 & 值 & 依据 \\
+\midrule
+周期 & 2026-07-11 13:59:28 $\rightarrow$ 2026-11-02 14:42:07，114 天 & \code{git log --reverse}、\code{git log -1} \\
+主干提交 & 327 次（HEAD \code{7e935e2}） & \code{git rev-list --count HEAD} \\
+含全部分支的提交 & 353 次 & \code{git rev-list --all --count} \\
+分支 & 13 个本地分支，22 个远程跟踪引用 & \code{git for-each-ref} \\
+标签 & 1 个 \code{v0.1.0-demo}（\code{2d9487e}，2026-10-22） & \code{git log -1 v0.1.0-demo} \\
+提交者标识 & 8 个；主标识三个合计 290 次，其余五个合计 63 次 & \code{git shortlog -sne --all} \\
+仓库体积 & 13\,GB，其中 \p{rvc-golden/} 11\,GB & \code{du -sh} \\
+报告目录 & 57 个，索引 54 条 & \code{ls -d reports/*/} \\
+需求基准 & 单一版本受控的 \p{requirements.md} & 仓库根目录 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{关键实测指标}
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}lYl@{}}
+\toprule
+指标 & 值 & 条件与证据 \\
+\midrule
+首帧输入到首帧输出 & 320\,ms & 冷启动，固定输入与固定模型 \\
+稳态块处理时延 & 中位 88\,ms，P95 93\,ms & 同上 \\
+页面英文字幕时延 & 中位 1374–1491\,ms & 2026-10-29，7 段 30\,s 真人录音，三组配置 \\
+声卡交付时延 & 中位 1857\,ms（C 组） & 起点为录音结束点，终点为首批 PCM 送入 aplay \\
+USB 全双工桥 & 30 分钟受压无故障，支持拔插与重启恢复 & \p{reports/usb-audio-20261020/} \\
+播放积压 & 待播量峰值 47.551\,s $\rightarrow$ 23.201\,s & \p{reports/backlog-fix-20261019/} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{交付物与证据目录}
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}lY@{}}
+\toprule
+交付物 & 位置与规模 \\
+\midrule
+源码与历史 & 主干 327 次提交；单文件备份包 \p{mozart-main-20261028.bundle}，222,804,811 字节，head \code{63479a3}，305 次提交，附 \code{.sha256} \\
+金标准资产 & \p{rvc-golden/}，33 个目录共 11\,GB，\p{golden_manifest.json} v4 锁定 5 项标准、2 组参考用例 \\
+实验报告 & \p{reports/}，57 个目录，索引见 \p{reports/README.md} \\
+验收套件 & Jetson \p{~/Mozart/rvc-golden/ssh-human-validation-20261029-201840/}，33\,MB，含脚本、证据与 \p{evidence.tar.gz}（12,353,586 字节） \\
+现场验收报告 & \p{RESULTS.md} 与试听页，Windows 主机工作目录 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{研发演进脉络（S0–S5）}
+
+研发分为两种工具生态的接力：S0–S3（7–9 月）由 Jetson 端 OpenCode 主导，完成硬件探路、端侧部署与数值对齐；S4–S5（10 月）由开发机 Codex 主导，完成工程重构、性能压降与实机验收，Pi 与 ZCode 提供多轮只读审查。
+
+\subsection{阶段总览}
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}llYY@{}}
+\toprule
+阶段 & 日期 & 命题 & 结论 \\
+\midrule
+S0 & 07-11 $\rightarrow$ 07-13 & 硬件路线与软件栈抉择 & 放弃 ZYNQ/FPGA，转向纯软件栈 \\
+S1 & 07-14 $\rightarrow$ 07-21 & 模型端侧加载与进程解耦 & TorchScript 打通加载，ONNX 成为落地路径 \\
+S2 & 07-23 $\rightarrow$ 07-27 & 离线批处理与 Web 控制台 & FILE\_RVC 全链路打通，前端升级为 Vite + TypeScript \\
+S3 & 07-31 $\rightarrow$ 09-06 & 音质数值对齐与 USB 拓扑 & 建立金标准回归；关闭 UAC2 gadget 路线 \\
+S4 & 10-02 $\rightarrow$ 10-20 & 接管、治理、压降与演示就绪 & 播放积压减半，变速上限提升 \\
+S5 & 10-21 $\rightarrow$ 10-29 & 架构重构与实机闭环 & M0–M5 落地，局域网验收与外部审查通过 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{S0 路线确立：放弃 FPGA，收敛纯软件栈（07-11 $\rightarrow$ 07-13）}
+
+\textbf{技术命题}：在单板算力约束下评估 FPGA 异构方案与纯软件方案的取舍。
+
+\textbf{关键动作与事实}：
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+  \item 07-11：首条会话确立预处理与后处理解耦架构，预处理输出高信噪比音频流，后处理执行深度学习变声（558 条消息）。
+  \item 07-11：排查 ZYNQ 7010/7020 核心板原理图（253 条消息），确认底板未将 I\textsuperscript{2}S/PDM 引脚引出至高速 BTB 接插件，硬件路线受阻。
+  \item 07-12：架构转向纯软件栈（572 条消息）；同日完成文档规范性重写（396 条消息），并在独立会话评估 RNNoise 静态权重对可执行体积的影响（50 条消息）。
+  \item 07-13：部署 RVC 后端核心服务（537 条消息）；同日分两次会话完成 PyTorch 环境部署（122 条与 110 条消息）。
+\end{itemize}
+
+\textbf{关键突破}：确立 C/C++ 预处理加 RVC 后端的全软件架构。
+前身仓库 \p{mozart-pre-remake} 的 SystemVerilog I\textsuperscript{2}S RTL 与定点 DSP 逻辑归档为参考资产。
+
+\subsection{S1 首次上机：模型端侧加载与网络解耦（07-14 $\rightarrow$ 07-21）}
+
+\textbf{技术命题}：把开发机导出的神经网络模型移植到板端 C++ 服务运行时。
+
+\textbf{关键动作与事实}：
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+  \item 07-14：建立 \code{git format-patch} 加 \code{scp} 的代码同步链路（162 条消息）。
+  \item 07-16：在 \p{rvc-backend/src/rvc/inferencer.cpp} 引入 libtorch 加载 \p{de_narrator.ts}。
+    档案可核对该步三项事实：PC 端 2026-07-16 01:50 生成该文件（115,541,161 字节，约 110\,MiB，PyTorch 2.1 JIT trace）；文件经 \code{scp} 传到板端 \p{~/models/}；板端代理收到 \code{torch::jit::load} 加 \code{run\_generator()} 的集成指令。
+    首次会话 3 条消息后中断，另开独立会话经 841 条消息完成接入。
+  \item 07-20：板端主部署（1,397 条消息）；同日提交首批推理引擎代码：\code{8bcaa1d}（HuBERT ONNX 导出）、\code{dd11544}（RMVPE 导出）、\code{b006fdb}（Generator 导出）、\code{5a33dc6}（ONNX Runtime 构建支持）、\code{b3feae7}（ONNX engine 与索引检索）。
+    随后调度只读子代理审计 UDP 18000 端口契约。
+\end{itemize}
+
+\textbf{关键突破}：实现 ALSA 预处理客户端与 UDP 18000 端口的 RVC 后端分离部署。
+TorchScript 先验证端侧加载可行，07-20 起 ONNX 成为落地实现：同日提交 HuBERT、RMVPE 与 Generator 导出脚本、ONNX Runtime 构建支持与 ONNX engine。
+
+\subsection{S2 批处理贯通：FILE\_RVC 与 Web 控制台（07-23 $\rightarrow$ 07-27）}
+
+\textbf{技术命题}：补齐离线文件转换流水线与浏览器控制前端。
+
+\textbf{关键动作与事实}：
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+  \item 设计 \code{state\_manager} 状态机与 FILE\_RVC 的 RESTful、WebSocket 协议接口（1,775 条消息）。\code{state\_manager} 首个提交为 07-14 的 \code{c6d9237}；07-23 的提交为前端原型 \code{73fadac} 与硬件状态面板 \code{531e87e}；07-27 的 \code{9a8a799}、\code{d0d3854} 补齐控制中心与部署说明。
+  \item 调度 6 个 explore 只读子代理，分别调查状态机转移、守护进程接口、前端组件、模型资产路径、Zero-Shot 批处理与 PipeWire 路由。
+  \item 07-27：排查 VSCode Remote 端口转发冲突（18080 与 5173），恢复开发环境（1,480 条消息）。
+\end{itemize}
+
+\textbf{关键突破}：打通上传、排队、转换、取消与下载的完整离线管线；前端由内联脚本升级为 Vite + TypeScript 单页架构。
+
+\subsection{S3 金标准确立与硬件攻坚（07-31 $\rightarrow$ 09-06）}
+
+\textbf{技术命题}：以数值基准替代主观试听解决音质劣化；解决 USB 声卡拓扑。
+
+\textbf{关键动作与事实}：
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+  \item 07-31：核查 Frank-nju 方案（PC 侧导出、板端只跑 C++ 与 ONNX）的完成度（25 轮）；搭建标准 RVC WebUI 作为金标准对比系统（78 轮）。
+  \item 08-23：分析 Jetson 直连 USB 四通道阵列麦克风方案（289 条消息）；08-28 会议纪要（204 条消息）固化三项决策：终止 RK 平台 NPU 迁移、确定演示形态、制定 RNNoise 调参方案；08-29 状态盘点（4,168 条消息）分解为待办工单。
+  \item 08-31：排查主观音质劣化（1,292 条消息）；09-01 要求 C++ 后端输出严格对齐金标准（259 条消息）。
+  \item 09-01：复盘代理引入的逻辑异常（1,905 条消息）；同期开展过度工程专项排查与代码移除影响分析（98 条与 188 条消息）。
+  \item 09-02、09-05：两次复现 \p{qiqi-zh-espeak-pinyin-mixed-python-reference.wav} 基准（7,461 条与 6,931 条消息），音质评价升级为与 Python 参考管线的逐样本均方误差比对。
+  \item 09-03：排查 TensorRT FP16 数值不稳定（277 条消息）；09-05 至 09-06 排查 \p{usb-gadget} UAC2 枚举失败与内核崩溃，主代理改核心 C 代码，子代理限定在离线回归测试范围。
+\end{itemize}
+
+\begin{sloppypar}
+\textbf{关键突破}：\p{rvc-golden/} 成为固定回归基准：33 个目录共 11\,GB，\p{golden_manifest.json} v4 锁定 \p{offline-audible}、\p{offline-deterministic}、\p{streaming-deterministic}、\p{streaming-quality-audible}、\p{streaming-quality-deterministic} 五项标准，并登记 2 组参考用例。
+USB 侧，09-06 的提交 \code{0acb212} 以 Tegra234 XUDC 不支持等时端点为由关闭 UAC2 gadget 路线，\p{usb-gadget/DECISION.md} 同时记录 09-05 的 panic、ramoops 与 DMA/completion 修复候选；关闭后先回退外接 USB 声卡，10-20 完成双端 \code{snd-aloop} 加 FunctionFS bulk 的用户态全双工桥（合并提交 \code{9e0799f}，10-21 14:30），30 分钟受压与拔插、重启恢复已验。
+\end{sloppypar}
+
+\subsection{S4 开发机接管：体检、压降与演示就绪（10-02 $\rightarrow$ 10-20）}
+
+\textbf{技术命题}：接管板端工程，完成规范治理、性能优化与演示就绪。
+
+\textbf{关键动作与事实}：
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+  \item 10-02：以一条启动指令接管工程：\code{SSH jetson-wg, and see \textasciitilde/Mozart for more details. Is there anything we can do? By the way there's a PR on github, help me check and merge.} 阶段切换不依赖人工交接文档。
+  \item P1 全量体检（10-02 $\rightarrow$ 10-05）：合并未清 PR，执行全管线冒烟测试（\p{reports/full-run-20261005}）。
+  \item P2 可靠性强化（10-06 $\rightarrow$ 10-07）：长文本连续转换、动态分块、过载诊断（\p{reports/reliability-20261006}）。
+  \item P3 规范清洗（10-08 $\rightarrow$ 10-13）：英文文档按 ASD-STE100 重构，执行代码库审计并部署流式补丁（\p{reports/repository-audit-20261008}、\p{reports/repository-audit-20261013}）。
+  \item P4 效率优化（10-13 $\rightarrow$ 10-16）：运行时优化与逐模块时延基线（\p{reports/efficiency-20261014}、\p{reports/feature-latency-20261014}）。变速上限在 10-16 由 1.05 提升至 1.15（\p{reports/tempo-limit-20261016}），在 10-20 再由 1.15 提升至 1.50（\p{reports/tempo-cap-20261020}）。
+  \item P5 交付评估（10-16）：交付指标评估，Pi 介入只读审查（\p{reports/delivery-20261016}）。
+  \item P6 演示固化（10-17 $\rightarrow$ 10-20）：修复播放缓冲积压，待播量峰值由 47.6\,s 降至 23.2\,s；联调 USB 用户态桥（\p{reports/backlog-fix-20261019}）。
+\end{itemize}
+
+\textbf{关键突破}：解决音频积压突发阻塞，系统由「核心功能可用」转为「完整演示可用」。
+
+\subsection{S5 架构重构与实机闭环（10-21 $\rightarrow$ 10-29）}
+
+\textbf{技术命题}：最终重构、模型选型收敛与局域网实机验收。
+
+\textbf{关键动作与事实}：
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+  \item P7 零样本与模型选型（10-21 $\rightarrow$ 10-23）：MeanVC2 不满足 8\,GB 共享显存的常驻条件，零样本模式保留为预留接口，按规范返回 HTTP 501；翻译模型经多版本对比确定为 0.8B 量化模型（\p{reports/translation-model-20261021}）。
+  \item P8 里程碑重构（10-24 $\rightarrow$ 10-25）：落实 M0–M5 六项：WOLA 谱降噪参考实现、预处理器单干重构、USB 桥协议双流（STREAM\_FAST）、快流专用端点、控制面二进制协议、dtln AI 分支（\p{reports/wola-m0-20261025} 至 \p{reports/m5-dtln-20261025}）；同期建立 e2e 与音频环路时延分析（\p{reports/e2e-latency-20261025}、\p{reports/loop-latency-20261025}）；ZCode 执行 28 条只读审查。
+  \item P9 全库审查与字幕链路（10-26 $\rightarrow$ 10-27）：Pi 深度通读全代码库（原始事件 5,749 条，清洗后保留 631 条）；归档字幕与翻译集成链路（\p{reports/subtitle-20261027}）。
+  \item P10 ASR 选型与归档（10-28 $\rightarrow$ 10-29）：确定 Zipformer 为转写引擎，修正前端演示控制，打通双路实时音频通道；导出备份包（\p{mozart-main-20261028.bundle}，222,804,811 字节，head \code{63479a3}，305 次提交）。该包冻结于 10-28 10:17，不含其后的 17 次提交。
+  \item 10-29 局域网实机验收：见 4.5 节。
+\end{itemize}
+
+\textbf{关键突破}：端侧时延稳态 88\,ms；10-29 验收给出 21 条播报与 6 项故障断言的实测结果。
+
+\section{核心技术决策与架构演进}
+
+\subsection{决策序列}
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}clYY@{}}
+\toprule
+\# & 决策 & 触发事实 & 结果 \\
+\midrule
+1 & 放弃 ZYNQ/FPGA & 底板未引出音频引脚至 BTB & 转向纯软件栈 \\
+2 & 预处理与推理进程解耦 & 设备独占与重型推理混杂易扩散故障 & UDP 18000 交换 PCM 帧，独立编译与热重启 \\
+3 & TorchScript $\rightarrow$ ONNX / TensorRT & TorchScript 模型 110\,MiB；方案比对显示 FP16 延迟更低 & ONNX 为交换载体，TensorRT 编译 Engine \\
+4 & 主观试听 $\rightarrow$ 金标准数值回归 & 听感受硬件与环境干扰，代理反复无效调参 & 逐样本残差比对作为验收依据 \\
+5 & 逐帧串行 $\rightarrow$ 滑动窗口分块 & 20\,ms 单帧频繁调用 GPU，抖动明显 & 2\,s 环形缓冲，稳态 88\,ms \\
+6 & 内核 UAC2 $\rightarrow$ 用户态全双工桥 & Tegra234 XUDC 无等时端点，09-05 触发 panic & \code{snd-aloop} 加 FunctionFS bulk \\
+7 & 需求表格 $\rightarrow$ 版本受控基准 & 指标分散在多份表格与口头交代 & 统一 \p{requirements.md} \\
+8 & 重型识别大模型 $\rightarrow$ 端侧组合 & 8\,GB 共享内存无法常驻 & Zipformer 加 Qwen3.5-0.8B 与 SSE \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{决策说明}
+
+\begin{enumerate}[leftmargin=1.8em,itemsep=0.3em]
+  \item \textbf{路线收敛（07-11 $\rightarrow$ 07-12）}：硬件重新布板周期不可控，纯软件路线可直接复用 RNNoise 与 ONNX/TensorRT 生态。
+  \item \textbf{架构拓扑（07-20）}：ALSA 采集降噪与深度学习推理拆为独立进程，模块可独立调试、异常热重启，并解耦后续声卡桥接入。
+  \item \textbf{推理引擎（07-16 $\rightarrow$ 07-31）}：07-16 的 TorchScript 路径验证了端侧加载；07-31 的方案比对记录 FP16 延迟低于 libtorch 加 CUDA Graph；07-20 起提交 ONNX 导出脚本与 ONNX Runtime 构建支持，实机端由 TensorRT 编译为 Engine。09-03 修复 FP16 下的溢出与下溢缺陷。
+  \item \textbf{质量范式（09-01 起）}：\p{rvc-golden/} 以标准 Python 脚本输出为绝对参考，对 RMVPE 基频、HuBERT 特征与滤波参数逐样本比对，阻断无依据的迭代。
+  \item \textbf{调度升级（08-29 设计，10-25 落地）}：2\,s 环形缓冲队列，配 RMVPE 1.28\,s 观测窗、HuBERT 0.2\,s 上下文窗与声码器 T=200 帧块，输出端 50\% 交叉淡化；实测首帧 320\,ms，稳态中位 88\,ms。
+  \item \textbf{音频通信（09-06 $\rightarrow$ 10-20）}：内核态 UAC2 gadget 在 09-05 触发 panic，且 Tegra234 XUDC 不支持等时端点；09-06 的 \code{0acb212} 关闭该路线，10-20 重构为用户态桥（\code{9e0799f}），30 分钟受压无故障。
+  \item \textbf{规格治理（10-24）}：把原始表格整理为单一受控基准，10-25 的时延复核与 10-28 的选型均以该文档验收。
+  \item \textbf{语言服务（10-27 $\rightarrow$ 10-28）}：识别端选 Zipformer，翻译端压到 0.8B，浏览器经 SSE 呈现双语流。
+\end{enumerate}
+
+\section{人机协同工程方法论}
+
+\subsection{工具分工与多轨独立审查}
+
+\begin{table}[H]\centering\footnotesize
+\begin{tabularx}{\textwidth}{@{}p{2.5cm} p{1.55cm} p{2.55cm} p{1.75cm} Y p{3.3cm}@{}}
+\toprule
+工具实体 & 运行环境 & 核心角色 & 接入周期 & 规模 & 留存资产 \\
+\midrule
+Codex 主线程 & 本地开发机 & 代码编写、系统重构、实验推进 & 10-02 $\rightarrow$ 10-29 & 8 条主干线程 / 16,761 条目 / 819.0M tokens & 57 个报告目录、327 次主干提交 \\
+Codex Guardian & 自动化管道 & 工具调用前置安全网 & 10-02 $\rightarrow$ 10-28 & 126 条审批线程（82 条含正文判定） & allow/risk 结构化记录 \\
+Reviewer 子代理 & 本地开发机 & 专项隔离复核 & 10-16 $\rightarrow$ 10-20 & 4 条主审查线程加 1 条架构审计线程 & 运行时、音频质量、交付边界审计 \\
+Pi Agent & 本地开发机 & 架构通读、规格对齐、实机测试 & 10-09 $\rightarrow$ 10-26 & 10 条主审查会话加 6 条交叉提及 & 剪裁建议、全库通读记录 \\
+ZCode & 本地开发机 & 交付前只读审查 & 10-24 $\rightarrow$ 10-27 & 4 条主交互加 28 条子代理审查 & 全量审查与差异对比报告 \\
+OpenCode & Jetson 实机 & 原型探索、驱动攻坚、部署 & 07-11 $\rightarrow$ 09-06 & 112 条会话 / 49,802 条消息 & 基础架构、金标准资产、驱动补丁 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+协同的关键在于不依赖生成代码的代理自我验证：代码生成后交由 Pi 或 ZCode 独立只读审查，交付前引入全量与增量审查，破坏性命令全部经 Guardian 审批。
+10-20 Pi 开设一条 3,085 消息的会话，完整回溯 Codex 的执行轨迹与决策逻辑。
+Git 记录含 8 个 author 标识：主标识三个合计 290 次提交，其余五个合计 63 次（Zhifei Li 31 次、never-die-cold 17 次、seeck 与 ShelfSeeck 12 次、CAC System 3 次）。
+
+\subsection{只读子代理的物理隔离}
+
+OpenCode 阶段共 69 个子代理：53 个 \code{@explore}、16 个 \code{@general}；其中 43 条首条指令施加了只读约束（\code{read-only}、\code{Research only, do not edit files}、\code{不要改文件}）。
+09-05 USB 内核排障期间，隔离落实到文件粒度：
+
+\begin{quote}\small
+Implement focused OFFLINE regression tests under /home/moyamryia/Mozart/usb-gadget/tests (manual edits apply\_patch). Main agent is editing u\_audio.c/tegra-xudc.c; DO NOT edit those or candidate. \dots
+
+—— 2026-09-05，离线回归测试子代理约束指令（原始记录见 02\_清洗会话档案 L64933）
+\end{quote}
+
+调查与背景分析可多子代理并行，写入权限收束于单一主代理：主代理改内核 C 代码，子代理并行审查调度逻辑，测试子代理独立编写回归测试，避免并发写入冲突。
+
+\subsection{金标准驱动的确定性质量闭环}
+
+代码生成模型容易产出「能运行但数值漂移」的实现。
+项目在本地持久化 \p{rvc-golden/}（33 个目录、11\,GB），对 RMVPE、HuBERT 与滤波环节的任何算子改动，要求与 Python 参考管线逐样本比对，差值收敛后才允许合入。
+\p{golden_manifest.json} v4 为五项标准记录资产、运行器、源码提交、输入参数与 SHA-256；确定性后端比对达到对齐相关 1.0 与 F0 偏差 0.0 音分。
+
+\subsection{针对代码膨胀的逆向清理}
+
+生成模型偏好过度封装、无用兜底与不可达分支。
+10-16 开发者下达只读审查指令：
+
+\begin{quote}\small
+服了，你只读扫一下 codex 写的文档代码 我被防御性编程气笑了
+
+—— 2026-10-16 09:54，指令原文（见 02\_清洗会话档案 L125866）
+\end{quote}
+
+随后由只读审查代理开展逆向清理，剔除多余抽象层与冗余分支，并把这些规则写入 \p{AGENTS.md} 与 \p{tools/writing_lint.py}，使后续提交在 CI 阶段即被拦截。
+
+\subsection{2026-10-29 局域网实机验收}
+
+\textbf{运行方式}：控制台经 \code{http://192.168.94.79:18888} 接入；验收套件在 Windows 主机工作目录建立，经 SSH 驱动板端执行。
+三组配置按顺序各跑同一份 30 秒真人录音（7 段语音加间隔静音），共用 Zipformer、SenseVoice、Qwen3.5-0.8B Q4\_K\_M、PocketTTS CPU int8。
+
+\textbf{配置与结果}：
+
+\begin{table}[H]\centering\scriptsize
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{@{}l l p{3.3cm} r r c r r c@{}}
+\toprule
+组别 & 代码 & 关键设置 & 页面英文中位 & 页面英文 P95 & 页面观测 & 声卡交付中位 & 声卡交付 P95 & 播报完成 \\
+\midrule
+A & \code{bcc4653} & 复核截止时间，同步投递 & 1491\,ms & 4127\,ms & 6/7 & 2655\,ms & 4105\,ms & 7/7 \\
+B & \code{1e9c54c} & 增加独立持久投递 & 1374\,ms & 1817\,ms & 7/7 & 2715\,ms & 4107\,ms & 7/7 \\
+C & \code{e4c2180} & 增加提前输出音频 & 1423\,ms & 1811\,ms & 7/7 & 1857\,ms & 2126\,ms & 7/7 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\footnotesize 起点为每段录音结束点，终点为首批经过播放变速处理的 PCM 送入 aplay 管道。}
+\end{table}
+
+每组 7 段输入生成 7 条最终字幕与 7 个播报任务，三组共 21 条播报全部完成。
+C 组相对 B 组声卡交付中位降低约 859\,ms（31.6\%）。
+P95 取排序下标 $\lfloor 0.95 \times (n-1) \rfloor$。
+
+\textbf{故障断言}（服务端 6 项全部通过）：
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}lY@{}}
+\toprule
+检查 & 结果 \\
+\midrule
+受理响应丢失后的重试 & 投递 2 次，最终确认同一任务 \\
+播放中重复请求 & 首次状态为 \code{playing}；3 个并发重复请求返回同一任务 ID \\
+完成后再次重复请求 & 返回原任务 ID；该 utterance 仅有 1 个任务 \\
+断线后的持久恢复 & 重新打开投递队列后提交成功，任务完成 \\
+停止后的迟到请求 & 返回 HTTP 409 \\
+停止与新请求 & \code{stop\_errors=0}，原任务 \code{cancelled}，之后的新请求正常播报 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{外部审查}：审查子代理 \code{review\_validation}（\code{agent\_type: code-reviewer}）共 4 轮，逐轮收敛后结论为 \code{APPROVE}。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{@{}lllY@{}}
+\toprule
+轮次 & 结论 & 问题数 & 首项内容 \\
+\midrule
+第 1 轮 & WARNING & 4（2 HIGH、2 MEDIUM） & \code{checks} 只保存，不参与最终失败判定 \\
+第 2 轮 & WARNING & 4（3 HIGH、1 MEDIUM） & 录音或覆盖率异常会跳过服务清理 \\
+第 3 轮 & WARNING & 3 MEDIUM & 声学候选被汇总为可听延迟 \\
+第 4 轮 & APPROVE & 1 MEDIUM & C 组混入普通播放起点计时 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+首轮两项 HIGH 分别是：故障验收失败仍会被标记为完成（\code{checks} 不参与最终判定），以及播放任务失败或漏播可通过排空检查。
+修正后 \code{checks} 参与整体判定，\p{acceptance.json} 记录三组 \code{passed: true}，故障断言失败即整体失败。
+质量门禁同样生效：\code{writing\_lint} 在 20:33 因 \p{alsa_capture.py} 的宽泛 \code{except BaseException} 返回 1，20:37 的复审记录返回 0；当前文件在本地复核为 0 项命中。
+
+\section{结论}
+
+\begin{enumerate}[leftmargin=1.8em,itemsep=0.3em]
+  \item \textbf{架构收敛有据}：四次关键技术选择（放弃 FPGA、进程解耦、ONNX/TensorRT、用户态 USB 桥）均由实测或硬件事实触发，并有提交与报告对应。
+  \item \textbf{质量可验证}：33 个金标准目录与五项锁定标准构成回归基线，算子改动以逐样本残差判定，收听后另行记录听感。
+  \item \textbf{协同可审计}：生成、审查、审批三权分离，四次外部审查与一次自动化门禁在交付前拦截了会把失败记为完成的缺陷。
+  \item \textbf{指标可复现}：首帧 320\,ms、稳态 88\,ms、声卡交付 1857\,ms 均标注输入、边界与证据文件。
+  \item \textbf{工程可交付}：主干 327 次提交、含 305 次提交的单文件备份包、57 个实验报告与 33 个金标准目录构成离线交付件。
+\end{enumerate}
+
+\end{document}

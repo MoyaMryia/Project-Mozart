@@ -2,6 +2,7 @@
 
 本手册说明如何在 Jetson Orin Nano Super 8GB 与 Linux 主机上部署演示链路。
 命令均在仓库根目录执行。
+代码仓库：https://github.com/MoyaMryia/Project-Mozart
 
 ## 1. 硬件与系统
 
