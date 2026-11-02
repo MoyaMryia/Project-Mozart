@@ -105,7 +105,8 @@ ssh -N -L 18080:127.0.0.1:18181 <jetson-host>
 ```
 
 随后在开发机运行 `npm --prefix frontend run dev`。
-已构建静态服务的参数以实际进程为准；示例 systemd 单元使用默认后端端口。
+示例单元 `systemd/mozart-console.service` 使用 `--host 0.0.0.0 --api 127.0.0.1:18181`。
+已构建静态服务的参数以实际进程为准。
 
 ## 文件转换与独立播报
 

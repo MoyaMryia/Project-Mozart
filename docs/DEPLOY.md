@@ -100,6 +100,17 @@ tools/bring-up.sh status
 tools/bring-up.sh stop
 ```
 
+演示时用 `tools/demo-up.sh`。它先执行 `bring-up.sh start`，再启动控制台与译文播报：
+
+```bash
+tools/demo-up.sh start
+tools/demo-up.sh status
+tools/demo-up.sh stop
+```
+
+`start` 等待字幕、翻译、播报就绪，然后启动控制台并启用播报会话。译文的克隆源为
+`~/models/reference/default.wav`，可用 `REFERENCE=` 指定。播报语言用 `SPEECH_LANGUAGE` 设置。
+
 输出中的关键项：
 
 | 项 | 期望 |
@@ -116,8 +127,18 @@ curl -s http://127.0.0.1:18181/api/status | head -c 200
 arecord -D plughw:CARD=Loopback,DEV=1,SUBDEV=0 -f S16_LE -r 48000 -c 2 -d 3 /tmp/rx.wav
 ```
 
-控制台地址为 `http://127.0.0.1:8080/`，由 `tools/serve-console.py` 提供。
+控制台由 `tools/serve-console.py` 提供。在 Jetson 上启动：
+
+```bash
+python3 tools/serve-console.py --host 0.0.0.0 --port 8080 --api 127.0.0.1:18181
+```
+
+在 Jetson 上访问 `http://127.0.0.1:8080/`。只在本机访问时，省略 `--host 0.0.0.0`。
+在其他主机访问时，用 `http://<jetson-ip>:8080/`，并保留 `--host 0.0.0.0`。
 字幕事件位于 `/api/subtitles`。
+
+`--api` 的端口与后端控制端口一致。统一实时入口使用 18181。端口表与独立后端
+的取值见[运行手册](RUNBOOK.md#控制台)。
 
 ## 8. 故障排查
 
@@ -128,6 +149,8 @@ arecord -D plughw:CARD=Loopback,DEV=1,SUBDEV=0 -f S16_LE -r 48000 -c 2 -d 3 /tmp
 | 术语表保存失败（HTTP 409） | 启动时未传术语表路径；默认写 `state/glossary.json`，检查该目录可写 |
 | 后端加载失败 | 检查 `rvc-backend/config.yaml` 的资产路径与模型元数据 |
 | 首帧无声 | 检查 `realtime_playout_delay_ms` 与播放设备 |
+| 浏览器打不开 `http://<jetson-ip>:8080/` | 控制台默认只监听 127.0.0.1；用 `--host 0.0.0.0` 重启 |
+| 页面打开但接口返回 502 | `--api` 端口与后端控制端口不一致；按第 7 节重启，日志打印实际转发地址 |
 
 ## 9. 停止
 

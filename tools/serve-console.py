@@ -122,7 +122,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.close_connection = True
             else:
                 # send_error 只能写 ASCII；原因写日志，响应体保持简短。
-                self.log_message('upstream failed: %s', error)
+                # 日志带上游地址：端口写错时只看 502 无法判断。
+                self.log_message('upstream %s:%s failed: %s', *self.upstream, error)
                 self.send_error(502, 'upstream unreachable')
         finally:
             connection.close()

@@ -7,7 +7,7 @@ Type=simple
 User=moyamryia
 Group=moyamryia
 WorkingDirectory=/home/moyamryia/Projects/Project-Mozart
-ExecStart=/usr/bin/python3 tools/serve-console.py --host 0.0.0.0 --port 8080 --api 127.0.0.1:18080
+ExecStart=/usr/bin/python3 tools/serve-console.py --host 0.0.0.0 --port 8080 --api 127.0.0.1:18181
 Restart=always
 RestartSec=3
 

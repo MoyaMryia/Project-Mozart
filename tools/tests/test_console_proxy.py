@@ -158,6 +158,38 @@ class ConsoleProxyTest(unittest.TestCase):
         self.assertNotIn(b'HTTP/1.0 502', body)
         self.assertNotIn(b'upstream unreachable', body)
 
+class UpstreamDownTest(unittest.TestCase):
+    """上游端口无人监听：返回 502，日志写明实际转发地址。"""
+
+    def test_502_log_names_upstream_address(self):
+        dead_port = free_port()
+        with tempfile.TemporaryDirectory(prefix='mozart-console-dist-') as dist:
+            Path(dist, 'index.html').write_text('<!doctype html><title>console</title>')
+            port = free_port()
+            with tempfile.TemporaryFile('w+b') as log:
+                process = subprocess.Popen(
+                    [sys.executable, str(SERVER), '--host', '127.0.0.1', '--port', str(port),
+                     '--dist', dist, '--api', f'127.0.0.1:{dead_port}'],
+                    stdout=subprocess.DEVNULL, stderr=log)
+                try:
+                    deadline = time.time()+10
+                    while time.time() < deadline:
+                        try:
+                            socket.create_connection(('127.0.0.1', port), timeout=0.2).close()
+                            break
+                        except OSError:
+                            if process.poll() is not None:
+                                self.skipTest('console server exited')
+                            time.sleep(0.05)
+                    status, body = request(port, '/api/status')
+                finally:
+                    process.terminate()
+                    process.wait(timeout=10)
+                log.seek(0)
+                text = log.read().decode('utf-8', 'replace')
+        self.assertIn('502', status)
+        self.assertIn(f'127.0.0.1:{dead_port}', text, '日志未写出实际转发地址')
+
 
 if __name__ == '__main__':
     unittest.main()
