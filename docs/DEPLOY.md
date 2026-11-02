@@ -164,4 +164,6 @@ sudo systemctl stop mozart-usb-audio
 
 - 配置：Jetson Orin Nano Super 8GB，JetPack 6；Linux 主机；`snd-aloop`。
 - 验证：脚本 `tools/bring-up.sh` 在 Jetson 上执行 `start`、`status`、`stop` 均成功，后端与字幕进入运行状态。
+- 验证：脚本 `tools/demo-up.sh` 在 Jetson 上执行 `start`、`status`、`stop` 均成功，
+  播报会话为启用，预处理输出为 `null`，控制台在 8080 端口响应。
 - 未验证：Windows 主机的完整部署流程。阻塞：本机只验证 Linux 主机与 Jetson。解除条件：在 Windows 主机执行 `usb-audio/windows-bridge.py` 全流程并记录结果。
