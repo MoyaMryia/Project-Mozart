@@ -11,6 +11,7 @@
 | [../TARGET.md](../TARGET.md) | 产品目标与验收范围 |
 | [../DESIGN.md](../DESIGN.md) | 架构与数据契约 |
 | [../TODO.md](../TODO.md) | 剩余问题与优先级 |
+| [HISTORY.md](HISTORY.md) | 2026-11-03 历史重写范围、体积与旧提交号映射 |
 
 ## 专题说明
 
