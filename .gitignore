@@ -41,7 +41,7 @@ rvc-backend/build_libtorch/
 # Large model assets (archived in ~/mozart-archive, not in git)
 /assets/
 /rvc-backend/assets/
-/rvc-backend/models/
+/rvc-backend/models/**
 
 # Runtime model assets are downloaded/provisioned outside Git.
 rvc-backend/assets/**/*.onnx
@@ -100,6 +100,8 @@ cmake-build-*/
 
 # node_dependencies
 node_modules/
+__pycache__/
+*.py[cod]
 
 # USB gadget experiment artifacts (evidence docs kept, binaries ignored)
 build-gpu/
@@ -118,7 +120,7 @@ usb-gadget/tests/__pycache__/
 
 # Speech campaign evidence stays local; dated Markdown reports are tracked.
 /test-audio.mp4
-/rvc-golden/*-20??????/
+/rvc-golden/*-20??????/**
 /rvc-golden/clone-tts/
 reports/**/*.wav
 reports/**/*.json
@@ -191,10 +193,10 @@ reports/**/__pycache__/
 !reports/flexible-tempo-20261015/playback-verification.log
 
 # 识别复核选择的离线调查脚本与对照记录。
-!rvc-golden/asr-selection-20261028/
+!rvc-golden/asr-selection-20261028/**
 
 # 1.30 倍上限的识别对照证据。
-!rvc-golden/tempo-cap-20261020/
+!rvc-golden/tempo-cap-20261020/**
 
 # 1.15 倍上限的小型对照证据。
 !reports/tempo-limit-20261016/quality-summary.json
@@ -218,3 +220,67 @@ state/glossary.json
 usb-audio/native-host/third_party/*
 !usb-audio/native-host/third_party/libusb.h
 !usb-audio/native-host/third_party/LICENSE.libusb
+
+# 报告正文实际引用的证据文件（与 md 同目录、按文件名引用），随报告一同入库。
+# 未经引用的 json/png/wav 仍由上面的规则排除在仓库外。
+!reports/control-races-20261029/browser-evidence.json
+!reports/control-races-20261029/generation-guard-mutation.json
+!reports/frontend-simplification-20261029/browser-evidence.json
+!reports/frontend-simplification-20261029/desktop-after.png
+!reports/frontend-simplification-20261029/inline-preview.png
+!reports/frontend-simplification-20261029/mobile-after.png
+!reports/frontend-simplification-20261029/preview-owner-mutation.json
+!reports/frontend-speech-card-20261029/browser-evidence.json
+!reports/frontend-speech-card-20261029/desktop-after.png
+!reports/frontend-speech-card-20261029/desktop-before.png
+!reports/frontend-speech-card-20261029/mobile-after.png
+!reports/frontend-speech-card-20261029/mobile-before.png
+!reports/m1-single-trunk-20261025/tts-battery.json
+!reports/m1-single-trunk-20261025/vad-comparison.json
+!reports/realtime-patches-20261008/boundary-results.json
+!reports/realtime-patches-20261008/continuity-results.json
+!reports/realtime-patches-20261008/coverage-results.json
+!reports/realtime-patches-20261008/early-audio-results.json
+!reports/realtime-patches-20261008/fallback-results.json
+!reports/realtime-patches-20261008/followup-results.json
+!reports/realtime-patches-20261008/gpu-results.json
+!reports/realtime-patches-20261008/results.json
+!reports/realtime-patches-20261008/semantic-gate-results.json
+!reports/realtime-patches-20261008/stable-clause-results.json
+!reports/speech-latency-20261029/historical-timeline.json
+!reports/xasr-streaming-20261029/summary.json
+
+# golden 探针脚本与结果摘要属于源码，不是运行时产物。
+!rvc-golden/realtime-patches-20261008/analyze_boundaries.py
+!rvc-golden/realtime-patches-20261008/analyze_clauses.py
+!rvc-golden/realtime-patches-20261008/analyze_early_audio.py
+!rvc-golden/realtime-patches-20261008/analyze_pocket_gpu.py
+!rvc-golden/realtime-patches-20261008/analyze_probe.py
+!rvc-golden/realtime-patches-20261008/build_pocket_cuda.sh
+!rvc-golden/realtime-patches-20261008/cuda_sm87_probe.cu
+!rvc-golden/realtime-patches-20261008/install_cuda_overlay.py
+!rvc-golden/realtime-patches-20261008/latency_breakdown.py
+!rvc-golden/realtime-patches-20261008/pocket-gpu-texts.json
+!rvc-golden/realtime-patches-20261008/pocket_gpu_probe.py
+!rvc-golden/realtime-patches-20261008/run_probe.py
+!rvc-golden/realtime-patches-20261008/semantic_gate_probe.py
+!rvc-golden/realtime-patches-20261008/translation_probe.py
+!rvc-golden/realtime-patches-20261008/unroll_pocket_flow.py
+
+# 金标准：manifest 与调查文档引用的后端输出。
+!rvc-golden/output/preprocessor-sample-mp4-first-30s-qiqi-zh-realtime-trt.wav
+!rvc-golden/output/qiqi-zh-espeak-pinyin-mixed-streaming-python-reference-audition.wav
+
+# 变声模型的元数据随仓库分发，权重仍由 assets 提供。
+!rvc-backend/models/de_narrator/
+!rvc-backend/models/de_narrator/config.json
+
+# 交付物（演示视频、答辩 PPT、报告 PDF）走离线交付，不入代码仓库。
+*.mp4
+!preprocessor/sample.mp4
+*.pptx
+*.pdf
+
+# 本地 Python 缓存
+__pycache__/
+*.py[cod]
